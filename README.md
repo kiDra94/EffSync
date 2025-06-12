@@ -1,6 +1,6 @@
 # Brainstorming Funktionsbeschreibung:
 
-## Managmentsystem das alle CURD-operations becherscht und mit verschiedenen Rollen umgehen kann (gruppen für Task, Master-Slave usw.)
+## Managmentsystem das alle CRUD-operations becherscht und mit verschiedenen Rollen umgehen kann (gruppen für Task, Master-Slave usw.)
 
 ## Terminisierung für Tasks beherscht:
 	Eintragen
@@ -11,7 +11,7 @@
 
 ## PDFs einbinden
 	Anhängen
-	Teielen
+	Teilen
 	Öffnen
 
 ## 
