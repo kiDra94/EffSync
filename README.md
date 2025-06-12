@@ -16,7 +16,7 @@
 
 ### Datenbank:
 - einfache Version --> json.db
-- komplexere Version --> sqlite3 oder eine andere (postgres?)
+- komplexere Version `-->` sqlite3 oder eine andere (postgres?)
 
 ### Zielgruppe:
 - für die einfache Version, Schüler/Studenten und Lehrer
