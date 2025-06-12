@@ -9,7 +9,7 @@
 - Deadline/Statusabfrage
 	- Ampelsystem
 
-### Featuers:
+### Features:
 - Kalenderansicht für das ganze Jahr, Monat, Woche, Tag
 - Task erzeugen automatisch TODOs die nicht gelöscht werden können bis sie nicht abgearbeitet werden (Leherer/Vorgesetzeter kann auch Task für Schüler/Studenten/Angestellter)
 - Personalisierung der Oberfläche ?
@@ -39,7 +39,7 @@
 2. Rahmen was die App genau machen kann. 
 	- Der Umfang
 	- Zielgruppe
-	- Featuers
+	- Features
 	- bzw. generelle Anforderungen
 
 3. Tools welche wir verwenden sollen, müssen, wollen
