@@ -9,6 +9,14 @@
 - Deadline/Statusabfrage
 	- Ampelsystem
 
+### Featuers:
+- Kalenderansicht für das ganze Jahr, Monat, Woche, Tag
+- Task erzeugen automatisch TODOs die nicht gelöscht werden können bis sie nicht abgearbeitet werden (Leherer/Vorgesetzeter kann auch Task für Schüler/Studenten/Angestellter)
+- Personalisierung der Oberfläche ?
+- Projecte erstellen, und Mitarbeiter/Mitglieder hinzufügen
+- CHAT mit Mitarbeitenden starten
+- emails bzw. fragen/tasks direkt an alle mitglieder schicken, oder eigene gruppe machen an wenn Benachrichtigungen gehen sollen
+
 ### PDFs einbinden:
 - Anhängen
 - Teilen
@@ -20,7 +28,7 @@
 
 ### Zielgruppe:
 - für die einfache Version, Schüler/Studenten und Lehrer
-- für die komplexere Version, Firmenorienteiert. Vorgesetzter kann task/tickets für untergeordente erzeugen. (Hauptunteschied zu einfach in der Komplexität)
+- für die komplexere Version, Firmenorienteiert. Vorgesetzter kann task/tickets für Angestellte erzeugen. (Hauptunteschied zu einfach in der Komplexität)
 
 ### Tools:
 - Vue.js
