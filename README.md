@@ -28,7 +28,7 @@
 
 ### Zielgruppe:
 - für die einfache Version, Schüler/Studenten und Lehrer
-- für die komplexere Version, Firmenorienteiert. Vorgesetzter kann task/tickets für Angestellte erzeugen. (Hauptunteschied zu einfach in der Komplexität)
+- für die komplexere Version, Firmenorienteiert. Vorgesetzter kann task/tickets für Angestellte erzeugen. (Hauptunteschied zu einfach in der Komplexität, DB muss die "Firemstruktur" abbilden)
 
 ### Tools:
 - Vue.js
@@ -47,3 +47,4 @@
 5. Über den Sommerferien, eventuell schon vorarbeiten, falls ja tipps was zum anschauen wäre bzw. was zum anlerenen gut ist
 6. Die PDFs die angehängt werden, sollen gespeichert werden. In der praxis ist es ja Serverseitig, wie wir das simulieren sollen. Einen Ordnere auf dem Laptop ??
 7. Besteht die möglichkeit das wir es auf einen Server laufenlassen können, bwz, ob es für die Diplomarbeit auf einen echten Server laufen muss.
+8. Wie mach man die Rechtewerwaltung in der DB, wer auf was zugriff hat, wer was weiterleiten und erzeugen kann usw. (Premissions)
