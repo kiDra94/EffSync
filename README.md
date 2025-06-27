@@ -25,7 +25,6 @@
 ### Datenbank:
 - einfache Version - json.db
 - komplexere Version - sqlite3 oder eine andere (postgres?)
-- https://bulme-my.sharepoint.com/:wb:/g/personal/ereny_micail_ms_bulme_at/Ecvgf1ltpHxInoDluEBSUVABcsdYiQofwrcgncf9a9IdMQ?e=v6FwbE
 
 ### Zielgruppe:
 - für die einfache Version, Schüler/Studenten und Lehrer
@@ -34,6 +33,10 @@
 ### Tools:
 - Vue.js
 - Datenbank auf einen extra server ?
+
+### Links
+- https://drive.google.com/drive/folders/1koGcU5nC9IoJOC8z_dFQ5cg5l6DJhoOW?usp=sharing
+- https://bulme-my.sharepoint.com/:wb:/g/personal/ereny_micail_ms_bulme_at/Ecvgf1ltpHxInoDluEBSUVABcsdYiQofwrcgncf9a9IdMQ?e=v6FwbE
 
 # Fragen an GU:
 1. In gitHub mit 2 branches und einer main arbeiten, oder soll einer in der main arbeiten und die zweite Person Fork, bzw. was die beste Option wäre
