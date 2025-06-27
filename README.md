@@ -25,6 +25,7 @@
 ### Datenbank:
 - einfache Version - json.db
 - komplexere Version - sqlite3 oder eine andere (postgres?)
+- https://bulme-my.sharepoint.com/:wb:/g/personal/ereny_micail_ms_bulme_at/Ecvgf1ltpHxInoDluEBSUVABcsdYiQofwrcgncf9a9IdMQ?e=v6FwbE
 
 ### Zielgruppe:
 - für die einfache Version, Schüler/Studenten und Lehrer
