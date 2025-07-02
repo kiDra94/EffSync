@@ -12,19 +12,28 @@
 ### Features:
 - Kalenderansicht für das ganze Jahr, Monat, Woche, Tag
 - Task erzeugen automatisch TODOs die nicht gelöscht werden können bis sie nicht abgearbeitet werden (Leherer/Vorgesetzeter kann auch Task für Schüler/Studenten/Angestellter)
-- Personalisierung der Oberfläche ?
-- Projecte erstellen, und Mitarbeiter/Mitglieder hinzufügen
-- CHAT mit Mitarbeitenden starten
+- Personalisierung der Oberfläche
+- Projekte erstellen, und Mitarbeiter/Mitglieder hinzufügen
+- LIVE-CHAT mit Mitarbeitenden starten
 - emails bzw. fragen/tasks direkt an alle mitglieder schicken, oder eigene gruppe machen an wenn Benachrichtigungen gehen sollen
-
-### PDFs einbinden:
-- Anhängen
-- Teilen
-- Öffnen
+- globale Suche für Task, Notes, Personen
+- in app Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
+- Email Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
+- Dashboard mit wichtigen Projektmetriken (Anzahl der Aufgaben, Fortschritt, überfällige Aufgaben).
+- Dashboard für Task übersicht (sortierbar nach Fälligkeitsdatum, Priorität usw.)
+- Registrierung und Login 
+- Profilverwaltung - möglichkeit Benutzername, Passwort, Email zu ändern
+- Tasks Templates erstellen können
+- Automatisierung der Tasks ermöglichen (in vorhinein festlegen wann er abgeschlossen ist)
+- Beim löschen von Task muss der User den Namen eingeben (wie bei GitHub, Typst)
+- PDFs einbinden:
+	- Anhängen
+	- Teilen
+	- Öffnen
 
 ### Datenbank:
 - einfache Version - json.db
-- komplexere Version - sqlite3 oder eine andere (postgres?)
+- komplexere Version - sqlite3 oder eine andere (postgres?), eventuell MongoDB (wegen hierarchischer Struktur der Tasks und Teachers)
 
 ### Zielgruppe:
 - für die einfache Version, Schüler/Studenten und Lehrer
