@@ -15,6 +15,7 @@ Bei Softwareprojekten kann es zu **Überschneidungen oder Gegensätzen** kommen.
    - Funktionale Anforderungen (z. B. Buttons mit bestimmten Funktionen)
    - Nicht-funktionale Anforderungen (z. B. intuitive Bedienung)
    - Machbarkeitsstudie
+   - Barrierefreiheit 
    - Warum wollen wir diese Software?
    - Was unterscheidet sie von anderen?
      → Unterscheidungsmerkmale → Pflichtenheft
