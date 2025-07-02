@@ -103,7 +103,7 @@ Schüler tendieren dazu, Seiten in der Arbeit wie folgt zu füllen:
 - **Sysadmin**
 
 
-# Workflows
+# [Workflows](https://workflowengine.io/documentation/workflowengine/)
 - **Abhängige Tasks** wie zu handeln
 - **Taskzuweisungen** mit `UND` / `ODER`  
   → Ein Task gilt als erledigt, wenn **eine oder mehrere Bedingungen erfüllt** sind.
@@ -117,7 +117,7 @@ Schüler tendieren dazu, Seiten in der Arbeit wie folgt zu füllen:
   - Oder sobald ich eingetragen bin (Arbeitsphasen-Abhängigkeit->sobald xy fertig ist)
 - Was passiert mit **WH-Tasks**---> Templates 
 - (Work in Progress)?
-- Issue Tracking suchen
+- [Issue Tracking suchen ](https://de.wikipedia.org/wiki/Issue-Tracking-System)
 - Gibt es ein vorhandenes **Issue-Tracking-System**?
 - **Abgrenzungen** finden für SW danach Alleinstellungsmerkmale?
 
