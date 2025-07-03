@@ -12,14 +12,18 @@ Bei Softwareprojekten kann es zu **Überschneidungen oder Gegensätzen** kommen.
 ## Inhaltsverzeichnis für die Diplomarbeit
 
 1. **Anforderungsanalyse**
-   - Funktionale Anforderungen (z. B. Buttons mit bestimmten Funktionen)
-   - Nicht-funktionale Anforderungen (z. B. intuitive Bedienung)
-   - Machbarkeitsstudie
-   - Warum wollen wir diese Software?
-   - Was unterscheidet sie von anderen?
-     → Unterscheidungsmerkmale → Pflichtenheft
+- Funktionale Anforderungen (z. B. Buttons mit bestimmten Funktionen)
+- Nicht-funktionale Anforderungen (z. B. intuitive Bedienung)
+- Machbarkeitsstudie
+- Warum wollen wir diese Software?
+- Was unterscheidet sie von anderen?
+→ Unterscheidungsmerkmale → Pflichtenheft
 
-2. **Entwurfserstellung (ERD)**
+2. **Entwurfserstellung (ERD) Frontend Layout**
+- https://dbdiagram.io/d/685e55b0f413ba3508290b48
+- Task Frontend exampels
+  - https://dribbble.com/tags/task-dashboard
+  - https://www.freepik.com/premium-vector/eps-task-management-dashboard-website-templtae-full-editable-vector-light-mode_60243597.htm
 
 3. **Entwurfsimplementierung (CreateTable)**
 
