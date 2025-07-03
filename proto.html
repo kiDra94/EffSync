@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HR Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f5f6fa;
+      color: #333;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 80px;
+      height: 100vh;
+      background-color: #23234c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+    }
+
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .header {
+      margin-left: 80px;
+      background-color: white;
+      padding: 10px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .header input[type="search"] {
+      padding: 5px 10px;
+      width: 300px;
+    }
+
+    .main {
+      margin-left: 80px;
+      padding: 30px;
+    }
+
+    .services-title {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .grid-top, .grid-bottom {
+      display: grid;
+      gap: 20px;
+    }
+
+    .grid-top {
+      grid-template-columns: repeat(4, 1fr);
+      margin-bottom: 40px;
+    }
+
+    .grid-bottom {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      text-align: center;
+      position: relative;
+    }
+
+    .card .icon {
+      font-size: 30px;
+      margin-bottom: 10px;
+      background: #dcdcff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card.notification::after {
+      content: attr(data-count);
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: red;
+      color: white;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 50%;
+    }
+
+    .card.home { background-color: #a89df1; }
+    .card.calendar { background-color: #fcd367; }
+    .card.files { background-color: #53b3f0; }
+    .card.companies { background-color: #e29ced; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <a href="#">🏠</a>
+    <a href="#">🗓️</a>
+    <a href="#">📂</a>
+    <a href="#">🏢</a>
+    <a href="#">📋</a>
+    <a href="#">❓</a>
+  </div>
+
+  <div class="header">
+    <div><strong>HR Acme</strong></div>
+    <input type="search" placeholder="Search...">
+    <div>👤</div>
+  </div>
+
+  <div class="main">
+    <div class="services-title">Services</div>
+    <p>Lorem ipsum dolor sit amet</p>
+
+    <div class="grid-top">
+      <div class="card home notification" data-count="14">
+        <div class="icon">🏠</div>
+        <div>Home</div>
+      </div>
+      <div class="card calendar notification" data-count="5">
+        <div class="icon">🗓️</div>
+        <div>Calendar</div>
+      </div>
+      <div class="card files notification" data-count="21">
+        <div class="icon">📂</div>
+        <div>Files</div>
+      </div>
+      <div class="card companies notification" data-count="17">
+        <div class="icon">🏢</div>
+        <div>Companies</div>
+      </div>
+    </div>
+
+    <div class="grid-bottom">
+      <div class="card"><div class="icon">📋</div><div>Tasks</div></div>
+      <div class="card"><div class="icon">❓</div><div>FAQs</div></div>
+      <div class="card"><div class="icon">🎂</div><div>Birthdays</div></div>
+      <div class="card"><div class="icon">⭐</div><div>Favorites</div></div>
+      <div class="card"><div class="icon">🎉</div><div>Company parties</div></div>
+      <div class="card"><div class="icon">📅</div><div>Schedule</div></div>
+      <div class="card"><div class="icon">🏁</div><div>Goals</div></div>
+      <div class="card"><div class="icon">🕒</div><div>Timelogs</div></div>
+      <div class="card"><div class="icon">📁</div><div>Folders</div></div>
+      <div class="card"><div class="icon">🧑</div><div>Employees</div></div>
+      <div class="card"><div class="icon">🔔</div><div>Notifications</div></div>
+      <div class="card"><div class="icon">📰</div><div>News</div></div>
+    </div>
+  </div>
+</body>
+</html>
