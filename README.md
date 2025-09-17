@@ -10,7 +10,6 @@
 	- Ampelsystem
 
 ### Features:
-#### Fronend:
 - Kalenderansicht für das ganze Jahr, Monat, Woche, Tag
 - Personalisierung der Oberfläche
 - Dashboard mit wichtigen Projektmetriken (Anzahl der Aufgaben, Fortschritt, überfällige Aufgaben).
