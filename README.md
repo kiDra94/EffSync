@@ -10,26 +10,27 @@
 	- Ampelsystem
 
 ### Features:
+#### Fronend:
 - Kalenderansicht für das ganze Jahr, Monat, Woche, Tag
-- Task erzeugen automatisch TODOs die nicht gelöscht werden können bis sie nicht abgearbeitet werden (Leherer/Vorgesetzeter kann auch Task für Schüler/Studenten/Angestellter)
 - Personalisierung der Oberfläche
-- Projekte erstellen, und Mitarbeiter/Mitglieder hinzufügen
-- LIVE-CHAT mit Mitarbeitenden starten
-- emails bzw. fragen/tasks direkt an alle mitglieder schicken, oder eigene gruppe machen an wenn Benachrichtigungen gehen sollen
-- globale Suche für Task, Notes, Personen
-- in app Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
-- Email Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
 - Dashboard mit wichtigen Projektmetriken (Anzahl der Aufgaben, Fortschritt, überfällige Aufgaben).
 - Dashboard für Task übersicht (sortierbar nach Fälligkeitsdatum, Priorität usw.)
 - Registrierung und Login 
+- Tasks erstellen, und Mitarbeiter/Mitglieder hinzufügen
+- LIVE-CHAT mit Mitarbeitenden starten
+- globale Suche für Task, Notes, Personen
+- in app Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
+- emails bzw. fragen/tasks direkt an alle mitglieder schicken, oder eigene gruppe machen an wenn Benachrichtigungen gehen sollen
 - Profilverwaltung - möglichkeit Benutzername, Passwort, Email zu ändern
 - Tasks Templates erstellen können
-- Automatisierung der Tasks ermöglichen (in vorhinein festlegen wann er abgeschlossen ist)
 - Beim löschen von Task muss der User den Namen eingeben (wie bei GitHub, Typst)
 - PDFs einbinden:
 	- Anhängen
 	- Teilen
 	- Öffnen
+- Task erzeugen automatisch TODOs die nicht gelöscht werden können bis sie nicht abgearbeitet werden (Leherer/Vorgesetzeter kann auch Task für Schüler/Studenten/Angestellter)
+- Email Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
+- Automatisierung der Tasks ermöglichen (in vorhinein festlegen wann er abgeschlossen ist)
 
 ### Datenbank:
 - einfache Version - json.db
