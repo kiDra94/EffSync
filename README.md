@@ -10,12 +10,23 @@
 	- Ampelsystem
 
 ### Features:
-- Kalenderansicht für das ganze Jahr, Monat, Woche, Tag
-- Personalisierung der Oberfläche
-- Dashboard mit wichtigen Projektmetriken (Anzahl der Aufgaben, Fortschritt, überfällige Aufgaben).
-- Dashboard für Task übersicht (sortierbar nach Fälligkeitsdatum, Priorität usw.)
+- Kalenderansicht für das ganze Jahr/Woche (Ereny), Woche/Tag(Drazen)
+- Personalisierung der Oberfläche - User kann selber bestimmen welche Eelemente/Features er sieht (Drazen)
+- Dashboard mit wichtigen Projektmetriken
+	- Anzahl der Aufgaben
+	- Fortschritt (entweder in % oder planed/in-progress/complete/overdue)
+	- überfällige Aufgaben
+- Dashboard für Task übersicht 
+	- Task kreieren/löschen/update usw.
+	- Subtasks erstellen
+	- sortierbar nach Fälligkeitsdatum
+	- sortierbar nach Priorität (Ampelsystem)
 - Registrierung und Login 
-- Tasks erstellen, und Mitarbeiter/Mitglieder hinzufügen
+- Tasks erstellen
+- Mitarbeiter/Mitglieder hinzufügen
+- Event nach ablauf der Fälligkeit
+- Subtasks erstellen
+
 - LIVE-CHAT mit Mitarbeitenden starten
 - globale Suche für Task, Notes, Personen
 - in app Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
