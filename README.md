@@ -39,6 +39,8 @@
 	- Anhängen
 	- Teilen
 	- Öffnen
+	- Downloaden/Speichern
+- Begrenzung von Dateigröße auf 25MB
 - Task erzeugen automatisch TODOs die nicht gelöscht werden können bis sie nicht abgearbeitet werden (Leherer/Vorgesetzeter kann auch Task für Schüler/Studenten/Angestellter)
 - Email Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
 - Automatisierung der Tasks ermöglichen (in vorhinein festlegen wann er abgeschlossen ist)
@@ -46,6 +48,8 @@
 - Unitestsergebnisse automatisch als Fortschritt hinterlegen
 - Den User ermöglichen festzustellen wie viel Task erledigt werden müssen (Bsp. Codechalleng für eine Klasse die ersten 3 die 100% erreichen bekommen einen Plus, der Task schließt sich automatisch wenn diese eingereicht sind)
 - logische Verknüpfungen von Subtasks (AND, OR, XOR) für automatisiertes "Erledigen" vom Parenttask
+- Security für Users 2 Faktorenautentifizierung
+- Restliche Security muss noch gelernt werden!
 
 ### Datenbank:
 - einfache Version zum Testen der Funktionalität - json.db
@@ -60,25 +64,22 @@
 - python - Backend
 - PostgreSQL - Datenbank
 - Overleaf (LateX) - Diplomarbeit
+- Github
 - Deployen auf einen Server JA/NEIN
 - Genaues Abklären von Speichern von Chatverlauf und Dateien (BLUB)
-
-### Links
-- https://drive.google.com/drive/folders/1koGcU5nC9IoJOC8z_dFQ5cg5l6DJhoOW?usp=sharing
-- https://bulme-my.sharepoint.com/:wb:/g/personal/ereny_micail_ms_bulme_at/Ecvgf1ltpHxInoDluEBSUVABcsdYiQofwrcgncf9a9IdMQ?e=v6FwbE
-- https://dbdiagram.io/d/685e55b0f413ba3508290b48
+- App soll Platformunabhängig funktionieren
 
 # Fragen an GU:
-1. In gitHub mit 2 branches und einer main arbeiten, oder soll einer in der main arbeiten und die zweite Person Fork, bzw. was die beste Option wäre
-2. Rahmen was die App genau machen kann. 
-	- Der Umfang
-	- Zielgruppe
-	- Features
-	- bzw. generelle Anforderungen
+1. Feedback über Tools
+2. Besteht die möglichkeit das wir es auf einen Server laufenlassen können, bwz, ob es für die Diplomarbeit auf einen echten Server laufen muss.
+3. Rechteverwaltung und Security
 
-3. Tools welche wir verwenden sollen, müssen, wollen
-4. Diplomarbeit (das schrifftliche), jeder nur einene/seinen Teil machen
-5. Über den Sommerferien, eventuell schon vorarbeiten, falls ja tipps was zum anschauen wäre bzw. was zum anlerenen gut ist
-6. Die PDFs die angehängt werden, sollen gespeichert werden. In der praxis ist es ja Serverseitig, wie wir das simulieren sollen. Einen Ordnere auf dem Laptop ??
-7. Besteht die möglichkeit das wir es auf einen Server laufenlassen können, bwz, ob es für die Diplomarbeit auf einen echten Server laufen muss.
-8. Wie mach man die Rechtewerwaltung in der DB, wer auf was zugriff hat, wer was weiterleiten und erzeugen kann usw. (Premissions)
+# Links
+- [GoogleDrive](https://drive.google.com/drive/folders/1koGcU5nC9IoJOC8z_dFQ5cg5l6DJhoOW?usp=sharing)
+- [Whiteboard](https://bulme-my.sharepoint.com/:wb:/g/personal/ereny_micail_ms_bulme_at/Ecvgf1ltpHxInoDluEBSUVABcsdYiQofwrcgncf9a9IdMQ?e=v6FwbE)
+- [ERD](https://dbdiagram.io/d/685e55b0f413ba3508290b48)
+## Andere Taskmanagmentsysteme APP
+- [Smartsheet](https://www.smartsheet.com/s/task-software?s=370&c=49&m=1200&utm_medium=affiliate&utm_source=dpm&utm_campaign=dg-cpc-task-management-software)
+- [Quickbase](https://www.quickbase.com/solutions/project-management-software?utm_source=MVF&utm_medium=Affiliate-Marketing&utm_campaign=ualeeZI3SGljic8QKuHL&aclid=ualeeZI3SGljic8QKuHL&apid=OVFBUw&asid=NO_SESSION_COOKIE&aref=https%3A%2F%2Fappwiki.nl&atemp=default)
+- [Jira](https://www.atlassian.com/de/software/jira)
+
