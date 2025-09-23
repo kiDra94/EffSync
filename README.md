@@ -12,6 +12,7 @@
 ### Features:
 - Kalenderansicht für das ganze Jahr/Woche (Ereny), Woche/Tag(Drazen)
 - Personalisierung der Oberfläche - User kann selber bestimmen welche Eelemente/Features er sieht (Drazen)
+- Start Dashboard (sihe proto.html)
 - Dashboard mit wichtigen Projektmetriken
 	- Anzahl der Aufgaben
 	- Fortschritt (entweder in % oder planed/in-progress/complete/overdue)
@@ -19,15 +20,15 @@
 - Dashboard für Task übersicht 
 	- Task kreieren/löschen/update usw.
 	- Subtasks erstellen
-	- sortierbar nach Fälligkeitsdatum
-	- sortierbar nach Priorität (Ampelsystem)
+	- sortierbar nach Fälligkeitsdatum/sortierbar nach Priorität (Ampelsystem)
+	- Button/Dropdown für Abgelaufene Tasks Event 
 - Registrierung und Login 
 - Tasks erstellen
 - Mitarbeiter/Mitglieder hinzufügen
 - Event nach ablauf der Fälligkeit
 - Subtasks erstellen
-
-- LIVE-CHAT mit Mitarbeitenden starten
+- Event für abgelaufene Tasks (benachritigung per Email, Popup, Abgabe sperren bzw. Verlängern (nur der Taskerzeuger) usw.)
+- LIVE-CHAT mit Mitarbeitendern (private und groupe)
 - globale Suche für Task, Notes, Personen
 - in app Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
 - emails bzw. fragen/tasks direkt an alle mitglieder schicken, oder eigene gruppe machen an wenn Benachrichtigungen gehen sollen
@@ -41,18 +42,26 @@
 - Task erzeugen automatisch TODOs die nicht gelöscht werden können bis sie nicht abgearbeitet werden (Leherer/Vorgesetzeter kann auch Task für Schüler/Studenten/Angestellter)
 - Email Benachrichtigung bei Änderung, Kommentaren, Fälligkeitserinnerungen
 - Automatisierung der Tasks ermöglichen (in vorhinein festlegen wann er abgeschlossen ist)
+- Tasks in required und optional Teilein
+- Unitestsergebnisse automatisch als Fortschritt hinterlegen
+- Den User ermöglichen festzustellen wie viel Task erledigt werden müssen (Bsp. Codechalleng für eine Klasse die ersten 3 die 100% erreichen bekommen einen Plus, der Task schließt sich automatisch wenn diese eingereicht sind)
+- logische Verknüpfungen von Subtasks (AND, OR, XOR) für automatisiertes "Erledigen" vom Parenttask
 
 ### Datenbank:
-- einfache Version - json.db
-- komplexere Version - sqlite3 oder eine andere (postgres?), eventuell MongoDB (wegen hierarchischer Struktur der Tasks und Teachers)
+- einfache Version zum Testen der Funktionalität - json.db
+- komplexere Version - PostgreSQL
 
 ### Zielgruppe:
 - für die einfache Version, Schüler/Studenten und Lehrer
 - für die komplexere Version, Firmenorienteiert. Vorgesetzter kann task/tickets für Angestellte erzeugen. (Hauptunteschied zu einfach in der Komplexität, DB muss die "Firemstruktur" abbilden)
 
 ### Tools:
-- Vue.js
-- Datenbank auf einen extra server ?
+- Vue.js - Frontend
+- python - Backend
+- PostgreSQL - Datenbank
+- Overleaf (LateX) - Diplomarbeit
+- Deployen auf einen Server JA/NEIN
+- Genaues Abklären von Speichern von Chatverlauf und Dateien (BLUB)
 
 ### Links
 - https://drive.google.com/drive/folders/1koGcU5nC9IoJOC8z_dFQ5cg5l6DJhoOW?usp=sharing
