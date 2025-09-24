@@ -1,6 +1,7 @@
-# Brainstorming Funktionsbeschreibung:
+# WorkSync: Taskmanagementsystem 
 
-## Managmentsystem das alle CRUD-operations beherscht und mit verschiedenen Rollen umgehen kann (gruppen für Task, Master-Slave usw.)
+Software, die Einzelpersonen und Teams hilft, Aufgaben zu planen, zu organisieren, zu delegieren, zu verfolgen und abzuschließen, um Projekte und Arbeitsabläufe effizienter zu gestalten. 
+
 
 ### Terminisierung für Tasks beherscht:
 - Eintragen
