@@ -2,6 +2,9 @@
 
 Software, die Einzelpersonen und Teams hilft, Aufgaben zu planen, zu organisieren, zu delegieren, zu verfolgen und abzuschließen, um Projekte und Arbeitsabläufe effizienter zu gestalten. 
 
+### TODOs
+
+- ABA Portal ausfühllen
 
 ### Terminisierung für Tasks beherscht:
 - Eintragen
