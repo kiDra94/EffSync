@@ -84,6 +84,7 @@ Software, die Einzelpersonen und Teams hilft, Aufgaben zu planen, zu organisiere
 - [GoogleDrive](https://drive.google.com/drive/folders/1koGcU5nC9IoJOC8z_dFQ5cg5l6DJhoOW?usp=sharing)
 - [Whiteboard](https://bulme-my.sharepoint.com/:wb:/g/personal/ereny_micail_ms_bulme_at/Ecvgf1ltpHxInoDluEBSUVABcsdYiQofwrcgncf9a9IdMQ?e=v6FwbE)
 - [ERD](https://dbdiagram.io/d/685e55b0f413ba3508290b48)
+- [overleaf](https://www.overleaf.com/read/scspjhkggcjr#4dc8a0)
 ## Andere Taskmanagmentsysteme APP
 - [Smartsheet](https://www.smartsheet.com/s/task-software?s=370&c=49&m=1200&utm_medium=affiliate&utm_source=dpm&utm_campaign=dg-cpc-task-management-software)
 - [Quickbase](https://www.quickbase.com/solutions/project-management-software?utm_source=MVF&utm_medium=Affiliate-Marketing&utm_campaign=ualeeZI3SGljic8QKuHL&aclid=ualeeZI3SGljic8QKuHL&apid=OVFBUw&asid=NO_SESSION_COOKIE&aref=https%3A%2F%2Fappwiki.nl&atemp=default)
