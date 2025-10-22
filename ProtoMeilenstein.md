@@ -1,4 +1,4 @@
-# Meilensteinplan für Diplomarbeit WorkSync bis 1. Mai 2026
+# Meilensteinplan für Diplomarbeit EffSync bis 1. Mai 2026
 
 ## Phase 1: Kickoff & Analyse (Okt 2025)
 **Ziele:** Umfang präzisieren, Scope einfrieren, Rollen klären, Risikoliste anlegen.  
