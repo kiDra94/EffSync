@@ -74,7 +74,7 @@ Sessions/Tokens; Passworthashing; Rate Limiting.
 - Events/Reminders konfigurieren; individuelle Sichtbarkeit (Personalization).  
 
 
-## Phase 9: Sicherheit & Compliance (Apr 2026 – KW 14/15)
+## Phase 7: Sicherheit & Compliance (März 2026 – KW 11/12)
 **Ziele:** Absicherung, Datenschutz, Rechteverwaltung final.  
 **Unterpunkte:**  
 - 2FA-Implementierung (TOTP/App-basiert); Recovery-Codes.  
@@ -84,16 +84,16 @@ Sessions/Tokens; Passworthashing; Rate Limiting.
 - Datenaufbewahrung: Task-Lebensdauer nach Abschluss (z. B. 1–2 Jahre) konfigurierbar.  
 - Backup-/Restore-Strategie; Monitoring/Health-Checks.  
 
-## Phase 10: Tests, Qualität, Migration (Apr 2026 – KW 15/16)
+## Phase 8: Tests, Qualität, Migration (März 2026 – KW 13/14)
 **Ziele:** Stabilität, messbare Qualität, PostgreSQL-Umstieg.  
 **Unterpunkte:**  
 - Testpyramide: Unit, API, E2E; Coverage-Ziele; Performance-Benchmarks (Suche, Kalender).  
-- Usability-Tests mit Pilotnutzern (Schüler/Studierende; Firmen-Use-Case Light).  
+- Usability-Tests Auswertung: mit Pilotnutzern (Schüler/Studierende; Firmen-Use-Case Light).  
 - Fehlerbudget und Bug-Triage; Release-Kriterien festlegen.  
 - Migration von json.db auf PostgreSQL; Daten-Migrationstests und Rollback-Plan.  
 - Accessibility-Checks (WCAG Basics), Internationalisierung Grundstruktur.  
 
-## Phase 11: Deployment & Doku (bis 25. Apr 2026)
+## Phase 9: Deployment & Doku (bis 05. Apr 2026)
 **Ziele:** Vorführbares System, vollständige Unterlagen.  
 **Unterpunkte:**  
 - Deployment-Option klären: Schulserver/Cloud/VPS; CI/CD Pipeline; Env-Config pro Umgebung.  
@@ -101,7 +101,7 @@ Sessions/Tokens; Passworthashing; Rate Limiting.
 - Benutzerhandbuch: Kurzanleitung, Rollen, häufige Workflows, Troubleshooting.  
 - Entwicklerdoku: Architektur, ERD, API (OpenAPI), Coding-Guidelines, Git-Workflow.  
 
-## Phase 12: Abnahme & Präsentation (26. Apr – 1. Mai 2026)
+## Phase 10: Abnahme & Präsentation (06. Apr – 10. Apr 2026)
 **Ziele:** Freeze, Review, Demo, Abgabe.  
 **Unterpunkte:**  
 - Feature-Freeze, finaler Regressionstest, offene Punkte dokumentieren.  
@@ -117,6 +117,6 @@ Sessions/Tokens; Passworthashing; Rate Limiting.
 - Performance: Indizes, Pagination, Caching-Strategien für Suche/Kalender.  
 
 ## Verantwortlichkeiten (gemäß euren Notizen)  
-**Ereny:** Kalender Jahr/Woche, Start-Dashboard, Registrierung/Login, Events nach Fälligkeit (Frontend), In-App-Notifications, E-Mail-Events, Datei-Features, 2FA, Security-Doku.  
+**Ereny:** Kalender Jahr/Woche, Start-Dashboard, Registrierung/Login, Events nach Fälligkeit (Frontend), In-App-Notifications, E-Mail-Events, Datei-Features, 2FA.  
 **Drazen:** Kalender Monat/Tag, Tasks/Subtasks/Logik, globale Suche, Chat, Templates, Delete-Bestätigung, Automatisierungen, Unit-Test-Fortschritt, DB-Optimierungen.  
-**Gemeinsam:** Architektur/ERD/API, PostgreSQL-Umstieg, Rollen-/Rechte, Deployment, Tests, Diplomarbeit.  
+**Gemeinsam:** Architektur/ERD/API, PostgreSQL-Umstieg, Rollen-/Rechte, Deployment, Security-Doku, Tests, Diplomarbeit.  
