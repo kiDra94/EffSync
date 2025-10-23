@@ -1,4 +1,4 @@
-# Meilensteinplan für Diplomarbeit EffSync bis 1. Mai 2026
+# Meilensteinplan für Diplomarbeit EffSync bis 10. April 2026
 
 ## Phase 1: Kickoff & Analyse (Okt 2025)
 **Ziele:** Umfang präzisieren, Scope einfrieren, Rollen klären, Risikoliste anlegen.  
@@ -117,7 +117,7 @@ Sessions/Tokens; Passworthashing; Rate Limiting.
 - Datenschutz: Minimierung personenbezogener Daten, klare Retention, Rechteauskunft.  
 - Performance: Indizes, Pagination, Caching-Strategien für Suche/Kalender.  
 
-## Verantwortlichkeiten (gemäß euren Notizen)  
+## Verantwortlichkeiten
 **Ereny:** Kalender Jahr/Woche, Start-Dashboard, Registrierung/Login, Events nach Fälligkeit (Frontend), In-App-Notifications, E-Mail-Events, Datei-Features, 2FA.  
 **Drazen:** Kalender Monat/Tag, Tasks/Subtasks/Logik, globale Suche, Chat, Templates, Delete-Bestätigung, Automatisierungen, Unit-Test-Fortschritt, DB-Optimierungen.  
 **Gemeinsam:** Architektur/ERD/API, PostgreSQL-Umstieg, Rollen-/Rechte, Deployment, Security-Doku, Tests, Diplomarbeit.  
