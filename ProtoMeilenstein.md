@@ -39,14 +39,15 @@
 - Datenbank: Start mit json.db.
 - Subtasks inkl. logischer Verknüpfungen AND/OR/XOR für automatisches Erledigen des Parent.  
 
-## Phase 4: Backend Fundamentals (Jan 2026)
-**Ziele:** Persistente Daten, Basis-Security, erfolgreiche Datenbankmigration  
+## Phase 4: Backend Fundamentals & Usability-Tests (Jan 2026)
+**Ziele:** Persistente Daten, Basis-Security, erfolgreiche Datenbankmigration, start von Usability-Tests
 **Unterpunkte:**  
 - Projekt-Setup Backend: Struktur, Settings, Logging, Env-Handling, Migrations.  
 - Authentifizierung: Registrierung, Login.   
 - Datenbank: PostgreSQL-Schema parallel vorbereiten; Migrationsskripte.
 Sessions/Tokens; Passworthashing; Rate Limiting.
 - Datei-Anhänge: Upload/Download/Öffnen; 25MB-Size-Limit; MIME-Checks.  
+- Usability-Tests: mit Pilotnutzern (Schüler/Studierende und Lehrer).
 
 ## Phase 5a: Zusammenarbeit & Benachrichtigungen (Feb 2026)
 **Ziele:** Teamwork nutzbar, Echtzeit-Feedback, Ereignisse.  
@@ -88,7 +89,7 @@ Sessions/Tokens; Passworthashing; Rate Limiting.
 **Ziele:** Stabilität, messbare Qualität, PostgreSQL-Umstieg.  
 **Unterpunkte:**  
 - Testpyramide: Unit, API, E2E; Coverage-Ziele; Performance-Benchmarks (Suche, Kalender).  
-- Usability-Tests Auswertung: mit Pilotnutzern (Schüler/Studierende; Firmen-Use-Case Light).  
+- Usability-Tests: Auswertung.  
 - Fehlerbudget und Bug-Triage; Release-Kriterien festlegen.  
 - Migration von json.db auf PostgreSQL; Daten-Migrationstests und Rollback-Plan.  
 - Accessibility-Checks (WCAG Basics), Internationalisierung Grundstruktur.  
