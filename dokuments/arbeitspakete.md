@@ -10,7 +10,7 @@ Die Arbeitspakete sind direkt aus den `Unterpunkten` Ihrer Meilensteine abgeleit
 | :--- | :--- | :--- |
 | AP 1.1 | Finalisierung Projekt-Scope (Ziele, Pflicht/Kür, Abgrenzungen) | Gemeinsam |
 | AP 1.2 | Vorbereitung & Durchführung Betreuer-Gespräch (Hosting, Retention, Rollen) | Gemeinsam |
-| AP 1.3 | Grobarchitektur-Entscheidungen festhalten (Vue3, Python-Backend, PostgreSQL) | Gemeinsam |
+| AP 1.3 | Grobarchitektur-Entscheidungen festhalten (Vue3, JS-Backend, PostgreSQL) | Gemeinsam |
 | AP 1.4 | Sicherheitsziele definieren (2FA, Auth-Flow, Policy, Datenaufbewahrung) | Gemeinsam |
 | AP 1.5 | Projektplan, Kommunikationsregeln & Git-Strategie finalisieren | Gemeinsam |
 
