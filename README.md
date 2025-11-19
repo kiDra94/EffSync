@@ -1,4 +1,4 @@
-# EffSync: Entwicklung und Implementierung eines webbasierten Taskmanagementsystems zur effizienten Organisation und Zusammenarbeit in Teams
+# EffSync: webbasiertes Taskmanagementsystem zur effizienten Organisation und Zusammenarbeit in Teams
 
 Software, die Einzelpersonen und Teams hilft, Aufgaben zu planen, zu organisieren, zu delegieren, zu verfolgen und abzuschließen, um Projekte und Arbeitsabläufe effizienter zu gestalten.
 
