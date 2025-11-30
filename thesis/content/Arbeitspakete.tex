@@ -1,0 +1,85 @@
+\chapter{API-Endpunkte (Zusammenfassung)}
+\label{ch:api-endpoints}
+
+Die folgende Übersicht stellt die vorgeschlagenen RESTful API-Endpunkte dar, basierend auf dem detaillierten Entity-Relationship-Diagramm (ERD) des EffSync-Systems.
+
+\section{Authentifizierungsstatus}
+
+Alle Endpunkte, die als \textbf{Geschützt} markiert sind, erfordern einen gültigen \textbf{JWT Bearer Token} im \texttt{Authorization}-Header der HTTP-Anfrage.
+
+\subsection{Detaillierte Übersicht}
+
+% Wir verwenden die longtable-Umgebung im Hochformat (Portrait).
+% Die Spaltenbreiten werden reduziert, um in die Textbreite zu passen.
+% Gesamte Breite der Spalten ist ca. 16.5cm (Textbreite).
+\centering
+\begingroup
+\setlength{\tabcolsep}{4pt} % Spaltenabstand verringern
+\small % Schriftgröße etwas verkleinern
+
+\begin{longtable}{|>{\raggedright\arraybackslash}p{3.5cm}|>{\raggedright\arraybackslash}p{1.5cm}|>{\raggedright\arraybackslash}p{3.5cm}|>{\raggedright\arraybackslash}p{2cm}|>{\raggedright\arraybackslash}p{4.5cm}|}
+\hline
+\textbf{Endpunkt (Pfad)} & \textbf{Methode} & \textbf{Beschreibung} & \textbf{Auth-Status} & \textbf{Betroffene Entität(en)} \\
+\hline
+\endhead
+\hline
+\multicolumn{5}{|r|}{Fortsetzung auf der nächsten Seite} \\
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+% 1. Authentifizierung & Benutzer
+\multicolumn{5}{|l|}{\textbf{1. Authentifizierung und Benutzerverwaltung}} \\
+\hline
+\texttt{/api/auth/register} & POST & Registriert neuen User. & Öffentlich & \texttt{users} \\
+\texttt{/api/auth/login} & POST & Meldet User an, gibt \textbf{JWT Token} zurück. & Öffentlich & \texttt{users} \\
+\texttt{/api/users/profile} & GET/PUT & Ruft eigenes Profil ab / Aktualisiert. & Geschützt & \texttt{users}, \texttt{user\_roles} \\
+\texttt{/api/users/search} & GET & Sucht nach Benutzern (\texttt{?q=...}). & Geschützt & \texttt{users} \\
+\texttt{/api/users/\{id\}} & GET & Ruft öffentliche User-Details ab. & Geschützt & \texttt{users} \\
+\hline
+
+% 2. Task-Management
+\multicolumn{5}{|l|}{\textbf{2. Task-Management (Tasks, Subtasks, Kommentare)}} \\
+\hline
+\texttt{/api/tasks} & POST & Erstellt neuen \textbf{Task}. & Geschützt & \texttt{tasks} \\
+\texttt{/api/tasks} & GET & Ruft Tasks ab (Filter/Sortierung). & Geschützt & \texttt{tasks}, \texttt{priorities} \\
+\texttt{/api/tasks/\{id\}} & GET & Ruft Task-Details ab. & Geschützt & \texttt{tasks} \\
+\texttt{/api/tasks/\{id\}} & PUT/DELETE & Aktualisiert / Löscht Task. & Geschützt & \texttt{tasks} \\
+\texttt{/api/tasks/\{parent\_id\}/subtasks} & POST & Erstellt einen \textbf{Subtask}. & Geschützt & \texttt{tasks} \\
+\texttt{/api/tasks/\{id\}/comments} & GET/POST & Verwaltet Kommentare. & Geschützt & \texttt{task\_comments} \\
+\texttt{/api/tasks/\{id\}/activity} & GET & Ruft Aktivitätsprotokoll ab. & Geschützt & \texttt{task\_activity\_log} \\
+\texttt{/api/templates} & GET/POST & Verwaltet Task \textbf{Templates}. & Geschützt & \texttt{task\_templates} \\
+\hline
+
+% 3. Dokumente & Dateien
+\multicolumn{5}{|l|}{\textbf{3. Dokumente und Dateien}} \\
+\hline
+\texttt{/api/documents} & POST & Lädt \textbf{Dokument} hoch (25MB Limit). & Geschützt & \texttt{documents} \\
+\texttt{/api/tasks/\{task\_id\}/documents} & GET & Ruft Task-Dokumente ab. & Geschützt & \texttt{documents} \\
+\texttt{/api/documents/\{id\}} & GET & **Download** des Dokuments. & Geschützt & \texttt{documents} \\
+\texttt{/api/documents/\{id\}/users} & POST & Teilt das Dokument mit User. & Geschützt & \texttt{document\_users} \\
+\hline
+
+% 4. Chat & Benachrichtigungen & Notizen
+\multicolumn{5}{|l|}{\textbf{4. Chat, Benachrichtigungen und Notizen}} \\
+\hline
+\texttt{/api/chat/rooms/\{id\}/messages} & GET/POST & Ruft Chat-Historie ab / Sendet Nachricht. & Geschützt & \texttt{chat\_messages} \\
+\texttt{/api/notifications} & GET & Ruft alle \textbf{Benachrichtigungen} ab. & Geschützt & \texttt{notifications} \\
+\texttt{/api/notifications/\{id\}} & PUT & Markiert Benachrichtigung als gelesen. & Geschützt & \texttt{notifications} \\
+\texttt{/api/notes} & GET/POST & Verwaltet \textbf{Notizen}. & Geschützt & \texttt{notes} \\
+\texttt{/api/notes/\{id\}/share} & POST & Teilt eine Notiz mit anderem User. & Geschützt & \texttt{notes\_users} \\
+\hline
+
+% 5. Scheduals & Struktur
+\multicolumn{5}{|l|}{\textbf{5. Stundenpläne (Scheduals) und Organisationstruktur}} \\
+\hline
+\texttt{/api/scheduals/me} & GET & Ruft \textbf{eigenen Stundenplan} ab (Schüler/Lehrer). & Geschützt & \texttt{scheduals}, \texttt{students}, \texttt{teachers} \\
+\texttt{/api/classes/\{id\}/schedual} & GET & Ruft Stundenplan einer \textbf{Klasse} ab. & Geschützt & \texttt{classes}, \texttt{scheduals} \\
+\texttt{/api/scheduals/\{id\}} & PUT/DELETE & Verwaltet Stundenplan-Eintrag (Admin/Lehrer). & Geschützt & \texttt{scheduals}, \texttt{scheduals\_subjects} \\
+\texttt{/api/classes} & GET/POST & Verwaltet \textbf{Klassen}. & Geschützt & \texttt{classes} \\
+\texttt{/api/departments} & GET/POST & Verwaltet \textbf{Abteilungen}. & Geschützt & \texttt{departments} \\
+\hline
+
+\end{longtable}
+\endgroup
