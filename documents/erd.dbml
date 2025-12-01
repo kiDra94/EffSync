@@ -81,12 +81,20 @@ Table permissions {
   updated_at datetime
 }
 
+Enum task_status {
+  "TODO"
+  "IN_PROGRESS"
+  "IN_REVIEW"
+  "ON_HOLD"
+  "COMPLETED"
+}
+
 Table tasks {
   task_id integer [primary key]
   parent_task_id integer [ref: > tasks.task_id]
   title varchar
   description text
-  status varchar
+  status task_status [default: "TODO"]
   progress integer
   deadline datetime
   created_by integer [ref: > users.user_id]
