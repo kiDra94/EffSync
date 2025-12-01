@@ -1,0 +1,236 @@
+Table notes {
+  note_id integer [primary key]
+  title varchar
+  created_by integer [ref: > users.user_id]
+  description text
+  subject_id integer [ref: > subjects.subject_id]
+  priority_id integer [ref: > priorities.priority_id]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table documents {
+  document_id integer [primary key]
+  name varchar
+  file_path varchar
+  added_by integer [ref: > users.user_id]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table document_shares {
+  document_id integer [pk, ref: > documents.document_id]
+  user_id integer [pk, ref: > users.user_id]
+  created_at datetime [default: `now()`, note: "When was the document shared?"]
+}
+
+Table chat_rooms {
+  room_id integer [primary key]
+  name varchar
+  task_id integer [ref: > tasks.task_id, null]
+  class_id integer [ref: > classes.class_id, null]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table chat_room_users {
+  room_id integer [pk, ref: > chat_rooms.room_id]
+  user_id integer [pk, ref: > users.user_id]
+  joined_at datetime [default: `now()`]
+}
+
+Table chat_messages {
+  message_id integer [primary key]
+  room_id integer [ref: > chat_rooms.room_id]
+  user_id integer [ref: > users.user_id]
+  message text
+  file_path varchar
+  created_at datetime [default: `now()`]
+  updated_at datetime [note: "If message was edited"]
+}
+
+Table priorities {
+  priority_id integer [primary key]
+  name text
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table schedules {
+  schedule_id integer [primary key]
+  name varchar
+  valid_from date
+  valid_to date
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table lesson_slots {
+  slot_id integer [primary key]
+  schedule_id integer [ref: > schedules.schedule_id]
+  subject_id integer [ref: > subjects.subject_id]
+  teacher_id integer [ref: > teachers.teacher_id]
+  day_of_week integer [note: "1=Monday, 2=Tuesday, ... 6=Saturday"]
+  lesson_number integer [note: "1=1. Einheit (07:40), 2=2. Einheit..."]
+  start_time time [note: "e.g. 07:45"]
+  end_time time [note: "e.g. 08:35"]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table subjects {
+  subject_id integer [primary key]
+  name varchar
+  short_name varchar
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table permissions {
+  permission_id integer [primary key]
+  name varchar
+  created_at datetime   [default: `now()`]
+  updated_at datetime
+}
+
+Enum task_status {
+  "TODO"
+  "IN_PROGRESS"
+  "IN_REVIEW"
+  "ON_HOLD"
+  "COMPLETED"
+}
+
+Table tasks {
+  task_id integer [primary key]
+  parent_task_id integer [ref: > tasks.task_id]
+  title varchar
+  description text
+  status task_status [default: "TODO"]
+  progress integer
+  deadline datetime
+  created_by integer [ref: > users.user_id]
+  assigned_to integer [ref: > users.user_id]
+  template_id integer [ref: > task_templates.template_id]
+  priority_id integer [ref: > priorities.priority_id]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table task_templates {
+  template_id integer [primary key]
+  name varchar
+  description text
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table task_comments {
+  comment_id integer [primary key]
+  task_id integer [ref: > tasks.task_id]
+  user_id integer [ref: > users.user_id]
+  text text
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table task_activity_log {
+  log_id integer [primary key]
+  task_id integer [ref: > tasks.task_id]
+  user_id integer [ref: > users.user_id]
+  action varchar
+  timestamp datetime [default: `now()`]
+}
+
+Table users {
+  user_id integer [primary key]
+  firstname varchar
+  lastname varchar
+  email varchar
+  username varchar
+  password_hash varchar
+  permission_id integer [ref: > permissions.permission_id]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table notes_users {
+  note_id integer [pk, ref: > notes.note_id]
+  user_id integer [pk, ref: > users.user_id]
+  created_at datetime [default: `now()`, note: "When was this shared?"]
+}
+
+Table task_documents {
+  task_id integer [ref: > tasks.task_id]
+  document_id integer [ref: > documents.document_id]
+  created_at datetime [default: `now()`, note: "When was this attached?"]
+  indexes {
+    (task_id, document_id) [pk]
+  }
+}
+
+Table note_documents {
+  note_id integer [ref: > notes.note_id]
+  document_id integer [ref: > documents.document_id]
+  created_at datetime [default: `now()`, note: "When was this attached?"]
+  indexes {
+    (note_id, document_id) [pk]
+  }
+}
+
+Table students {
+  student_id integer [pk, ref: > users.user_id]
+  class_id integer [ref: > classes.class_id]
+  updated_at datetime [note: "Last class change"]
+}
+
+Table teachers {
+  teacher_id integer [pk, ref: > users.user_id]
+  supervisor_id integer [ref: > users.user_id]
+  updated_at datetime
+}
+
+Table departments {
+  department_id integer [primary key]
+  name varchar
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table classes {
+  class_id integer [primary key]
+  name varchar
+  department_id integer [ref: > departments.department_id]
+  head_teacher_id integer [ref: > teachers.teacher_id]
+  schedule_id integer [ref: > schedules.schedule_id]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table classes_teachers {
+  class_id integer [pk, ref: > classes.class_id]
+  teacher_id integer [pk, ref: > teachers.teacher_id]
+  assigned_at datetime [default: `now()`]
+}
+
+Table notifications {
+  notification_id integer [primary key]
+  user_id integer [ref: > users.user_id]
+  type varchar
+  text varchar
+  created_at datetime [default: `now()`]
+  is_read boolean
+}
+
+Table roles {
+  role_id integer [primary key]
+  name varchar
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table user_roles {
+  user_id integer [pk, ref: > users.user_id]
+  role_id integer [pk, ref: > roles.role_id]
+  assigned_at datetime [default: `now()`]
+}
