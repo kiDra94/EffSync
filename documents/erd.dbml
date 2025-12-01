@@ -86,12 +86,6 @@ Table subjects {
   updated_at datetime
 }
 
-Table schedules_subjects {
-  schedule_id integer [pk, ref: > schedules.schedule_id]
-  subject_id integer [pk, ref: > subjects.subject_id]
-  created_at datetime
-}
-
 Table permissions {
   permission_id integer [primary key]
   name varchar
