@@ -22,7 +22,15 @@ Table document_users {
 Table chat_rooms {
   room_id integer [primary key]
   name varchar
-  task_id integer [ref: > tasks.task_id]
+  task_id integer [ref: > tasks.task_id, null]
+  class_id integer [ref: > classes.class_id, null]
+  created_at datetime
+}
+
+Table chat_room_users {
+  room_id integer [pk, ref: > chat_rooms.room_id]
+  user_id integer [pk, ref: > users.user_id]
+  joined_at datetime
 }
 
 Table chat_messages {
