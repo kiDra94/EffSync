@@ -52,7 +52,7 @@ Table chat_messages {
 Table priorities {
   priority_id integer [primary key]
   name text
-  created_at datetime
+  created_at datetime [default: `now()`]
   updated_at datetime
 }
 
@@ -89,7 +89,7 @@ Table subjects {
 Table permissions {
   permission_id integer [primary key]
   name varchar
-  created_at datetime
+  created_at datetime   [default: `now()`]
   updated_at datetime
 }
 
@@ -121,7 +121,7 @@ Table task_templates {
   template_id integer [primary key]
   name varchar
   description text
-  created_at datetime
+  created_at datetime [default: `now()`]
   updated_at datetime
 }
 
@@ -157,13 +157,13 @@ Table users {
 Table notes_users {
   note_id integer [pk, ref: > notes.note_id]
   user_id integer [pk, ref: > users.user_id]
-  created_at datetime [note: "When was this shared?"]
+  created_at datetime [default: `now()`, note: "When was this shared?"]
 }
 
 Table task_documents {
   task_id integer [ref: > tasks.task_id]
   document_id integer [ref: > documents.document_id]
-  created_at datetime [note: "When was this attached?"]
+  created_at datetime [default: `now()`, note: "When was this attached?"]
   indexes {
     (task_id, document_id) [pk]
   }
@@ -172,7 +172,7 @@ Table task_documents {
 Table note_documents {
   note_id integer [ref: > notes.note_id]
   document_id integer [ref: > documents.document_id]
-  created_at datetime [note: "When was this attached?"]
+  created_at datetime [default: `now()`, note: "When was this attached?"]
   indexes {
     (note_id, document_id) [pk]
   }
@@ -193,7 +193,7 @@ Table teachers {
 Table departments {
   department_id integer [primary key]
   name varchar
-  created_at datetime
+  created_at datetime [default: `now()`]
   updated_at datetime
 }
 
@@ -203,7 +203,7 @@ Table classes {
   department_id integer [ref: > departments.department_id]
   head_teacher_id integer [ref: > teachers.teacher_id]
   schedule_id integer [ref: > schedules.schedule_id]
-  created_at datetime
+  created_at datetime [default: `now()`]
   updated_at datetime
 }
 
@@ -225,7 +225,7 @@ Table notifications {
 Table roles {
   role_id integer [primary key]
   name varchar
-  created_at datetime
+  created_at datetime [default: `now()`]
   updated_at datetime
 }
 
