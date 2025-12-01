@@ -18,10 +18,10 @@ Table documents {
   updated_at datetime
 }
 
-Table document_users {
+Table document_shares {
   document_id integer [pk, ref: > documents.document_id]
   user_id integer [pk, ref: > users.user_id]
-  created_at datetime [note: "When was this shared?"]
+  created_at datetime [default: `now()`, note: "When was the document shared?"]
 }
 
 Table chat_rooms {
