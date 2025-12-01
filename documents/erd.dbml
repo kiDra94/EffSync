@@ -64,7 +64,9 @@ Table schedules {
 
 Table subjects {
   subject_id integer [primary key]
-  created_at datetime
+  name varchar
+  short_name varchar
+  created_at datetime [default: `now()`]
   updated_at datetime
 }
 
