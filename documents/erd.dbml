@@ -58,7 +58,23 @@ Table priorities {
 
 Table schedules {
   schedule_id integer [primary key]
-  created_at datetime
+  name varchar
+  valid_from datetime
+  valid_to datetime
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
+Table lesson_slots {
+  slot_id integer [primary key]
+  schedule_id integer [ref: > schedules.schedule_id]
+  subject_id integer [ref: > subjects.subject_id]
+  teacher_id integer [ref: > teachers.teacher_id]
+  day_of_week integer [note: "1=Monday, 2=Tuesday, ... 6=Saturday"]
+  lesson_number integer [note: "1=1. Einheit (07:40), 2=2. Einheit..."]
+  start_time time [note: "e.g. 07:45"]
+  end_time time [note: "e.g. 08:35"]
+  created_at datetime [default: `now()`]
   updated_at datetime
 }
 
