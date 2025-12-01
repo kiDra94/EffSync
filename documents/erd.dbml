@@ -187,7 +187,6 @@ Table students {
 Table teachers {
   teacher_id integer [pk, ref: > users.user_id]
   supervisor_id integer [ref: > users.user_id]
-  schedule_id integer [ref: > schedules.schedule_id]
   updated_at datetime
 }
 
