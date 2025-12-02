@@ -4,9 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "frontend": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "mockend": "npx json-server mockdb.json",
+    "dev": "concurrently 'npm run mockend' 'npm run frontend'"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
