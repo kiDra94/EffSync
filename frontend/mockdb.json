@@ -1,0 +1,6 @@
+{
+    "tasks": [
+      { "id": 1, "title": "Diplomarbeit starten", "status": "in-progress" },
+      { "id": 2, "title": "Kaffee trinken", "status": "open" }
+    ]
+  }
