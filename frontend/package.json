@@ -1,0 +1,29 @@
+{
+  "name": "effsync",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "frontend": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "mockend": "npx json-server mockdb.json",
+    "dev": "concurrently 'npm run mockend' 'npm run frontend'"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.8",
+    "axios": "^1.13.2",
+    "bootstrap": "^5.3.8",
+    "pinia": "^3.0.4",
+    "sass": "^1.94.2",
+    "uuid": "^13.0.0",
+    "vue": "^3.5.24",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "json-server": "^1.0.0-beta.3",
+    "vite": "^7.2.4"
+  }
+}
