@@ -17,7 +17,7 @@ Diese Branches bilden die Basis und bleiben dauerhaft bestehen.
 
 ## 2. Feature--Task-Branches (Funktionsentwicklung)
 
-Dies ist der wichtigste Branch-Typ für Ihre tägliche Arbeit. Jeder Entwickler erstellt einen neuen Branch von `develop`, sobald er mit einer neuen Aufgabe beginnt.
+Dies ist der wichtigste Branch-Typ für die tägliche Arbeit. Jeder Entwickler erstellt einen neuen Branch von `develop`, sobald er mit einer neuen Aufgabe beginnt.
 
 ### Naming Convention:
 
@@ -25,19 +25,20 @@ Dies ist der wichtigste Branch-Typ für Ihre tägliche Arbeit. Jeder Entwickler 
 
 | Teil | Beispiel | Erklärung |
 | :--- | :--- | :--- |
-| **`feature-`** | `feature-` | Standard-Präfix für neue Funktionen. |
-| **`<thema>`** | `frontend` oder `backend` oder `user` | Bezieht sich auf Ihre Haupt-Themenstellung (z.B. Frontendentwicklung, Backendentwicklung, Userverwaltung). |
+| **`feature`** | `feature-` | Standard-Präfix für neue Funktionen. |
+| **`issue number`** | `X-` | Die automatisch generierte Nummer des GitHub Issues, auf das sich dieser Branch bezieht. |
+| **`<thema>`** | `frontend-` oder `backend-` oder `user-` | Bezieht sich auf Ihre Haupt-Themenstellung (z.B. Frontendentwicklung, Backendentwicklung, Userverwaltung). |
 | **`<kurzbeschreibung>`**| `calendar-view` oder `2fa-implementation`| Eine kurze, prägnante Beschreibung der spezifischen Aufgabe (verwenden Sie hier am besten englische Begriffe für Konsistenz). |
 
 ### Beispiele für Branch-Namen:
 
 | Themengebiet | Name (Ereny) | Name (Drazen) |
 | :--- | :--- | :--- |
-| **Userverwaltung** | `feature-user-login-registration` | (entfällt) |
-| **Frontendentwicklung** | `feature-frontend-start-dashboard` | `feature-frontend-tasks-create` |
-| **Backendentwicklung** | `feature-backend-event-logic-mail` | `feature-backend-live-chat-logic` |
-| **Dokument Management** | `feature-document-pdf-handling` | (entfällt) |
-| **Sicherheit** | `feature-security-two-factor-auth` | (entfällt) |
+| **Userverwaltung** | `feature-6-user-login-registration` | (entfällt) |
+| **Frontendentwicklung** | `feature-17-frontend-start-dashboard` | `feature-28-frontend-tasks-create` |
+| **Backendentwicklung** | `feature-39-backend-event-logic-mail` | `feature-40-backend-live-chat-logic` |
+| **Dokument Management** | `feature-61-document-pdf-handling` | (entfällt) |
+| **Sicherheit** | `feature-70-security-two-factor-auth` | (entfällt) |
 
 ---
 
@@ -47,11 +48,15 @@ Diese Branches werden nur bei Bedarf verwendet.
 
 | Branch Name | Zweck | Naming Convention |
 | :--- | :--- | :--- |
-| **`bugfix-`** | Für schnelle Fehlerbehebungen auf dem `develop`-Branch. | **`bugfix-<fehler-beschreibung>`** (z.B. `bugfix-task-sorting-issue`) |
+| **`bugfix-`** | Für schnelle Fehlerbehebungen auf dem `develop`-Branch. | **`bugfix-issue-number-<fehler-beschreibung>`** (z.B. `bugfix-task-sorting-issue`) |
 | **`release-`** | Vorbereitung einer **offiziellen Abgabe oder Präsentation**. Hier finden letzte Tests und Dokumentationen statt. Wird von `develop` erstellt und in `main` und `develop` zurückgemergt. | **`release-phase-4-abnahme`** oder **`release-v1.0-final`** |
-| **`hotfix-`** | Für **kritische Fehlerbehebungen** direkt auf dem `main`-Branch, die sofort ausgerollt werden müssen. | **`hotfix-<kritischer-fehler>`** (z.B. `hotfix-login-bug-prod`) |
+| **`hotfix-`** | Für **kritische Fehlerbehebungen** direkt auf dem `main`-Branch, die sofort ausgerollt werden müssen. | **`hotfix-issue-number-<kritischer-fehler>`** (z.B. `hotfix-login-bug-prod`) |
 
 ---
+
+## 4. Naming Convention für Commits
+
+TODO
 
 ## 💡 Best Practices für die Umsetzung
 

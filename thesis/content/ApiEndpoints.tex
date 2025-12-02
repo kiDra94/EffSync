@@ -1,0 +1,51 @@
+\chapter{API-Endpunkte}
+\label{ch:api-endpoints}
+
+\section{Authentifizierungsstatus}
+
+Alle Endpunkte, die als \textbf{Geschützt} markiert sind, erfordern einen gültigen \textbf{Token} im \texttt{Authorization}-Header.
+
+% Die Umgebung 'landscape' dreht die Seite ins Querformat (benötigt pdflscape).
+\begin{landscape}
+\subsection{Detaillierte Übersicht}
+
+\centering
+\begingroup
+% Verkleinerung der Schriftgröße und Spaltenabstand für die hohe Informationsdichte
+\small 
+\setlength{\tabcolsep}{4pt} 
+
+% Longtable mit optimierten Breiten für Querformat
+\begin{longtable}{|>{\raggedright\arraybackslash}p{2.2cm}|>{\raggedright\arraybackslash}p{4.2cm}|>{\centering\arraybackslash}p{2.8cm}|>{\raggedright\arraybackslash}p{7cm}|>{\centering\arraybackslash}p{2.5cm}|>{\raggedright\arraybackslash}p{4cm}|}
+\hline
+\textbf{Instanz} & \textbf{Endpunkte} & \textbf{Methode} & \textbf{Beschreibung} & \textbf{AuthStatus} & \textbf{BetroffeneTabellen} \\
+\hline
+\endhead
+
+\hline
+\multicolumn{6}{|r|}{Fortsetzung auf der nächsten Seite} \\
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+% --- GENERIERUNG DER TABELLENZEILEN AUS DER CSV ---
+\csvreader[
+    head to column names, 
+    % Fügt \midrule nach jeder Zeile hinzu
+    late after line=\\ \midrule,
+]{content/csv/api.csv}{}% 
+{ % Ausgabe für jede Zeile
+    \Instanz &
+    % seqsplit zwingt den Umbruch langer Pfade, \texttt schützt Sonderzeichen
+    \seqsplit{\texttt{\Endpunkte}} & 
+    \Methode &
+    \Beschreibung &
+    \AuthStatus &
+    \BetroffeneTabellen \\
+}
+% --- ENDE DER CSV-GENERIERUNG ---
+\bottomrule \\ % Fügt die abschließende Linie hinzu
+\end{longtable}
+\endgroup
+\end{landscape}
