@@ -98,10 +98,8 @@ Table subjects {
 }
 
 Table permissions {
-  permission_id integer [primary key]
+  permission_id integer [primary key, note: "soll bitweise gehen damit wir die permissions mit bitmasken machen"]
   name varchar
-  created_at datetime   [default: `now()`]
-  updated_at datetime
 }
 
 Enum task_status {
@@ -160,7 +158,6 @@ Table users {
   email varchar
   username varchar
   password_hash varchar
-  permission_id integer [ref: > permissions.permission_id]
   created_at datetime [default: `now()`]
   updated_at datetime
 }
@@ -236,12 +233,22 @@ Table notifications {
 Table roles {
   role_id integer [primary key]
   name varchar
-  created_at datetime [default: `now()`]
-  updated_at datetime
 }
 
 Table user_roles {
   user_id integer [pk, ref: > users.user_id]
   role_id integer [pk, ref: > roles.role_id]
+  assigned_at datetime [default: `now()`]
+}
+
+Table user_permissions {
+  user_id integer [pk, ref: > users.user_id]
+  permission_id integer [pk, ref: > roles.role_id]
+  assigned_at datetime [default: `now()`]
+}
+
+Table roles_permissions {
+  roles_id integer [pk, ref: > roles.role_id]
+  permission_id integer [pk, ref: > roles.role_id]
   assigned_at datetime [default: `now()`]
 }
