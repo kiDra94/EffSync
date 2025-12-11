@@ -96,4 +96,8 @@ const router = createRouter({
     routes,
 })
 
+router.beforeEach((to, from) => {
+    !isAy
+})
+
 export default router
