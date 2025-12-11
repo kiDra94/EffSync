@@ -22,7 +22,7 @@ const routes = [
         meta: { requiresAuth: true },
         children: [
             {
-                path: 'h',
+                path: '',
                 redirect: {name: 'Dashboard'},
             },
             {
@@ -32,22 +32,22 @@ const routes = [
             },
             {
                 path: '/tasks',
-                name: 'Tasks',
+                name: 'TasksList',
                 component: () => import('@views/TasksView.vue'),
             },
             {
                 path: '/notes',
-                name: 'Notes',
+                name: 'NotesLists',
                 component: () => import('@views/NotesView.vue'),
             },
             {
                 path: '/templates',
-                name: 'Templates',
+                name: 'TemplatesLists',
                 component: () => import('@views/TemplatesView.vue'),
             },
             {
                 path: '/documents',
-                name: 'Documents',
+                name: 'DocumentList',
                 component: () => import('@views/DocumentsView.vue'),
             },
             {
@@ -57,8 +57,8 @@ const routes = [
             },
             {
                 path: '/profile',
-                name: 'Profile',
-                component: () => import('@views/ProfileView.vue'),
+                name: 'UserProfile',
+                component: () => import('@views/UserProfileView.vue'),
             },
             {
                 path: '/schedules',
@@ -67,12 +67,12 @@ const routes = [
             },
             {
                 path: '/classes',
-                name: 'Classes',
+                name: 'ClassLists',
                 component: () => import('@views/ClassesView.vue'),
             },
             {
                 path: '/departments',
-                name: 'Departments',
+                name: 'DepartmentList',
                 component: () => import('@views/DepartmentsView.vue'),
             },
         ]
