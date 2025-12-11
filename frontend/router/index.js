@@ -69,6 +69,7 @@ const routes = [
                 path: '/classes',
                 name: 'ClassList',
                 component: () => import('@views/ClassListView.vue'),
+                meta: { roles: ['admin', 'teacher',]},
             },
             {
                 path: '/classes/:id',
@@ -79,6 +80,7 @@ const routes = [
                 path: '/departments',
                 name: 'DepartmentList',
                 component: () => import('@views/DepartmentView.vue'),
+                meta: { roles: ['admin']},
             },
         ]
     },
