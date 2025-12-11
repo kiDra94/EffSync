@@ -4,21 +4,21 @@ const routes = [
     {
         path: '/login',
         name: 'Login',
-        component: () => import('@views/LoginView.vue'),
+        component: () => import('@/views/LoginView.vue'),
     },
     {
         path: '/register',
         name: 'Register',
-        component: () => import('@views/RegisterView.vue'),
+        component: () => import('@/views/RegisterView.vue'),
     },
     {
         path: '/forgot-password',
         name: 'ForgotPassword',
-        component: () => import('@views/ForgotPasswordView.vue'),
+        component: () => import('@/views/ForgotPasswordView.vue'),
     },
     {
         path: '/',
-        component: () => import('@views/LayoutView.vue'),
+        component: () => import('@/views/LayoutView.vue'),
         meta: { requiresAuth: true },
         children: [
             {
@@ -28,58 +28,58 @@ const routes = [
             {
                 path: 'dashboard',
                 name: 'Dashboard',
-                component: () => import('@views/DashboardView.vue'),
+                component: () => import('@/views/DashboardView.vue'),
             },
             {
                 path: 'tasks',
                 name: 'TaskList',
-                component: () => import('@views/TaskView.vue'),
+                component: () => import('@/views/TaskView.vue'),
             },
             {
                 path: 'notes',
                 name: 'NoteLists',
-                component: () => import('@views/NoteView.vue'),
+                component: () => import('@/views/NoteView.vue'),
             },
             {
                 path: 'templates',
                 name: 'TemplateLists',
-                component: () => import('@views/TemplateView.vue'),
+                component: () => import('@/views/TemplateView.vue'),
             },
             {
                 path: 'documents',
                 name: 'DocumentList',
-                component: () => import('@views/DocumentView.vue'),
+                component: () => import('@/views/DocumentView.vue'),
             },
             {
                 path: 'calendar',
                 name: 'Calendar',
-                component: () => import('@views/CalendarView.vue'),
+                component: () => import('@/views/CalendarView.vue'),
             },
             {
                 path: 'profile',
                 name: 'UserProfile',
-                component: () => import('@views/UserProfileView.vue'),
+                component: () => import('@/views/UserProfileView.vue'),
             },
             {
                 path: 'schedules',
                 name: 'Schedules',
-                component: () => import('@views/SchedulesView.vue'),
+                component: () => import('@/views/SchedulesView.vue'),
             },
             {
                 path: 'classes',
                 name: 'ClassList',
-                component: () => import('@views/ClassListView.vue'),
+                component: () => import('@/views/ClassListView.vue'),
                 meta: { roles: ['admin', 'teacher',]},
             },
             {
                 path: 'classes/:id',
                 name: 'ClassDetail',
-                component: () => import('@views/ClassDetail.vue'),
+                component: () => import('@/views/ClassDetail.vue'),
             },
             {
                 path: 'departments',
                 name: 'DepartmentList',
-                component: () => import('@views/DepartmentView.vue'),
+                component: () => import('@/views/DepartmentView.vue'),
                 meta: { roles: ['admin']},
             },
         ]
@@ -87,7 +87,7 @@ const routes = [
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
-        component: () => import('@views/NotFoundView.vue'),
+        component: () => import('@/views/NotFoundView.vue'),
     },
 ]
 
