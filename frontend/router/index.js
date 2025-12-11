@@ -71,6 +71,11 @@ const routes = [
                 component: () => import('@views/ClassesView.vue'),
             },
             {
+                path: '/classes/:id',
+                name: 'ClassDetail',
+                component: () => import('@views/ClassDetail.vue'),
+            },
+            {
                 path: '/departments',
                 name: 'DepartmentList',
                 component: () => import('@views/DepartmentsView.vue'),
