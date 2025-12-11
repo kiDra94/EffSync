@@ -75,6 +75,7 @@ const routes = [
                 path: 'classes/:id',
                 name: 'ClassDetail',
                 component: () => import('@/views/ClassDetail.vue'),
+                props: true,
             },
             {
                 path: 'departments',
