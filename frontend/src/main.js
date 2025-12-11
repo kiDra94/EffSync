@@ -7,5 +7,10 @@ import router from './router'
 
 const APP = createApp(App)
 
+if (import.meta.env.DEV) { 
+    localStorage.setItem('authToken', 'DEV_TOKEN')
+    localStorage.setItem('userRole', 'admin')
+  }
+  
 APP.use(router)
 APP.mount('#app')
