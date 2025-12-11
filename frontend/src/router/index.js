@@ -105,7 +105,7 @@ router.beforeEach((to, from) => {
     if (!token && routeRequiresAuth) { return { name: 'Login' } }
     if (token && (to.name === 'Login' || to.name === 'Register')) { return { name: 'Dashboard' } }
     if (token && to.meta.roles) {
-        if (to.meta.roles !== userRolle) { return { name: 'Dashboard' } }
+        if (!to.meta.roles.includes(userRolle)) { return { name: 'Dashboard' } }
     }
 })
 
