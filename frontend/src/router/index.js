@@ -23,7 +23,7 @@ const routes = [
         children: [
             {
                 path: '',
-                redirect: {name: 'Dashboard'},
+                redirect: { name: 'Dashboard' },
             },
             {
                 path: 'dashboard',
@@ -69,7 +69,7 @@ const routes = [
                 path: 'classes',
                 name: 'ClassList',
                 component: () => import('@/views/ClassListView.vue'),
-                meta: { roles: ['admin', 'teacher',]},
+                meta: { roles: ['admin', 'teacher',] },
             },
             {
                 path: 'classes/:id',
@@ -80,7 +80,7 @@ const routes = [
                 path: 'departments',
                 name: 'DepartmentList',
                 component: () => import('@/views/DepartmentView.vue'),
-                meta: { roles: ['admin']},
+                meta: { roles: ['admin'] },
             },
         ]
     },
@@ -97,7 +97,15 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from) => {
-    !isAy
+    const token = localStorage.getItem('authToken')
+    const routeRequiresAuth = to.matched.some(routesWithAuth => routesWithAuth.meta.requiresAuth)
+    const userRolle = localStorage.getItem('userRole')
+
+    if (!token && routeRequiresAuth) { return { name: 'Login' } }
+    if (token && (to.name === 'Login' || to.name === 'Register')) { return { name: 'Dashboard' } }
+    if (token && to.meta.roles) {
+        if (to.meta.roles !== userRolle) { return { name: 'Dashboard' } }
+    }
 })
 
 export default router
