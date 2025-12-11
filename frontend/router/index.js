@@ -67,8 +67,8 @@ const routes = [
             },
             {
                 path: '/classes',
-                name: 'ClassLists',
-                component: () => import('@views/ClassesView.vue'),
+                name: 'ClassList',
+                component: () => import('@views/ClassListView.vue'),
             },
             {
                 path: '/classes/:id',
