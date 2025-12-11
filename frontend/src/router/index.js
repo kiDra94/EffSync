@@ -56,9 +56,10 @@ const routes = [
                 component: () => import('@/views/CalendarView.vue'),
             },
             {
-                path: 'profile',
+                path: 'profile/:id',
                 name: 'UserProfile',
                 component: () => import('@/views/UserProfileView.vue'),
+                props: true,
             },
             {
                 path: 'schedules',
