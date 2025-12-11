@@ -32,23 +32,23 @@ const routes = [
             },
             {
                 path: '/tasks',
-                name: 'TasksList',
-                component: () => import('@views/TasksView.vue'),
+                name: 'TaskList',
+                component: () => import('@views/TaskView.vue'),
             },
             {
                 path: '/notes',
-                name: 'NotesLists',
-                component: () => import('@views/NotesView.vue'),
+                name: 'NoteLists',
+                component: () => import('@views/NoteView.vue'),
             },
             {
                 path: '/templates',
-                name: 'TemplatesLists',
-                component: () => import('@views/TemplatesView.vue'),
+                name: 'TemplateLists',
+                component: () => import('@views/TemplateView.vue'),
             },
             {
                 path: '/documents',
                 name: 'DocumentList',
-                component: () => import('@views/DocumentsView.vue'),
+                component: () => import('@views/DocumentView.vue'),
             },
             {
                 path: '/calendar',
@@ -78,7 +78,7 @@ const routes = [
             {
                 path: '/departments',
                 name: 'DepartmentList',
-                component: () => import('@views/DepartmentsView.vue'),
+                component: () => import('@views/DepartmentView.vue'),
             },
         ]
     },
