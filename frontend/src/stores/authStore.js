@@ -49,4 +49,19 @@ export const useAuthStore = defineStore('auth', () => {
             delete axios.defaults.headers.commmon['Authorization']
         }
     }
+    async function loadUser() {
+        if (!token.value) { return }
+        try {
+            const response = await axios.get('/api/user/profile')
+            const user = response.data.user
+            userId.value = user.id
+            userRole.value = user.role
+            userDetails.value = user
+        } catch(error) {
+            if (error.response && error.response.status === 401) {
+                this.logout();
+            }
+            throw error
+        }
+    }
 })
