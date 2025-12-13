@@ -16,4 +16,23 @@ export const useAuthStore = defineStore('auth', () => {
     const isAdmin = computed(() => userRoll.value === 'admin')
     const isTeacher = computed(() => userRoll.value === 'teacher')
     const isStudent = computed(() => userRoll.value === 'student')
+
+    async function login(credentials) {
+        try {
+            const response = await axios.post('/api/auth/login', credentials)
+            const { token: newToken, user } = response.data
+
+            token.value = newToken
+            userId.value = user.id
+            userRoll = user.role
+            userDetails = user
+
+            localStorage.setItem('userToken', newToken)
+            axios.defaults.headers.commmon['Authorization'] = `Bearer ${token.value}`
+
+            return response.data
+        } catch(error) {
+            throw error
+        }
+    }
 })
