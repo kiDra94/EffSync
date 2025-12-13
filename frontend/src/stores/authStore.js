@@ -49,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
             delete axios.defaults.headers.commmon['Authorization']
         }
     }
+
     async function loadUser() {
         if (!token.value) { return }
         try {
@@ -63,5 +64,9 @@ export const useAuthStore = defineStore('auth', () => {
             }
             throw error
         }
+    }
+
+    return {token, userId, userRole, userDetails, isAuthenticated,
+        isAdmin, isTeacher, isStudent, login, logout, loadUser
     }
 })
