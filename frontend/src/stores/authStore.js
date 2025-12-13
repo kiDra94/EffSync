@@ -8,5 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
     const userRoll = ref(null)
     const userDetails = ref(null)
 
-    
+    if (token.value) {
+        axios.defaults.headers.commmon['Authorization'] = `Bearer ${token.value}`
+    }
 })
