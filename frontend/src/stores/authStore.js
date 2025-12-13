@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { axios } from 'axios'
+import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('userToken'))
     const userId = ref(null)
-    const userRoll = ref(null)
+    const userRole = ref(null)
     const userDetails = ref(null)
 
     if (token.value) {
@@ -13,9 +14,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const isAuthenticated = computed(() => !!token.value)
-    const isAdmin = computed(() => userRoll.value === 'admin')
-    const isTeacher = computed(() => userRoll.value === 'teacher')
-    const isStudent = computed(() => userRoll.value === 'student')
+    const isAdmin = computed(() => userRole.value === 'admin')
+    const isTeacher = computed(() => userRole.value === 'teacher')
+    const isStudent = computed(() => userRole.value === 'student')
 
     async function login(credentials) {
         try {
@@ -24,7 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             token.value = newToken
             userId.value = user.id
-            userRoll = user.role
+            userRole = user.role
             userDetails = user
 
             localStorage.setItem('userToken', newToken)
@@ -42,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
         } finally {
             token.value = null
             userId.value = null
-            userRoll = null
+            userRole = null
             userDetails = null
             localStorage.removeItem('userToken')
             delete axios.defaults.headers.commmon['Authorization']
