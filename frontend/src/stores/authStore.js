@@ -16,35 +16,56 @@ export const useAuthStore = defineStore('auth', () => {
     const isAuthenticated = computed(() => !!token.value)
     const isAdmin = computed(() => userRole.value === 'admin')
 
+    function initDevMode() {
+        if (import.meta.env.DEV) {
+            token.value = localStorage.getItem('authToken')
+            userId.value = 1
+            userRole.value = localStorage.getItem('userRole') || 'admin'
+            userDetails.value = {
+                id: 1,
+                username: 'devuser',
+                role: 'admin'
+            }
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+        }
+    }
+
     async function login(credentials) {
         try {
+            if (import.meta.env.DEV && credentials.username === 'dev') {
+                initDevMode()
+                return { token: token.value, user: userDetails.value }
+            }
+
             const response = await axios.post('/api/auth/login', credentials)
             const { token: newToken, user } = response.data
 
             token.value = newToken
             userId.value = user.id
-            userRole = user.role
-            userDetails = user
+            userRole.value = user.role
+            userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
-            axios.defaults.headers.commmon['Authorization'] = `Bearer ${token.value}`
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
 
             return response.data
-        } catch(error) {
+        } catch (error) {
             throw error
         }
     }
 
     async function logout() {
         try {
-            await axios.post('api/auth/logout')
+            if (!import.meta.env.DEV) {
+                await axios.post('/api/auth/logout')
+            }
         } finally {
             token.value = null
             userId.value = null
-            userRole = null
-            userDetails = null
+            userRole.value = null
+            userDetails.value = null
             localStorage.removeItem('authToken')
-            delete axios.defaults.headers.commmon['Authorization']
+            delete axios.defaults.headers.common['Authorization']
         }
     }
 
@@ -56,15 +77,18 @@ export const useAuthStore = defineStore('auth', () => {
             userId.value = user.id
             userRole.value = user.role
             userDetails.value = user
-        } catch(error) {
+        } catch (error) {
             if (error.response && error.response.status === 401) {
-                this.logout();
+                await logout();
             }
             throw error
         }
     }
 
-    return {token, userId, userRole, userDetails, isAuthenticated,
-        isAdmin, isTeacher, isStudent, login, logout, loadUser
+    initDevMode()
+
+    return {
+        token, userId, userRole, userDetails, 
+        isAuthenticated, isStudent, login, logout, loadUser
     }
 })
