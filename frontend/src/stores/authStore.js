@@ -89,7 +89,14 @@ export const useAuthStore = defineStore('auth', () => {
     initDevMode()
 
     return {
-        token, userId, userRole, userDetails, 
-        isAuthenticated, isStudent, login, logout, loadUser
+        token,
+        userId,
+        userRole,
+        userDetails,
+        isAuthenticated,
+        isAdmin,
+        login,
+        logout,
+        loadUser,
     }
 })
