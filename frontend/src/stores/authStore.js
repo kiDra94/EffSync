@@ -66,6 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
             userDetails.value = null
             localStorage.removeItem('authToken')
             delete axios.defaults.headers.common['Authorization']
+            await router.push({ name: 'Login' })
         }
     }
 
