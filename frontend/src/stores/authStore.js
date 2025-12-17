@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import axios from 'axios'
+import { authApi } from '@/api'
 import router from '@/router'
+import axios from 'axios' // For loadUser function, can be replaced with a userService when available
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
@@ -9,16 +10,12 @@ export const useAuthStore = defineStore('auth', () => {
     const userRole = ref(null)
     const userDetails = ref(null)
 
-    if (token.value) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-    }
-
     const isAuthenticated = computed(() => !!token.value)
     const isAdmin = computed(() => userRole.value === 'admin')
 
     function initDevMode() {
         if (import.meta.env.DEV) {
-            token.value = localStorage.getItem('authToken')
+            token.value = localStorage.getItem('authToken') || 'dev-token-123'
             userId.value = 1
             userRole.value = localStorage.getItem('userRole') || 'admin'
             userDetails.value = {
@@ -26,7 +23,6 @@ export const useAuthStore = defineStore('auth', () => {
                 username: 'devuser',
                 role: 'admin'
             }
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
         }
     }
 
@@ -37,7 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
                 return { token: token.value, user: userDetails.value }
             }
 
-            const response = await axios.post('/api/auth/login', credentials)
+            const response = await authApi.login(credentials)
             const { token: newToken, user } = response.data
 
             token.value = newToken
@@ -46,7 +42,6 @@ export const useAuthStore = defineStore('auth', () => {
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
 
             return response.data
         } catch (error) {
@@ -57,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
     async function logout() {
         try {
             if (!import.meta.env.DEV) {
-                await axios.post('/api/auth/logout')
+                await authApi.logout()
             }
         } finally {
             token.value = null
@@ -65,12 +60,11 @@ export const useAuthStore = defineStore('auth', () => {
             userRole.value = null
             userDetails.value = null
             localStorage.removeItem('authToken')
-            delete axios.defaults.headers.common['Authorization']
             await router.push({ name: 'Login' })
         }
     }
 
-    async function loadUser() {
+    async function loadUser() { //TODO: adapt to userService.js (/api) when implemented
         if (!token.value) { return }
         try {
             const response = await axios.get('/api/user/profile')
