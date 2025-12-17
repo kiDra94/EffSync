@@ -20,4 +20,13 @@ apiClient.interceptors.request.use(
     error => Promise.reject(error)
 );
 
-
+apiClient.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response?.status === 401) {
+            const authStore = useAuthStore();
+            authStore.logout();
+        }
+        return Promise.reject(error);
+    }
+);
