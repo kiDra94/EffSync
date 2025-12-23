@@ -65,11 +65,22 @@ Table schedules {
   updated_at datetime
 }
 
+Table rooms {
+  room_id integer [primary key]
+  name varchar [note: "z.B. 'C3.09', 'Physik-Saal'"]
+  type varchar [note: "z.B. 'Theorie', 'EDV', 'Werkstätte', 'Labor'"]
+  capacity integer [note: "Maximale Schüleranzahl"]
+  building varchar [note: "z.B. 'Haupttrakt', 'Werkstätte'"]
+  created_at datetime [default: `now()`]
+  updated_at datetime
+}
+
 Table lesson_slots {
   slot_id integer [primary key]
   schedule_id integer [ref: > schedules.schedule_id]
   subject_id integer [ref: > subjects.subject_id]
   teacher_id integer [ref: > teachers.teacher_id]
+  room_id integer [ref: > rooms.room_id]
   day_of_week integer [note: "1=Monday, 2=Tuesday, ... 6=Saturday"]
   lesson_number integer [note: "1=1. Einheit (07:40), 2=2. Einheit..."]
   start_time time [note: "e.g. 07:45"]
@@ -87,10 +98,8 @@ Table subjects {
 }
 
 Table permissions {
-  permission_id integer [primary key]
+  permission_id integer [primary key, note: "soll bitweise gehen damit wir die permissions mit bitmasken machen"]
   name varchar
-  created_at datetime   [default: `now()`]
-  updated_at datetime
 }
 
 Enum task_status {
@@ -149,7 +158,6 @@ Table users {
   email varchar
   username varchar
   password_hash varchar
-  permission_id integer [ref: > permissions.permission_id]
   created_at datetime [default: `now()`]
   updated_at datetime
 }
@@ -225,12 +233,22 @@ Table notifications {
 Table roles {
   role_id integer [primary key]
   name varchar
-  created_at datetime [default: `now()`]
-  updated_at datetime
 }
 
 Table user_roles {
   user_id integer [pk, ref: > users.user_id]
   role_id integer [pk, ref: > roles.role_id]
+  assigned_at datetime [default: `now()`]
+}
+
+Table user_permissions {
+  user_id integer [pk, ref: > users.user_id]
+  permission_id integer [pk, ref: > roles.role_id]
+  assigned_at datetime [default: `now()`]
+}
+
+Table roles_permissions {
+  roles_id integer [pk, ref: > roles.role_id]
+  permission_id integer [pk, ref: > roles.role_id]
   assigned_at datetime [default: `now()`]
 }
