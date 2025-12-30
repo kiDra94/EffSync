@@ -1,0 +1,81 @@
+/**
+ * Modern Normalize for System Planning Tools (Vue-Optimized)
+ */
+
+/* 1. Grundlegendes Box-Model & Textanpassung */
+html {
+  line-height: 1.15;
+  -webkit-text-size-adjust: 100%;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit; /* Verhindert Layout-Probleme bei Paddings */
+}
+
+/* 2. Body-Setup passend zu deiner App.vue */
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.3s, color 0.3s; /* Sanfter Übergang für Dark Mode */
+}
+
+/* 3. HTML5 Display Definitionen */
+main {
+  display: block;
+}
+
+/* 4. Formular-Elemente (Kritisch für dein Tool) */
+button, input, optgroup, select, textarea {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: 1.15;
+  margin: 0;
+  outline: none; /* Verhindert hässliche blaue Ränder, nutze :focus für eigene Styles */
+}
+
+button, input {
+  overflow: visible;
+}
+
+button, select {
+  text-transform: none;
+}
+
+/* Klickbare Cursor für Interaktionen */
+button, [type="button"], [type="reset"], [type="submit"] {
+  -webkit-appearance: button;
+  cursor: pointer;
+}
+
+/* 5. Tabellen (Gut für Wertetabellen/Farbtabellen) */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+/* 6. Bilder & SVG (Wichtig für die grafische Widerstandsanzeige) */
+img, svg {
+  vertical-align: middle;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 7. Scrollbar Styling (Optional, für den technischen Look) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: #444;
+}

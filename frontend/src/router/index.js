@@ -99,16 +99,44 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach((to, from) => {
+// --- Optimierter Navigation Guard ---
+router.beforeEach(async (to, from) => {
     const authStore = useAuthStore()
-    const token = authStore.isAuthenticated
-    const routeRequiresAuth = to.matched.some(routesWithAuth => routesWithAuth.meta.requiresAuth)
-    const userRole = authStore.userRole
+    
+    // isAuthenticated ist ein Boolean, token ist der String.
+    // Wir prüfen hier auf den Token im State (oder LocalStorage durch initDevMode)
+    const hasToken = authStore.isAuthenticated 
+    
+    const routeRequiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
-    if (!token && routeRequiresAuth) { return { name: 'Login' } }
-    if (token && (to.name === 'Login' || to.name === 'Register')) { return { name: 'Dashboard' } }
-    if (token && to.meta.roles) {
-        if (!to.meta.roles.includes(userRole)) { return { name: 'Dashboard' } }
+    // 1. Nicht eingeloggt & Route braucht Auth -> Login
+    if (!hasToken && routeRequiresAuth) { 
+        return { name: 'Login' } 
+    }
+
+    // 2. Eingeloggt & will zu Login/Register -> Dashboard
+    if (hasToken && (to.name === 'Login' || to.name === 'Register')) { 
+        return { name: 'Dashboard' } 
+    }
+
+    // 3. User Daten laden (für F5 Refresh), falls Token da ist, aber User leer
+    if (hasToken && !authStore.userDetails) {
+        try {
+            await authStore.loadUser()
+        } catch (error) {
+            // Falls Token ungültig war -> Logout passiert im Store, hier Redirect
+            return { name: 'Login' }
+        }
+    }
+
+    // 4. Rollen-Check (erst NACHDEM User geladen wurde)
+    if (hasToken && to.meta.roles) {
+        // Jetzt ist userRole sicher verfügbar
+        if (!to.meta.roles.includes(authStore.userRole)) { 
+            // Optional: Redirect zu einer "Unauthorized" Seite oder zurück zum Dashboard
+            console.warn('Zugriff verweigert: Fehlende Rolle')
+            return { name: 'Dashboard' } 
+        }
     }
 })
 

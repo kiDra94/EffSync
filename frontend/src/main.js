@@ -1,19 +1,24 @@
 import { createApp } from 'vue'
-import 'bootstrap/dist/css/bootstrap.min.css'
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'
-import './style.css'
-import App from './App.vue'
-import router from './router'
 import { createPinia } from 'pinia'
 
-const APP = createApp(App)
-const pinia = createPinia()
+// 1. Styles (Reihenfolge ist wichtig!)
+import './assets/css/normalize.css' 
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+import './style.css' 
 
-if (import.meta.env.DEV) { 
-    localStorage.setItem('authToken', 'DEV_TOKEN')
-    localStorage.setItem('userRole', 'admin')
-  }
+// 2. Haupt-Komponenten
+import App from './App.vue'
+import router from './router'
 
-APP.use(pinia)
-APP.use(router)
-APP.mount('#app')
+// --- HIER FEHLTE DER CODE ---
+
+// 3. App-Instanz erstellen
+const app = createApp(App)
+
+// 4. Plugins registrieren
+app.use(createPinia()) // Wichtig: Pinia aktivieren
+app.use(router)        // Wichtig: Router aktivieren
+
+// 5. App in das HTML-Element mit id="app" einhängen
+app.mount('#app')
