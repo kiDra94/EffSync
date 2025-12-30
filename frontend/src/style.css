@@ -1,5 +1,26 @@
 /* ========================================= */
-/* 1. BASIS AUTH LAYOUT (Login/Register)     */
+/* 1. BASIS SETUP & RESET                    */
+/* ========================================= */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* WICHTIG: Das verhindert den "Alles durchgestrichen"-Fehler global */
+body, h1, h2, h3, h4, h5, h6, p, span, div, button, input {
+    text-decoration: none !important;
+}
+
+/* Ausnahme: Nur explizite Klassen dürfen durchstreichen */
+.task-card.is-done .task-title,
+.is-done .task-title {
+    text-decoration: line-through !important;
+}
+
+
+/* ========================================= */
+/* 2. AUTH LAYOUT (Login/Register)           */
 /* ========================================= */
 
 .login-wrapper {
@@ -17,12 +38,11 @@
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.05);
   width: 100%;
-  max-width: 400px; /* Breite der Karte */
+  max-width: 400px;
   text-align: center;
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* Elemente in der Karte */
 .logo {
   font-size: 1.5rem;
   margin-bottom: 1rem;
@@ -49,6 +69,7 @@ input {
   border: 1px solid #ddd;
   border-radius: 6px;
   box-sizing: border-box;
+  transition: background-color 0.3s, color 0.3s, border 0.3s;
 }
 
 button {
@@ -74,7 +95,6 @@ button:hover {
   font-size: 0.9rem;
 }
 
-/* Links unten (Footer) */
 .login-footer {
     margin-top: 1.5rem;
     display: flex;
@@ -84,15 +104,15 @@ button:hover {
 }
 .link-text {
     color: #23234c;
-    text-decoration: none;
+    text-decoration: none !important; /* Sicherheit */
     font-weight: bold;
     transition: color 0.2s;
 }
-.link-text:hover { text-decoration: underline; }
+.link-text:hover { text-decoration: underline !important; }
 
 
 /* ========================================= */
-/* 2. SWITCH / TOGGLER STYLES                */
+/* 3. SWITCH / TOGGLER STYLES                */
 /* ========================================= */
 .top-right-actions {
     position: absolute;
@@ -109,7 +129,7 @@ button:hover {
   border-radius: 25px;
   cursor: pointer;
   margin: 0;
-  display: inline-block; /* Wichtig */
+  display: inline-block;
 }
 .checkbox { display: none; }
 .slider {
@@ -138,34 +158,88 @@ button:hover {
 
 
 /* ========================================= */
-/* DASHBOARD DARK MODE FIXES                 */
+/* 4. DARK MODE GLOBAL OVERRIDES             */
 /* ========================================= */
 
-/* 1. Titel & Texte */
-body.dark-mode .page-title {
+/* Basis Body Dark Mode */
+body.dark-mode {
+    background-color: #1e1e2f !important;
+    color: #ddd !important;
+}
+
+/* Auth Cards & Wrapper im Dark Mode */
+body.dark-mode .login-wrapper {
+    background-color: #1e1e2f !important;
+}
+
+body.dark-mode .login-card {
+    background-color: #2c2c3e !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #444 !important;
+    box-shadow: none !important;
+}
+
+/* Inputs global im Dark Mode (Login, Suche, etc.) */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background-color: #1e1e2f !important;
+    border: 1px solid #555 !important;
+    color: white !important;
+}
+
+/* Texte und Labels global */
+body.dark-mode label,
+body.dark-mode h1, 
+body.dark-mode h2, 
+body.dark-mode .logo,
+body.dark-mode .link-text {
     color: #ffffff !important;
 }
 
+/* Buttons global */
+body.dark-mode button {
+    background-color: #3b3b54 !important;
+    border: 1px solid #555 !important;
+    color: white !important;
+}
+body.dark-mode button:hover {
+    background-color: #4b4b6a !important;
+}
+
+
+/* ========================================= */
+/* 5. DASHBOARD & TASKS DARK MODE SPECIFIC   */
+/* ========================================= */
+
+/* Titel & Texte */
+body.dark-mode .page-title {
+    color: #ffffff !important;
+}
 body.dark-mode .subtitle {
     color: #aaaaaa !important;
 }
 
-/* 2. Karten Hintergrund */
+/* Karten Hintergrund (Dashboard & Tasks) */
 body.dark-mode .metric-card,
-body.dark-mode .placeholder-box {
-    background-color: #2c2c3e !important; /* Dunkles Blau/Grau */
+body.dark-mode .placeholder-box,
+body.dark-mode .task-card {
+    background-color: #2c2c3e !important;
+    color: white !important;
     box-shadow: none !important;
-    border: 1px solid #444 !important; /* Feiner Rand */
+    border: 1px solid #444 !important;
 }
 
-/* 3. Texte IN den Karten */
+/* Texte IN den Karten */
 body.dark-mode .card-info .value,
-body.dark-mode .placeholder-box h3 {
-    color: #ffffff !important; /* Weiße Zahlen */
+body.dark-mode .placeholder-box h3,
+body.dark-mode .task-title {
+    color: #ffffff !important;
+    text-decoration: none !important; /* Sicherstellen! */
 }
 
 body.dark-mode .card-info h3 {
-    color: #cccccc !important; /* Helle Labels */
+    color: #cccccc !important;
 }
 
 body.dark-mode .card-info .subtext,
