@@ -1,20 +1,41 @@
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 
 const authStore = useAuthStore();
 const router = useRouter();
 const isDark = ref(false);
+const showDropdown = ref(false); // Neuer State für das Menü
 
-// Dark Mode Logic: Setzt die Klasse direkt auf den Body
+// Dark Mode Logic
 watch(isDark, (val) => {
   document.body.classList.toggle("dark-mode", val);
 });
 
-// Logout
+// Click Outside Logic: Schließt das Menü, wenn man woanders klickt
+const closeDropdown = (e) => {
+    // Wenn der Klick NICHT innerhalb des User-Menüs war, schließen
+    if (!e.target.closest('.user-menu')) {
+        showDropdown.value = false;
+    }
+}
+
+onMounted(() => {
+    window.addEventListener('click', closeDropdown)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('click', closeDropdown)
+})
+
+const toggleDropdown = () => {
+    showDropdown.value = !showDropdown.value;
+}
+
 const handleLogout = async () => {
   await authStore.logout();
+  showDropdown.value = false;
 };
 
 const userInitial = computed(() => {
@@ -25,7 +46,7 @@ const userInitial = computed(() => {
 <template>
   <div :class="{ 'dark-mode': isDark }" class="app-container">
     
-    <div class="sidebar">
+    <div class="sidebar" :class="{ 'disabled': !authStore.isAuthenticated }">
       <router-link :to="{ name: 'Dashboard' }" title="Dashboard">🏠</router-link>
       <router-link :to="{ name: 'Calendar' }" title="Kalender">🗓️</router-link>
       <router-link :to="{ name: 'DocumentList' }" title="Dokumente">📂</router-link>
@@ -39,13 +60,40 @@ const userInitial = computed(() => {
       <div class="header">
         <div class="logo"><strong>EffSync</strong></div>
 
-        <input type="search" placeholder="Search..." />
+        <input v-if="authStore.isAuthenticated" type="search" placeholder="Search..." />
+        <div v-else style="flex:1"></div>
 
         <div class="header-actions">
-            <div class="user-menu">
-                <div class="avatar" @click="handleLogout" title="Logout">
+            
+            <div v-if="authStore.isAuthenticated" class="user-menu">
+                <div class="avatar" @click.stop="toggleDropdown" title="Profil öffnen">
                     {{ userInitial }}
                 </div>
+
+                <transition name="fade">
+                    <div v-if="showDropdown" class="dropdown-menu">
+                        <div class="dropdown-header">
+                            <strong>{{ authStore.userDetails?.username }}</strong>
+                            <small>{{ authStore.userRole }}</small>
+                        </div>
+                        <hr>
+                        <router-link 
+                            :to="{ name: 'UserProfile', params: { id: authStore.userId || 1 } }" 
+                            class="dropdown-item"
+                            @click="showDropdown = false"
+                        >
+                            👤 Mein Profil
+                        </router-link>
+                        
+                        <a href="#" class="dropdown-item">⚙️ Einstellungen</a>
+                        
+                        <hr>
+                        
+                        <button @click="handleLogout" class="dropdown-item text-danger">
+                            🚪 Abmelden
+                        </button>
+                    </div>
+                </transition>
             </div>
 
             <label class="switch-label">
@@ -55,7 +103,7 @@ const userInitial = computed(() => {
         </div>
       </div>
 
-      <div class="content">
+      <div class="content" :class="{ 'login-mode': !authStore.isAuthenticated }">
         <router-view v-slot="{ Component }">
              <component :is="Component" />
         </router-view>
@@ -65,47 +113,117 @@ const userInitial = computed(() => {
 </template>
 
 <style>
-/* Wenn der Body die Klasse "dark-mode" hat, ändere den Header */
+/* GLOBALE STYLES (Unverändert) */
 body.dark-mode .header {
-  background-color: #2c2c3e !important; /* !important erzwingt die Farbe */
+  background-color: #2c2c3e !important;
   border-bottom: 1px solid #444 !important;
   color: #ddd !important;
 }
-
-body.dark-mode .header .logo {
-    color: white !important;
-}
-
+body.dark-mode .header .logo { color: white !important; }
 body.dark-mode .header input[type="search"] {
     background-color: #1e1e2f !important;
     border: 1px solid #444 !important;
     color: white !important;
 }
-
-/* Scrollbar dunkel machen (optional) */
-body.dark-mode ::-webkit-scrollbar-track {
-    background: #1e1e2f;
-}
-body.dark-mode ::-webkit-scrollbar-thumb {
-    background: #444; 
-}
 </style>
 
 <style scoped>
-/* layout */
+/* --- NEU: Dropdown Styles --- */
+.user-menu {
+    position: relative; /* Wichtig für absolute Positionierung des Dropdowns */
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 50px; /* Abstand von oben */
+    right: 0;
+    width: 200px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
+    z-index: 100;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Dark Mode für Dropdown */
+:global(body.dark-mode) .dropdown-menu {
+    background-color: #2c2c3e;
+    border: 1px solid #444;
+    color: #ddd;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.dropdown-header {
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: column;
+    background-color: #f9f9f9;
+}
+
+:global(body.dark-mode) .dropdown-header {
+    background-color: #23234c; /* Etwas dunkler als die Karte */
+}
+
+.dropdown-header strong { font-size: 0.95rem; }
+.dropdown-header small { font-size: 0.8rem; color: #777; }
+
+.dropdown-item {
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+}
+
+.dropdown-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Dark Mode Items */
+:global(body.dark-mode) .dropdown-item {
+    color: #ddd;
+}
+:global(body.dark-mode) .dropdown-item:hover {
+    background-color: #3b3b54;
+}
+
+.text-danger { color: #e74c3c !important; }
+.text-danger:hover { background-color: #fff5f5; }
+
+:global(body.dark-mode) .text-danger:hover { 
+    background-color: #4a2c2c; 
+}
+
+hr {
+    margin: 0;
+    border: 0;
+    border-top: 1px solid #eee;
+}
+:global(body.dark-mode) hr { border-top: 1px solid #444; }
+
+/* Animation */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* Restliche Styles (Sidebar etc.) */
+.sidebar.disabled { pointer-events: none; opacity: 0.5; filter: grayscale(100%); }
+
 .app-container {
   display: flex;
   height: 100vh;
-  background-color: #f4f4f9; /* Standard Hell */
+  background-color: #f4f4f9; 
   transition: background-color 0.3s;
 }
-
-/* --- HIER IST DER FIX --- */
-/* Wenn der Container die Klasse dark-mode hat (durch isDark), wird er dunkel */
-.app-container.dark-mode {
-  background-color: #1e1e2f;
-  color: #ddd;
-}
+.app-container.dark-mode { background-color: #1e1e2f; color: #ddd; }
 
 /* Sidebar */
 .sidebar {
@@ -117,7 +235,6 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   padding-top: 20px;
   flex-shrink: 0;
 }
-
 .sidebar a {
   color: white;
   text-decoration: none;
@@ -125,14 +242,8 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   font-size: 22px;
   transition: transform 0.2s;
 }
-
-.sidebar a:hover {
-    transform: scale(1.2);
-}
-
-.sidebar a.router-link-active {
-    border-bottom: 2px solid white;
-}
+.sidebar a:hover { transform: scale(1.2); }
+.sidebar a.router-link-active { border-bottom: 2px solid white; }
 
 /* Header */
 .main-wrapper {
@@ -141,7 +252,6 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   flex-direction: column;
   overflow: hidden;
 }
-
 .header {
   height: 60px;
   background-color: white;
@@ -152,21 +262,16 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   border-bottom: 1px solid #ddd;
   transition: background-color 0.3s, border-color 0.3s;
 }
-
 .header input[type="search"] {
   padding: 5px 10px;
   width: 300px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+.logo { color: #23234c; }
+.header-actions { display: flex; align-items: center; gap: 15px; }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-/* User Avatar */
+/* Avatar */
 .avatar {
     width: 35px;
     height: 35px;
@@ -178,9 +283,10 @@ body.dark-mode ::-webkit-scrollbar-thumb {
     align-items: center;
     font-weight: bold;
     cursor: pointer;
+    user-select: none;
 }
 
-/* Toggle Switch */
+/* Switch Styles */
 .switch-label {
   position: relative;
   width: 60px;
@@ -188,12 +294,9 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   background-color: #28292c;
   border-radius: 25px;
   cursor: pointer;
+  margin: 0;
 }
-
-.checkbox {
-  display: none;
-}
-
+.checkbox { display: none; }
 .slider {
   position: absolute;
   width: 100%;
@@ -201,7 +304,6 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   border-radius: 25px;
   transition: 0.3s;
 }
-
 .slider::before {
   content: "";
   position: absolute;
@@ -213,19 +315,11 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   background-color: #d8dbe0;
   transition: 0.3s;
 }
-
-.checkbox:checked ~ .slider {
-  background-color: #d8dbe0;
-}
-
+.checkbox:checked ~ .slider { background-color: #d8dbe0; }
 .checkbox:checked ~ .slider::before {
   transform: translateX(28px);
   background-color: #28292c;
 }
-
-.content {
-  padding: 20px 30px;
-  overflow-y: auto;
-  flex: 1;
-}
+.content { padding: 20px 30px; overflow-y: auto; flex: 1; }
+.content.login-mode { display: flex; justify-content: center; align-items: center; }
 </style>
