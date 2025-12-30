@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 
-// 1. MOCK DATEN (Später aus API)
+// 1. MOCK DATEN
 const tasks = ref([
   { id: 1, title: 'Mathe Hausübung S. 12', subject: 'Mathe', dueDate: '2025-01-20', status: 'open', priority: 'high' },
   { id: 2, title: 'Englisch Vokabeln lernen', subject: 'Englisch', dueDate: '2025-01-22', status: 'open', priority: 'medium' },
@@ -10,32 +10,31 @@ const tasks = ref([
   { id: 5, title: 'Präsentation vorbereiten', subject: 'POS', dueDate: '2025-01-25', status: 'open', priority: 'medium' },
 ]);
 
-// 2. STATE FÜR FILTER & SUCHE
+// 2. STATE
 const searchQuery = ref('');
-const filterStatus = ref('all'); // 'all', 'open', 'done'
-const sortBy = ref('date'); // 'date', 'title'
+const filterStatus = ref('all'); 
+const sortBy = ref('date'); 
 
-// 3. COMPUTED LOGIC (Der "Magische" Teil)
+// 3. LOGIK
 const filteredAndSortedTasks = computed(() => {
   let result = tasks.value;
 
-  // A) Suche
+  // Suche
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(t => t.title.toLowerCase().includes(query) || t.subject.toLowerCase().includes(query));
   }
 
-  // B) Filter nach Status
+  // Filter
   if (filterStatus.value !== 'all') {
     if (filterStatus.value === 'done') {
       result = result.filter(t => t.status === 'done');
     } else {
-      // 'open' zeigt alles was nicht 'done' ist
       result = result.filter(t => t.status !== 'done');
     }
   }
 
-  // C) Sortierung
+  // Sortierung
   result = [...result].sort((a, b) => {
     if (sortBy.value === 'date') {
       return new Date(a.dueDate) - new Date(b.dueDate);
@@ -48,7 +47,6 @@ const filteredAndSortedTasks = computed(() => {
   return result;
 });
 
-// Helper für Styling
 const getPriorityColor = (prio) => {
     if (prio === 'high') return '#e74c3c';
     if (prio === 'medium') return '#f39c12';
@@ -117,7 +115,6 @@ const getPriorityColor = (prio) => {
         <p>Keine Aufgaben gefunden 🤷‍♂️</p>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -137,6 +134,8 @@ const getPriorityColor = (prio) => {
 .page-title {
   color: #23234c;
   margin: 0;
+  /* Sicherstellen, dass hier KEIN line-through ist */
+  text-decoration: none; 
 }
 
 .btn-add {
@@ -161,6 +160,9 @@ const getPriorityColor = (prio) => {
 .search-input {
   flex: 2;
   min-width: 200px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
 }
 
 .control-select {
@@ -173,7 +175,7 @@ const getPriorityColor = (prio) => {
   cursor: pointer;
 }
 
-/* TASK LIST ITEMS */
+/* TASK ITEMS */
 .task-card {
   background: white;
   border-radius: 12px;
@@ -183,21 +185,25 @@ const getPriorityColor = (prio) => {
   display: flex;
   align-items: center;
   gap: 15px;
-  transition: transform 0.2s, background-color 0.2s;
+  transition: transform 0.2s;
   border-left: 5px solid transparent;
+  /* WICHTIG: Hier darf KEIN text-decoration stehen */
 }
 
 .task-card:hover {
   transform: translateX(3px);
 }
 
-/* Erledigte Tasks ausgrauen */
+/* --- LOGIK FÜR ERLEDIGT --- */
 .task-card.is-done {
-  opacity: 0.6;
-  background-color: #f9f9f9;
+  background-color: #f0f0f0; 
+  box-shadow: none;
 }
+
+/* NUR der Titel wird durchgestrichen */
 .task-card.is-done .task-title {
-  text-decoration: line-through;
+  text-decoration: line-through; 
+  color: #888;
 }
 
 .task-checkbox {
@@ -206,9 +212,7 @@ const getPriorityColor = (prio) => {
   cursor: pointer;
 }
 
-.task-content {
-  flex: 1;
-}
+.task-content { flex: 1; }
 
 .task-header {
   display: flex;
@@ -245,44 +249,45 @@ const getPriorityColor = (prio) => {
 }
 
 /* ========================================= */
-/* DARK MODE OVERRIDES                       */
+/* DARK MODE                                 */
 /* ========================================= */
 
 :global(body.dark-mode) .page-title { color: white !important; }
 
-/* Controls */
+:global(body.dark-mode) .search-input,
 :global(body.dark-mode) .control-select {
     background-color: #1e1e2f !important;
     border: 1px solid #444 !important;
     color: white !important;
 }
 
-/* Task Card */
 :global(body.dark-mode) .task-card {
     background-color: #2c2c3e !important;
     color: white !important;
     border: 1px solid #444;
 }
 
-:global(body.dark-mode) .task-title {
-    color: white !important;
-}
+:global(body.dark-mode) .task-title { color: white !important; }
 
 :global(body.dark-mode) .subject-badge {
     background-color: #3b3b54 !important;
     color: #a5b4fc !important;
 }
 
+/* FIX DARK MODE DONE STATE */
 :global(body.dark-mode) .task-card.is-done {
-    background-color: #232330 !important; /* Noch dunkler für erledigt */
-    opacity: 0.5;
+    background-color: #1f1f2a !important; 
+    border: 1px solid #333 !important;
+}
+
+/* WICHTIG: Auch hier nur .task-title durchstreichen */
+:global(body.dark-mode) .task-card.is-done .task-title {
+    color: #777 !important;
+    text-decoration: line-through;
 }
 
 :global(body.dark-mode) .btn-add {
     background-color: #3b3b54 !important;
     border: 1px solid #555;
-}
-:global(body.dark-mode) .btn-add:hover {
-    background-color: #4b4b6a !important;
 }
 </style>
