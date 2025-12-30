@@ -1,12 +1,21 @@
 import { apiClient } from './httpClient.js';
 
 export const authApi = {
-  register: (userData) => 
-    apiClient.post('/auth/register', userData),
-  
-  login: (credentials) => 
-    apiClient.post('/auth/login', credentials),
+  login(credentials) {
+    return apiClient.post('/login', credentials)
+  },
+  logout() {
+    return apiClient.post('/logout')
+  },
+  getUserProfile() {
+    return apiClient.get('/user/profile')
+  },
 
-  logout: () => 
-    apiClient.post('/auth/logout')
-};
+  register(userData) {
+    // Erwartet { username, email, password, password_confirmation }
+    return apiClient.post('/register', userData)
+  },
+  forgotPassword(email) {
+    return apiClient.post('/forgot-password', { email })
+  }
+}

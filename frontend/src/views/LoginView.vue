@@ -70,6 +70,11 @@ const handleLogin = async () => {
         <button type="submit" :disabled="isLoading">
           {{ isLoading ? '...' : 'Login' }}
         </button>
+        <div class="login-footer">
+            <router-link :to="{ name: 'ForgotPassword' }" class="link-text">Passwort vergessen? </router-link>
+            <span class="divider">|</span>
+            <router-link :to="{ name: 'Register' }" class="link-text"> Konto erstellen</router-link>
+        </div>
       </form>
     </div>
   </div>
@@ -189,4 +194,30 @@ button:hover {
     transform: translateX(28px);
     background-color: #28292c;
 }
+
+.login-footer {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.9rem;
+}
+
+.link-text {
+    color: #555;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.link-text:hover {
+    color: #23234c;
+    text-decoration: underline;
+}
+
+.divider { color: #ccc; }
+
+/* Dark Mode Anpassung für Links */
+:global(body.dark-mode) .link-text { color: #aaa; }
+:global(body.dark-mode) .link-text:hover { color: #fff; }
+:global(body.dark-mode) .divider { color: #555; }
 </style>
