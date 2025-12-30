@@ -1,14 +1,24 @@
 import { createApp } from 'vue'
-// 1. Ganz oben: Basis-Reset
-import './assets/css/normalize.css' 
+import { createPinia } from 'pinia'
 
-// 2. Frameworks
+// 1. Styles (Reihenfolge ist wichtig!)
+import './assets/css/normalize.css' 
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
-
-// 3. Deine eigenen globalen Anpassungen 
 import './style.css' 
 
+// 2. Haupt-Komponenten
 import App from './App.vue'
 import router from './router'
-import { createPinia } from 'pinia'
+
+// --- HIER FEHLTE DER CODE ---
+
+// 3. App-Instanz erstellen
+const app = createApp(App)
+
+// 4. Plugins registrieren
+app.use(createPinia()) // Wichtig: Pinia aktivieren
+app.use(router)        // Wichtig: Router aktivieren
+
+// 5. App in das HTML-Element mit id="app" einhängen
+app.mount('#app')

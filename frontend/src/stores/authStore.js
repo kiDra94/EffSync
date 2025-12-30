@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api'
 import router from '@/router'
-import axios from 'axios' // For loadUser function, can be replaced with a userService when available
+
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
@@ -64,19 +64,24 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function loadUser() { //TODO: adapt to userService.js (/api) when implemented
+   async function loadUser() { 
         if (!token.value) { return }
         try {
-            const response = await axios.get('/api/user/profile')
-            const user = response.data.user
+            // Nutzt jetzt die zentralisierte authApi (löst das TODO)
+            const response = await authApi.getUserProfile()
+            
+            // Anpassung je nach Backend-Antwortstruktur (oft response.data oder response.data.user)
+            const user = response.data.user || response.data
+            
             userId.value = user.id
             userRole.value = user.role
             userDetails.value = user
         } catch (error) {
+            // Wenn Token ungültig (401), logge den User aus
             if (error.response && error.response.status === 401) {
                 await logout();
             }
-            throw error
+            throw error // Fehler weiterwerfen, falls die UI darauf reagieren soll
         }
     }
 

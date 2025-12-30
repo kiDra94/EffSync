@@ -78,3 +78,18 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Dark Mode Globals */
+body.dark-mode {
+  background-color: #1e1e2f !important; /* Dein dunkles Blau */
+  color: #ddd !important;
+}
+
+/* Inputs global dunkel machen */
+body.dark-mode input, 
+body.dark-mode textarea, 
+body.dark-mode select {
+  background-color: #1e1e2f;
+  border: 1px solid #444;
+  color: white;
+}
