@@ -2,11 +2,11 @@ import axios from 'axios';
 
 const API_BASE_URL = '/api/tasks';
 
-export const getTasks = async () => {
+export const fetchTasks = async () => {
 	return axios.get(API_BASE_URL);
 };
 
-export const getTaskById = async (id) => {
+export const fetchTaskById = async (id) => {
 	return axios.get(`${API_BASE_URL}/${id}`);
 };
 
