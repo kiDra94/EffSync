@@ -17,7 +17,7 @@
   import TaskCard from './TaskCard.vue';
   
   defineProps({
-    tasks: Array,
+    tasks: Array
   });
   
   defineEmits(['edit', 'delete']);

@@ -11,8 +11,8 @@
   const showDeleteDialog = ref(false);
   const selectedTask = ref(null);
   
-  onMounted(() => {
-    taskStore.getTasks();
+  onMounted(async () => {
+    await taskStore.getTasks();
   });
   
   const openTaskForm = (task = null) => {
