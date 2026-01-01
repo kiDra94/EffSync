@@ -26,6 +26,9 @@
           <span class="date-badge" :style="{ color: task.status === 'COMPLETED' ? '#aaa' : '#555' }">
             📅 {{ task.dueDate }}
           </span>
+          <span v-if="task.progress !== undefined" class="progress-badge">
+          📊 {{ task.progress }}%
+        </span>
         </div>
         <h3 class="task-title">{{ task.title }}</h3>
       </div>
