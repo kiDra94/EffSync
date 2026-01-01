@@ -80,10 +80,16 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'close']);
 
+function formatForInput(isoString) {
+  if (!isoString) return '';
+  // "2025-06-30T23:59:59Z" → "2025-06-30T23:59"
+  return isoString.slice(0, 16);
+}
+
 const formData = reactive({
   title: props.task?.title || '',
   description: props.task?.description || '',
-  deadline: props.task?.deadline || '',
+  deadline: formatForInput(props.task?.deadline) || '',
   priority_id: props.task?.priority_id || 2, // Default Mittel
   status: props.task?.status || 'TODO',
   progress: props.task?.progress || 0

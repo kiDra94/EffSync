@@ -53,7 +53,7 @@
   
   const deleteTask = async () => {
     if (selectedTask.value) {
-      await taskStore.removeTask(selectedTask.value.id);
+      await taskStore.removeTask(selectedTask.value.task_id);
       closeModal();
     }
   };
