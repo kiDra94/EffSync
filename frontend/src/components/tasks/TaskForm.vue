@@ -82,16 +82,17 @@ const emit = defineEmits(['save', 'close']);
 
 const formData = reactive({
   title: props.task?.title || '',
-  subject: props.task?.subject || '',
-  dueDate: props.task?.dueDate || '',
-  priority: props.task?.priority || 'medium',
-  status: props.task?.status || 'open'
+  description: props.task?.description || '',
+  deadline: props.task?.deadline || '',
+  priority_id: props.task?.priority_id || 2, // Default Mittel
+  status: props.task?.status || 'TODO',
+  progress: props.task?.progress || 0
 });
 
 const submitTask = () => {
   const taskData = {
     ...formData,
-    ...(props.task?.id && { id: props.task.id })
+    ...(props.task?.task_id && { id: props.task.task_id })
   }
   emit('save', { ...taskData });
 };
