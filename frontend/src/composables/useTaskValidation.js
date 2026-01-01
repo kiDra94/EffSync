@@ -57,5 +57,22 @@ export function useTaskValidation(existingTasks = []) {
         return true;
     };
 
+    const validateDescription = (description, priorityId) => {
+        if (priorityId >= 3) {
+            if (!description || description.trim().length < 10) {
+                errors.description = 'Wichtige Aufgaben benötigen eine Beschreibung (min. 10 Zeichen)';
+                return false;
+            }
+        }
+
+        if (description && description.length > 500) {
+            errors.description = 'Beschreibung darf maximal 500 Zeichen haben';
+            return false;
+        }
+
+        errors.description = '';
+        return true;
+    };
+
     
 }
