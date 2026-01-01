@@ -57,6 +57,14 @@
       closeModal();
     }
   };
+
+  const toggleTaskStatus = async (task) => {
+    const updatedTask = {
+      ...task,
+      status: task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED'
+    };
+    await taskStore.editTask(task.task_id, updatedTask);
+};
   </script>
   
   <template>
