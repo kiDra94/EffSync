@@ -6,27 +6,43 @@
         <button @click="close" class="close-btn" aria-label="Schließen">×</button>
       </div>
 
-      <form @submit.prevent="submitTask" class="task-form">
-        <div class="form-group">
+      <form @submit.prevent="submitTask" class="task-form" novalidate>
+        
+        <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
-          <input v-model="formData.title" id="title" type="text" required
-            placeholder="z.B. API-Struktur implementieren" />
+          <input 
+            v-model="formData.title" 
+            id="title" 
+            type="text"
+            placeholder="z.B. API-Struktur implementieren"
+            @blur="validateTitle"
+            @input="errors.title = ''"
+          />
+          <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
+        </div>
+
+        <div class="form-group" :class="{ 'has-error': errors.description }">
+          <label for="description">
+            Beschreibung
+            <span v-if="formData.priority_id >= 3" class="required-star">*</span>
+          </label>
+          <textarea 
+            v-model="formData.description" 
+            id="description" 
+            rows="3"
+            placeholder="Detaillierte Beschreibung der Aufgabe"
+            @blur="validateDescription"
+            @input="errors.description = ''"
+          ></textarea>
+          <span v-if="errors.description" class="error-message">{{ errors.description }}</span>
+          <span v-if="formData.priority_id >= 3" class="info-message">
+            ℹ️ Wichtige Aufgaben benötigen eine Beschreibung
+          </span>
         </div>
 
         <div class="form-group">
-          <label for="description">Beschreibung</label>
-          <textarea v-model="formData.description" id="description" rows="3"
-            placeholder="Detaillierte Beschreibung der Aufgabe"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="deadline">Deadline *</label>
-          <input type="datetime-local" v-model="formData.deadline" id="deadline" required />
-        </div>
-
-        <div class="form-group">
-          <label for="priority_id">Priorität</label>
-          <select v-model.number="formData.priority_id" id="priority_id">
+          <label for="priority_id">Priorität *</label>
+          <select v-model.number="formData.priority_id" id="priority_id" @change="validateDescription">
             <option :value="1">Niedrig</option>
             <option :value="2">Mittel</option>
             <option :value="3">Hoch</option>
@@ -34,25 +50,59 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label for="status">Status</label>
-          <select v-model="formData.status" id="status">
+        <div class="form-group" :class="{ 'has-error': errors.deadline }">
+          <label for="deadline">Deadline *</label>
+          <input 
+            type="datetime-local" 
+            v-model="formData.deadline" 
+            id="deadline"
+            @blur="validateDeadline"
+            @change="validateDeadline"
+          />
+          <span v-if="errors.deadline" class="error-message">{{ errors.deadline }}</span>
+          <span v-if="warnings.deadline" class="warning-message">{{ warnings.deadline }}</span>
+        </div>
+
+        <div class="form-group" :class="{ 'has-error': errors.status }">
+          <label for="status">Status *</label>
+          <select v-model="formData.status" id="status" @change="validateStatusProgress">
             <option value="TODO">Zu erledigen</option>
             <option value="IN_PROGRESS">In Bearbeitung</option>
             <option value="IN_REVIEW">In Review</option>
             <option value="ON_HOLD">Pausiert</option>
             <option value="COMPLETED">Abgeschlossen</option>
           </select>
+          <span v-if="errors.status" class="error-message">{{ errors.status }}</span>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" :class="{ 'has-error': errors.progress }">
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
-            <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
-              class="progress-slider" />
-            <input type="number" v-model.number="formData.progress" min="0" max="100" class="progress-number" />
+            <input 
+              type="range" 
+              v-model.number="formData.progress" 
+              id="progress" 
+              min="0" 
+              max="100"
+              class="progress-slider"
+              @input="validateStatusProgress"
+            />
+            <input 
+              type="number" 
+              v-model.number="formData.progress" 
+              min="0" 
+              max="100"
+              class="progress-number"
+              @blur="validateStatusProgress"
+              @input="validateStatusProgress"
+            />
             <span class="progress-label">%</span>
           </div>
+          <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
+        </div>
+
+        <div v-if="showSummary && hasErrors" class="error-summary">
+          ⚠️ Bitte korrigiere die markierten Fehler
         </div>
 
         <div class="form-actions">
