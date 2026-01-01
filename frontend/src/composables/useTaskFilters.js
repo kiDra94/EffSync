@@ -29,5 +29,10 @@ export function useTaskFilters(tasks, searchQuery, filterStatus, sortBy) {
         return [...filteredTasks.value].sort(sortFunction);
     });
 
-    
+    return {
+        filteredAndSorted: sortedTasks,
+        searchedTasks,
+        filteredTasks,
+        sortedTasks
+    };
 }
