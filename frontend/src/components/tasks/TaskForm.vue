@@ -1,23 +1,97 @@
 <template>
-  <form @submit.prevent="submitTask">
-    <label for="title">Titel:</label>
-    <input v-model="formData.title" id="title" required />
+  <div class="modal-overlay" @click.self="close">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}</h2>
+        <button @click="close" class="close-btn" aria-label="Schließen">×</button>
+      </div>
 
-    <label for="dueDate">Fälligkeitsdatum:</label>
-    <input type="date" v-model="formData.dueDate" id="dueDate" required />
+      <form @submit.prevent="submitTask" class="task-form">
+        <div class="form-group">
+          <label for="title">Titel *</label>
+          <input 
+            v-model="formData.title" 
+            id="title" 
+            type="text"
+            required 
+            placeholder="z.B. API-Struktur implementieren"
+          />
+        </div>
 
-    <label for="priority">Priorität:</label>
-    <select v-model="formData.priority" id="priority">
-      <option value="low">Niedrig</option>
-      <option value="medium">Mittel</option>
-      <option value="high">Hoch</option>
-    </select>
+        <div class="form-group">
+          <label for="description">Beschreibung</label>
+          <textarea 
+            v-model="formData.description" 
+            id="description" 
+            rows="3"
+            placeholder="Detaillierte Beschreibung der Aufgabe"
+          ></textarea>
+        </div>
 
-    <div class="form-actions">
-      <button type="submit">Speichern</button>
-      <button type="button" @click="close">Abbrechen</button>
+        <div class="form-group">
+          <label for="deadline">Deadline *</label>
+          <input 
+            type="datetime-local" 
+            v-model="formData.deadline" 
+            id="deadline" 
+            required 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="priority_id">Priorität</label>
+          <select v-model.number="formData.priority_id" id="priority_id">
+            <option :value="1">Niedrig</option>
+            <option :value="2">Mittel</option>
+            <option :value="3">Hoch</option>
+            <option :value="4">Dringend</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select v-model="formData.status" id="status">
+            <option value="TODO">Zu erledigen</option>
+            <option value="IN_PROGRESS">In Bearbeitung</option>
+            <option value="IN_REVIEW">In Review</option>
+            <option value="ON_HOLD">Pausiert</option>
+            <option value="COMPLETED">Abgeschlossen</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="progress">Fortschritt (%)</label>
+          <div class="progress-input-group">
+            <input 
+              type="range" 
+              v-model.number="formData.progress" 
+              id="progress" 
+              min="0" 
+              max="100"
+              class="progress-slider"
+            />
+            <input 
+              type="number" 
+              v-model.number="formData.progress" 
+              min="0" 
+              max="100"
+              class="progress-number"
+            />
+            <span class="progress-label">%</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            {{ task ? 'Speichern' : 'Erstellen' }}
+          </button>
+          <button type="button" @click="close" class="btn-secondary">
+            Abbrechen
+          </button>
+        </div>
+      </form>
     </div>
-  </form>
+  </div>
 </template>
 
 <script setup>
@@ -43,7 +117,7 @@ const formData = reactive({
 const submitTask = () => {
   const taskData = {
     ...formData,
-    ...(props.task?.id && { id: props.task.id})
+    ...(props.task?.id && { id: props.task.id })
   }
   emit('save', { ...formData });
 };
