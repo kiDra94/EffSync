@@ -63,6 +63,17 @@ const formatStatusLabel = (status) => {
     .join(' ');
 };
 
+const getStatusColor = (status) => {
+  const colors = {
+    TODO: '#6b7280',
+    IN_PROGRESS: '#3b82f6',
+    IN_REVIEW: '#f59e0b',
+    ON_HOLD: '#ef4444',
+    COMPLETED: '#10b981'
+  };
+  return colors[status] || '#6b7280';
+};
+
 const getPriorityColor = (prio) => {
   if (prio === 'high') return '#e74c3c';
   if (prio === 'medium') return '#f39c12';
