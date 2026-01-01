@@ -33,6 +33,11 @@
   </script>
   
   <style scoped>
+    .task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+    }
   .empty-state {
     text-align: center;
     color: #888;
