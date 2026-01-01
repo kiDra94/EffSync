@@ -112,5 +112,33 @@ export function useTaskValidation(existingTasks = []) {
         return true;
     };
 
+    const validateStatusProgress = (status, progress) => {
+        errors.status = '';
+        errors.progress = '';
+
+        const progressNum = Number(progress);
+        if (isNaN(progressNum) || progressNum < 0 || progressNum > 100) {
+            errors.progress = 'Fortschritt muss zwischen 0 und 100 liegen';
+            return false;
+        }
+
+        if (status === 'COMPLETED' && progressNum !== 100) {
+            errors.progress = 'Abgeschlossene Aufgaben müssen 100% Fortschritt haben';
+            return false;
+        }
+
+        if (progressNum === 100 && status !== 'COMPLETED') {
+            errors.status = 'Bei 100% Fortschritt sollte der Status "Abgeschlossen" sein';
+            return false;
+        }
+
+        if (status === 'TODO' && progressNum > 0) {
+            errors.progress = 'Status "Zu erledigen" sollte 0% Fortschritt haben';
+            return false;
+        }
+
+        return true;
+    };
+
     
 }
