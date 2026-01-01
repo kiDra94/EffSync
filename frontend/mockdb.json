@@ -9,7 +9,8 @@
       "password_hash": "$2b$10$abcdefghijklmnopqrstuvwxyz123456",
       "permission_id": 1,
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "5c0c"
     },
     {
       "user_id": 2,
@@ -20,7 +21,8 @@
       "password_hash": "$2b$10$abcdefghijklmnopqrstuvwxyz123456",
       "permission_id": 2,
       "created_at": "2025-01-02T09:00:00Z",
-      "updated_at": "2025-01-02T09:00:00Z"
+      "updated_at": "2025-01-02T09:00:00Z",
+      "id": "3f17"
     },
     {
       "user_id": 3,
@@ -31,7 +33,8 @@
       "password_hash": "$2b$10$abcdefghijklmnopqrstuvwxyz123456",
       "permission_id": 3,
       "created_at": "2025-01-03T10:00:00Z",
-      "updated_at": "2025-01-03T10:00:00Z"
+      "updated_at": "2025-01-03T10:00:00Z",
+      "id": "e152"
     }
   ],
   "permissions": [
@@ -39,19 +42,22 @@
       "permission_id": 1,
       "name": "admin",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "75e0"
     },
     {
       "permission_id": 2,
       "name": "teacher",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "8c89"
     },
     {
       "permission_id": 3,
       "name": "student",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "1d15"
     }
   ],
   "roles": [
@@ -59,36 +65,42 @@
       "role_id": 1,
       "name": "Administrator",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "85fa"
     },
     {
       "role_id": 2,
       "name": "Lehrer",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "1d5a"
     },
     {
       "role_id": 3,
       "name": "Schüler",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "8d8a"
     }
   ],
   "user_roles": [
     {
       "user_id": 1,
       "role_id": 1,
-      "assigned_at": "2025-01-01T08:00:00Z"
+      "assigned_at": "2025-01-01T08:00:00Z",
+      "id": "8539"
     },
     {
       "user_id": 2,
       "role_id": 2,
-      "assigned_at": "2025-01-02T09:00:00Z"
+      "assigned_at": "2025-01-02T09:00:00Z",
+      "id": "4d98"
     },
     {
       "user_id": 3,
       "role_id": 3,
-      "assigned_at": "2025-01-03T10:00:00Z"
+      "assigned_at": "2025-01-03T10:00:00Z",
+      "id": "2992"
     }
   ],
   "priorities": [
@@ -96,25 +108,29 @@
       "priority_id": 1,
       "name": "Niedrig",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "ea91"
     },
     {
       "priority_id": 2,
       "name": "Mittel",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "856c"
     },
     {
       "priority_id": 3,
       "name": "Hoch",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "1f90"
     },
     {
       "priority_id": 4,
       "name": "Dringend",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "3c62"
     }
   ],
   "tasks": [
@@ -131,7 +147,8 @@
       "template_id": null,
       "priority_id": 4,
       "created_at": "2025-01-05T10:00:00Z",
-      "updated_at": "2025-12-17T20:00:00Z"
+      "updated_at": "2025-12-17T20:00:00Z",
+      "id": "fd3a"
     },
     {
       "task_id": 2,
@@ -146,7 +163,8 @@
       "template_id": null,
       "priority_id": 3,
       "created_at": "2025-01-10T11:00:00Z",
-      "updated_at": "2025-12-17T21:00:00Z"
+      "updated_at": "2025-12-17T21:00:00Z",
+      "id": "0495"
     },
     {
       "task_id": 3,
@@ -161,7 +179,8 @@
       "template_id": null,
       "priority_id": 2,
       "created_at": "2025-12-15T14:00:00Z",
-      "updated_at": "2025-12-15T14:00:00Z"
+      "updated_at": "2025-12-15T14:00:00Z",
+      "id": "1078"
     },
     {
       "task_id": 4,
@@ -176,7 +195,8 @@
       "template_id": null,
       "priority_id": 3,
       "created_at": "2025-12-01T09:00:00Z",
-      "updated_at": "2025-12-10T15:00:00Z"
+      "updated_at": "2025-12-10T15:00:00Z",
+      "id": "0f35"
     }
   ],
   "task_templates": [
@@ -185,14 +205,16 @@
       "name": "Standard Hausübung",
       "description": "Template für reguläre Hausübungen",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "7f56"
     },
     {
       "template_id": 2,
       "name": "Projektarbeit",
       "description": "Template für größere Projekte",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "9730"
     }
   ],
   "task_comments": [
@@ -202,7 +224,8 @@
       "user_id": 1,
       "text": "Bitte bis nächste Woche das erste Kapitel fertigstellen",
       "created_at": "2025-01-06T12:00:00Z",
-      "updated_at": "2025-01-06T12:00:00Z"
+      "updated_at": "2025-01-06T12:00:00Z",
+      "id": "469c"
     },
     {
       "comment_id": 2,
@@ -210,7 +233,8 @@
       "user_id": 3,
       "text": "Wird gemacht, bin bereits bei der Recherche",
       "created_at": "2025-01-06T14:30:00Z",
-      "updated_at": "2025-01-06T14:30:00Z"
+      "updated_at": "2025-01-06T14:30:00Z",
+      "id": "81a8"
     },
     {
       "comment_id": 3,
@@ -218,7 +242,8 @@
       "user_id": 3,
       "text": "Auth-Endpunkte sind fertig, arbeite an Tasks API",
       "created_at": "2025-12-17T22:00:00Z",
-      "updated_at": "2025-12-17T22:00:00Z"
+      "updated_at": "2025-12-17T22:00:00Z",
+      "id": "a743"
     }
   ],
   "task_activity_log": [
@@ -227,28 +252,32 @@
       "task_id": 1,
       "user_id": 1,
       "action": "Task erstellt",
-      "timestamp": "2025-01-05T10:00:00Z"
+      "timestamp": "2025-01-05T10:00:00Z",
+      "id": "3de7"
     },
     {
       "log_id": 2,
       "task_id": 1,
       "user_id": 3,
       "action": "Status geändert zu IN_PROGRESS",
-      "timestamp": "2025-01-10T09:00:00Z"
+      "timestamp": "2025-01-10T09:00:00Z",
+      "id": "f9e9"
     },
     {
       "log_id": 3,
       "task_id": 2,
       "user_id": 1,
       "action": "Subtask erstellt",
-      "timestamp": "2025-01-10T11:00:00Z"
+      "timestamp": "2025-01-10T11:00:00Z",
+      "id": "2b7e"
     },
     {
       "log_id": 4,
       "task_id": 4,
       "user_id": 3,
       "action": "Task abgeschlossen",
-      "timestamp": "2025-12-10T15:00:00Z"
+      "timestamp": "2025-12-10T15:00:00Z",
+      "id": "ed18"
     }
   ],
   "notes": [
@@ -260,7 +289,8 @@
       "subject_id": 1,
       "priority_id": 2,
       "created_at": "2025-12-15T10:00:00Z",
-      "updated_at": "2025-12-17T22:30:00Z"
+      "updated_at": "2025-12-17T22:30:00Z",
+      "id": "30a8"
     },
     {
       "note_id": 2,
@@ -270,14 +300,16 @@
       "subject_id": 2,
       "priority_id": 3,
       "created_at": "2025-12-10T14:00:00Z",
-      "updated_at": "2025-12-10T14:00:00Z"
+      "updated_at": "2025-12-10T14:00:00Z",
+      "id": "2ba2"
     }
   ],
   "notes_users": [
     {
       "note_id": 1,
       "user_id": 2,
-      "created_at": "2025-12-16T09:00:00Z"
+      "created_at": "2025-12-16T09:00:00Z",
+      "id": "aec6"
     }
   ],
   "subjects": [
@@ -286,21 +318,24 @@
       "name": "Softwareentwicklung",
       "short_name": "SWE",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "878a"
     },
     {
       "subject_id": 2,
       "name": "Mathematik",
       "short_name": "MATHE",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "5e1a"
     },
     {
       "subject_id": 3,
       "name": "Englisch",
       "short_name": "ENG",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "f39f"
     }
   ],
   "documents": [
@@ -310,7 +345,8 @@
       "file_path": "/uploads/api_spec_2025.pdf",
       "added_by": 1,
       "created_at": "2025-01-08T11:00:00Z",
-      "updated_at": "2025-01-08T11:00:00Z"
+      "updated_at": "2025-01-08T11:00:00Z",
+      "id": "0ac3"
     },
     {
       "document_id": 2,
@@ -318,38 +354,44 @@
       "file_path": "/uploads/projektplan.docx",
       "added_by": 3,
       "created_at": "2025-01-10T09:30:00Z",
-      "updated_at": "2025-01-10T09:30:00Z"
+      "updated_at": "2025-01-10T09:30:00Z",
+      "id": "4aa6"
     }
   ],
   "document_shares": [
     {
       "document_id": 1,
       "user_id": 3,
-      "created_at": "2025-01-08T12:00:00Z"
+      "created_at": "2025-01-08T12:00:00Z",
+      "id": "67c3"
     },
     {
       "document_id": 2,
       "user_id": 2,
-      "created_at": "2025-01-10T10:00:00Z"
+      "created_at": "2025-01-10T10:00:00Z",
+      "id": "e52f"
     }
   ],
   "task_documents": [
     {
       "task_id": 1,
       "document_id": 1,
-      "created_at": "2025-01-08T12:30:00Z"
+      "created_at": "2025-01-08T12:30:00Z",
+      "id": "bc93"
     },
     {
       "task_id": 1,
       "document_id": 2,
-      "created_at": "2025-01-10T10:30:00Z"
+      "created_at": "2025-01-10T10:30:00Z",
+      "id": "fc2b"
     }
   ],
   "note_documents": [
     {
       "note_id": 1,
       "document_id": 1,
-      "created_at": "2025-12-15T11:00:00Z"
+      "created_at": "2025-12-15T11:00:00Z",
+      "id": "b9f5"
     }
   ],
   "notifications": [
@@ -359,7 +401,8 @@
       "type": "task_assigned",
       "text": "Dir wurde die Aufgabe 'Diplomarbeit schreiben' zugewiesen",
       "created_at": "2025-01-05T10:05:00Z",
-      "is_read": true
+      "is_read": true,
+      "id": "5e4d"
     },
     {
       "notification_id": 2,
@@ -367,7 +410,8 @@
       "type": "task_comment",
       "text": "Max Mustermann hat deine Aufgabe kommentiert",
       "created_at": "2025-01-06T12:01:00Z",
-      "is_read": true
+      "is_read": true,
+      "id": "a897"
     },
     {
       "notification_id": 3,
@@ -375,7 +419,8 @@
       "type": "task_deadline",
       "text": "Deadline für 'API-Struktur implementieren' ist in 2 Monaten",
       "created_at": "2025-12-17T08:00:00Z",
-      "is_read": false
+      "is_read": false,
+      "id": "ae6d"
     },
     {
       "notification_id": 4,
@@ -383,7 +428,8 @@
       "type": "note_shared",
       "text": "Eine Notiz wurde mit dir geteilt",
       "created_at": "2025-12-16T09:01:00Z",
-      "is_read": false
+      "is_read": false,
+      "id": "3093"
     }
   ],
   "departments": [
@@ -391,25 +437,29 @@
       "department_id": 1,
       "name": "Informatik",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "50f2"
     },
     {
       "department_id": 2,
       "name": "Elektrotechnik",
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "e165"
     }
   ],
   "teachers": [
     {
       "teacher_id": 1,
       "supervisor_id": null,
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "d35b"
     },
     {
       "teacher_id": 2,
       "supervisor_id": 1,
-      "updated_at": "2025-01-02T09:00:00Z"
+      "updated_at": "2025-01-02T09:00:00Z",
+      "id": "1721"
     }
   ],
   "schedules": [
@@ -419,7 +469,8 @@
       "valid_from": "2024-09-01",
       "valid_to": "2025-01-31",
       "created_at": "2024-08-15T10:00:00Z",
-      "updated_at": "2024-08-15T10:00:00Z"
+      "updated_at": "2024-08-15T10:00:00Z",
+      "id": "6b02"
     },
     {
       "schedule_id": 2,
@@ -427,7 +478,8 @@
       "valid_from": "2025-02-01",
       "valid_to": "2025-06-30",
       "created_at": "2025-01-10T10:00:00Z",
-      "updated_at": "2025-01-10T10:00:00Z"
+      "updated_at": "2025-01-10T10:00:00Z",
+      "id": "e34a"
     }
   ],
   "classes": [
@@ -438,7 +490,8 @@
       "head_teacher_id": 1,
       "schedule_id": 2,
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "43c9"
     },
     {
       "class_id": 2,
@@ -447,26 +500,30 @@
       "head_teacher_id": 2,
       "schedule_id": 2,
       "created_at": "2025-01-01T08:00:00Z",
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "bc2a"
     }
   ],
   "students": [
     {
       "student_id": 3,
       "class_id": 1,
-      "updated_at": "2025-01-01T08:00:00Z"
+      "updated_at": "2025-01-01T08:00:00Z",
+      "id": "c841"
     }
   ],
   "classes_teachers": [
     {
       "class_id": 1,
       "teacher_id": 1,
-      "assigned_at": "2025-01-01T08:00:00Z"
+      "assigned_at": "2025-01-01T08:00:00Z",
+      "id": "33a3"
     },
     {
       "class_id": 1,
       "teacher_id": 2,
-      "assigned_at": "2025-01-01T08:00:00Z"
+      "assigned_at": "2025-01-01T08:00:00Z",
+      "id": "6910"
     }
   ],
   "lesson_slots": [
@@ -480,7 +537,8 @@
       "start_time": "07:45:00",
       "end_time": "08:35:00",
       "created_at": "2025-01-10T10:00:00Z",
-      "updated_at": "2025-01-10T10:00:00Z"
+      "updated_at": "2025-01-10T10:00:00Z",
+      "id": "2b77"
     },
     {
       "slot_id": 2,
@@ -492,7 +550,8 @@
       "start_time": "08:40:00",
       "end_time": "09:30:00",
       "created_at": "2025-01-10T10:00:00Z",
-      "updated_at": "2025-01-10T10:00:00Z"
+      "updated_at": "2025-01-10T10:00:00Z",
+      "id": "26b3"
     },
     {
       "slot_id": 3,
@@ -504,7 +563,8 @@
       "start_time": "07:45:00",
       "end_time": "08:35:00",
       "created_at": "2025-01-10T10:00:00Z",
-      "updated_at": "2025-01-10T10:00:00Z"
+      "updated_at": "2025-01-10T10:00:00Z",
+      "id": "8777"
     }
   ],
   "chat_rooms": [
@@ -514,7 +574,8 @@
       "task_id": 1,
       "class_id": null,
       "created_at": "2025-01-05T10:30:00Z",
-      "updated_at": "2025-01-05T10:30:00Z"
+      "updated_at": "2025-01-05T10:30:00Z",
+      "id": "242d"
     },
     {
       "room_id": 2,
@@ -522,29 +583,34 @@
       "task_id": null,
       "class_id": 1,
       "created_at": "2025-01-01T09:00:00Z",
-      "updated_at": "2025-01-01T09:00:00Z"
+      "updated_at": "2025-01-01T09:00:00Z",
+      "id": "0d89"
     }
   ],
   "chat_room_users": [
     {
       "room_id": 1,
       "user_id": 1,
-      "joined_at": "2025-01-05T10:30:00Z"
+      "joined_at": "2025-01-05T10:30:00Z",
+      "id": "271f"
     },
     {
       "room_id": 1,
       "user_id": 3,
-      "joined_at": "2025-01-05T10:31:00Z"
+      "joined_at": "2025-01-05T10:31:00Z",
+      "id": "eb2e"
     },
     {
       "room_id": 2,
       "user_id": 2,
-      "joined_at": "2025-01-01T09:00:00Z"
+      "joined_at": "2025-01-01T09:00:00Z",
+      "id": "94d5"
     },
     {
       "room_id": 2,
       "user_id": 3,
-      "joined_at": "2025-01-01T09:00:00Z"
+      "joined_at": "2025-01-01T09:00:00Z",
+      "id": "d658"
     }
   ],
   "chat_messages": [
@@ -555,7 +621,8 @@
       "message": "Willkommen im Diplomarbeit Team Chat!",
       "file_path": null,
       "created_at": "2025-01-05T10:32:00Z",
-      "updated_at": "2025-01-05T10:32:00Z"
+      "updated_at": "2025-01-05T10:32:00Z",
+      "id": "84cb"
     },
     {
       "message_id": 2,
@@ -564,7 +631,8 @@
       "message": "Danke! Freue mich auf die Zusammenarbeit.",
       "file_path": null,
       "created_at": "2025-01-05T10:35:00Z",
-      "updated_at": "2025-01-05T10:35:00Z"
+      "updated_at": "2025-01-05T10:35:00Z",
+      "id": "21db"
     },
     {
       "message_id": 3,
@@ -573,7 +641,8 @@
       "message": "Hausübung für morgen nicht vergessen!",
       "file_path": null,
       "created_at": "2025-12-17T15:00:00Z",
-      "updated_at": "2025-12-17T15:00:00Z"
+      "updated_at": "2025-12-17T15:00:00Z",
+      "id": "0913"
     }
   ]
 }

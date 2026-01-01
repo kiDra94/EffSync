@@ -1,293 +1,160 @@
 <script setup>
-import { ref, computed } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
+  import { useTaskStore } from '@/stores/entities/taskStore';
+  import { useTaskFilters } from '@/composables/useTaskFilters';
+  import TaskList from '@/components/tasks/TaskList.vue';
+  import TaskForm from '@/components/tasks/TaskForm.vue';
+  import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
+  import TaskFilters from '@/components/tasks/TaskFilters.vue';
+  
+  const taskStore = useTaskStore();
+  
+  const activeModal = ref(null); // 'form' | 'delete' | null
+  const selectedTask = ref(null);
 
-// 1. MOCK DATEN
-const tasks = ref([
-  { id: 1, title: 'Mathe Hausübung S. 12', subject: 'Mathe', dueDate: '2025-01-20', status: 'open', priority: 'high' },
-  { id: 2, title: 'Englisch Vokabeln lernen', subject: 'Englisch', dueDate: '2025-01-22', status: 'open', priority: 'medium' },
-  { id: 3, title: 'Diplomarbeit Einleitung schreiben', subject: 'DA', dueDate: '2025-02-01', status: 'in-progress', priority: 'high' },
-  { id: 4, title: 'Turnbeutel waschen', subject: 'Sport', dueDate: '2025-01-18', status: 'done', priority: 'low' },
-  { id: 5, title: 'Präsentation vorbereiten', subject: 'POS', dueDate: '2025-01-25', status: 'open', priority: 'medium' },
-]);
+  const searchQuery = ref('');
+  const filterStatus = ref('all'); 
+  const sortBy = ref('date');
 
-// 2. STATE
-const searchQuery = ref('');
-const filterStatus = ref('all'); 
-const sortBy = ref('date'); 
-
-// 3. LOGIK
-const filteredAndSortedTasks = computed(() => {
-  let result = tasks.value;
-
-  // Suche
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(t => t.title.toLowerCase().includes(query) || t.subject.toLowerCase().includes(query));
-  }
-
-  // Filter
-  if (filterStatus.value !== 'all') {
-    if (filterStatus.value === 'done') {
-      result = result.filter(t => t.status === 'done');
-    } else {
-      result = result.filter(t => t.status !== 'done');
-    }
-  }
-
-  // Sortierung
-  result = [...result].sort((a, b) => {
-    if (sortBy.value === 'date') {
-      return new Date(a.dueDate) - new Date(b.dueDate);
-    } else if (sortBy.value === 'title') {
-      return a.title.localeCompare(b.title);
-    }
-    return 0;
+  const { filteredAndSorted: filteredAndSortedTasks } = useTaskFilters(
+  computed(() => taskStore.tasks),
+  searchQuery,
+  filterStatus,
+  sortBy
+);
+    
+  onMounted(async () => {
+    await taskStore.getTasks();
   });
+  
+  const openTaskForm = (task = null) => {
+    selectedTask.value = task;
+    activeModal.value = 'form';
+  };
+  
+  const openDeleteDialog = (task) => {
+    selectedTask.value = task;
+    activeModal.value = 'delete';
+  };
 
-  return result;
-});
+  const closeModal = () => {
+    activeModal.value = null;
+    selectedTask.value = null;
+};
+  
+  const saveTask = async (task) => {
+    if (task.task_id) {
+      await taskStore.editTask(task.task_id, task);
+    } else {
+      await taskStore.addTask(task);
+    }
+    closeModal();
+  };
+  
+  const deleteTask = async () => {
+    if (selectedTask.value) {
+      await taskStore.removeTask(selectedTask.value.task_id);
+      closeModal();
+    }
+  };
 
-const getPriorityColor = (prio) => {
-    if (prio === 'high') return '#e74c3c';
-    if (prio === 'medium') return '#f39c12';
-    return '#27ae60';
-}
-</script>
+  const toggleTaskStatus = async (task) => {
+    const updatedTask = {
+      ...task,
+      status: task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED'
+    };
+    await taskStore.editTask(task.task_id, updatedTask);
+};
+  </script>
+  
+  <template>
+    <div class="task-view">
+      <div class="task-header">
+        <h1>Meine Aufgaben</h1>
+        <button 
+          @click="openTaskForm()" 
+          class="btn-primary"
+        >
+          + Neue Aufgabe
+        </button>
+      </div>
 
-<template>
-  <div class="page-container">
-    <div class="header-row">
-      <h1 class="page-title">Meine Aufgaben 📝</h1>
-      <button class="btn-add">+ Neue Aufgabe</button>
-    </div>
-
-    <div class="controls-bar">
-      <input 
-        type="text" 
-        v-model="searchQuery" 
-        placeholder="🔍 Suchen..." 
-        class="search-input"
+      <TaskFilters
+        v-model:searchQuery="searchQuery"
+        v-model:filterStatus="filterStatus"
+        v-model:sortBy="sortBy"
       />
-      
-      <select v-model="filterStatus" class="control-select">
-        <option value="all">Alle Aufgaben</option>
-        <option value="open">Offen</option>
-        <option value="done">Erledigt</option>
-      </select>
-
-      <select v-model="sortBy" class="control-select">
-        <option value="date">📅 Nach Datum</option>
-        <option value="title">🔤 Alphabetisch</option>
-      </select>
+  
+      <TaskList
+        :tasks="filteredAndSortedTasks"
+        @edit="openTaskForm"
+        @delete="openDeleteDialog"
+        @toggle-status="toggleTaskStatus"
+      />
+  
+      <TaskForm
+        v-if="activeModal === 'form'"
+        :task="selectedTask"
+        @save="saveTask"
+        @close="closeModal"
+      />
+  
+      <TaskDeleteDialog
+        v-if="activeModal === 'delete'"
+        :task="selectedTask"
+        @delete="deleteTask"
+        @close="closeModal"
+      />
     </div>
-
-    <div class="task-list">
-      <div 
-        v-for="task in filteredAndSortedTasks" 
-        :key="task.id" 
-        class="task-card"
-        :class="{ 'is-done': task.status === 'done' }"
-      >
-        <div class="task-left">
-           <input 
-             type="checkbox" 
-             :checked="task.status === 'done'" 
-             class="task-checkbox"
-           />
-        </div>
-
-        <div class="task-content">
-            <div class="task-header">
-                <span class="subject-badge">{{ task.subject }}</span>
-                <span class="date-badge" :style="{ color: task.status === 'done' ? '#aaa' : '#555' }">
-                    📅 {{ task.dueDate }}
-                </span>
-            </div>
-            <h3 class="task-title">{{ task.title }}</h3>
-        </div>
-
-        <div class="task-right">
-            <div class="prio-dot" :style="{ backgroundColor: getPriorityColor(task.priority) }" title="Priorität"></div>
-        </div>
-      </div>
-
-      <div v-if="filteredAndSortedTasks.length === 0" class="empty-state">
-        <p>Keine Aufgaben gefunden 🤷‍♂️</p>
-      </div>
-    </div>
-  </div>
-</template>
-
-<style scoped>
-.page-container {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-title {
-  color: #23234c;
-  margin: 0;
-  /* Sicherstellen, dass hier KEIN line-through ist */
-  text-decoration: none; 
-}
-
-.btn-add {
-  background-color: #23234c;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-}
-.btn-add:hover { background-color: #343458; }
-
-/* CONTROLS */
-.controls-bar {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.search-input {
-  flex: 2;
-  min-width: 200px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
-.control-select {
-  flex: 1;
-  min-width: 140px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background-color: white;
-  cursor: pointer;
-}
-
-/* TASK ITEMS */
-.task-card {
-  background: white;
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  transition: transform 0.2s;
-  border-left: 5px solid transparent;
-  /* WICHTIG: Hier darf KEIN text-decoration stehen */
-}
-
-.task-card:hover {
-  transform: translateX(3px);
-}
-
-/* --- LOGIK FÜR ERLEDIGT --- */
-.task-card.is-done {
-  background-color: #f0f0f0; 
-  box-shadow: none;
-}
-
-/* NUR der Titel wird durchgestrichen */
-.task-card.is-done .task-title {
-  text-decoration: line-through; 
-  color: #888;
-}
-
-.task-checkbox {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-}
-
-.task-content { flex: 1; }
-
-.task-header {
-  display: flex;
-  gap: 10px;
-  font-size: 0.8rem;
-  margin-bottom: 4px;
-}
-
-.subject-badge {
-  background-color: #eef2ff;
-  color: #4f46e5;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.task-title {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #333;
-}
-
-.prio-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.empty-state {
-    text-align: center;
-    color: #888;
-    margin-top: 40px;
-    font-size: 1.2rem;
-}
-
-/* ========================================= */
-/* DARK MODE                                 */
-/* ========================================= */
-
-:global(body.dark-mode) .page-title { color: white !important; }
-
-:global(body.dark-mode) .search-input,
-:global(body.dark-mode) .control-select {
-    background-color: #1e1e2f !important;
-    border: 1px solid #444 !important;
-    color: white !important;
-}
-
-:global(body.dark-mode) .task-card {
-    background-color: #2c2c3e !important;
-    color: white !important;
-    border: 1px solid #444;
-}
-
-:global(body.dark-mode) .task-title { color: white !important; }
-
-:global(body.dark-mode) .subject-badge {
-    background-color: #3b3b54 !important;
-    color: #a5b4fc !important;
-}
-
-/* FIX DARK MODE DONE STATE */
-:global(body.dark-mode) .task-card.is-done {
-    background-color: #1f1f2a !important; 
-    border: 1px solid #333 !important;
-}
-
-/* WICHTIG: Auch hier nur .task-title durchstreichen */
-:global(body.dark-mode) .task-card.is-done .task-title {
-    color: #777 !important;
-    text-decoration: line-through;
-}
-
-:global(body.dark-mode) .btn-add {
-    background-color: #3b3b54 !important;
-    border: 1px solid #555;
-}
-</style>
+  </template>
+  
+  <style scoped>
+  .task-view {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  
+  .task-header h1 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 2rem;
+  }
+  
+  .btn-primary {
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+  }
+  
+  .btn-primary:hover {
+    background-color: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+  }
+  
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+  
+  .btn-primary:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+  }
+  </style>
