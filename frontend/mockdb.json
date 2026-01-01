@@ -197,22 +197,6 @@
       "created_at": "2025-12-01T09:00:00Z",
       "updated_at": "2025-12-10T15:00:00Z",
       "id": "0f35"
-    },
-    {
-      "id": null,
-      "title": "Test",
-      "subject": "",
-      "dueDate": "2026-01-08",
-      "priority": "high",
-      "status": "open"
-    },
-    {
-      "id": null,
-      "title": "Test Crate new Task",
-      "subject": "",
-      "dueDate": "2026-01-15",
-      "priority": "low",
-      "status": "open"
     }
   ],
   "task_templates": [
