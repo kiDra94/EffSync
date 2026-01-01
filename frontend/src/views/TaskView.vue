@@ -1,10 +1,11 @@
 <script setup>
   import { ref, onMounted } from 'vue';
   import { useTaskStore } from '@/stores/entities/taskStore';
+  import { useTaskFilters } from '@/composables/useTaskFilters';
   import TaskList from '@/components/tasks/TaskList.vue';
   import TaskForm from '@/components/tasks/TaskForm.vue';
   import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
-  import TaskFilters from '../components/tasks/TaskFilters.vue';
+  import TaskFilters from '@components/tasks/TaskFilters.vue';
   
   const taskStore = useTaskStore();
   
@@ -14,6 +15,13 @@
   const searchQuery = ref('');
   const filterStatus = ref('all'); 
   const sortBy = ref('date');
+
+  const { filteredAndSorted: filteredAndSortedTasks } = useTaskFilters(
+  computed(() => taskStore.tasks),
+  searchQuery,
+  filterStatus,
+  sortBy
+);
     
   onMounted(async () => {
     await taskStore.getTasks();
