@@ -7,17 +7,11 @@
       </div>
 
       <form @submit.prevent="submitTask" class="task-form" novalidate>
-        
+
         <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
-          <input 
-            v-model="formData.title" 
-            id="title" 
-            type="text"
-            placeholder="z.B. API-Struktur implementieren"
-            @blur="validateTitle"
-            @input="errors.title = ''"
-          />
+          <input v-model="formData.title" id="title" type="text" placeholder="z.B. API-Struktur implementieren"
+            @blur="validateTitle" @input="errors.title = ''" />
           <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
         </div>
 
@@ -26,14 +20,9 @@
             Beschreibung
             <span v-if="formData.priority_id >= 3" class="required-star">*</span>
           </label>
-          <textarea 
-            v-model="formData.description" 
-            id="description" 
-            rows="3"
-            placeholder="Detaillierte Beschreibung der Aufgabe"
-            @blur="validateDescription"
-            @input="errors.description = ''"
-          ></textarea>
+          <textarea v-model="formData.description" id="description" rows="3"
+            placeholder="Detaillierte Beschreibung der Aufgabe" @blur="validateDescription"
+            @input="errors.description = ''"></textarea>
           <span v-if="errors.description" class="error-message">{{ errors.description }}</span>
           <span v-if="formData.priority_id >= 3" class="info-message">
             ℹ️ Wichtige Aufgaben benötigen eine Beschreibung
@@ -52,13 +41,8 @@
 
         <div class="form-group" :class="{ 'has-error': errors.deadline }">
           <label for="deadline">Deadline *</label>
-          <input 
-            type="datetime-local" 
-            v-model="formData.deadline" 
-            id="deadline"
-            @blur="validateDeadline"
-            @change="validateDeadline"
-          />
+          <input type="datetime-local" v-model="formData.deadline" id="deadline" @blur="validateDeadline"
+            @change="validateDeadline" />
           <span v-if="errors.deadline" class="error-message">{{ errors.deadline }}</span>
           <span v-if="warnings.deadline" class="warning-message">{{ warnings.deadline }}</span>
         </div>
@@ -78,24 +62,10 @@
         <div class="form-group" :class="{ 'has-error': errors.progress }">
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
-            <input 
-              type="range" 
-              v-model.number="formData.progress" 
-              id="progress" 
-              min="0" 
-              max="100"
-              class="progress-slider"
-              @input="validateStatusProgress"
-            />
-            <input 
-              type="number" 
-              v-model.number="formData.progress" 
-              min="0" 
-              max="100"
-              class="progress-number"
-              @blur="validateStatusProgress"
-              @input="validateStatusProgress"
-            />
+            <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
+              class="progress-slider" @input="validateStatusProgress" />
+            <input type="number" v-model.number="formData.progress" min="0" max="100" class="progress-number"
+              @blur="validateStatusProgress" @input="validateStatusProgress" />
             <span class="progress-label">%</span>
           </div>
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
@@ -130,6 +100,18 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['save', 'close']);
+
+const {
+  errors,
+  warnings,
+  hasErrors,
+  clearError,
+  validateTitle,
+  validateDescription,
+  validateDeadline,
+  validateStatusProgress,
+  validateAll
+} = useTaskValidation(props.existingTasks)
 
 function formatForInput(isoString) {
   if (!isoString) return '';
