@@ -1,11 +1,11 @@
 <script setup>
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
   import { useTaskStore } from '@/stores/entities/taskStore';
   import { useTaskFilters } from '@/composables/useTaskFilters';
   import TaskList from '@/components/tasks/TaskList.vue';
   import TaskForm from '@/components/tasks/TaskForm.vue';
   import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
-  import TaskFilters from '@components/tasks/TaskFilters.vue';
+  import TaskFilters from '@/components/tasks/TaskFilters.vue';
   
   const taskStore = useTaskStore();
   
@@ -79,10 +79,14 @@
         </button>
       </div>
 
-      <TaskFilters/>
+      <TaskFilters
+        v-model:searchQuery="searchQuery"
+        v-model:filterStatus="filterStatus"
+        v-model:sortBy="sortBy"
+      />
   
       <TaskList
-        :tasks="taskStore.tasks"
+        :tasks="filteredAndSortedTasks"
         @edit="openTaskForm"
         @delete="openDeleteDialog"
         @toggle-status="toggleTaskStatus"
