@@ -28,7 +28,7 @@ export function useTaskValidation(existingTasks = []) {
     };
 
     const validateTitle = (title, currentTaskId = null) => {
-        if (!title || title.trim() === '') {
+        if (!title || typeof title !== 'string' || title.trim() === '') {
             errors.title = 'Titel ist erforderlich';
             return false;
         }
