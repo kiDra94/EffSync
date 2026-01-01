@@ -120,6 +120,7 @@
 
 <script setup>
 import { reactive } from 'vue';
+import { useTaskValidation } from '@/composables/useTaskValidation';
 
 const props = defineProps({
   task: {
@@ -142,24 +143,6 @@ const formData = reactive({
   priority_id: props.task?.priority_id || 2, // Default Mittel
   status: props.task?.status || 'TODO',
   progress: props.task?.progress || 0
-});
-
-const errors = reactive({
-  title: '',
-  description: '',
-  deadline: '',
-  status: '',
-  progress: ''
-});
-
-const warnings = reactive({
-  deadline: ''
-});
-
-const showSummary = ref(false);
-
-const hasErrors = computed(() => {
-  return Object.values(errors).some(error => error !== '');
 });
 
 const submitTask = () => {
