@@ -4,6 +4,7 @@
   import TaskList from '@/components/tasks/TaskList.vue';
   import TaskForm from '@/components/tasks/TaskForm.vue';
   import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
+  import TaskFilters from '../components/tasks/TaskFilters.vue';
   
   const taskStore = useTaskStore();
   
@@ -57,6 +58,8 @@
           + Neue Aufgabe
         </button>
       </div>
+
+      <TaskFilters/>
   
       <TaskList
         :tasks="taskStore.tasks"
