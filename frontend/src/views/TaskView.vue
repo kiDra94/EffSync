@@ -10,7 +10,11 @@
   
   const activeModal = ref(null); // 'form' | 'delete' | null
   const selectedTask = ref(null);
-  
+
+  const searchQuery = ref('');
+  const filterStatus = ref('all'); 
+  const sortBy = ref('date');
+    
   onMounted(async () => {
     await taskStore.getTasks();
   });
