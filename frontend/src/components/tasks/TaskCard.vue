@@ -20,6 +20,9 @@
           }">
           {{ formatStatusLabel(task.status) }}
         </span>
+        <span class="priority-badge" :style="{ backgroundColor: getPriorityColor(task.priority_id) }">
+          {{ getPriorityLabel(task.priority_id) }}
+        </span>
           <span class="date-badge" :style="{ color: task.status === 'done' ? '#aaa' : '#555' }">
             📅 {{ task.dueDate }}
           </span>
