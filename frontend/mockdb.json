@@ -205,6 +205,14 @@
       "dueDate": "2026-01-08",
       "priority": "high",
       "status": "open"
+    },
+    {
+      "id": null,
+      "title": "Test Crate new Task",
+      "subject": "",
+      "dueDate": "2026-01-15",
+      "priority": "low",
+      "status": "open"
     }
   ],
   "task_templates": [
