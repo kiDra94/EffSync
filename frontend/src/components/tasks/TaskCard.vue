@@ -26,30 +26,31 @@
   </template>
   
   <script setup>
-  defineProps({
-    task: Object,
-  });
-  
-  defineEmits(['edit', 'delete']);
-  
-  const editTask = () => {
-    emit('edit', task);
-  };
-  
-  const deleteTask = () => {
-    emit('delete', task);
-  };
-  
-  const toggleStatus = () => {
-    // Hier könnte eine Statusänderung implementiert werden
-  };
-  
-  const getPriorityColor = (prio) => {
-    if (prio === 'high') return '#e74c3c';
-    if (prio === 'medium') return '#f39c12';
-    return '#27ae60';
-  };
-  </script>
+    const props = defineProps({
+      task: Object,
+    });
+    
+    const emit = defineEmits(['edit', 'delete', 'toggleStatus']);
+    
+    const editTask = () => {
+      emit('edit', props.task);
+    };
+    
+    const deleteTask = () => {
+      emit('delete', props.task);
+    };
+    
+    const toggleStatus = () => {
+      emit('toggleStatus', props.task);
+    };
+    
+    const getPriorityColor = (prio) => {
+      if (prio === 'high') return '#e74c3c';
+      if (prio === 'medium') return '#f39c12';
+      return '#27ae60';
+    };
+    </script>
+    
   
   <style scoped>
   /* Styles aus der TaskView für die TaskCard */

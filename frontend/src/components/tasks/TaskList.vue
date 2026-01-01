@@ -20,7 +20,7 @@
     tasks: Array
   });
   
-  defineEmits(['edit', 'delete']);
+  const emit = defineEmits(['edit', 'delete']);
   
   const editTask = (task) => {
     emit('edit', task);
