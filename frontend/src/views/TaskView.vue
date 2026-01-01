@@ -43,8 +43,8 @@
 };
   
   const saveTask = async (task) => {
-    if (task.id) {
-      await taskStore.editTask(task.id, task);
+    if (task.task_id) {
+      await taskStore.editTask(task.task_id, task);
     } else {
       await taskStore.addTask(task);
     }
