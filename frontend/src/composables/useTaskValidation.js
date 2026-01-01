@@ -74,5 +74,43 @@ export function useTaskValidation(existingTasks = []) {
         return true;
     };
 
+    const validateDeadline = (deadline) => {
+        if (!deadline) {
+            errors.deadline = 'Deadline ist erforderlich';
+            warnings.deadline = '';
+            return false;
+        }
+
+        const selectedDate = new Date(deadline);
+        const now = new Date();
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() + 5);
+
+        if (selectedDate <= now) {
+            errors.deadline = 'Deadline muss in der Zukunft liegen';
+            warnings.deadline = '';
+            return false;
+        }
+
+        if (selectedDate > maxDate) {
+            errors.deadline = 'Deadline darf nicht mehr als 5 Jahre in der Zukunft liegen';
+            warnings.deadline = '';
+            return false;
+        }
+
+        const hoursDiff = (selectedDate - now) / (1000 * 60 * 60);
+
+        if (hoursDiff < 24) {
+            warnings.deadline = '⚠️ Achtung: Deadline liegt in weniger als 24 Stunden!';
+        } else if (hoursDiff < 48) {
+            warnings.deadline = '⚠️ Hinweis: Deadline liegt in weniger als 48 Stunden';
+        } else {
+            warnings.deadline = '';
+        }
+
+        errors.deadline = '';
+        return true;
+    };
+
     
 }
