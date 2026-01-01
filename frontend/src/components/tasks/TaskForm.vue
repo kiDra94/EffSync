@@ -93,7 +93,7 @@ const submitTask = () => {
     ...formData,
     ...(props.task?.id && { id: props.task.id })
   }
-  emit('save', { ...formData });
+  emit('save', { ...taskData });
 };
 
 const close = () => {
