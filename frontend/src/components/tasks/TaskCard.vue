@@ -1,16 +1,25 @@
 <template>
-    <div class="task-card" :class="{ 'is-done': task.status === 'done' }">
+    <div class="task-card" :class="{ 'is-done': task.status === 'COMPLETED' }">
       <div class="task-left">
         <input
           type="checkbox"
-          :checked="task.status === 'done'"
+          :checked="task.status === 'COMPLETED'"
           class="task-checkbox"
           @change="toggleStatus"
+          :aria-label="`Task ${task.title} markieren`"
         />
       </div>
       <div class="task-content">
         <div class="task-header">
-          <span class="subject-badge">{{ task.subject }}</span>
+          <span 
+          class="status-badge" 
+          :style="{ 
+            backgroundColor: getStatusColor(task.status) + '20',
+            color: getStatusColor(task.status),
+            border: `1px solid ${getStatusColor(task.status)}`
+          }">
+          {{ formatStatusLabel(task.status) }}
+        </span>
           <span class="date-badge" :style="{ color: task.status === 'done' ? '#aaa' : '#555' }">
             📅 {{ task.dueDate }}
           </span>
