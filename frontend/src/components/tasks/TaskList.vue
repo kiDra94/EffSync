@@ -2,10 +2,11 @@
     <div class="task-list">
       <TaskCard
         v-for="task in tasks"
-        :key="task.id"
+        :key="task.task_id"
         :task="task"
         @edit="editTask"
         @delete="deleteTask"
+        @toggle-status="toggleStatus"
       />
       <div v-if="tasks.length === 0" class="empty-state">
         <p>Keine Aufgaben gefunden 🤷‍♂️</p>
