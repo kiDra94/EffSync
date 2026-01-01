@@ -17,7 +17,7 @@
           {{ getPriorityLabel(task.priority_id) }}
         </span>
         <span class="date-badge" :style="{ color: task.status === 'COMPLETED' ? '#aaa' : '#555' }">
-          📅 {{ task.dueDate }}
+          📅 {{ task.deadline }}
         </span>
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
@@ -92,6 +92,18 @@ const getPriorityLabel = (priorityId) => {
     4: 'Dringend'
   };
   return labels[priorityId] || '';
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('de-DE', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 </script>
 
