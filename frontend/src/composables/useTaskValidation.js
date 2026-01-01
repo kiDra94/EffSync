@@ -140,5 +140,16 @@ export function useTaskValidation(existingTasks = []) {
         return true;
     };
 
+    const validateProgress = (progress) => {
+        const progressNum = Number(progress);
+        if (isNaN(progressNum) || progressNum < 0 || progressNum > 100) {
+            errors.progress = 'Fortschritt muss zwischen 0 und 100 liegen';
+            return false;
+        }
+
+        errors.progress = '';
+        return true;
+    };
+
     
 }
