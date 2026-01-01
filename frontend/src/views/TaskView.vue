@@ -7,8 +7,7 @@
   
   const taskStore = useTaskStore();
   
-  const showTaskForm = ref(false);
-  const showDeleteDialog = ref(false);
+  const activeModal = ref(null); // 'form' | 'delete' | null
   const selectedTask = ref(null);
   
   onMounted(async () => {
@@ -17,13 +16,18 @@
   
   const openTaskForm = (task = null) => {
     selectedTask.value = task;
-    showTaskForm.value = true;
+    activeModal.value = 'form';
   };
   
   const openDeleteDialog = (task) => {
     selectedTask.value = task;
-    showDeleteDialog.value = true;
+    activeModal.value = 'delete';
   };
+
+  const closeModal = () => {
+    activeModal.value = null;
+    selectedTask.value = null;
+};
   
   const saveTask = async (task) => {
     if (task.id) {
@@ -31,13 +35,13 @@
     } else {
       await taskStore.addTask(task);
     }
-    showTaskForm.value = false;
+    closeModal();
   };
   
   const deleteTask = async () => {
     if (selectedTask.value) {
       await taskStore.removeTask(selectedTask.value.id);
-      showDeleteDialog.value = false;
+      closeModal();
     }
   };
   </script>
