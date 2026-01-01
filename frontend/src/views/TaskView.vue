@@ -47,23 +47,87 @@
   </script>
   
   <template>
-    <div>
-      <button @click="openTaskForm">+ Neue Aufgabe</button>
+    <div class="task-view">
+      <div class="task-header">
+        <h1>Meine Aufgaben</h1>
+        <button 
+          @click="openTaskForm()" 
+          class="btn-primary"
+        >
+          + Neue Aufgabe
+        </button>
+      </div>
+  
       <TaskList
         :tasks="taskStore.tasks"
         @edit="openTaskForm"
         @delete="openDeleteDialog"
+        @toggle-status="toggleTaskStatus"
       />
+  
       <TaskForm
-        v-if="showTaskForm"
+        v-if="activeModal === 'form'"
         :task="selectedTask"
         @save="saveTask"
-        @close="() => (showTaskForm.value = false)"
+        @close="closeModal"
       />
+  
       <TaskDeleteDialog
-        v-if="showDeleteDialog"
+        v-if="activeModal === 'delete'"
+        :task="selectedTask"
         @delete="deleteTask"
-        @close="() => (showDeleteDialog.value = false)"
+        @close="closeModal"
       />
     </div>
   </template>
+  
+  <style scoped>
+  .task-view {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  
+  .task-header h1 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 2rem;
+  }
+  
+  .btn-primary {
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+  }
+  
+  .btn-primary:hover {
+    background-color: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+  }
+  
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+  
+  .btn-primary:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+  }
+  </style>
