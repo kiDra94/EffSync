@@ -7,7 +7,7 @@
   </template>
   
   <script setup>
-  defineEmits(['delete', 'close']);
+  const emit = defineEmits(['delete', 'close']);
   
   const confirmDelete = () => {
     emit('delete');
