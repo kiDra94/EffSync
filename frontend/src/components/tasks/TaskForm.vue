@@ -132,7 +132,6 @@ const emit = defineEmits(['save', 'close']);
 
 function formatForInput(isoString) {
   if (!isoString) return '';
-  // "2025-06-30T23:59:59Z" → "2025-06-30T23:59"
   return isoString.slice(0, 16);
 }
 
@@ -143,6 +142,24 @@ const formData = reactive({
   priority_id: props.task?.priority_id || 2, // Default Mittel
   status: props.task?.status || 'TODO',
   progress: props.task?.progress || 0
+});
+
+const errors = reactive({
+  title: '',
+  description: '',
+  deadline: '',
+  status: '',
+  progress: ''
+});
+
+const warnings = reactive({
+  deadline: ''
+});
+
+const showSummary = ref(false);
+
+const hasErrors = computed(() => {
+  return Object.values(errors).some(error => error !== '');
 });
 
 const submitTask = () => {
