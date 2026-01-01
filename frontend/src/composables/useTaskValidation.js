@@ -151,5 +151,26 @@ export function useTaskValidation(existingTasks = []) {
         return true;
     };
 
-    
+    const validateAll = (taskData, currentTaskId = null) => {
+        const isTitleValid = validateTitle(taskData.title, currentTaskId);
+        const isDescriptionValid = validateDescription(taskData.description, taskData.priority_id);
+        const isDeadlineValid = validateDeadline(taskData.deadline);
+        const isStatusProgressValid = validateStatusProgress(taskData.status, taskData.progress);
+
+        return isTitleValid && isDescriptionValid && isDeadlineValid && isStatusProgressValid;
+    };
+
+    return {
+        errors,
+        warnings,
+        hasErrors,
+        clearError,
+        clearAllErrors,
+        validateTitle,
+        validateDescription,
+        validateDeadline,
+        validateProgress,
+        validateStatusProgress,
+        validateAll
+    };
 }
