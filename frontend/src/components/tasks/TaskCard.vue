@@ -35,7 +35,10 @@
 
 <script setup>
 const props = defineProps({
-  task: Object,
+  task: {
+    type: Object,
+    required: true
+  }
 });
 
 const emit = defineEmits(['edit', 'delete', 'toggleStatus']);
@@ -50,6 +53,14 @@ const deleteTask = () => {
 
 const toggleStatus = () => {
   emit('toggleStatus', props.task);
+};
+
+const formatStatusLabel = (status) => {
+  if (!status) return '';
+  return status
+    .split('_')
+    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ');
 };
 
 const getPriorityColor = (prio) => {
