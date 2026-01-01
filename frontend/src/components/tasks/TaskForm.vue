@@ -33,7 +33,6 @@ const props = defineProps({
 const emit = defineEmits(['save', 'close']);
 
 const formData = reactive({
-  id: props.task?.id || null,
   title: props.task?.title || '',
   subject: props.task?.subject || '',
   dueDate: props.task?.dueDate || '',
@@ -42,6 +41,10 @@ const formData = reactive({
 });
 
 const submitTask = () => {
+  const taskData = {
+    ...formData,
+    ...(props.task?.id && { id: props.task.id})
+  }
   emit('save', { ...formData });
 };
 
