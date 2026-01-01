@@ -17,7 +17,7 @@
           {{ getPriorityLabel(task.priority_id) }}
         </span>
         <span class="date-badge" :style="{ color: task.status === 'COMPLETED' ? '#aaa' : '#555' }">
-          📅 {{ task.deadline }}
+          📅 {{ formatDate(task.deadline) }}
         </span>
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
