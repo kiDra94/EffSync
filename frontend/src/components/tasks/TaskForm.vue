@@ -127,6 +127,8 @@ const formData = reactive({
   progress: props.task?.progress || 0
 });
 
+const showSummary = ref(false);
+
 const submitTask = () => {
   const taskData = {
     ...formData,
