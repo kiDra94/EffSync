@@ -12,5 +12,10 @@ export function useTaskFilters(tasks, searchQuery, filterStatus, sortBy) {
         );
     });
 
+    const filteredTasks = computed(() => {
+        if (filterStatus.value === 'all') return searchedTasks.value;
+        return searchedTasks.value.filter(t => t.status === filterStatus.value);
+    });
+
     
 }
