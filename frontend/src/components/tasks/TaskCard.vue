@@ -74,10 +74,24 @@ const getStatusColor = (status) => {
   return colors[status] || '#6b7280';
 };
 
-const getPriorityColor = (prio) => {
-  if (prio === 'high') return '#e74c3c';
-  if (prio === 'medium') return '#f39c12';
-  return '#27ae60';
+const getPriorityColor = (prio_id) => {
+  const colors = {
+    1: '#27ae60', // niedrig
+    2: '#f39c12', // mittel
+    3: '#e74c3c', // hoch
+    4: '#c0392b'  // dringend
+  };
+  return colors[prio_id] || '#6b7280';
+};
+
+const getPriorityLabel = (priorityId) => {
+  const labels = {
+    1: 'Niedrig',
+    2: 'Mittel',
+    3: 'Hoch',
+    4: 'Dringend'
+  };
+  return labels[priorityId] || '';
 };
 </script>
 
