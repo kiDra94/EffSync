@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 
 const props = defineProps({
@@ -130,11 +130,16 @@ const formData = reactive({
 const showSummary = ref(false);
 
 const submitTask = () => {
+  showSummary.value = true;
+
+  if (!validateAll(formData, props.task?.task_id)) { return; }
   const taskData = {
     ...formData,
-    ...(props.task?.task_id && { id: props.task.task_id })
-  }
-  emit('save', { ...taskData });
+    ...(props.task?.task_id && { task_id: props.task.task_id })
+  };
+
+  emit('save', taskData);
+  showSummary.value = false;
 };
 
 const close = () => {
