@@ -8,6 +8,11 @@
 
       <form @submit.prevent="submitTask" class="task-form" novalidate>
 
+        <TaskTemplateSelector 
+          v-if="!task" 
+          @templateSelected="applyTemplate" 
+        />
+
         <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
           <input v-model="formData.title" id="title" type="text" placeholder="z.B. API-Struktur implementieren"
@@ -91,6 +96,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
+import TaskTemplateSelector from '@/components/tasks/ TaskTemplateSelector.vue';
 
 const props = defineProps({
   task: {
