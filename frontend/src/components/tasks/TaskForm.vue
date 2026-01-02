@@ -353,4 +353,44 @@ const close = () => {
 .btn-secondary:active {
   transform: translateY(0);
 }
+
+.has-error input,
+.has-error select,
+.has-error textarea {
+  border-color: #ef4444;
+}
+
+.error-message {
+  display: block;
+  margin-top: 4px;
+  color: #ef4444;
+  font-size: 0.875rem;
+}
+
+.warning-message {
+  display: block;
+  margin-top: 4px;
+  color: #f59e0b;
+  font-size: 0.875rem;
+}
+
+.info-message {
+  display: block;
+  margin-top: 4px;
+  color: #3b82f6;
+  font-size: 0.875rem;
+}
+
+.required-star {
+  color: #ef4444;
+}
+
+.error-summary {
+  background-color: #fee2e2;
+  color: #991b1b;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
 </style>
