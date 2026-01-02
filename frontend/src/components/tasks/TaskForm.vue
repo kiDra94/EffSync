@@ -8,6 +8,8 @@
 
       <form @submit.prevent="submitTask" class="task-form" novalidate>
 
+        <TaskTemplateSelector v-if="!task" @templateSelected="applyTemplate" />
+
         <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
           <input v-model="formData.title" id="title" type="text" placeholder="z.B. API-Struktur implementieren"
@@ -59,7 +61,7 @@
           <span v-if="errors.status" class="error-message">{{ errors.status }}</span>
         </div>
 
-        <div class="form-group" :class="{ 'has-error': errors.progress }">
+        <div v-if="task"  class="form-group" :class="{ 'has-error': errors.progress }">
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
             <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
@@ -91,6 +93,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
+import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
 
 const props = defineProps({
   task: {
@@ -128,6 +131,17 @@ const formData = reactive({
 });
 
 const showSummary = ref(false);
+
+const applyTemplate = (template) => {
+  if (template.default_title) { formData.title = template.default_title; }
+  if (template.default_description) { formData.description = template.default_description; }
+  if (template.default_priority_id) { formData.priority_id = template.default_priority_id; }
+  if (template.default_deadline_days) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + template.default_deadline_days);
+    formData.deadline = formatForInput(futureDate.toISOString());
+  }
+};
 
 const submitTask = () => {
   showSummary.value = true;
@@ -338,5 +352,45 @@ const close = () => {
 .btn-primary:active,
 .btn-secondary:active {
   transform: translateY(0);
+}
+
+.has-error input,
+.has-error select,
+.has-error textarea {
+  border-color: #ef4444;
+}
+
+.error-message {
+  display: block;
+  margin-top: 4px;
+  color: #ef4444;
+  font-size: 0.875rem;
+}
+
+.warning-message {
+  display: block;
+  margin-top: 4px;
+  color: #f59e0b;
+  font-size: 0.875rem;
+}
+
+.info-message {
+  display: block;
+  margin-top: 4px;
+  color: #3b82f6;
+  font-size: 0.875rem;
+}
+
+.required-star {
+  color: #ef4444;
+}
+
+.error-summary {
+  background-color: #fee2e2;
+  color: #991b1b;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-weight: 600;
 }
 </style>
