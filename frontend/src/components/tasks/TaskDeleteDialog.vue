@@ -11,6 +11,10 @@
         </p>
         <p class="warning-text">Diese Aktion kann nicht rückgängig gemacht werden.</p>
       </div>
+      <div class="confirmation-input">
+        <label for="confirm-title">Gib den Titel "<strong>{{ task?.title }}</strong>" ein, um zu bestätigen:</label>
+        <input id="confirm-title" type="text" v-model="confirmationText" placeholder="Aufgabentitel eingeben" />
+      </div>
       <div class="modal-actions">
         <button @click="confirmDelete" class="btn-danger">Löschen</button>
         <button @click="close" class="btn-secondary">Abbrechen</button>
