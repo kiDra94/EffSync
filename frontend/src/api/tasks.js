@@ -18,6 +18,10 @@ export const updateTask = async (task_id, taskData) => {
 	return axios.put(`${API_BASE_URL}/${task_id}`, taskData);
 };
 
+export const updateTaskStatus = async (task_id, status) => {
+    return axios.patch(`${API_BASE_URL}/${task_id}/status`, { status });
+};
+
 export const deleteTask = async (task_id) => {
 	return axios.delete(`${API_BASE_URL}/${task_id}`);
 };
