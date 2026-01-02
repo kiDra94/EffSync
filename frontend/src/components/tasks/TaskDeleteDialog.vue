@@ -14,6 +14,7 @@
       <div class="confirmation-input">
         <label for="confirm-title">Gib den Titel "<strong>{{ task?.title }}</strong>" ein, um zu bestätigen:</label>
         <input id="confirm-title" type="text" v-model="confirmationText" placeholder="Aufgabentitel eingeben" />
+        <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
       </div>
       <div class="modal-actions">
         <button @click="confirmDelete" class="btn-danger">Löschen</button>
@@ -24,9 +25,35 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue';
+
+const props = defineProps({
+  task: {
+    type: Object,
+    required: false,
+    default: null,
+  },
+});
+
 const emit = defineEmits(['delete', 'close']);
 
+const confirmationText = ref('');
+const errorMessage = ref('');
+const isConfirmed = computed(() => {
+  return confirmationText.value.trim() === props.task?.title.trim();
+});
+const validateInput = () => {
+  if (confirmationInput.value && !isConfirmed.value) {
+    errorMessage.value = 'Der Titel stimmt nicht überein.';
+  } else {
+    errorMessage.value = '';
+  }
+};
 const confirmDelete = () => {
+  if (!isConfirmed.value) {
+    errorMessage.value = 'Der Titel stimmt nicht überein.';
+    return;
+  }
   emit('delete');
 };
 
