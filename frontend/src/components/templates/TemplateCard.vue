@@ -91,8 +91,8 @@ const getPriorityName = (id) => {
 
 .template-actions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 8px;
   flex-shrink: 0;
 }
 
