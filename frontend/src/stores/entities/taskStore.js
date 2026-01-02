@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask } from '@/api/tasks';
+import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, updateTaskStatus } from '@/api/tasks';
 
 export const useTaskStore = defineStore('task', () => {
     const tasks = ref([]);
@@ -48,6 +48,19 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
+    async function changeStatus(task_id, newStatus) {
+        try {
+            await updateTaskStatus(task_id, newStatus);
+            const index = tasks.value.findIndex((t) => t.task_id === task_id);
+            if (index !== -1) {
+                tasks.value[index].status = newStatus;
+            }
+        } catch (error) {
+            console.error('Fehler beim Statuswechsel:', error);
+            throw error;
+        }
+    }
+
     async function removeTask(task_id) {
         try {
             await deleteTask(task_id);
@@ -64,6 +77,7 @@ export const useTaskStore = defineStore('task', () => {
         getTaskById,
         addTask,
         editTask,
+        changeStatus,
         removeTask,
     };
 });
