@@ -1,7 +1,11 @@
 <template>
   <div class="template-card">
-    <div class="template-header">
-      <h3>{{ template.name }}</h3>
+    <div class="template-main">
+      <div class="template-content">
+        <h3>{{ template.name }}</h3>
+        <p class="template-description">{{ template.description || 'Keine Beschreibung' }}</p>
+      </div>
+      
       <div class="template-actions">
         <button @click="$emit('edit', template)" class="btn-icon" title="Bearbeiten">
           ✏️
@@ -11,8 +15,6 @@
         </button>
       </div>
     </div>
-    
-    <p class="template-description">{{ template.description || 'Keine Beschreibung' }}</p>
     
     <div class="template-defaults">
       <div class="default-item" v-if="template.default_title">
@@ -61,23 +63,37 @@ const getPriorityName = (id) => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.template-header {
+.template-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.template-header h3 {
-  margin: 0;
+.template-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-content h3 {
+  margin: 0 0 8px 0;
   color: #1f2937;
   font-size: 1.25rem;
+}
+
+.template-description {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .template-actions {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .btn-icon {
@@ -96,13 +112,6 @@ const getPriorityName = (id) => {
 
 .btn-icon.btn-danger:hover {
   background-color: #fee2e2;
-}
-
-.template-description {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin-bottom: 16px;
-  line-height: 1.5;
 }
 
 .template-defaults {
