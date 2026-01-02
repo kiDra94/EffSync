@@ -182,4 +182,50 @@ const close = () => {
 .btn-secondary:active {
   transform: translateY(0);
 }
+
+.confirmation-input {
+  margin: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.confirmation-input label {
+  display: block;
+  margin-bottom: 8px;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.confirmation-input input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.confirmation-input input:focus {
+  outline: none;
+  border-color: #ef4444;
+}
+
+.error-text {
+  display: block;
+  margin-top: 6px;
+  color: #ef4444;
+  font-size: 0.85rem;
+}
+
+.btn-danger:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-danger:disabled:hover {
+  background-color: #9ca3af;
+  transform: none;
+}
 </style>
