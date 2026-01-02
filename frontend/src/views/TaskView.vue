@@ -63,6 +63,9 @@ const toggleTaskStatus = async (task) => {
   await taskStore.changeStatus(task.task_id, newStatus);
 };
 
+const handleStatusChange = async (task, newStatus) => {
+  await taskStore.changeStatus(task.task_id, newStatus);
+};
 </script>
 
 <template>
