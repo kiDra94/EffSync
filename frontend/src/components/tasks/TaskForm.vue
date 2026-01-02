@@ -8,10 +8,7 @@
 
       <form @submit.prevent="submitTask" class="task-form" novalidate>
 
-        <TaskTemplateSelector 
-          v-if="!task" 
-          @templateSelected="applyTemplate" 
-        />
+        <TaskTemplateSelector v-if="!task" @templateSelected="applyTemplate" />
 
         <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
