@@ -61,7 +61,7 @@
           <span v-if="errors.status" class="error-message">{{ errors.status }}</span>
         </div>
 
-        <div class="form-group" :class="{ 'has-error': errors.progress }">
+        <div v-if="task"  class="form-group" :class="{ 'has-error': errors.progress }">
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
             <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
