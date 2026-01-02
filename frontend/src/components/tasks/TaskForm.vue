@@ -96,7 +96,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
-import TaskTemplateSelector from '@/components/tasks/ TaskTemplateSelector.vue';
+import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
 
 const props = defineProps({
   task: {
