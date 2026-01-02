@@ -132,6 +132,17 @@ const formData = reactive({
 
 const showSummary = ref(false);
 
+const applyTemplate = (template) => {
+  if (template.default_title) { formData.title = template.default_title; }
+  if (template.default_description) { formData.description = template.default_description; }
+  if (template.default_priority_id) { formData.priority_id = template.default_priority_id; }
+  if (template.default_deadline_days) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + template.default_deadline_days);
+    formData.deadline = formatForInput(futureDate.toISOString());
+  }
+};
+
 const submitTask = () => {
   showSummary.value = true;
 
