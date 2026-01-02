@@ -52,6 +52,7 @@ const userInitial = computed(() => {
       <router-link :to="{ name: 'DocumentList' }" title="Dokumente">📂</router-link>
       <router-link :to="{ name: 'ClassList' }" title="Klassen">🏢</router-link>
       <router-link :to="{ name: 'TaskList' }" title="Aufgaben">📋</router-link>
+      <router-link :to="{ name: 'TemplateLists' }" title="Vorlagen">📄</router-link>
       <router-link :to="{ name: 'NoteLists' }" title="Notizen">📝</router-link>
     </div>
 
