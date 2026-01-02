@@ -1,11 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useTaskTemplateStore } from '@/stores/entities/templateStore';
+import { useTemplateStore } from '@/stores/entities/templateStore';
 import TemplateList from '@/components/templates/TemplateList.vue';
 import TemplateForm from '@/components/templates/TemplateForm.vue';
 import TemplateDeleteDialog from '@/components/templates/TemplateDeleteDialog.vue';
 
-const templateStore = useTaskTemplateStore();
+const templateStore = useTemplateStore();
 
 const activeModal = ref(null);
 const selectedTemplate = ref(null);
