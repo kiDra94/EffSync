@@ -128,10 +128,16 @@ Table tasks {
 
 Table task_templates {
   template_id integer [primary key]
-  name varchar
+  name varchar [not null]
   description text
+  default_title varchar
+  default_description text
+  default_priority_id integer [ref: > priorities.priority_id]
+  default_deadline_days integer [note: 'Anzahl Tage ab Erstellung']
+  default_status task_status [default: "TODO"]
   created_at datetime [default: `now()`]
   updated_at datetime
+  created_by integer [ref: > users.user_id]
 }
 
 Table task_comments {
