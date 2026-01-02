@@ -59,12 +59,10 @@ const deleteTask = async () => {
 };
 
 const toggleTaskStatus = async (task) => {
-  const updatedTask = {
-    ...task,
-    status: task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED'
-  };
-  await taskStore.editTask(task.task_id, updatedTask);
+  const newStatus = task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED';
+  await taskStore.changeStatus(task.task_id, newStatus);
 };
+
 </script>
 
 <template>
@@ -79,7 +77,7 @@ const toggleTaskStatus = async (task) => {
     <TaskFilters v-model:searchQuery="searchQuery" v-model:filterStatus="filterStatus" v-model:sortBy="sortBy" />
 
     <TaskList :tasks="filteredAndSortedTasks" @edit="openTaskForm" @delete="openDeleteDialog"
-      @toggle-status="toggleTaskStatus" />
+      @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" />
 
     <TaskForm v-if="activeModal === 'form'" :task="selectedTask" @save="saveTask" @close="closeModal" />
 
