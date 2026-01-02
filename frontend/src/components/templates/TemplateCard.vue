@@ -1,250 +1,129 @@
 <template>
-  <div class="template-card" :class="{ 'is-done': template.status === 'COMPLETED' }">
-    <div class="template-left">
-      <input type="checkbox" :checked="template.status === 'COMPLETED'" class="template-checkbox" @change="toggleStatus"
-        :aria-label="`Task ${template.title} markieren`" />
-    </div>
-    <div class="template-content">
-      <div class="template-header">
-        <span class="status-badge" :style="{
-          backgroundColor: getStatusColor(template.status) + '20',
-          color: getStatusColor(template.status),
-          border: `1px solid ${getStatusColor(template.status)}`
-        }">
-          {{ formatStatusLabel(template.status) }}
-        </span>
-        <span class="priority-badge" :style="{ backgroundColor: getPriorityColor(template.priority_id) }">
-          {{ getPriorityLabel(template.priority_id) }}
-        </span>
-        <span class="date-badge" :style="{ color: template.status === 'COMPLETED' ? '#aaa' : '#555' }">
-          📅 {{ formatDate(template.deadline) }}
-        </span>
-        <span v-if="template.progress !== undefined" class="progress-badge">
-          📊 {{ template.progress }}%
-        </span>
+  <div class="template-card">
+    <div class="template-header">
+      <h3>{{ template.name }}</h3>
+      <div class="template-actions">
+        <button @click="$emit('edit', template)" class="btn-icon" title="Bearbeiten">
+          ✏️
+        </button>
+        <button @click="$emit('delete', template)" class="btn-icon btn-danger" title="Löschen">
+          🗑️
+        </button>
       </div>
-      <h3 class="template-title">{{ template.title }}</h3>
     </div>
-    <div class="template-right">
-      <div class="prio-dot" :style="{ backgroundColor: getPriorityColor(template.priority) }" title="Priorität"></div>
-      <button @click="editTemplate">✏️</button>
-      <button @click="deleteTemplate">🗑️</button>
+    
+    <p class="template-description">{{ template.description || 'Keine Beschreibung' }}</p>
+    
+    <div class="template-defaults">
+      <div class="default-item" v-if="template.default_title">
+        <span class="label">Standard-Titel:</span>
+        <span class="value">{{ template.default_title }}</span>
+      </div>
+      <div class="default-item" v-if="template.default_priority_id">
+        <span class="label">Standard-Priorität:</span>
+        <span class="value">{{ getPriorityName(template.default_priority_id) }}</span>
+      </div>
+      <div class="default-item" v-if="template.default_deadline_days">
+        <span class="label">Standard-Deadline:</span>
+        <span class="value">{{ template.default_deadline_days }} Tage</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-const props = defineProps({
+defineProps({
   template: {
     type: Object,
     required: true
   }
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggleStatus']);
+defineEmits(['edit', 'delete']);
 
-const editTemplate = () => {
-  emit('edit', props.template);
-};
-
-const deleteTemplate = () => {
-  emit('delete', props.template);
-};
-
-const toggleStatus = () => {
-  emit('toggleStatus', props.template);
-};
-
-const formatStatusLabel = (status) => {
-  if (!status) return '';
-  return status
-    .split('_')
-    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(' ');
-};
-
-const getStatusColor = (status) => {
-  const colors = {
-    TODO: '#6b7280',
-    IN_PROGRESS: '#3b82f6',
-    IN_REVIEW: '#f59e0b',
-    ON_HOLD: '#ef4444',
-    COMPLETED: '#10b981'
-  };
-  return colors[status] || '#6b7280';
-};
-
-const getPriorityColor = (prio_id) => {
-  const colors = {
-    1: '#27ae60', // niedrig
-    2: '#f39c12', // mittel
-    3: '#e74c3c', // hoch
-    4: '#c0392b'  // dringend
-  };
-  return colors[prio_id] || '#6b7280';
-};
-
-const getPriorityLabel = (priorityId) => {
-  const labels = {
-    1: 'Niedrig',
-    2: 'Mittel',
-    3: 'Hoch',
-    4: 'Dringend'
-  };
-  return labels[priorityId] || '';
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('de-DE', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+const getPriorityName = (id) => {
+  const priorities = { 1: 'Niedrig', 2: 'Mittel', 3: 'Hoch', 4: 'Dringend' };
+  return priorities[id] || 'Mittel';
 };
 </script>
 
-
 <style scoped>
-/* Styles aus der TaskView für die TaskCard */
 .template-card {
   background: white;
   border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: flex-start;
-  gap: 15px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
-  border-left: 5px solid transparent;
 }
 
 .template-card:hover {
-  transform: translateX(3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.template-card.is-done {
-  background-color: #f0f0f0;
-  box-shadow: none;
-}
-
-.template-card.is-done .template-title {
-  text-decoration: line-through;
-  color: #888;
-}
-
-.template-left {
-  display: flex;
-  align-items: center;
-  padding-top: 4px;
-}
-
-.template-checkbox {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: #4f46e5;
-}
-
-.template-content {
-  flex: 1;
-  min-width: 0;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .template-header {
   display: flex;
-  gap: 8px;
-  font-size: 0.75rem;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
 
-.status-badge,
-.priority-badge {
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.priority-badge {
-  color: white;
-}
-
-.date-badge,
-.progress-badge {
-  font-size: 0.75rem;
-  white-space: nowrap;
-  color: #6b7280;
-}
-
-.template-title {
-  margin: 0 0 8px 0;
-  font-size: 1.1rem;
-  color: #333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.template-description {
+.template-header h3 {
   margin: 0;
-  font-size: 0.9rem;
-  color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: #1f2937;
+  font-size: 1.25rem;
 }
 
-.template-right {
+.template-actions {
   display: flex;
   gap: 8px;
-  align-items: flex-start;
-  flex-shrink: 0;
-  padding-top: 4px;
 }
 
-.template-btn {
+.btn-icon {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 1.2rem;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
   transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+  background-color: #f3f4f6;
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #fee2e2;
+}
+
+.template-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.template-defaults {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 38px;
-  min-height: 38px;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
 }
 
-.template-btn:hover {
-  background-color: #f0f0f0;
+.default-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
 }
 
-.template-btn:focus {
-  outline: 2px solid #4f46e5;
-  outline-offset: 2px;
+.label {
+  color: #6b7280;
 }
 
-.template-btn:active {
-  transform: scale(0.95);
-}
-
-.template-btn-delete:hover {
-  background-color: #fee;
-  color: #e74c3c;
+.value {
+  color: #1f2937;
+  font-weight: 600;
 }
 </style>
