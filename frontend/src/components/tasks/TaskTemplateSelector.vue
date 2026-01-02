@@ -24,11 +24,11 @@
   
   <script setup>
   import { ref, computed, onMounted } from 'vue';
-  import { taskTemplate } from '@/stores/entities/templateStore';
+  import { useTemplateStore } from '@/stores/entities/templateStore';
   
   const emit = defineEmits(['templateSelected', null]);
   
-  const templateStore = taskTemplate();
+  const templateStore = useTemplateStore();
   const selectedTemplateId = ref(null);
   
   const templates = computed(() => templateStore.templates || []);

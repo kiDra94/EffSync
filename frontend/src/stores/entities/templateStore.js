@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { fetchTaskTemplates, fetchTaskTemplateById, createTaskTemplate, updateTaskTemplate, deleteTaskTemplate } from '@/api/taskTemplates';
 
 
-export const useTaskTemplateStore = defineStore('taskTemplate', () => {
+export const useTemplateStore = defineStore('taskTemplate', () => {
     const templates = ref([]);
 
 
