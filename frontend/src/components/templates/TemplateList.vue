@@ -1,7 +1,7 @@
 <template>
   <div class="template-list">
-    <TemplateCard v-for="template in templates" :key="template.task_id" :template="template" @edit="editTask"
-      @delete="deleteTask" @toggle-status="toggleStatus" />
+    <TemplateCard v-for="template in templates" :key="template.task_id" :template="template" @edit="editTemplate"
+      @delete="deleteTemplate" @toggle-status="toggleStatus" />
     <div v-if="templates.length === 0" class="empty-state">
       <p>Keine Aufgaben gefunden 🤷‍♂️</p>
     </div>
@@ -17,11 +17,11 @@ defineProps({
 
 const emit = defineEmits(['edit', 'delete']);
 
-const editTask = (template) => {
+const editTemplate = (template) => {
   emit('edit', template);
 };
 
-const deleteTask = (template) => {
+const deleteTemplate = (template) => {
   emit('delete', template);
 };
 </script>
