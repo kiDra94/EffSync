@@ -145,6 +145,22 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
+    async function checkAffectedParents(childTaskId) {
+        const affectedParents = findAffectedParents(childTaskId);
+
+        for (const parent of affectedParents) {
+            const isFulfilled = isLogicFulfilled.value(parent.task_id);
+
+            if (parent.auto_complete) {
+                if (isFulfilled && parent.status !== 'COMPLETED') {
+                    await changeStatus(parent.task_id, 'COMPLETED');
+                } else if (!isFulfilled && parent.status === 'COMPLETED') {
+                    await changeStatus(parent.task_id, 'IN_PROGRESS');
+                }
+            }
+        }
+    }
+
     return {
         tasks,
         getTasks,
