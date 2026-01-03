@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, updateTaskStatus, updateCompletionRule } from '@/api/tasks';
 
 export const useTaskStore = defineStore('task', () => {
@@ -70,6 +70,10 @@ export const useTaskStore = defineStore('task', () => {
             throw error;
         }
     }
+
+    const getSubTasks = computed(() => (taskId) => {
+        return tasks.value.filter(task => task.parent_task_id === taskId);
+    });
 
     return {
         tasks,
