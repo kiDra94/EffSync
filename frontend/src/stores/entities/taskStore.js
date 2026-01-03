@@ -113,6 +113,15 @@ export const useTaskStore = defineStore('task', () => {
         return evaluateCompletionRule(rule);
     });
 
+    function ruleContainsTask(rule, taskId) {
+        if (!rule) return false;
+        if (rule.type === 'leaf') return rule.task_id === taskId;
+        if (rule.type === 'operator') {
+            return rule.operands.some(op => ruleContainsTask(op, taskId));
+        }
+        return false;
+    }
+
     return {
         tasks,
         getTasks,
