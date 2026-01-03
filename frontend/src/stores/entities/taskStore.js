@@ -105,6 +105,14 @@ export const useTaskStore = defineStore('task', () => {
         return false;
     }
 
+    const isLogicFulfilled = computed(() => (taskId) => {
+        const task = tasks.value.find(t => t.task_id === taskId);
+        if (!task?.completion_rule) return null;
+        const rule = typeof task.completion_rule === 'string' ? JSON.parse(task.completion_rule) : task.completion_rule;
+
+        return evaluateCompletionRule(rule);
+    });
+
     return {
         tasks,
         getTasks,
