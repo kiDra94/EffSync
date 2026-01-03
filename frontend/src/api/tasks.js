@@ -25,3 +25,10 @@ export const updateTaskStatus = async (task_id, status) => {
 export const deleteTask = async (task_id) => {
 	return axios.delete(`${API_BASE_URL}/${task_id}`);
 };
+
+export const updateCompletionRule = async (task_id, completionRule, autoComplete) => {
+	return axios.patch(`${API_BASE_URL}/${task_id}`, { 
+		completion_rule: completionRule,
+		auto_complete: autoComplete
+	 });
+}
