@@ -161,6 +161,22 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
+    async function saveCompletionRule(taskId, rule, autoComplete = false) {
+        try {
+            const ruleJson = typeof rule === 'object' ? JSON.stringify(rule) : rule;
+            await updateCompletionRule(taskId, ruleJson, autoComplete);
+            
+            const index = tasks.value.findIndex(t => t.task_id === taskId);
+            if (index !== -1) {
+                tasks.value[index].completion_rule = ruleJson;
+                tasks.value[index].auto_complete = autoComplete;
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern der Completion Rule:', error);
+            throw error;
+        }
+    }
+
     return {
         tasks,
         getTasks,
