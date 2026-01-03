@@ -122,6 +122,15 @@ export const useTaskStore = defineStore('task', () => {
         return false;
     }
 
+    function findAffectedParents(childTaskId) {
+        return tasks.value.filter(task => {
+            if (!task.completion_rule) return false;
+            const rule = typeof task.completion_rule === 'string' ? JSON.parse(task.completion_rule) : task.completion_rule;
+            
+            return ruleContainsTask(rule, childTaskId);
+        });
+    }
+
     return {
         tasks,
         getTasks,
