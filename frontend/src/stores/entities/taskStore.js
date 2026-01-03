@@ -75,6 +75,36 @@ export const useTaskStore = defineStore('task', () => {
         return tasks.value.filter(task => task.parent_task_id === taskId);
     });
 
+    function evaluateCompletionRule(rule) {
+        if (!rule) return null;
+
+        if (rule.type === 'leaf') {
+            const leaf = tasks.value.find(t => t.task_id === rule.task_id);
+            return leaf ? leaf.status === 'COMPLETED' : false;
+        }
+
+        if (rule.type === 'operator') {
+            const results = rule.operands.map(child =>
+                evaluateCompletionRule(child)
+            );
+
+            switch (rule.operator) {
+                case 'AND':
+                    return results.every(r => r === true);
+                case 'OR':
+                    return results.some(r => r === true);
+                case 'XOR':
+                    return results.filter(r => r === true).length === 1;
+                case 'NOT':
+                    return !results[0];
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
     return {
         tasks,
         getTasks,
