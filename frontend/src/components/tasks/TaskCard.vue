@@ -94,6 +94,23 @@ const taskStore = useTaskStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
 const allTasks = computed(() => taskStore.tasks);
 
+const logicFulfilled = computed(() => {
+  if (!props.task.completion_rule) return null;
+  return taskStore.isLogicFulfilled(props.task.task_id);
+});
+
+const parsedRule = computed(() => {
+  if (!props.task.completion_rule) return null;
+  try {
+    return typeof props.task.completion_rule === 'string'
+      ? JSON.parse(props.task.completion_rule)
+      : props.task.completion_rule;
+  } catch (e) {
+    console.error('Fehler beim Parsen der completion_rule:', e);
+    return null;
+  }
+});
+
 const editTask = () => {
   emit('edit', props.task);
 };
