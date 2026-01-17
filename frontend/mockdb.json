@@ -215,20 +215,20 @@
       "updated_at": "2026-01-03T11:45:00"
     },
     {
-      "id": "a9a8",
-      "title": "Projekt: [Projektname]",
-      "description": "Projektphasen:\n1. Planung & Recherche\n2. Konzeption\n3. Umsetzung\n4. Dokumentation\n5. Präsentation",
-      "deadline": "2026-02-16T20:52",
-      "priority_id": 1,
-      "status": "TODO",
-      "progress": 0
-    },
-    {
       "id": "0000",
       "title": "Hausübung: [Fach]",
       "description": "Bitte folgende Aufgaben erledigen:\n- Aufgabe 1\n- Aufgabe 2\n- Aufgabe 3",
       "deadline": "2026-01-24T20:54",
       "priority_id": 2,
+      "status": "TODO",
+      "progress": 0
+    },
+    {
+      "id": "702e",
+      "title": "Fix: [Bug-Beschreibung]",
+      "description": "1. Bug reproduzieren\n2. Ursache identifizieren\n3. Fix implementieren\n4. Testen",
+      "deadline": "2026-01-20T21:10",
+      "priority_id": 1,
       "status": "TODO",
       "progress": 0
     }
