@@ -47,39 +47,45 @@
     </div>
 
     <div v-if="subtasks.length > 0" class="subtasks-section">
-      <div v-if="task.completion_rule" class="rule-display">
-        <div class="rule-header">
-          <span class="rule-label">Bedingung:</span>
-          <span class="rule-status-badge" :class="{ 'fulfilled': logicFulfilled, 'pending': !logicFulfilled }">
-            {{ logicFulfilled ? '✅ Erfüllt' : '⏳ Nicht erfüllt' }}
-          </span>
-          <span v-if="task.auto_complete" class="auto-badge" title="Automatischer Abschluss aktiv">
-            🤖 Auto
-          </span>
-        </div>
-        <RuleVisualizer :rule="parsedRule" :tasks="allTasks" class="rule-viz" />
-      </div>
 
-      <div class="subtasks-list">
-        <h4 class="subtasks-title">Subtasks ({{ subtasks.length }})</h4>
-        <div v-for="sub in subtasks" :key="sub.task_id" class="subtask-item"
-          :class="{ 'subtask-done': sub.status === 'COMPLETED' }">
-          <input type="checkbox" :checked="sub.status === 'COMPLETED'" @change="$emit('toggle-status', sub)"
-            class="subtask-checkbox" />
-          <span class="subtask-title">{{ sub.title }}</span>
-          <span v-if="sub.priority_id" class="subtask-priority"
-            :style="{ backgroundColor: getPriorityColor(sub.priority_id) }">
-            {{ getPriorityLabel(sub.priority_id) }}
-          </span>
+      <button @click="showSubtasks = !showSubtasks" class="toggle-subtasks-btn">
+        {{ showSubtasks ? '▼ Subtasks ausblenden' : '▶ Subtasks anzeigen' }} ({{ subtasks.length }})
+      </button>
+
+      <div v-show="showSubtasks" class="subtasks-content">
+        <div v-if="task.completion_rule" class="rule-display">
+          <div class="rule-header">
+            <span class="rule-label">Bedingung:</span>
+            <span class="rule-status-badge" :class="{ 'fulfilled': logicFulfilled, 'pending': !logicFulfilled }">
+              {{ logicFulfilled ? '✅ Erfüllt' : '⏳ Nicht erfüllt' }}
+            </span>
+            <span v-if="task.auto_complete" class="auto-badge" title="Automatischer Abschluss aktiv">
+              🤖 Auto
+            </span>
+          </div>
+          <RuleVisualizer :rule="parsedRule" :tasks="allTasks" class="rule-viz" />
+        </div>
+
+        <div class="subtasks-list">
+          <h4 class="subtasks-title">Subtasks ({{ subtasks.length }})</h4>
+          <div v-for="sub in subtasks" :key="sub.task_id" class="subtask-item"
+            :class="{ 'subtask-done': sub.status === 'COMPLETED' }">
+            <input type="checkbox" :checked="sub.status === 'COMPLETED'" @change="$emit('toggle-status', sub)"
+              class="subtask-checkbox" />
+            <span class="subtask-title">{{ sub.title }}</span>
+            <span v-if="sub.priority_id" class="subtask-priority"
+              :style="{ backgroundColor: getPriorityColor(sub.priority_id) }">
+              {{ getPriorityLabel(sub.priority_id) }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import RuleVisualizer from './RuleVisualizer.vue';
 
@@ -92,6 +98,7 @@ const props = defineProps({
 
 const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status', 'edit-rule']);
 
+const showSubtasks = ref(false);
 const taskStore = useTaskStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
 const allTasks = computed(() => taskStore.tasks);
@@ -190,7 +197,6 @@ const formatDate = (dateString) => {
   });
 };
 </script>
-
 <style scoped>
 .task-card {
   background: white;
@@ -293,7 +299,8 @@ const formatDate = (dateString) => {
 }
 
 .task-title {
-  margin: 0 0 8px 0;
+  margin-top: 15px;
+  margin-bottom: 0;
   font-size: 1.1rem;
   color: #333;
   overflow: hidden;
@@ -338,9 +345,52 @@ const formatDate = (dateString) => {
 }
 
 .subtasks-section {
-  margin-top: 1rem;
-  padding-top: 1rem;
+  width: 100%;
   border-top: 1px solid #e5e7eb;
+}
+
+.toggle-subtasks-btn {
+  width: 100%;
+  padding: 0.65rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.toggle-subtasks-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.toggle-subtasks-btn:active {
+  transform: translateY(0);
+}
+
+.subtasks-content {
+  margin-top: 0.75rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .rule-display {
@@ -448,13 +498,5 @@ const formatDate = (dateString) => {
   font-size: 0.7rem;
   font-weight: 600;
   color: white;
-}
-
-.subtasks-section {
-  width: 100%;
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  margin-left: 0;
 }
 </style>
