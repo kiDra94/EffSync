@@ -7,4 +7,12 @@
             </p>
         </div>
     </div>
+    <div v-if="!localRule" class="empty-state">
+        <div class="empty-icon">🔗</div>
+        <p>Keine Regel definiert</p>
+        <button @click="initRule" class="btn-primary">
+            Regel hinzufügen
+        </button>
+    </div>
+
 </template>
