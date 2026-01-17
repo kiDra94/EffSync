@@ -29,5 +29,16 @@
     </div>
 </template>
 <script setup>
+import { ref, watch } from 'vue';
 
+const props = defineProps({
+  modelValue: {
+    type: Array,
+    default: () => []
+  }
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const localSubtasks = ref([...props.modelValue]);
 </script>
