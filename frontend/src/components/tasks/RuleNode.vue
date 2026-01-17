@@ -55,5 +55,15 @@ watch(() => props.node, (newNode) => {
     localNode.value = { ...newNode };
 }, { deep: true });
 
+const addOperand = (type) => {
+    if (!localNode.value.operands) {
+        localNode.value.operands = [];
+    }
+    const newOperand = type === 'task'
+        ? { type: 'task', task_id: null }                         
+        : { type: 'operator', operator: 'AND', operands: [] };     
+    localNode.value.operands.push(newOperand);
+    emitUpdate();
+};
 
 </script>
