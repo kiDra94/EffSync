@@ -39,3 +39,17 @@
         </div>
     </div>
 </template>
+<script setup>
+import { ref, watch } from 'vue';
+
+const props = defineProps({
+    node: { type: Object, required: true },
+    subtasks: { type: Array, required: true }   
+});
+
+const emit = defineEmits(['update', 'remove']);
+
+const localNode = ref({ ...props.node });
+
+
+</script>
