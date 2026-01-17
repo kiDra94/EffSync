@@ -44,7 +44,7 @@ import { ref, watch } from 'vue';
 
 const props = defineProps({
     node: { type: Object, required: true },
-    subtasks: { type: Array, required: true }   
+    subtasks: { type: Array, required: true }
 });
 
 const emit = defineEmits(['update', 'remove']);
@@ -60,8 +60,8 @@ const addOperand = (type) => {
         localNode.value.operands = [];
     }
     const newOperand = type === 'task'
-        ? { type: 'task', task_id: null }                         
-        : { type: 'operator', operator: 'AND', operands: [] };     
+        ? { type: 'task', task_id: null }
+        : { type: 'operator', operator: 'AND', operands: [] };
     localNode.value.operands.push(newOperand);
     emitUpdate();
 };
@@ -80,3 +80,17 @@ const emitUpdate = () => {
     emit('update', localNode.value);
 };
 </script>
+<style scoped>
+.task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.empty-state {
+    text-align: center;
+    color: #888;
+    margin-top: 40px;
+    font-size: 1.2rem;
+}
+</style>
