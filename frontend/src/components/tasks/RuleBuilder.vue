@@ -93,7 +93,7 @@ const isRuleValid = computed(() => {
     if (!localRule.value) return false;
 
     const validateNode = (node) => {
-        if (node.type === 'task') {
+        if (node.type === 'leaf') {
             return node.task_id != null;
         }
         if (node.type === 'operator') {

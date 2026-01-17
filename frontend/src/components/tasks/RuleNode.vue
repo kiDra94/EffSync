@@ -60,7 +60,7 @@ const addOperand = (type) => {
         localNode.value.operands = [];
     }
     const newOperand = type === 'task'
-        ? { type: 'task', task_id: null }
+        ? { type: 'leaf', task_id: null }
         : { type: 'operator', operator: 'AND', operands: [] };
     localNode.value.operands.push(newOperand);
     emitUpdate();

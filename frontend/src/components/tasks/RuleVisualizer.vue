@@ -1,6 +1,6 @@
 <template>
     <div class="rule-visualizer">
-        <span v-if="rule.type === 'task'" class="task-ref" :class="taskStatusClass">
+        <span v-if="rule.type === 'leaf'" class="task-ref" :class="taskStatusClass">
             <span class="task-status-icon">{{ taskStatusIcon }}</span>
             <span class="task-title">{{ getTaskTitle(rule.task_id) }}</span>
         </span>
@@ -34,7 +34,7 @@ const getTaskStatus = (taskId) => {
 };
 
 const taskStatusClass = computed(() => {
-  if (props.rule.type !== 'task') return '';
+  if (props.rule.type !== 'leaf') return '';
   const status = getTaskStatus(props.rule.task_id);
   return `status-${status.toLowerCase()}`;
 });
