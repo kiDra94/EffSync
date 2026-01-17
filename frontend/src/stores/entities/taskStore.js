@@ -48,19 +48,6 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
-    async function changeStatus(task_id, newStatus) {
-        try {
-            await updateTaskStatus(task_id, newStatus);
-            const index = tasks.value.findIndex((t) => t.task_id === task_id);
-            if (index !== -1) {
-                tasks.value[index].status = newStatus;
-            }
-        } catch (error) {
-            console.error('Fehler beim Statuswechsel:', error);
-            throw error;
-        }
-    }
-
     async function removeTask(task_id) {
         try {
             await deleteTask(task_id);
@@ -71,7 +58,7 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
-    const getSubTasks = computed(() => (taskId) => {
+    const getSubtasks = computed(() => (taskId) => {
         return tasks.value.filter(task => task.parent_task_id === taskId);
     });
 
@@ -185,7 +172,7 @@ export const useTaskStore = defineStore('task', () => {
         editTask,
         changeStatus,
         removeTask,
-        getSubTasks,
+        getSubtasks,
         isLogicFulfilled,
         evaluateCompletionRule,
         saveCompletionRule,
