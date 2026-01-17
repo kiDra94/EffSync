@@ -24,4 +24,9 @@ export const normalizeTask = (task) => {
     return task;
 };
 
+export const normalizeTasks = (tasks) => {
+    if (!Array.isArray(tasks)) return [];
+    return tasks.map(normalizeTask);
+};
+
 
