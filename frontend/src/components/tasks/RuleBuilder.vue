@@ -89,5 +89,22 @@ const removeRule = () => {
     }
 };
 
+const isRuleValid = computed(() => {
+    if (!localRule.value) return false;
+
+    const validateNode = (node) => {
+        if (node.type === 'task') {
+            return node.task_id != null;
+        }
+        if (node.type === 'operator') {
+            if (!node.operands || node.operands.length === 0) return false;
+            return node.operands.every(op => validateNode(op));
+        }
+        return false;
+    };
+
+    return validateNode(localRule.value);
+});
+
 
 </script>
