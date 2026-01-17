@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, updateTaskStatus, updateCompletionRule } from '@/api/tasks';
+import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
 
 export const useTaskStore = defineStore('task', () => {
     const tasks = ref([]);
@@ -120,10 +120,15 @@ export const useTaskStore = defineStore('task', () => {
 
     async function changeStatus(task_id, newStatus) {
         try {
-            await updateTaskStatus(task_id, newStatus);
+            const updates = { status: newStatus };
+            if (newStatus === 'COMPLETED') {
+                updates.progress = 100;
+            }
+            await patchTask(task_id, updates);
             const index = tasks.value.findIndex((t) => t.task_id === task_id);
             if (index !== -1) {
                 tasks.value[index].status = newStatus;
+                tasks.value[index].progress = updates.progress || tasks.value[index].progress;
             }
             await checkAffectedParents(task_id);
         } catch (error) {

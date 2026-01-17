@@ -29,8 +29,8 @@ export const updateTask = async (task_id, taskData) => {
 	return normalizeTask(response.data);
 };
 
-export const updateTaskStatus = async (task_id, status) => {
-	const response = await axios.patch(buildUrl(`${ENDPOINT}/${task_id}`), { status });
+export const patchTask = async (task_id, attributes) => {
+	const response = await axios.patch(buildUrl(`${ENDPOINT}/${task_id}`), { attributes });
 	return normalizeTask(response.data);
 };
 
