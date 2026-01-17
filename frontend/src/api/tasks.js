@@ -1,34 +1,48 @@
 import axios from 'axios';
+import {
+	buildUrl,
+	normalizeTask,
+	normalizeTasks,
+	serializeTask
+} from '@/config/api.config'
 
-const API_BASE_URL = 'http://localhost:3000/tasks';
+const ENDPOINT = '/tasks';
 
 export const fetchTasks = async () => {
-	return axios.get(API_BASE_URL);
+	const response = await axios.get(buildUrl(ENDPOINT));
+	return normalizeTasks(response.data);
 };
 
 export const fetchTaskById = async (task_id) => {
-	return axios.get(`${API_BASE_URL}/${task_id}`);
+	const response = await axios.get(buildUrl(`${ENDPOINT}/${task_id}`));
+	return normalizeTask(response.data);
 };
 
 export const createTask = async (taskData) => {
-	return axios.post(API_BASE_URL, taskData);
+	const response = await axios.post(buildUrl(ENDPOINT), serializeTask(taskData));
+	return normalizeTask(response.data);
 };
 
 export const updateTask = async (task_id, taskData) => {
-	return axios.put(`${API_BASE_URL}/${task_id}`, taskData);
+	const serializedData = serializeTask(taskData);
+	const response = await axios.put(buildUrl(`${ENDPOINT}/${task_id}`), serializedData);
+	return normalizeTask(response.data);
 };
 
 export const updateTaskStatus = async (task_id, status) => {
-    return axios.patch(`${API_BASE_URL}/${task_id}/status`, { status });
+	const response = await axios.patch(buildUrl(`${ENDPOINT}/${task_id}/status`), { status });
+	return normalizeTask(response.data);
 };
 
 export const deleteTask = async (task_id) => {
-	return axios.delete(`${API_BASE_URL}/${task_id}`);
+	const response = await axios.delete(buildUrl(`${ENDPOINT}/${task_id}`));
+    return response.data;
 };
 
 export const updateCompletionRule = async (task_id, completionRule, autoComplete) => {
-	return axios.patch(`${API_BASE_URL}/${task_id}`, { 
-		completion_rule: completionRule,
-		auto_complete: autoComplete
-	 });
+	const response = await axios.patch(buildUrl(`${ENDPOINT}/${task_id}`), {
+        completion_rule: completionRule,
+        auto_complete: autoComplete
+    });
+    return normalizeTask(response.data)
 }
