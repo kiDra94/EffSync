@@ -48,6 +48,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import { useTaskStore } from '@/stores/entities/taskStore';
+import RuleVisualizer from './RuleVisualizer.vue';
+
 const props = defineProps({
   task: {
     type: Object,
@@ -55,7 +59,11 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status']);
+const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status','edit-rule']);
+
+const taskStore = useTaskStore();
+const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
+const allTasks = computed(() => taskStore.tasks);
 
 const editTask = () => {
   emit('edit', props.task);
