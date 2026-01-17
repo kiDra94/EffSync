@@ -124,8 +124,7 @@
       "priority_id": 4,
       "name": "Dringend"
     }
-  ],
-  "tasks": [
+  ],"tasks": [
     {
       "id": "1",
       "task_id": "1",
@@ -133,7 +132,7 @@
       "description": "Produktions-Server für Diplomarbeit konfigurieren",
       "status": "IN_PROGRESS",
       "progress": 50,
-      "completion_rule": "{\"type\":\"operator\",\"operator\":\"OR\",\"operands\":[{\"type\":\"operator\",\"operator\":\"AND\",\"operands\":[{\"type\":\"task\",\"task_id\":\"2\"},{\"type\":\"task\",\"task_id\":\"3\"}]},{\"type\":\"operator\",\"operator\":\"AND\",\"operands\":[{\"type\":\"task\",\"task_id\":\"4\"},{\"type\":\"task\",\"task_id\":\"5\"}]}]}",
+      "completion_rule": "{\"type\":\"operator\",\"operator\":\"OR\",\"operands\":[{\"type\":\"operator\",\"operator\":\"AND\",\"operands\":[{\"type\":\"leaf\",\"task_id\":\"2\"},{\"type\":\"leaf\",\"task_id\":\"3\"}]},{\"type\":\"operator\",\"operator\":\"AND\",\"operands\":[{\"type\":\"leaf\",\"task_id\":\"4\"},{\"type\":\"leaf\",\"task_id\":\"5\"}]}]}",
       "auto_complete": true,
       "parent_task_id": null,
       "priority_id": 1,
@@ -141,10 +140,7 @@
       "created_by": 1,
       "deadline": "2026-02-15T23:59:00",
       "created_at": "2026-01-03T10:00:00",
-      "updated_at": "2026-01-03T10:00:00",
-      "attributes": {
-        "status": "TODO"
-      }
+      "updated_at": "2026-01-03T10:00:00"
     },
     {
       "id": "2",
@@ -213,24 +209,6 @@
       "deadline": "2026-01-16T23:59:00",
       "created_at": "2026-01-03T10:08:00",
       "updated_at": "2026-01-03T11:45:00"
-    },
-    {
-      "id": "0000",
-      "title": "Hausübung: [Fach]",
-      "description": "Bitte folgende Aufgaben erledigen:\n- Aufgabe 1\n- Aufgabe 2\n- Aufgabe 3",
-      "deadline": "2026-01-24T20:54",
-      "priority_id": 2,
-      "status": "TODO",
-      "progress": 0
-    },
-    {
-      "id": "702e",
-      "title": "Fix: [Bug-Beschreibung]",
-      "description": "1. Bug reproduzieren\n2. Ursache identifizieren\n3. Fix implementieren\n4. Testen",
-      "deadline": "2026-01-20T21:10",
-      "priority_id": 1,
-      "status": "TODO",
-      "progress": 0
     }
   ],
   "task_templates": [
