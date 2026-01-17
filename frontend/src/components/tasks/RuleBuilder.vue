@@ -52,3 +52,21 @@
         </div>
     </div>
 </template>
+<script setup>
+import { ref, computed } from 'vue';
+import RuleNode from './RuleNode.vue';
+
+const props = defineProps({
+    taskId: { type: Number, required: true },
+    initialRule: { type: [Object, String], default: null },
+    initialAutoComplete: { type: Boolean, default: false },
+    subtasks: { type: Array, required: true }
+});
+
+const emit = defineEmits(['save', 'close']);
+
+const localRule = ref(null);
+const localAutoComplete = ref(props.initialAutoComplete);
+
+
+</script>
