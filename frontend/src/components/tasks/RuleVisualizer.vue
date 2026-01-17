@@ -23,4 +23,8 @@ const props = defineProps({
     tasks: { type: Array, required: true }
 });
 
+const getTaskTitle = (taskId) => {
+    const task = props.tasks.find(t => t.task_id === taskId);
+    return task?.title || `Task #${taskId}`;
+};
 </script>
