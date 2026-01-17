@@ -33,6 +33,12 @@ const getTaskStatus = (taskId) => {
     return task?.status || 'TODO';
 };
 
+const taskStatusClass = computed(() => {
+  if (props.rule.type !== 'task') return '';
+  const status = getTaskStatus(props.rule.task_id);
+  return `status-${status.toLowerCase()}`;
+});
+
 </script>
 <style scoped>
 .rule-visualizer {
