@@ -117,6 +117,8 @@ Table tasks {
   description text
   status task_status [default: "TODO"]
   progress integer
+  completion_rule JSONB [note: "JSON Expression Tree für komplexe Subtask-Logik (z.B. '(task1 AND task2) OR task3')"]
+  auto_complete boolean [default: false, note: "Automatisch auf COMPLETED setzen wenn completion_rule erfüllt ist"]
   deadline datetime
   created_by integer [ref: > users.user_id]
   assigned_to integer [ref: > users.user_id]

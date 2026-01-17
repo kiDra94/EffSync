@@ -41,13 +41,54 @@
     </div>
 
     <div class="task-right">
+      <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
+    </div>
+
+    <div v-if="subtasks.length > 0" class="subtasks-section">
+
+      <button @click="showSubtasks = !showSubtasks" class="toggle-subtasks-btn">
+        {{ showSubtasks ? '▼ Subtasks ausblenden' : '▶ Subtasks anzeigen' }} ({{ subtasks.length }})
+      </button>
+
+      <div v-show="showSubtasks" class="subtasks-content">
+        <div v-if="task.completion_rule" class="rule-display">
+          <div class="rule-header">
+            <span class="rule-label">Bedingung:</span>
+            <span class="rule-status-badge" :class="{ 'fulfilled': logicFulfilled, 'pending': !logicFulfilled }">
+              {{ logicFulfilled ? '✅ Erfüllt' : '⏳ Nicht erfüllt' }}
+            </span>
+            <span v-if="task.auto_complete" class="auto-badge" title="Automatischer Abschluss aktiv">
+              🤖 Auto
+            </span>
+          </div>
+          <RuleVisualizer :rule="parsedRule" :tasks="allTasks" class="rule-viz" />
+        </div>
+
+        <div class="subtasks-list">
+          <h4 class="subtasks-title">Subtasks ({{ subtasks.length }})</h4>
+          <div v-for="sub in subtasks" :key="sub.task_id" class="subtask-item"
+            :class="{ 'subtask-done': sub.status === 'COMPLETED' }">
+            <input type="checkbox" :checked="sub.status === 'COMPLETED'" @change="$emit('toggle-status', sub)"
+              class="subtask-checkbox" />
+            <span class="subtask-title">{{ sub.title }}</span>
+            <span v-if="sub.priority_id" class="subtask-priority"
+              :style="{ backgroundColor: getPriorityColor(sub.priority_id) }">
+              {{ getPriorityLabel(sub.priority_id) }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, ref } from 'vue';
+import { useTaskStore } from '@/stores/entities/taskStore';
+import RuleVisualizer from './RuleVisualizer.vue';
+
 const props = defineProps({
   task: {
     type: Object,
@@ -55,7 +96,29 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status']);
+const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status', 'edit-rule']);
+
+const showSubtasks = ref(false);
+const taskStore = useTaskStore();
+const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
+const allTasks = computed(() => taskStore.tasks);
+
+const logicFulfilled = computed(() => {
+  if (!props.task.completion_rule) return null;
+  return taskStore.isLogicFulfilled(props.task.task_id);
+});
+
+const parsedRule = computed(() => {
+  if (!props.task.completion_rule) return null;
+  try {
+    return typeof props.task.completion_rule === 'string'
+      ? JSON.parse(props.task.completion_rule)
+      : props.task.completion_rule;
+  } catch (e) {
+    console.error('Fehler beim Parsen der completion_rule:', e);
+    return null;
+  }
+});
 
 const editTask = () => {
   emit('edit', props.task);
@@ -71,6 +134,14 @@ const toggleStatus = () => {
 
 const onStatusChange = (event) => {
   emit('change-status', props.task, event.target.value);
+};
+
+const editRule = () => {
+  if (subtasks.value.length === 0) {
+    alert('Dieser Task hat keine Subtasks!');
+    return;
+  }
+  emit('edit-rule', props.task);
 };
 
 const getStatusColor = (status) => {
@@ -126,7 +197,6 @@ const formatDate = (dateString) => {
   });
 };
 </script>
-
 <style scoped>
 .task-card {
   background: white;
@@ -136,10 +206,10 @@ const formatDate = (dateString) => {
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 15px;
   transition: transform 0.2s, box-shadow 0.2s;
-
   position: relative;
   overflow: hidden;
 }
@@ -229,7 +299,8 @@ const formatDate = (dateString) => {
 }
 
 .task-title {
-  margin: 0 0 8px 0;
+  margin-top: 15px;
+  margin-bottom: 0;
   font-size: 1.1rem;
   color: #333;
   overflow: hidden;
@@ -271,5 +342,161 @@ const formatDate = (dateString) => {
 .task-btn-delete:hover {
   background-color: #fee2e2;
   color: #ef4444;
+}
+
+.subtasks-section {
+  width: 100%;
+  border-top: 1px solid #e5e7eb;
+}
+
+.toggle-subtasks-btn {
+  width: 100%;
+  padding: 0.65rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.toggle-subtasks-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.toggle-subtasks-btn:active {
+  transform: translateY(0);
+}
+
+.subtasks-content {
+  margin-top: 0.75rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rule-display {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+}
+
+.rule-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rule-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1e40af;
+}
+
+.rule-status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rule-status-badge.fulfilled {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rule-status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.auto-badge {
+  padding: 0.25rem 0.5rem;
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rule-viz {
+  margin-top: 0.5rem;
+}
+
+.subtasks-list {
+  margin-top: 0.75rem;
+}
+
+.subtasks-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.subtask-item:hover {
+  background: #f3f4f6;
+}
+
+.subtask-item.subtask-done {
+  opacity: 0.6;
+}
+
+.subtask-item.subtask-done .subtask-title {
+  text-decoration: line-through;
+}
+
+.subtask-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #10b981;
+}
+
+.subtask-title {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.subtask-priority {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
 }
 </style>

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, updateTaskStatus } from '@/api/tasks';
+import { computed, ref } from 'vue';
+import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
 
 export const useTaskStore = defineStore('task', () => {
     const tasks = ref([]);
@@ -48,25 +48,196 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
-    async function changeStatus(task_id, newStatus) {
-        try {
-            await updateTaskStatus(task_id, newStatus);
-            const index = tasks.value.findIndex((t) => t.task_id === task_id);
-            if (index !== -1) {
-                tasks.value[index].status = newStatus;
-            }
-        } catch (error) {
-            console.error('Fehler beim Statuswechsel:', error);
-            throw error;
-        }
-    }
-
     async function removeTask(task_id) {
         try {
             await deleteTask(task_id);
             tasks.value = tasks.value.filter((task) => task.task_id !== task_id);
         } catch (error) {
             console.error('Fehler beim Löschen eines Tasks:', error);
+            throw error;
+        }
+    }
+
+    const getSubtasks = computed(() => (taskId) => {
+        return tasks.value.filter(task => task.parent_task_id === taskId);
+    });
+
+    function evaluateCompletionRule(rule) {
+        if (!rule) return null;
+
+        if (rule.type === 'leaf') {
+            const leaf = tasks.value.find(t => t.task_id === rule.task_id);
+            return leaf ? leaf.status === 'COMPLETED' : false;
+        }
+
+        if (rule.type === 'operator') {
+            const results = rule.operands.map(child =>
+                evaluateCompletionRule(child)
+            );
+
+            switch (rule.operator) {
+                case 'AND':
+                    return results.every(r => r === true);
+                case 'OR':
+                    return results.some(r => r === true);
+                case 'XOR':
+                    return results.filter(r => r === true).length === 1;
+                case 'NOT':
+                    return !results[0];
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
+    const isLogicFulfilled = computed(() => (taskId) => {
+        const task = tasks.value.find(t => t.task_id === taskId);
+        if (!task?.completion_rule) return null;
+        const rule = typeof task.completion_rule === 'string' ? JSON.parse(task.completion_rule) : task.completion_rule;
+
+        return evaluateCompletionRule(rule);
+    });
+
+    function ruleContainsTask(rule, taskId) {
+        if (!rule) return false;
+        if (rule.type === 'leaf') return rule.task_id === taskId;
+        if (rule.type === 'operator') {
+            return rule.operands.some(op => ruleContainsTask(op, taskId));
+        }
+        return false;
+    }
+
+    function findAffectedParents(childTaskId) {
+        return tasks.value.filter(task => {
+            if (!task.completion_rule) return false;
+            const rule = typeof task.completion_rule === 'string' ? JSON.parse(task.completion_rule) : task.completion_rule;
+            
+            return ruleContainsTask(rule, childTaskId);
+        });
+    }
+
+    async function changeStatus(task_id, newStatus) {
+        try {
+            const updates = { status: newStatus };
+            if (newStatus === 'COMPLETED') {
+                updates.progress = 100;
+            }
+            await patchTask(task_id, updates);
+            const index = tasks.value.findIndex((t) => t.task_id === task_id);
+            if (index !== -1) {
+                tasks.value[index].status = newStatus;
+                tasks.value[index].progress = updates.progress || tasks.value[index].progress;
+            }
+            await checkAffectedParents(task_id);
+        } catch (error) {
+            console.error('Fehler beim Statuswechsel:', error);
+            throw error;
+        }
+    }
+
+    async function checkAffectedParents(childTaskId) {
+        const affectedParents = findAffectedParents(childTaskId);
+
+        for (const parent of affectedParents) {
+            const isFulfilled = isLogicFulfilled.value(parent.task_id);
+
+            if (parent.auto_complete) {
+                if (isFulfilled && parent.status !== 'COMPLETED') {
+                    await changeStatus(parent.task_id, 'COMPLETED');
+                } else if (!isFulfilled && parent.status === 'COMPLETED') {
+                    await changeStatus(parent.task_id, 'IN_PROGRESS');
+                }
+            }
+        }
+    }
+
+    async function saveCompletionRule(taskId, rule, autoComplete = false) {
+        try {
+            const ruleJson = typeof rule === 'object' ? JSON.stringify(rule) : rule;
+            await updateCompletionRule(taskId, ruleJson, autoComplete);
+            
+            const index = tasks.value.findIndex(t => t.task_id === taskId);
+            if (index !== -1) {
+                tasks.value[index].completion_rule = ruleJson;
+                tasks.value[index].auto_complete = autoComplete;
+            }
+        } catch (error) {
+            console.error('Fehler beim Speichern der Completion Rule:', error);
+            throw error;
+        }
+    }
+
+    async function createTaskWithSubtasks(taskData, subtasks) {
+        try {
+            const parentTask = await createTask(taskData);
+            const createdParent = parentTask.data || parentTask;
+            tasks.value.push(createdParent);
+    
+            const createdSubtasks = [];
+            for (const subtask of subtasks) {
+                if (subtask.title && subtask.title.trim()) {
+                    const subtaskData = {
+                        ...subtask,
+                        parent_task_id: createdParent.task_id
+                    };
+                    const newSubtask = await createTask(subtaskData);
+                    const createdSub = newSubtask.data || newSubtask;
+                    tasks.value.push(createdSub);
+                    createdSubtasks.push(createdSub);
+                }
+            }
+    
+            return {
+                parentTask: createdParent,
+                subtasks: createdSubtasks
+            };
+        } catch (error) {
+            console.error('Fehler beim Erstellen von Task mit Subtasks:', error);
+            throw error;
+        }
+    }
+
+    async function editTaskWithSubtasks(task_id, taskData, subtasks) {
+        try {
+            await editTask(task_id, taskData);
+
+            const existingSubtasks = getSubtasks.value(task_id);
+            const existingIds = existingSubtasks.map(st => st.task_id);
+            const incomingIds = subtasks.filter(st => st.task_id).map(st => st.task_id);
+
+            for (const id of existingIds) {
+                if (!incomingIds.includes(id)) {
+                    await removeTask(id);
+                }
+            }
+
+            const updatedSubtasks = [];
+            for (const subtask of subtasks) {
+                if (subtask.task_id) {
+                    // Bestehenden Subtask aktualisieren
+                    await editTask(subtask.task_id, subtask);
+                    updatedSubtasks.push(subtask);
+                } else if (subtask.title && subtask.title.trim()) {
+                    // Neuen Subtask erstellen
+                    const subtaskData = {
+                        ...subtask,
+                        parent_task_id: task_id
+                    };
+                    const newSubtask = await createTask(subtaskData);
+                    const createdSub = newSubtask.data || newSubtask;
+                    tasks.value.push(createdSub);
+                    updatedSubtasks.push(createdSub);
+                }
+            }
+            
+            return {
+                parentTask: tasks.value.find(t => t.task_id === task_id),
+                subtasks: updatedSubtasks
+            };
+        } catch (error) {
+            console.error('Fehler beim Bearbeiten von Task mit Subtasks:', error);
             throw error;
         }
     }
@@ -79,5 +250,12 @@ export const useTaskStore = defineStore('task', () => {
         editTask,
         changeStatus,
         removeTask,
+        getSubtasks,
+        isLogicFulfilled,
+        evaluateCompletionRule,
+        saveCompletionRule,
+        checkAffectedParents,
+        createTaskWithSubtasks,
+        editTaskWithSubtasks
     };
 });

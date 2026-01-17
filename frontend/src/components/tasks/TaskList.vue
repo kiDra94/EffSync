@@ -1,7 +1,7 @@
 <template>
   <div class="task-list">
     <TaskCard v-for="task in tasks" :key="task.task_id" :task="task" @edit="editTask" @delete="deleteTask"
-      @toggle-status="toggleStatus" @change-status="changeStatus" />
+      @toggle-status="toggleStatus" @change-status="changeStatus" @edit-rule="editRule" />
     <div v-if="tasks.length === 0" class="empty-state">
       <p>Keine Aufgaben gefunden 🤷‍♂️</p>
     </div>
@@ -15,7 +15,7 @@ defineProps({
   tasks: Array
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggle-status', 'change-status']);
+const emit = defineEmits(['edit', 'delete', 'toggle-status', 'change-status', 'edit-rule']);
 
 const editTask = (task) => {
   emit('edit', task);
@@ -32,6 +32,10 @@ const toggleStatus = (task) => {
 const changeStatus = (task, newStatus) => {
   emit('change-status', task, newStatus);
 }
+
+const editRule = (task) => {
+  emit('edit-rule', task);
+};
 </script>
 
 <style scoped>
