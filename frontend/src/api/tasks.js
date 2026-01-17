@@ -30,7 +30,7 @@ export const updateTask = async (task_id, taskData) => {
 };
 
 export const updateTaskStatus = async (task_id, status) => {
-	const response = await axios.patch(buildUrl(`${ENDPOINT}/${task_id}/status`), { status });
+	const response = await axios.patch(buildUrl(`${ENDPOINT}/${task_id}`), { status });
 	return normalizeTask(response.data);
 };
 
