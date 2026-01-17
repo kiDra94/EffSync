@@ -66,4 +66,17 @@ const addOperand = (type) => {
     emitUpdate();
 };
 
+const updateOperand = (idx, newValue) => {
+    localNode.value.operands[idx] = newValue;
+    emitUpdate();
+};
+
+const removeOperand = (idx) => {
+    localNode.value.operands.splice(idx, 1);
+    emitUpdate();
+};
+
+const emitUpdate = () => {
+    emit('update', localNode.value);
+};
 </script>
