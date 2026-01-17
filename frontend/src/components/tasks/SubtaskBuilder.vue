@@ -45,5 +45,22 @@ watch(() => props.modelValue, (newValue) => {
   localSubtasks.value = [...newValue];
 }, { deep: true });
 
+const addSubtask = () => {
+  localSubtasks.value.push({
+    title: '',
+    priority_id: 2,
+    status: 'TODO',
+    progress: 0
+  });
+  emitUpdate();
+};
 
+const removeSubtask = (idx) => {
+  localSubtasks.value.splice(idx, 1);
+  emitUpdate();
+};
+
+const emitUpdate = () => {
+  emit('update:modelValue', localSubtasks.value);
+};
 </script>
