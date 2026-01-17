@@ -29,4 +29,20 @@ export const normalizeTasks = (tasks) => {
     return tasks.map(normalizeTask);
 };
 
+export const serializeTask = (task) => {
+    if (!task) return null;
+    
+    if (API_CONFIG.TESTING) {
+        const serialized = { ...task };
+        if (task.task_id !== undefined) {
+            serialized.id = task.task_id;
+        }
+        return serialized;
+    }
+    
+    return task;
+};
 
+export const buildUrl = (endpoint) => {
+    return `${API_CONFIG.BASE_URL}${endpoint}`;
+};
