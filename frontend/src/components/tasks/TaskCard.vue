@@ -41,6 +41,8 @@
     </div>
 
     <div class="task-right">
+      <button v-if="!task.parent_task_id" @click="$emit('edit-rule', task)" class="task-btn"
+        title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
     </div>
@@ -59,7 +61,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status','edit-rule']);
+const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status', 'edit-rule']);
 
 const taskStore = useTaskStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
