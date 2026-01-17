@@ -39,6 +39,19 @@ const taskStatusClass = computed(() => {
   return `status-${status.toLowerCase()}`;
 });
 
+const taskStatusIcon = computed(() => {
+  if (props.rule.type !== 'task') return '';
+  const status = getTaskStatus(props.rule.task_id);
+  const icons = {
+    TODO: '○',
+    IN_PROGRESS: '◐',
+    IN_REVIEW: '◕',
+    ON_HOLD: '⊗',
+    COMPLETED: '✓'
+  };
+  return icons[status] || '○';
+});
+
 </script>
 <style scoped>
 .rule-visualizer {
