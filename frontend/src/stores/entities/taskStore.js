@@ -185,7 +185,7 @@ export const useTaskStore = defineStore('task', () => {
         editTask,
         changeStatus,
         removeTask,
-        getSubtasks,
+        getSubTasks,
         isLogicFulfilled,
         evaluateCompletionRule,
         saveCompletionRule,
