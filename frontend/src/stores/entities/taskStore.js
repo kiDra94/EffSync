@@ -169,6 +169,36 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
+    async function createTaskWithSubtasks(taskData, subtasks) {
+        try {
+            const parentTask = await createTask(taskData);
+            const createdParent = parentTask.data || parentTask;
+            tasks.value.push(createdParent);
+    
+            const createdSubtasks = [];
+            for (const subtask of subtasks) {
+                if (subtask.title && subtask.title.trim()) {
+                    const subtaskData = {
+                        ...subtask,
+                        parent_task_id: createdParent.task_id
+                    };
+                    const newSubtask = await createTask(subtaskData);
+                    const createdSub = newSubtask.data || newSubtask;
+                    tasks.value.push(createdSub);
+                    createdSubtasks.push(createdSub);
+                }
+            }
+    
+            return {
+                parentTask: createdParent,
+                subtasks: createdSubtasks
+            };
+        } catch (error) {
+            console.error('Fehler beim Erstellen von Task mit Subtasks:', error);
+            throw error;
+        }
+    }
+
     return {
         tasks,
         getTasks,
@@ -181,6 +211,7 @@ export const useTaskStore = defineStore('task', () => {
         isLogicFulfilled,
         evaluateCompletionRule,
         saveCompletionRule,
-        checkAffectedParents
+        checkAffectedParents,
+        createTaskWithSubtasks
     };
 });
