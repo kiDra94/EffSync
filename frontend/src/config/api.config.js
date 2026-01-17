@@ -27,7 +27,7 @@ export const serializeTask = (task) => {
     if (API_CONFIG.TESTING) {
         const serialized = { ...task };
         if (task.task_id !== undefined) {
-            serialized.id = task.task_id;
+            serialized.id = String(task.task_id);
         }
         return serialized;
     }
