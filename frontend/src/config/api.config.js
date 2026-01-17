@@ -7,3 +7,7 @@ export const getIdField = () => {
     return API_CONFIG.TESTING ? 'id' : 'task_id';
 };
 
+export const getTaskId = (task) => {
+    return API_CONFIG.TESTING ? task.id : task.task_id;
+};
+
