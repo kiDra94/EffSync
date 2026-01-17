@@ -15,7 +15,7 @@
         </div>
     </div>
 </template>
-<script>
+<script setup>
 import { computed } from 'vue';
 
 const props = defineProps({
