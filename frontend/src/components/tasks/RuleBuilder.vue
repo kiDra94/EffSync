@@ -36,4 +36,17 @@
             Speichern
         </button>
     </div>
+    <div class="help-section">
+        <details>
+            <summary>💡 Wie funktionieren die Operatoren?</summary>
+            <ul>
+                <li><strong>UND (AND):</strong> Alle Bedingungen müssen erfüllt sein</li>
+                <li><strong>ODER (OR):</strong> Mindestens eine Bedingung muss erfüllt sein</li>
+                <li><strong>ENTWEDER-ODER (XOR):</strong> Genau eine Bedingung muss erfüllt sein (nicht beide)</li>
+                <li><strong>NICHT (NOT):</strong> Negiert die Bedingung</li>
+            </ul>
+            <p><strong>Beispiel:</strong> <code>(Linux UND Docker) ODER (Nginx UND SSL)</code> bedeutet: Der Task ist
+                fertig, wenn entweder beide aus der ersten Gruppe ODER beide aus der zweiten Gruppe erledigt sind.</p>
+        </details>
+    </div>
 </template>
