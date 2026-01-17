@@ -10,7 +10,7 @@ import RuleBuilder from '@/components/tasks/RuleBuilder.vue';
 
 const taskStore = useTaskStore();
 
-const activeModal = ref(null); // 'form' | 'delete' | null
+const activeModal = ref(null);
 const selectedTask = ref(null);
 
 const searchQuery = ref('');
@@ -24,6 +24,11 @@ const { filteredAndSorted: filteredAndSortedTasks } = useTaskFilters(
   sortBy
 );
 
+const subtasksForRuleBuilder = computed(() => {
+  if (!selectedTask.value) return [];
+  return taskStore.getSubtasks(selectedTask.value.task_id);
+});
+
 onMounted(async () => {
   await taskStore.getTasks();
 });
@@ -36,6 +41,11 @@ const openTaskForm = (task = null) => {
 const openDeleteDialog = (task) => {
   selectedTask.value = task;
   activeModal.value = 'delete';
+};
+
+const openRuleBuilder = (task) => {
+  selectedTask.value = task;
+  activeModal.value = 'rule';
 };
 
 const closeModal = () => {
@@ -88,7 +98,7 @@ const saveRule = async ({ rule, autoComplete }) => {
     <TaskFilters v-model:searchQuery="searchQuery" v-model:filterStatus="filterStatus" v-model:sortBy="sortBy" />
 
     <TaskList :tasks="filteredAndSortedTasks" @edit="openTaskForm" @delete="openDeleteDialog"
-      @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" />
+      @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" @edit-rule="openRuleBuilder" />
 
     <TaskForm v-if="activeModal === 'form'" :task="selectedTask" @save="saveTask" @close="closeModal" />
 
@@ -101,7 +111,6 @@ const saveRule = async ({ rule, autoComplete }) => {
           @close="closeModal" />
       </div>
     </div>
-
   </div>
 </template>
 
