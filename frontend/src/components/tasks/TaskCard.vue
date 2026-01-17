@@ -68,8 +68,7 @@
       </div>
     </div>
     <div class="task-right">
-      <button v-if="!task.parent_task_id" @click="$emit('edit-rule', task)" class="task-btn"
-        title="Regel bearbeiten">⚙️</button>
+      <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
     </div>
@@ -125,6 +124,14 @@ const toggleStatus = () => {
 
 const onStatusChange = (event) => {
   emit('change-status', props.task, event.target.value);
+};
+
+const editRule = () => {
+  if (subtasks.value.length === 0) {
+    alert('Dieser Task hat keine Subtasks!');
+    return;
+  }
+  emit('edit-rule', props.task);
 };
 
 const getStatusColor = (status) => {
