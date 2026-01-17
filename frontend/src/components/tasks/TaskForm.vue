@@ -61,7 +61,7 @@
           <span v-if="errors.status" class="error-message">{{ errors.status }}</span>
         </div>
 
-        <div v-if="task"  class="form-group" :class="{ 'has-error': errors.progress }">
+        <div v-if="task" class="form-group" :class="{ 'has-error': errors.progress }">
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
             <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
@@ -72,6 +72,8 @@
           </div>
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
         </div>
+
+        <SubtaskBuilder v-if="!task" v-model="subtasks" />
 
         <div v-if="showSummary && hasErrors" class="error-summary">
           ⚠️ Bitte korrigiere die markierten Fehler
@@ -94,6 +96,7 @@
 import { reactive, ref } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
+import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
 
 const props = defineProps({
   task: {
@@ -102,7 +105,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['save', 'close']);
+const emit = defineEmits(['save', 'save-with-subtasks', 'close']); 
 
 const {
   errors,
@@ -125,10 +128,12 @@ const formData = reactive({
   title: props.task?.title || '',
   description: props.task?.description || '',
   deadline: formatForInput(props.task?.deadline) || '',
-  priority_id: props.task?.priority_id || 2, // Default Mittel
+  priority_id: props.task?.priority_id || 2,
   status: props.task?.status || 'TODO',
   progress: props.task?.progress || 0
 });
+
+const subtasks = ref([]); 
 
 const showSummary = ref(false);
 
@@ -152,7 +157,12 @@ const submitTask = () => {
     ...(props.task?.task_id && { task_id: props.task.task_id })
   };
 
-  emit('save', taskData);
+  if (props.task?.task_id) {
+    emit('save', taskData);
+  } else {
+    emit('save-with-subtasks', { taskData, subtasks: subtasks.value });
+  }
+  
   showSummary.value = false;
 };
 
