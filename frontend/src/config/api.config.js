@@ -11,3 +11,17 @@ export const getTaskId = (task) => {
     return API_CONFIG.TESTING ? task.id : task.task_id;
 };
 
+export const normalizeTask = (task) => {
+    if (!task) return null;
+    
+    if (API_CONFIG.TESTING) {
+        return {
+            ...task,
+            task_id: task.id
+        };
+    }
+    
+    return task;
+};
+
+
