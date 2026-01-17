@@ -52,6 +52,15 @@ const taskStatusIcon = computed(() => {
   return icons[status] || '○';
 });
 
+const operatorLabel = (op) => {
+  const labels = {
+    AND: 'UND',
+    OR: 'ODER',
+    XOR: 'ENTWEDER-ODER',
+    NOT: 'NICHT'
+  };
+  return labels[op] || op;
+};
 </script>
 <style scoped>
 .rule-visualizer {
