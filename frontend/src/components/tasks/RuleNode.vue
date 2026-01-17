@@ -51,5 +51,9 @@ const emit = defineEmits(['update', 'remove']);
 
 const localNode = ref({ ...props.node });
 
+watch(() => props.node, (newNode) => {
+    localNode.value = { ...newNode };
+}, { deep: true });
+
 
 </script>
