@@ -39,7 +39,34 @@
       </div>
       <h3 class="task-title">{{ task.title }}</h3>
     </div>
+    <div v-if="subtasks.length > 0" class="subtasks-section">
+      <div v-if="task.completion_rule" class="rule-display">
+        <div class="rule-header">
+          <span class="rule-label">Bedingung:</span>
+          <span class="rule-status-badge" :class="{ 'fulfilled': logicFulfilled, 'pending': !logicFulfilled }">
+            {{ logicFulfilled ? '✅ Erfüllt' : '⏳ Nicht erfüllt' }}
+          </span>
+          <span v-if="task.auto_complete" class="auto-badge" title="Automatischer Abschluss aktiv">
+            🤖 Auto
+          </span>
+        </div>
+        <RuleVisualizer :rule="parsedRule" :tasks="allTasks" class="rule-viz" />
+      </div>
 
+      <div class="subtasks-list">
+        <h4 class="subtasks-title">Subtasks ({{ subtasks.length }})</h4>
+        <div v-for="sub in subtasks" :key="sub.task_id" class="subtask-item"
+          :class="{ 'subtask-done': sub.status === 'COMPLETED' }">
+          <input type="checkbox" :checked="sub.status === 'COMPLETED'" @change="$emit('toggle-status', sub)"
+            class="subtask-checkbox" />
+          <span class="subtask-title">{{ sub.title }}</span>
+          <span v-if="sub.priority_id" class="subtask-priority"
+            :style="{ backgroundColor: getPriorityColor(sub.priority_id) }">
+            {{ getPriorityLabel(sub.priority_id) }}
+          </span>
+        </div>
+      </div>
+    </div>
     <div class="task-right">
       <button v-if="!task.parent_task_id" @click="$emit('edit-rule', task)" class="task-btn"
         title="Regel bearbeiten">⚙️</button>
