@@ -309,4 +309,117 @@ const formatDate = (dateString) => {
   background-color: #fee2e2;
   color: #ef4444;
 }
+
+.subtasks-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.rule-display {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+}
+
+.rule-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rule-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1e40af;
+}
+
+.rule-status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rule-status-badge.fulfilled {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rule-status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.auto-badge {
+  padding: 0.25rem 0.5rem;
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rule-viz {
+  margin-top: 0.5rem;
+}
+
+.subtasks-list {
+  margin-top: 0.75rem;
+}
+
+.subtasks-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.subtask-item:hover {
+  background: #f3f4f6;
+}
+
+.subtask-item.subtask-done {
+  opacity: 0.6;
+}
+
+.subtask-item.subtask-done .subtask-title {
+  text-decoration: line-through;
+}
+
+.subtask-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #10b981;
+}
+
+.subtask-title {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.subtask-priority {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+}
 </style>
