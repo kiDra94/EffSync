@@ -106,5 +106,15 @@ const isRuleValid = computed(() => {
     return validateNode(localRule.value);
 });
 
+const saveRule = () => {
+    if (!isRuleValid.value) {
+        alert('Bitte fülle alle Task-Felder aus!');
+        return;
+    }
 
+    emit('save', {
+        rule: localRule.value,
+        autoComplete: localAutoComplete.value
+    });
+};
 </script>
