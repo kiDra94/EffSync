@@ -6,6 +6,7 @@ import TaskList from '@/components/tasks/TaskList.vue';
 import TaskForm from '@/components/tasks/TaskForm.vue';
 import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
 import TaskFilters from '@/components/tasks/TaskFilters.vue';
+import RuleBuilder from '@/components/tasks/RuleBuilder.vue';
 
 const taskStore = useTaskStore();
 
@@ -66,6 +67,13 @@ const toggleTaskStatus = async (task) => {
 const handleStatusChange = async (task, newStatus) => {
   await taskStore.changeStatus(task.task_id, newStatus);
 };
+
+const saveRule = async ({ rule, autoComplete }) => {
+  if (selectedTask.value) {
+    await taskStore.saveCompletionRule(selectedTask.value.task_id, rule, autoComplete);
+    closeModal();
+  }
+};
 </script>
 
 <template>
@@ -85,6 +93,15 @@ const handleStatusChange = async (task, newStatus) => {
     <TaskForm v-if="activeModal === 'form'" :task="selectedTask" @save="saveTask" @close="closeModal" />
 
     <TaskDeleteDialog v-if="activeModal === 'delete'" :task="selectedTask" @delete="deleteTask" @close="closeModal" />
+
+    <div v-if="activeModal === 'rule'" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-content">
+        <RuleBuilder :task-id="selectedTask.task_id" :initial-rule="selectedTask.completion_rule"
+          :initial-auto-complete="selectedTask.auto_complete" :subtasks="subtasksForRuleBuilder" @save="saveRule"
+          @close="closeModal" />
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -136,5 +153,29 @@ const handleStatusChange = async (task, newStatus) => {
 .btn-primary:focus {
   outline: 2px solid #4f46e5;
   outline-offset: 2px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 </style>
