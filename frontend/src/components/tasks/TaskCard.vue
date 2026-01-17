@@ -39,6 +39,13 @@
       </div>
       <h3 class="task-title">{{ task.title }}</h3>
     </div>
+
+    <div class="task-right">
+      <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
+      <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
+      <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
+    </div>
+
     <div v-if="subtasks.length > 0" class="subtasks-section">
       <div v-if="task.completion_rule" class="rule-display">
         <div class="rule-header">
@@ -67,11 +74,7 @@
         </div>
       </div>
     </div>
-    <div class="task-right">
-      <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
-      <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
-      <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
-    </div>
+
   </div>
 </template>
 
@@ -197,10 +200,10 @@ const formatDate = (dateString) => {
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 15px;
   transition: transform 0.2s, box-shadow 0.2s;
-
   position: relative;
   overflow: hidden;
 }
@@ -445,5 +448,13 @@ const formatDate = (dateString) => {
   font-size: 0.7rem;
   font-weight: 600;
   color: white;
+}
+
+.subtasks-section {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  margin-left: 0;
 }
 </style>
