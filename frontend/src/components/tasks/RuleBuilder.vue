@@ -74,5 +74,20 @@ if (props.initialRule) {
         : { ...props.initialRule };
 }
 
+const initRule = () => {
+    localRule.value = {
+        type: 'operator',
+        operator: 'AND',
+        operands: []
+    };
+};
+
+const removeRule = () => {
+    if (confirm('Möchtest du die gesamte Regel löschen?')) {
+        localRule.value = null;
+        localAutoComplete.value = false;
+    }
+};
+
 
 </script>
