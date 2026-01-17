@@ -32,35 +32,139 @@
 import { ref, watch } from 'vue';
 
 const props = defineProps({
-  modelValue: {
-    type: Array,
-    default: () => []
-  }
+    modelValue: {
+        type: Array,
+        default: () => []
+    }
 });
 
 const emit = defineEmits(['update:modelValue']);
 
 const localSubtasks = ref([...props.modelValue]);
 watch(() => props.modelValue, (newValue) => {
-  localSubtasks.value = [...newValue];
+    localSubtasks.value = [...newValue];
 }, { deep: true });
 
 const addSubtask = () => {
-  localSubtasks.value.push({
-    title: '',
-    priority_id: 2,
-    status: 'TODO',
-    progress: 0
-  });
-  emitUpdate();
+    localSubtasks.value.push({
+        title: '',
+        priority_id: 2,
+        status: 'TODO',
+        progress: 0
+    });
+    emitUpdate();
 };
 
 const removeSubtask = (idx) => {
-  localSubtasks.value.splice(idx, 1);
-  emitUpdate();
+    localSubtasks.value.splice(idx, 1);
+    emitUpdate();
 };
 
 const emitUpdate = () => {
-  emit('update:modelValue', localSubtasks.value);
+    emit('update:modelValue', localSubtasks.value);
 };
 </script>
+<style scoped>
+.subtask-builder {
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.builder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.builder-header h4 {
+    margin: 0;
+    color: #374151;
+    font-size: 1rem;
+}
+
+.btn-add-subtask {
+    padding: 0.5rem 1rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-add-subtask:hover {
+    background: #2563eb;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.subtasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.subtask-item {
+    background: white;
+    border-radius: 6px;
+    padding: 0.75rem;
+}
+
+.subtask-input-group {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.subtask-input {
+    padding: 0.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.subtask-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.subtask-priority {
+    padding: 0.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.subtask-priority:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.btn-remove {
+    padding: 0.5rem 0.75rem;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-remove:hover {
+    background: #dc2626;
+}
+</style>
