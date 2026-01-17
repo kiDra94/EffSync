@@ -12,6 +12,8 @@ const taskStore = useTaskStore();
 
 const activeModal = ref(null);
 const selectedTask = ref(null);
+const showRulePrompt = ref(false);
+const newlyCreatedTask = ref(null);
 
 const searchQuery = ref('');
 const filterStatus = ref('all');
@@ -46,11 +48,14 @@ const openDeleteDialog = (task) => {
 const openRuleBuilder = (task) => {
   selectedTask.value = task;
   activeModal.value = 'rule';
+  showRulePrompt.value = false;
 };
 
 const closeModal = () => {
   activeModal.value = null;
   selectedTask.value = null;
+  showRulePrompt.value = false;
+  newlyCreatedTask.value = null;
 };
 
 const saveTask = async (task) => {
@@ -60,6 +65,28 @@ const saveTask = async (task) => {
     await taskStore.addTask(task);
   }
   closeModal();
+};
+
+const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
+  const result = await taskStore.createTaskWithSubtasks(taskData, subtasks);
+
+  closeModal();
+
+  if (subtasks.length > 0) {
+    newlyCreatedTask.value = result.parentTask;
+    showRulePrompt.value = true;
+  }
+};
+
+const handleRulePromptYes = () => {
+  selectedTask.value = newlyCreatedTask.value;
+  activeModal.value = 'rule';
+  showRulePrompt.value = false;
+};
+
+const handleRulePromptNo = () => {
+  showRulePrompt.value = false;
+  newlyCreatedTask.value = null;
 };
 
 const deleteTask = async () => {
@@ -100,7 +127,8 @@ const saveRule = async ({ rule, autoComplete }) => {
     <TaskList :tasks="filteredAndSortedTasks" @edit="openTaskForm" @delete="openDeleteDialog"
       @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" @edit-rule="openRuleBuilder" />
 
-    <TaskForm v-if="activeModal === 'form'" :task="selectedTask" @save="saveTask" @close="closeModal" />
+    <TaskForm v-if="activeModal === 'form'" :task="selectedTask" @save="saveTask"
+      @save-with-subtasks="saveTaskWithSubtasks" @close="closeModal" />
 
     <TaskDeleteDialog v-if="activeModal === 'delete'" :task="selectedTask" @delete="deleteTask" @close="closeModal" />
 
@@ -109,6 +137,22 @@ const saveRule = async ({ rule, autoComplete }) => {
         <RuleBuilder :task-id="selectedTask.task_id" :initial-rule="selectedTask.completion_rule"
           :initial-auto-complete="selectedTask.auto_complete" :subtasks="subtasksForRuleBuilder" @save="saveRule"
           @close="closeModal" />
+      </div>
+    </div>
+
+    <div v-if="showRulePrompt" class="modal-overlay" @click.self="handleRulePromptNo">
+      <div class="prompt-modal">
+        <div class="prompt-icon">🔗</div>
+        <h3>Subtasks erstellt!</h3>
+        <p>Möchtest du jetzt eine Abschlussbedingung für diesen Task definieren?</p>
+        <div class="prompt-actions">
+          <button @click="handleRulePromptNo" class="btn-secondary">
+            Nein, später
+          </button>
+          <button @click="handleRulePromptYes" class="btn-primary">
+            Ja, Regel erstellen
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -164,6 +208,22 @@ const saveRule = async ({ rule, autoComplete }) => {
   outline-offset: 2px;
 }
 
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -186,5 +246,38 @@ const saveRule = async ({ rule, autoComplete }) => {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.prompt-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.prompt-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.prompt-modal h3 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+}
+
+.prompt-modal p {
+  margin: 0 0 2rem 0;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
 }
 </style>
