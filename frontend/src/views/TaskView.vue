@@ -68,13 +68,17 @@ const saveTask = async (task) => {
 };
 
 const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
-  const result = await taskStore.createTaskWithSubtasks(taskData, subtasks);
-
-  closeModal();
-
-  if (subtasks.length > 0) {
-    newlyCreatedTask.value = result.parentTask;
-    showRulePrompt.value = true;
+  if (taskData.task_id) {
+    const result = await taskStore.editTaskWithSubtasks(taskData.task_id, taskData, subtasks);
+    closeModal();
+  } else {
+    const result = await taskStore.createTaskWithSubtasks(taskData, subtasks);
+    closeModal();
+    
+    if (subtasks.length > 0) {
+      newlyCreatedTask.value = result.parentTask;
+      showRulePrompt.value = true;
+    }
   }
 };
 

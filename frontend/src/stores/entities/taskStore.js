@@ -199,6 +199,49 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
+    async function editTaskWithSubtasks(task_id, taskData, subtasks) {
+        try {
+            await editTask(task_id, taskData);
+
+            const existingSubtasks = getSubtasks.value(task_id);
+            const existingIds = existingSubtasks.map(st => st.task_id);
+            const incomingIds = subtasks.filter(st => st.task_id).map(st => st.task_id);
+
+            for (const id of existingIds) {
+                if (!incomingIds.includes(id)) {
+                    await removeTask(id);
+                }
+            }
+
+            const updatedSubtasks = [];
+            for (const subtask of subtasks) {
+                if (subtask.task_id) {
+                    // Bestehenden Subtask aktualisieren
+                    await editTask(subtask.task_id, subtask);
+                    updatedSubtasks.push(subtask);
+                } else if (subtask.title && subtask.title.trim()) {
+                    // Neuen Subtask erstellen
+                    const subtaskData = {
+                        ...subtask,
+                        parent_task_id: task_id
+                    };
+                    const newSubtask = await createTask(subtaskData);
+                    const createdSub = newSubtask.data || newSubtask;
+                    tasks.value.push(createdSub);
+                    updatedSubtasks.push(createdSub);
+                }
+            }
+            
+            return {
+                parentTask: tasks.value.find(t => t.task_id === task_id),
+                subtasks: updatedSubtasks
+            };
+        } catch (error) {
+            console.error('Fehler beim Bearbeiten von Task mit Subtasks:', error);
+            throw error;
+        }
+    }
+
     return {
         tasks,
         getTasks,
@@ -212,6 +255,7 @@ export const useTaskStore = defineStore('task', () => {
         evaluateCompletionRule,
         saveCompletionRule,
         checkAffectedParents,
-        createTaskWithSubtasks
+        createTaskWithSubtasks,
+        editTaskWithSubtasks
     };
 });

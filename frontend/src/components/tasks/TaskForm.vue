@@ -73,7 +73,7 @@
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
         </div>
 
-        <SubtaskBuilder v-if="!task" v-model="subtasks" />
+        <SubtaskBuilder v-model="subtasks" />
 
         <div v-if="showSummary && hasErrors" class="error-summary">
           ⚠️ Bitte korrigiere die markierten Fehler
@@ -97,6 +97,7 @@ import { reactive, ref } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
 import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
+import { useTaskStore } from '@/stores/entities/taskStore';
 
 const props = defineProps({
   task: {
@@ -105,7 +106,8 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['save', 'save-with-subtasks', 'close']); 
+const emit = defineEmits(['save', 'save-with-subtasks', 'close']);
+const taskStore = useTaskStore();
 
 const {
   errors,
@@ -133,7 +135,15 @@ const formData = reactive({
   progress: props.task?.progress || 0
 });
 
-const subtasks = ref([]); 
+const subtasks = ref(
+  props.task?.task_id ? taskStore.getSubtasks(props.task.task_id).map(st => ({
+    task_id: st.task_id,
+    title: st.title,
+    priority_id: st.priority_id,
+    status: st.status,
+    progress: st.progress
+  })) : []
+);
 
 const showSummary = ref(false);
 
@@ -157,12 +167,12 @@ const submitTask = () => {
     ...(props.task?.task_id && { task_id: props.task.task_id })
   };
 
-  if (props.task?.task_id) {
-    emit('save', taskData);
-  } else {
+  if (subtasks.value.length > 0) {
     emit('save-with-subtasks', { taskData, subtasks: subtasks.value });
+  } else {
+    emit('save', taskData);
   }
-  
+
   showSummary.value = false;
 };
 
