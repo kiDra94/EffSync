@@ -27,4 +27,13 @@
             </p>
         </div>
     </div>
+    <div class="builder-footer">
+        <button @click="$emit('close')" class="btn-secondary">
+            Abbrechen
+        </button>
+        <button @click="saveRule" :disabled="!isRuleValid" class="btn-primary"
+            :class="{ 'btn-disabled': !isRuleValid }">
+            Speichern
+        </button>
+    </div>
 </template>
