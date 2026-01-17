@@ -6,6 +6,9 @@
                 + Subtask hinzufügen
             </button>
         </div>
+        <div v-if="localSubtasks.length === 0" class="empty-state">
+            <p>Keine Subtasks definiert</p>
+        </div>
     </div>
 </template>
 <script setup>
