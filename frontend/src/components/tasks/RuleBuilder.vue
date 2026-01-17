@@ -68,5 +68,11 @@ const emit = defineEmits(['save', 'close']);
 const localRule = ref(null);
 const localAutoComplete = ref(props.initialAutoComplete);
 
+if (props.initialRule) {
+    localRule.value = typeof props.initialRule === 'string'
+        ? JSON.parse(props.initialRule)
+        : { ...props.initialRule };
+}
+
 
 </script>
