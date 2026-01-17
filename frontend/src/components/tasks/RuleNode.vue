@@ -81,16 +81,130 @@ const emitUpdate = () => {
 };
 </script>
 <style scoped>
-.task-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+.rule-node {
+    border: 2px solid #e5e7eb;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 8px;
+    background: white;
+    transition: all 0.2s;
 }
 
-.empty-state {
-    text-align: center;
-    color: #888;
-    margin-top: 40px;
+.rule-node:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.type-operator {
+    background: #f9fafb;
+    border-color: #3b82f6;
+}
+
+.operator-header {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.operator-select {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem;
+    border: 2px solid #3b82f6;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e40af;
+    background: white;
+    cursor: pointer;
+}
+
+.operator-select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.operands {
+    margin-left: 1.5rem;
+    border-left: 3px dashed #cbd5e1;
+    padding-left: 1rem;
+}
+
+.empty-operands {
+    margin-left: 1.5rem;
+    padding: 1rem;
+    background: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+    color: #92400e;
+    font-size: 0.875rem;
+}
+
+.type-task {
+    background: #ecfdf5;
+    border-color: #10b981;
+}
+
+.task-node {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.task-select {
+    flex: 1;
+    padding: 0.5rem;
+    border: 2px solid #10b981;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #047857;
+    background: white;
+    cursor: pointer;
+}
+
+.task-select:focus {
+    outline: none;
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-add:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
     font-size: 1.2rem;
+    padding: 0.3rem 0.7rem;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.btn-small:active {
+    transform: translateY(0);
 }
 </style>
