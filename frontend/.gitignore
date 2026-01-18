@@ -23,3 +23,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing
+coverage/
+.nyc_output/
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+test-results/
+*.log
+
+# Vitest
+vitest.config.js.timestamp-*
+
+# Testing (zusätzlich)
+.vitest-cache/
+playwright-report/
+html-report/
