@@ -38,6 +38,7 @@ const saveTemplate = async (template) => {
         }
         closeModal();
     } catch (error) {
+        console.log(error);
         alert('Fehler beim Speichern des Templates.');
     }
 };
@@ -48,6 +49,7 @@ const deleteTemplate = async () => {
             await templateStore.removeTemplate(selectedTemplate.value.template_id);
             closeModal();
         } catch (error) {
+            console.log(error);
             alert('Fehler beim Löschen des Templates.');
         }
     }

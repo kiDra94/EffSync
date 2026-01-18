@@ -100,7 +100,7 @@ const router = createRouter({
 })
 
 // --- Optimierter Navigation Guard ---
-router.beforeEach(async (to, from) => {
+router.beforeEach(async (to) => {
     const authStore = useAuthStore()
     
     // isAuthenticated ist ein Boolean, token ist der String.
@@ -125,6 +125,7 @@ router.beforeEach(async (to, from) => {
             await authStore.loadUser()
         } catch (error) {
             // Falls Token ungültig war -> Logout passiert im Store, hier Redirect
+            console.error('Fehler beim Laden der Benutzerdaten:', error)
             return { name: 'Login' }
         }
     }

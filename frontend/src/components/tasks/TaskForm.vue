@@ -113,7 +113,6 @@ const {
   errors,
   warnings,
   hasErrors,
-  clearError,
   validateTitle,
   validateDescription,
   validateDeadline,

@@ -105,26 +105,27 @@
   ],
   "priorities": [
     {
-      "id": 1,
+      "id": "1",
       "priority_id": 1,
       "name": "Niedrig"
     },
     {
-      "id": 2,
+      "id": "2",
       "priority_id": 2,
       "name": "Mittel"
     },
     {
-      "id": 3,
+      "id": "3",
       "priority_id": 3,
       "name": "Hoch"
     },
     {
-      "id": 4,
+      "id": "4",
       "priority_id": 4,
       "name": "Dringend"
     }
-  ],"tasks": [
+  ],
+  "tasks": [
     {
       "id": "1",
       "task_id": "1",

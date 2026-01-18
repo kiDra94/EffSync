@@ -41,13 +41,6 @@ const errorMessage = ref('');
 const isConfirmed = computed(() => {
   return confirmationText.value.trim() === props.template?.name.trim();
 });
-const validateInput = () => {
-  if (confirmationInput.value && !isConfirmed.value) {
-    errorMessage.value = 'Der Titel stimmt nicht überein.';
-  } else {
-    errorMessage.value = '';
-  }
-};
 const confirmDelete = () => {
   if (!isConfirmed.value) {
     errorMessage.value = 'Der Titel stimmt nicht überein.';
