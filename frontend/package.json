@@ -8,7 +8,12 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "mockend": "npx json-server mockdb.json",
-    "dev": "concurrently 'npm run mockend' 'npm run frontend'"
+    "dev": "concurrently 'npm run mockend' 'npm run frontend'",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
