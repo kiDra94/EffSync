@@ -15,4 +15,25 @@ Drazen,Vue Video für Recherche und Codeoptimierung besprochen,18.11.2025,13:45:
 Ereny,Vue Video für Recherche und Codeoptimierung besprochen,18.11.2025,13:45:00,16:30:00,2.75
 Drazen,Meilensteine+Issues in GitHub anfgefangen-Overlafestruktur erstellt,25.11.2025,09:00:00,11:50:00,2.83
 Ereny,Meilensteine+Issues in GitHub anfgefangen-Overlafestruktur erstellt,25.11.2025,09:00:00,11:50:00,2.83
-Drazen,Issue 7 ERD überarbeitet,01.12.20265,20:00:00,22:00:00,2
+Drazen,Issue 7 ERD überarbeitet,01.12.2025,20:00:00,22:00:00,2
+Ereny,Issue 9 Frontend von html in App.vue und Dashboard.vue aufgeteilt und alle icons aus der html übernommen,02.12.2025,19:50:00,22:50:00,3
+Drazen,Issue 9 Frontend setup,02.12.2025,15:40:00,16:40:00,1
+Drazen,Issue 9 creating routes,11.12.2025,18:00:00,20:40:00,2
+Drazen,Issue 9 setting up stores,12.12.2025,15:20:00,17:40:00,2.33
+Ereny,Issue 10 creating models,30.12.2025,17:00:00,20:40:00, 3.67
+Ereny,Issue 11 Start-Dashboard Grundstruktur (Karten für Metriken),30.12.2025,20:40:00,22:00:00,1.33
+Ereny,Issue 12 Taskliste mit Sortierung/Filter/Suche (lokal) & Basis-Kalenderlayout,31.12.2025,10:00:00,12:30:00,2.5
+Ereny, Fehlerbehebung Darkmode,31.12.2025,00:00:00,00:45:00,0.75
+Drazen,Issue 13 CRUD&Validierung,01.01.2026,18:00:00,23:00:00,5
+Drazen,Issue 14 TaskTemplates&Löschbestätigung,02.01.2026,19:20:00,20:50:00,1.5
+Drazen,Issue 15 Prio&Ampelsystem&Statuswechsel,02.01.2026,23:00:00,23:40:00,0.67
+Drazen,Issue 16 Subtasks&logische Verknüpfungen,03.01.2026,13:00:00,15:00:00,2
+Drazen,Issue 16 Subtasks&logische Verknüpfungen,17.01.2026,18:55:00,23:25:00,4.5
+Drazen,Issue 17 mockdb Taskflow ,18.01.2026,19:00:00,21:30:00,2.5
+
+
+Drazen: 32,21 Stunden
+
+Ereny: 27,63 Stunden
+
+Gesamt: 59,84 Stunden

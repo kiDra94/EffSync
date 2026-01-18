@@ -1,6 +1,7 @@
 Instanz,Endpunkte,Methode,Beschreibung,AuthStatus,BetroffeneTabellen
 Auth,/api/auth/register,POST,Registriert einen neuen User,Öffentlich,users
 Auth,/api/auth/login,POST,Meldet User an gibt Token zurück,Öffentlich,users
+Auth,/api/auth/logout,POST,Meldet User ab und löscht den Token,Öffentlich,users
 User,/api/users/profile,GET/PUT,Ruft eigenes Profil ab/Aktualisiert es,Geschützt,users, user-roles
 User,/api/users/search,GET,Sucht nach Benutzern Filter: ?q=...,Geschützt,users
 User,/api/users/id,GET,Ruft öffentliche User-Details ab,Geschützt,users
