@@ -8,7 +8,14 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "mockend": "npx json-server mockdb.json",
-    "dev": "concurrently 'npm run mockend' 'npm run frontend'"
+    "dev": "concurrently 'npm run mockend' 'npm run frontend'",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -21,9 +28,26 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@faker-js/faker": "^10.2.0",
+    "@pinia/testing": "^1.0.3",
+    "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vitest/coverage-v8": "^4.0.17",
+    "@vitest/ui": "^4.0.17",
+    "@vue/test-utils": "^2.4.6",
+    "axios-mock-adapter": "^2.1.0",
     "concurrently": "^9.2.1",
+    "cypress": "^15.9.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-cypress": "^5.2.1",
+    "eslint-plugin-vitest": "^0.5.4",
+    "eslint-plugin-vue": "^10.7.0",
+    "globals": "^17.0.0",
+    "happy-dom": "^20.3.1",
+    "jsdom": "^27.4.0",
     "json-server": "^1.0.0-beta.3",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.0.17"
   }
 }

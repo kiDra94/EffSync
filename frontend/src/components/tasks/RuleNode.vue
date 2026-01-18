@@ -26,7 +26,7 @@
                 <em>Klicke auf "+ Task" oder "+ Gruppe", um Bedingungen hinzuzufügen</em>
             </div>
         </div>
-        <div v-else-if="node.type === 'task'" class="task-node">
+        <div v-else-if="node.type === 'leaf'" class="task-node">
             <select v-model="localNode.task_id" @change="emitUpdate" class="task-select">
                 <option :value="null">-- Task wählen --</option>
                 <option v-for="task in subtasks" :key="task.task_id" :value="task.task_id">
@@ -59,7 +59,7 @@ const addOperand = (type) => {
     if (!localNode.value.operands) {
         localNode.value.operands = [];
     }
-    const newOperand = type === 'task'
+    const newOperand = type === 'leaf'
         ? { type: 'leaf', task_id: null }
         : { type: 'operator', operator: 'AND', operands: [] };
     localNode.value.operands.push(newOperand);

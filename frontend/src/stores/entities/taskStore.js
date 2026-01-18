@@ -113,7 +113,7 @@ export const useTaskStore = defineStore('task', () => {
         return tasks.value.filter(task => {
             if (!task.completion_rule) return false;
             const rule = typeof task.completion_rule === 'string' ? JSON.parse(task.completion_rule) : task.completion_rule;
-            
+
             return ruleContainsTask(rule, childTaskId);
         });
     }
@@ -124,12 +124,12 @@ export const useTaskStore = defineStore('task', () => {
             if (newStatus === 'COMPLETED') {
                 updates.progress = 100;
             }
-            await patchTask(task_id, updates);
             const index = tasks.value.findIndex((t) => t.task_id === task_id);
             if (index !== -1) {
                 tasks.value[index].status = newStatus;
                 tasks.value[index].progress = updates.progress || tasks.value[index].progress;
             }
+            await patchTask(task_id, updates);
             await checkAffectedParents(task_id);
         } catch (error) {
             console.error('Fehler beim Statuswechsel:', error);
@@ -157,7 +157,7 @@ export const useTaskStore = defineStore('task', () => {
         try {
             const ruleJson = typeof rule === 'object' ? JSON.stringify(rule) : rule;
             await updateCompletionRule(taskId, ruleJson, autoComplete);
-            
+
             const index = tasks.value.findIndex(t => t.task_id === taskId);
             if (index !== -1) {
                 tasks.value[index].completion_rule = ruleJson;
@@ -174,7 +174,7 @@ export const useTaskStore = defineStore('task', () => {
             const parentTask = await createTask(taskData);
             const createdParent = parentTask.data || parentTask;
             tasks.value.push(createdParent);
-    
+
             const createdSubtasks = [];
             for (const subtask of subtasks) {
                 if (subtask.title && subtask.title.trim()) {
@@ -188,7 +188,7 @@ export const useTaskStore = defineStore('task', () => {
                     createdSubtasks.push(createdSub);
                 }
             }
-    
+
             return {
                 parentTask: createdParent,
                 subtasks: createdSubtasks
@@ -231,7 +231,7 @@ export const useTaskStore = defineStore('task', () => {
                     updatedSubtasks.push(createdSub);
                 }
             }
-            
+
             return {
                 parentTask: tasks.value.find(t => t.task_id === task_id),
                 subtasks: updatedSubtasks
@@ -256,6 +256,8 @@ export const useTaskStore = defineStore('task', () => {
         saveCompletionRule,
         checkAffectedParents,
         createTaskWithSubtasks,
-        editTaskWithSubtasks
+        editTaskWithSubtasks,
+        ruleContainsTask,
+        findAffectedParents,
     };
 });

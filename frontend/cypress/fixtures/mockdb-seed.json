@@ -1,0 +1,118 @@
+{
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Server aufsetzen",
+      "description": "Produktions-Server für Diplomarbeit konfigurieren",
+      "status": "IN_PROGRESS",
+      "progress": 50,
+      "completion_rule": "{\"type\":\"operator\",\"operator\":\"OR\",\"operands\":[{\"type\":\"leaf\",\"task_id\":\"2\"},{\"type\":\"leaf\",\"task_id\":\"3\"}]}",
+      "auto_complete": true,
+      "parent_task_id": null,
+      "priority_id": "1",
+      "assigned_to": "1",
+      "created_by": "1",
+      "deadline": "2026-02-15T23:59:00",
+      "created_at": "2026-01-03T10:00:00",
+      "updated_at": "2026-01-03T10:00:00"
+    },
+    {
+      "id": "2",
+      "title": "Linux installieren",
+      "description": "Ubuntu Server 24.04 LTS",
+      "status": "COMPLETED",
+      "progress": 100,
+      "completion_rule": null,
+      "auto_complete": false,
+      "parent_task_id": "1",
+      "priority_id": "1",
+      "assigned_to": "1",
+      "created_by": "1",
+      "deadline": "2026-01-10T23:59:00",
+      "created_at": "2026-01-03T10:05:00",
+      "updated_at": "2026-01-03T12:00:00"
+    },
+    {
+      "id": "3",
+      "title": "Docker installieren",
+      "description": "Docker Engine + Docker Compose",
+      "status": "TODO",
+      "progress": 0,
+      "completion_rule": null,
+      "auto_complete": false,
+      "parent_task_id": "1",
+      "priority_id": "2",
+      "assigned_to": "1",
+      "created_by": "1",
+      "deadline": "2026-01-12T23:59:00",
+      "created_at": "2026-01-03T10:06:00",
+      "updated_at": "2026-01-03T10:06:00"
+    },
+    {
+      "id": "4",
+      "title": "Nginx konfigurieren",
+      "description": "Reverse Proxy Setup",
+      "status": "IN_REVIEW",
+      "progress": 75,
+      "completion_rule": null,
+      "auto_complete": false,
+      "parent_task_id": null,
+      "priority_id": "2",
+      "assigned_to": "1",
+      "created_by": "1",
+      "deadline": "2026-01-22T23:59:00",
+      "created_at": "2026-01-03T10:07:00",
+      "updated_at": "2026-01-03T10:07:00"
+    },
+    {
+      "id": "5",
+      "title": "SSL-Zertifikat installieren",
+      "description": "Let's Encrypt Wildcard Cert",
+      "status": "COMPLETED",
+      "progress": 100,
+      "completion_rule": null,
+      "auto_complete": false,
+      "parent_task_id": "1",
+      "priority_id": "3",
+      "assigned_to": "1",
+      "created_by": "1",
+      "deadline": "2026-01-16T23:59:00",
+      "created_at": "2026-01-03T10:08:00",
+      "updated_at": "2026-01-03T11:45:00"
+    }
+  ],
+  "task_templates": [
+    {
+      "id": "1",
+      "name": "Standard Hausübung",
+      "description": "Template für reguläre Hausübungen",
+      "default_title": "Hausübung: [Fach]",
+      "default_description": "Bitte folgende Aufgaben erledigen:\n- Aufgabe 1\n- Aufgabe 2\n- Aufgabe 3",
+      "default_priority_id": 2,
+      "default_deadline_days": 7,
+      "default_status": "TODO",
+      "is_active": true,
+      "created_by": "1",
+      "created_at": "2025-01-01T08:00:00Z",
+      "updated_at": "2025-01-01T08:00:00Z"
+    }
+  ],
+  "priorities": [
+    {
+      "id": "1",
+      "name": "Niedrig"
+    },
+    {
+      "id": "2",
+      "name": "Mittel"
+    },
+    {
+      "id": "3",
+      "name": "Hoch"
+    },
+    {
+      "id": "4",
+      "name": "Dringend"
+    }
+  ]
+}
