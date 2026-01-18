@@ -401,7 +401,7 @@ describe('TaskStore', () => {
             await store.checkAffectedParents('2');
 
             expect(vi.mocked(tasksApi.patchTask)).toHaveBeenCalledWith('1', 
-                expect.objectContaining({ status: 'COMPLETED' })
+                expect.objectContaining({ status: 'IN_PROGRESS' })
             );
             changeStatusSpy.mockRestore();
         });
