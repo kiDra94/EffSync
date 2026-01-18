@@ -14,8 +14,8 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "cypress run",
     "test:e2e:open": "cypress open",
-    "lint": "eslint src cypress --ext .js,.vue",
-    "lint:fix": "eslint src cypress --ext .js,.vue --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -37,7 +37,7 @@
     "axios-mock-adapter": "^2.1.0",
     "concurrently": "^9.2.1",
     "cypress": "^15.9.0",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.2",
     "eslint-plugin-cypress": "^5.2.1",
     "eslint-plugin-vitest": "^0.5.4",
     "eslint-plugin-vue": "^10.7.0",
