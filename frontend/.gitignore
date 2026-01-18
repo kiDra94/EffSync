@@ -40,3 +40,4 @@ vitest.config.js.timestamp-*
 .vitest-cache/
 playwright-report/
 html-report/
+.eslintcache
