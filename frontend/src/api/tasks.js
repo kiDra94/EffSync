@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { apiClient } from '@/api/httpClient';
 import {
 	buildUrl,
 	normalizeTask,
@@ -9,7 +10,7 @@ import {
 const ENDPOINT = '/tasks';
 
 export const fetchTasks = async () => {
-	const response = await axios.get(buildUrl(ENDPOINT));
+	const response = await apiClient.get(buildUrl(ENDPOINT));
 	return normalizeTasks(response.data);
 };
 
