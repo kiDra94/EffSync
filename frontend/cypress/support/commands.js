@@ -24,11 +24,9 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
-Cypress.Commands.add('resetMockDB', () => {
-  cy.fixture('mockdb-seed.json').then((seedData) => {
-    if (!seedData) throw new Error('Seed-Daten konnten nicht geladen werden!');
-    cy.writeFile('mockdb.json', JSON.stringify(seedData, null, 2));
-  });
-
-  cy.wait(1000);
+Cypress.Commands.add('cleanupTask', (taskId) => {
+  if (taskId) {
+    // Der Befehl ist jetzt zentral gespeichert
+    cy.request('DELETE', `http://localhost:3000/tasks/${taskId}`);
+  }
 });
