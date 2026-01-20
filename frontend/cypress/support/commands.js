@@ -24,7 +24,7 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
-Cypress.Commands.add('cleanupTask', (taskId) => {
+Cypress.Commands.add('cleanUpTask', (taskId) => {
   if (taskId) {
     // Der Befehl ist jetzt zentral gespeichert
     cy.request('DELETE', `http://localhost:3000/tasks/${taskId}`);

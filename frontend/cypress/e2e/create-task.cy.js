@@ -1,11 +1,12 @@
 describe('Task Creation - Proof of Concept', () => {
+  let newTaskID;
     beforeEach(() => {
       cy.intercept('POST', '**/tasks').as('postTask');
       cy.visit('http://localhost:5173/tasks');
     });
 
     afterEach(() => {
-      cy.cleanUp(newTaskID);
+      cy.cleanUpTask(newTaskID);
     })
     it('creates a simple task successfully', () => {
       cy.contains('+ Neue Aufgabe').click();
