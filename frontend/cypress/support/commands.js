@@ -28,5 +28,5 @@ Cypress.Commands.add('resetMockDB', () => {
     cy.fixture('mockdb-seed.json').then((seedData) => {
       cy.writeFile('mockdb.json', seedData);
     });
-    cy.wait(2000);
+    cy.wait(1000);
   });
