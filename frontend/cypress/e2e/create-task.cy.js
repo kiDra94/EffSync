@@ -1,13 +1,7 @@
 describe('Task Creation - Proof of Concept', () => {
     beforeEach(() => {
-      cy.resetMockDB();
       cy.visit('http://localhost:5173/tasks');
     });
-
-    afterEach(async () => {
-      cy.resetMockDB();
-    })
-  
     it('creates a simple task successfully', () => {
       cy.contains('+ Neue Aufgabe').click();
   

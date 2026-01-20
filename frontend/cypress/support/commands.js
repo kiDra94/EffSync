@@ -25,8 +25,10 @@
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
 Cypress.Commands.add('resetMockDB', () => {
-    cy.fixture('mockdb-seed.json').then((seedData) => {
-      cy.writeFile('mockdb.json', seedData);
-    });
-    cy.wait(1000);
+  cy.fixture('mockdb-seed.json').then((seedData) => {
+    if (!seedData) throw new Error('Seed-Daten konnten nicht geladen werden!');
+    cy.writeFile('mockdb.json', JSON.stringify(seedData, null, 2));
   });
+
+  cy.wait(1000);
+});
