@@ -15,9 +15,10 @@ import { NotesModule } from './modules/notes/notes.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { ClassesModule } from './modules/classes/classes.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, TasksModule, TaskCommentsModule, TaskActivityModule, TemplatesModule, DocumentsModule, ChatRoomsModule, ChatMessagesModule, NotificationsModule, NotesModule, SchedulesModule, ClassesModule, DepartmentsModule],
+  imports: [AuthModule, UsersModule, TasksModule, TaskCommentsModule, TaskActivityModule, TemplatesModule, DocumentsModule, ChatRoomsModule, ChatMessagesModule, NotificationsModule, NotesModule, SchedulesModule, ClassesModule, DepartmentsModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })
