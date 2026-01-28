@@ -1,4 +1,12 @@
-import { Injectable } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { Injectable } from "@nestjs/common";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "@prisma/client";
 
 @Injectable()
-export class PrismaService {}
+export class PrismaService extends PrismaClient {
+  constructor() {
+    const adapters = new PrismaBetterSqlite3({ url: "file:./dev.db" });
+    super({ adapter: adapters });
+  }
+}
