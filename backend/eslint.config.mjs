@@ -35,7 +35,6 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       "prettier/prettier": ["warn", { endOfLine: "auto" }],
-      "quotes": "off",
     },
   },
 );

@@ -6,12 +6,12 @@ import {
   Patch,
   Param,
   Delete,
-} from '@nestjs/common';
-import { ChatMessagesService } from './chat-messages.service';
-import { CreateChatMessageDto } from './dto/create-chat-message.dto';
-import { UpdateChatMessageDto } from './dto/update-chat-message.dto';
+} from "@nestjs/common";
+import { ChatMessagesService } from "./chat-messages.service";
+import { CreateChatMessageDto } from "./dto/create-chat-message.dto";
+import { UpdateChatMessageDto } from "./dto/update-chat-message.dto";
 
-@Controller('chat-messages')
+@Controller("chat-messages")
 export class ChatMessagesController {
   constructor(private readonly chatMessagesService: ChatMessagesService) {}
 
@@ -25,21 +25,21 @@ export class ChatMessagesController {
     return this.chatMessagesService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Get(":id")
+  findOne(@Param("id") id: string) {
     return this.chatMessagesService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   update(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateChatMessageDto: UpdateChatMessageDto,
   ) {
     return this.chatMessagesService.update(+id, updateChatMessageDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  @Delete(":id")
+  remove(@Param("id") id: string) {
     return this.chatMessagesService.remove(+id);
   }
 }

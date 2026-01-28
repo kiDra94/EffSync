@@ -6,12 +6,12 @@ import {
   Patch,
   Param,
   Delete,
-} from '@nestjs/common';
-import { ChatRoomsService } from './chat-rooms.service';
-import { CreateChatRoomDto } from './dto/create-chat-room.dto';
-import { UpdateChatRoomDto } from './dto/update-chat-room.dto';
+} from "@nestjs/common";
+import { ChatRoomsService } from "./chat-rooms.service";
+import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
+import { UpdateChatRoomDto } from "./dto/update-chat-room.dto";
 
-@Controller('chat-rooms')
+@Controller("chat-rooms")
 export class ChatRoomsController {
   constructor(private readonly chatRoomsService: ChatRoomsService) {}
 
@@ -25,21 +25,21 @@ export class ChatRoomsController {
     return this.chatRoomsService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Get(":id")
+  findOne(@Param("id") id: string) {
     return this.chatRoomsService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   update(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateChatRoomDto: UpdateChatRoomDto,
   ) {
     return this.chatRoomsService.update(+id, updateChatRoomDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  @Delete(":id")
+  remove(@Param("id") id: string) {
     return this.chatRoomsService.remove(+id);
   }
 }

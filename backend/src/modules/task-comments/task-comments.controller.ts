@@ -6,12 +6,12 @@ import {
   Patch,
   Param,
   Delete,
-} from '@nestjs/common';
-import { TaskCommentsService } from './task-comments.service';
-import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
-import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
+} from "@nestjs/common";
+import { TaskCommentsService } from "./task-comments.service";
+import { CreateTaskCommentDto } from "./dto/create-task-comment.dto";
+import { UpdateTaskCommentDto } from "./dto/update-task-comment.dto";
 
-@Controller('task-comments')
+@Controller("task-comments")
 export class TaskCommentsController {
   constructor(private readonly taskCommentsService: TaskCommentsService) {}
 
@@ -25,21 +25,21 @@ export class TaskCommentsController {
     return this.taskCommentsService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Get(":id")
+  findOne(@Param("id") id: string) {
     return this.taskCommentsService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   update(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateTaskCommentDto: UpdateTaskCommentDto,
   ) {
     return this.taskCommentsService.update(+id, updateTaskCommentDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  @Delete(":id")
+  remove(@Param("id") id: string) {
     return this.taskCommentsService.remove(+id);
   }
 }

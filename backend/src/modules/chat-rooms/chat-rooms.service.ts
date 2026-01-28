@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { CreateChatRoomDto } from './dto/create-chat-room.dto';
-import { UpdateChatRoomDto } from './dto/update-chat-room.dto';
+import { Injectable } from "@nestjs/common";
+import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
+import { UpdateChatRoomDto } from "./dto/update-chat-room.dto";
 
 @Injectable()
 export class ChatRoomsService {
   create(createChatRoomDto: CreateChatRoomDto) {
-    return 'This action adds a new chatRoom';
+    return "This action adds a new chatRoom";
   }
 
   findAll() {

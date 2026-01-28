@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TaskActivityController } from './task-activity.controller';
-import { TaskActivityService } from './task-activity.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { TaskActivityController } from "./task-activity.controller";
+import { TaskActivityService } from "./task-activity.service";
 
-describe('TaskActivityController', () => {
+describe("TaskActivityController", () => {
   let controller: TaskActivityController;
 
   beforeEach(async () => {
@@ -14,7 +14,7 @@ describe('TaskActivityController', () => {
     controller = module.get<TaskActivityController>(TaskActivityController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

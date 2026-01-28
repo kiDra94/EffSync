@@ -6,12 +6,12 @@ import {
   Patch,
   Param,
   Delete,
-} from '@nestjs/common';
-import { ClassesService } from './classes.service';
-import { CreateClassDto } from './dto/create-class.dto';
-import { UpdateClassDto } from './dto/update-class.dto';
+} from "@nestjs/common";
+import { ClassesService } from "./classes.service";
+import { CreateClassDto } from "./dto/create-class.dto";
+import { UpdateClassDto } from "./dto/update-class.dto";
 
-@Controller('classes')
+@Controller("classes")
 export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
@@ -25,18 +25,18 @@ export class ClassesController {
     return this.classesService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Get(":id")
+  findOne(@Param("id") id: string) {
     return this.classesService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateClassDto: UpdateClassDto) {
+  @Patch(":id")
+  update(@Param("id") id: string, @Body() updateClassDto: UpdateClassDto) {
     return this.classesService.update(+id, updateClassDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  @Delete(":id")
+  remove(@Param("id") id: string) {
     return this.classesService.remove(+id);
   }
 }

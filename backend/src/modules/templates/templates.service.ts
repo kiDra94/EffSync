@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { CreateTemplateDto } from './dto/create-template.dto';
-import { UpdateTemplateDto } from './dto/update-template.dto';
+import { Injectable } from "@nestjs/common";
+import { CreateTemplateDto } from "./dto/create-template.dto";
+import { UpdateTemplateDto } from "./dto/update-template.dto";
 
 @Injectable()
 export class TemplatesService {
   create(createTemplateDto: CreateTemplateDto) {
-    return 'This action adds a new template';
+    return "This action adds a new template";
   }
 
   findAll() {
