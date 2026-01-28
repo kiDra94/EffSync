@@ -18,7 +18,23 @@ import { DepartmentsModule } from './modules/departments/departments.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, TasksModule, TaskCommentsModule, TaskActivityModule, TemplatesModule, DocumentsModule, ChatRoomsModule, ChatMessagesModule, NotificationsModule, NotesModule, SchedulesModule, ClassesModule, DepartmentsModule, PrismaModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    TasksModule,
+    TaskCommentsModule,
+    TaskActivityModule,
+    TemplatesModule,
+    DocumentsModule,
+    ChatRoomsModule,
+    ChatMessagesModule,
+    NotificationsModule,
+    NotesModule,
+    SchedulesModule,
+    ClassesModule,
+    DepartmentsModule,
+    PrismaModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
