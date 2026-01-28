@@ -8,7 +8,7 @@
                     <option value="XOR">ENTWEDER-ODER (genau eine)</option>
                     <option value="NOT">NICHT (Negation)</option>
                 </select>
-                <button @click="addOperand('task')" class="btn-small btn-add" title="Task hinzufügen">
+                <button @click="addOperand('leaf')" class="btn-small btn-add" title="Task hinzufügen">
                     + Task
                 </button>
                 <button @click="addOperand('operator')" class="btn-small btn-add" title="Gruppe hinzufügen">
@@ -29,7 +29,7 @@
         <div v-else-if="node.type === 'leaf'" class="task-node">
             <select v-model="localNode.task_id" @change="emitUpdate" class="task-select">
                 <option :value="null">-- Task wählen --</option>
-                <option v-for="task in subtasks" :key="task.task_id" :value="task.task_id">
+                <option v-for="task in subtasks" :key="task.task_id || task.id" :value="task.task_id || task.id">
                     {{ task.title }}
                 </option>
             </select>
@@ -41,6 +41,10 @@
 </template>
 <script setup>
 import { ref, watch } from 'vue';
+
+defineOptions({
+    name: 'RuleNode'
+});
 
 const props = defineProps({
     node: { type: Object, required: true },

@@ -28,7 +28,10 @@ const { filteredAndSorted: filteredAndSortedTasks } = useTaskFilters(
 
 const subtasksForRuleBuilder = computed(() => {
   if (!selectedTask.value) return [];
-  return taskStore.getSubtasks(selectedTask.value.task_id);
+
+  const parentId = selectedTask.value.task_id || selectedTask.value.id;
+
+  return taskStore.tasks.filter(t => t.parent_task_id === parentId);
 });
 
 onMounted(async () => {
@@ -59,8 +62,9 @@ const closeModal = () => {
 };
 
 const saveTask = async (task) => {
-  if (task.task_id) {
-    await taskStore.editTask(task.task_id, task);
+  const taskId = task.task_id || task.id;
+  if (taskId) {
+    await taskStore.editTask(taskId, task);
   } else {
     await taskStore.addTask(task);
   }
@@ -68,13 +72,14 @@ const saveTask = async (task) => {
 };
 
 const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
-  if (taskData.task_id) {
-    await taskStore.editTaskWithSubtasks(taskData.task_id, taskData, subtasks);
+  const taskId = taskData.task_id || taskData.id;
+  if (taskId) {
+    await taskStore.editTaskWithSubtasks(taskId, taskData, subtasks);
     closeModal();
   } else {
     const result = await taskStore.createTaskWithSubtasks(taskData, subtasks);
     closeModal();
-    
+
     if (subtasks.length > 0) {
       newlyCreatedTask.value = result.parentTask;
       showRulePrompt.value = true;
@@ -83,7 +88,18 @@ const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
 };
 
 const handleRulePromptYes = () => {
-  selectedTask.value = newlyCreatedTask.value;
+  if (!newlyCreatedTask.value) return;
+
+  const targetId = newlyCreatedTask.value.task_id || newlyCreatedTask.value.id;
+  const realStoreTask = taskStore.tasks.find(t => (t.task_id || t.id) === targetId);
+
+  if (realStoreTask) {
+    selectedTask.value = realStoreTask;
+  } else {
+    // Fallback
+    selectedTask.value = newlyCreatedTask.value;
+  }
+
   activeModal.value = 'rule';
   showRulePrompt.value = false;
 };
@@ -95,23 +111,27 @@ const handleRulePromptNo = () => {
 
 const deleteTask = async () => {
   if (selectedTask.value) {
-    await taskStore.removeTask(selectedTask.value.task_id);
+    const taskId = selectedTask.value.task_id || selectedTask.value.id;
+    await taskStore.removeTask(taskId);
     closeModal();
   }
 };
 
 const toggleTaskStatus = async (task) => {
   const newStatus = task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED';
-  await taskStore.changeStatus(task.task_id, newStatus);
+  const taskId = task.task_id || task.id;
+  await taskStore.changeStatus(taskId, newStatus);
 };
 
 const handleStatusChange = async (task, newStatus) => {
-  await taskStore.changeStatus(task.task_id, newStatus);
+  const taskId = task.task_id || task.id;
+  await taskStore.changeStatus(taskId, newStatus);
 };
 
 const saveRule = async ({ rule, autoComplete }) => {
   if (selectedTask.value) {
-    await taskStore.saveCompletionRule(selectedTask.value.task_id, rule, autoComplete);
+    const taskId = selectedTask.value.task_id || selectedTask.value.id;
+    await taskStore.saveCompletionRule(taskId, rule, autoComplete);
     closeModal();
   }
 };
@@ -138,7 +158,7 @@ const saveRule = async ({ rule, autoComplete }) => {
 
     <div v-if="activeModal === 'rule'" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content">
-        <RuleBuilder :task-id="selectedTask.task_id" :initial-rule="selectedTask.completion_rule"
+        <RuleBuilder :task-id="selectedTask.task_id || selectedTask.id" :initial-rule="selectedTask.completion_rule"
           :initial-auto-complete="selectedTask.auto_complete" :subtasks="subtasksForRuleBuilder" @save="saveRule"
           @close="closeModal" />
       </div>

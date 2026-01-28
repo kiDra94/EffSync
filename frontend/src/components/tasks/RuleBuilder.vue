@@ -57,7 +57,7 @@ import { ref, computed } from 'vue';
 import RuleNode from './RuleNode.vue';
 
 const props = defineProps({
-    taskId: { type: Number, required: true },
+    taskId: { type: [Number, String], required: true },
     initialRule: { type: [Object, String], default: null },
     initialAutoComplete: { type: Boolean, default: false },
     subtasks: { type: Array, required: true }
