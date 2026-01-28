@@ -51,11 +51,12 @@ Die Arbeitspakete sind direkt aus den `Unterpunkten` Ihrer Meilensteine abgeleit
 | AP-ID | Arbeitspaket (AP) | Verantwortlich |
 | :--- | :--- | :--- |
 | **4.1 - BE** | Backend-Setup (Struktur, Settings, Logging, Env-Handling, Migrations) | Gemeinsam |
-| **4.2 - Auth** | Authentifizierung (Registrierung/Login), Sessions/Tokens, Passworthashing | Ereny |
+| **4.2 - Auth** | Authentifizierung (Registrierung/Login), Sessions/Tokens, Passworthashing | Drazen |
 | **4.3 - DB** | PostgreSQL-Schema finalisieren und Migrationsskripte erstellen | Gemeinsam |
 | **4.4 - Files** | Datei-Anhänge (Upload, Download, Öffnen, Limit: 25MB, MIME-Checks) | Ereny |
 | **4.5 - Security** | Rate Limiting und grundlegende Sicherheitsmechanismen implementieren | Ereny |
-| **4.6 - Test** | Konzeption & Start der Usability-Tests mit Pilotnutzern | Gemeinsam |
+[ **4.6 - API** ] NestJS Service&Controller einrichten | Drazen |
+[ **4.7 - Test** ] Konzeption & Start der Usability-Tests mit Pilotnutzern | Gemeinsam |
 
 ---
 
