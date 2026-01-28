@@ -11,9 +11,10 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { ChatRoomsModule } from './modules/chat-rooms/chat-rooms.module';
 import { ChatMessagesModule } from './modules/chat-messages/chat-messages.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { NotesModule } from './modules/notes/notes.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, TasksModule, TaskCommentsModule, TaskActivityModule, TemplatesModule, DocumentsModule, ChatRoomsModule, ChatMessagesModule, NotificationsModule],
+  imports: [AuthModule, UsersModule, TasksModule, TaskCommentsModule, TaskActivityModule, TemplatesModule, DocumentsModule, ChatRoomsModule, ChatMessagesModule, NotificationsModule, NotesModule],
   controllers: [AppController],
   providers: [AppService],
 })
