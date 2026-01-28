@@ -14,9 +14,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { NotesModule } from './modules/notes/notes.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { ClassesModule } from './modules/classes/classes.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, TasksModule, TaskCommentsModule, TaskActivityModule, TemplatesModule, DocumentsModule, ChatRoomsModule, ChatMessagesModule, NotificationsModule, NotesModule, SchedulesModule, ClassesModule],
+  imports: [AuthModule, UsersModule, TasksModule, TaskCommentsModule, TaskActivityModule, TemplatesModule, DocumentsModule, ChatRoomsModule, ChatMessagesModule, NotificationsModule, NotesModule, SchedulesModule, ClassesModule, DepartmentsModule],
   controllers: [AppController],
   providers: [AppService],
 })
