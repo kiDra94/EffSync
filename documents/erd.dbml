@@ -76,7 +76,7 @@ Table rooms {
 }
 
 Table timetable {
-  tt_id integer [primary key]
+  slot_id integer [primary key]
   schedule_id integer [ref: > schedules.schedule_id]
   subject_id integer [ref: > subjects.subject_id]
   teacher_id integer [ref: > teachers.teacher_id]
