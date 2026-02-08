@@ -1,11 +1,29 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 
 @Injectable()
-export class PrismaService extends PrismaClient {
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
-    const adapters = new PrismaBetterSqlite3({ url: "file:./dev.db" });
-    super({ adapter: adapters });
+   
+    super({
+      datasources: {
+        db: {
+          url: "file:./prisma/dev.db", 
+        },
+      },
+    } as any);
+  }
+
+  async onModuleInit() {
+    try {
+      await this.$connect();
+      console.log('✅ Datenbankverbindung erfolgreich hergestellt.');
+    } catch (error) {
+      console.error('❌ Fehler beim Verbinden mit der Datenbank:', error);
+    }
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
   }
 }
