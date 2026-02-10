@@ -5,6 +5,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { join } from "path";
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
 
 dotenv.config();
 
@@ -26,8 +27,13 @@ async function bootstrap() {
     transform: true,
   }));
 
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-    prefix: '/uploads/',
+  const uploadDir = process.env.UPLOAD_DIR || './uploads';
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log(`📁 Ordner ${uploadDir} wurde automatisch erstellt.`);
+  }
+  app.useStaticAssets(join(__dirname, '..', uploadDir), {
+    prefix: 'api/uploads/', 
   });
 
   const config = new DocumentBuilder()

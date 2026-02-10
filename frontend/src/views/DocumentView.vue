@@ -62,19 +62,29 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
-const documents = ref([]); // Hier später deine API-Anbindung
+const documents = ref([]);
 const errorMessage = ref('');
 const fileInput = ref(null);
-
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+
+onMounted(async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/documents');
+    if (response.ok) {
+      documents.value = await response.json();
+    }
+  } catch (error) {
+    console.error("Fehler beim Laden:", error);
+  }
+});
 
 const triggerFileInput = () => {
   fileInput.value.click();
 };
 
-const handleFileUpload = (event) => {
+const handleFileUpload = async (event) => {
   const file = event.target.files[0];
   errorMessage.value = '';
 
@@ -86,10 +96,25 @@ const handleFileUpload = (event) => {
     return;
   }
 
-  // Hier folgt dein API-Call
-  console.log("Upload startet für:", file.name);
-  // Simulierter Erfolg:
-  // documents.value.push({ ... });
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('userId', '1'); // Dummy-User ID [cite: 21]
+
+  try {
+    const response = await fetch('http://localhost:3000/api/documents/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('Upload fehlgeschlagen');
+
+    const newDoc = await response.json();
+    documents.value.unshift(newDoc);
+    event.target.value = '';
+    
+  } catch (error) {
+    errorMessage.value = "Fehler beim Upload: " + error.message;
+  }
 };
 
 const getSimpleType = (mime) => {
@@ -107,10 +132,18 @@ const formatBytes = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const openDocument = (doc) => window.open(doc.file_path, '_blank');
+// Diese URL-Logik passt nun zum Backend-Prefix /api/uploads/
+const getFileUrl = (filePath) => {
+  return `http://localhost:3000/api/${filePath}`;
+};
+
+const openDocument = (doc) => {
+  window.open(getFileUrl(doc.file_path), '_blank');
+};
+
 const downloadDocument = (doc) => {
   const link = document.createElement('a');
-  link.href = doc.file_path;
+  link.href = getFileUrl(doc.file_path);
   link.download = doc.name;
   link.click();
 };
