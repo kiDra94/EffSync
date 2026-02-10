@@ -1,403 +1,372 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client-js"
   moduleFormat = "cjs"
+  engineType = "library"
 }
 
 datasource db {
-  provider = "sqlite"
-  
-  // provider = "postgresql"
-
+  provider = "postgresql"
 }
 
-
-// --- CORE: USERS & PERMISSIONS ---
-
-model User {
-  user_id       Int       @id @default(autoincrement())
-  firstname     String?
-  lastname      String?
-  email         String    @unique
-  username      String    @unique
-  password_hash String
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-
-  // Relations
-  student       Student?
-  teacher       Teacher?
-  roles         UserRole[]
-  permissions   UserPermission[]
-  notes         Note[]            @relation("CreatedNotes")
-  sharedNotes   NotesUser[]
-  documents     Document[]        @relation("AddedBy")
-  documentShares DocumentShare[]
-  tasksCreated  Task[]            @relation("CreatedTasks")
-  tasksAssigned Task[]            @relation("AssignedTasks")
-  templates     TaskTemplate[]
-  taskComments  TaskComment[]
-  logs          TaskActivityLog[]
-  messages      ChatMessage[]
-  notifications Notification[]
-  chatRooms     ChatRoomUser[]
-  supervisorOf  Teacher[]         @relation("SupervisorRelation")
+model chat_messages {
+  message_id Int         @id @default(autoincrement())
+  room_id    Int?
+  user_id    Int?
+  message    String?
+  file_path  String?     @db.VarChar
+  created_at DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at DateTime?   @db.Timestamp(6)
+  chat_rooms chat_rooms? @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model Role {
-  role_id     Int               @id @default(autoincrement())
-  name        String            @unique
-  users       UserRole[]
-  permissions RolePermission[]
-}
-
-model Permission {
-  permission_id Int              @id @default(autoincrement()) // Als Bitmaske gedacht (1, 2, 4, 8...)
-  name          String           @unique
-  roles         RolePermission[]
-  users         UserPermission[]
-}
-
-model UserRole {
-  user_id     Int
-  role_id     Int
-  assigned_at DateTime @default(now())
-  user        User     @relation(fields: [user_id], references: [user_id])
-  role        Role     @relation(fields: [role_id], references: [role_id])
-
-  @@id([user_id, role_id])
-}
-
-model UserPermission {
-  user_id       Int
-  permission_id Int
-  assigned_at   DateTime   @default(now())
-  user          User       @relation(fields: [user_id], references: [user_id])
-  permission    Permission @relation(fields: [permission_id], references: [permission_id])
-
-  @@id([user_id, permission_id])
-}
-
-model RolePermission {
-  role_id       Int
-  permission_id Int
-  assigned_at   DateTime   @default(now())
-  role          Role       @relation(fields: [role_id], references: [role_id])
-  permission    Permission @relation(fields: [permission_id], references: [permission_id])
-
-  @@id([role_id, permission_id])
-}
-
-// --- DOCUMENTS (AKTUALISIERT) ---
-
-model Document {
-  document_id Int      @id @default(autoincrement())
-  name        String   // Originaler Dateiname
-  file_path   String   // Pfad auf dem Server (z.B. uploads/uuid.png)
-  file_size   Int      // Größe in Bytes (für 25MB Check)
-  mime_type   String   // Validierter Typ (via Magic Bytes)
-  added_by    Int
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  user        User     @relation("AddedBy", fields: [added_by], references: [user_id])
-  shares      DocumentShare[]
-  tasks       TaskDocument[]
-  notes       NoteDocument[]
-}
-
-model DocumentShare {
-  document_id Int
-  user_id     Int
-  created_at  DateTime @default(now())
-  document    Document @relation(fields: [document_id], references: [document_id])
-  user        User     @relation(fields: [user_id], references: [user_id])
-
-  @@id([document_id, user_id])
-}
-
-// --- TASKS & TEMPLATES ---
-
-model Task {
-  task_id         Int           @id @default(autoincrement())
-  parent_task_id  Int?
-  title           String
-  description     String?
-  status          String        @default("TODO") // Enum-Ersatz für SQLite
-  progress        Int?          @default(0)
-  completion_rule String?       // Speichert JSON als String (SQLite Support)
-  auto_complete   Boolean       @default(false)
-  deadline        DateTime?
-  created_by      Int
-  assigned_to     Int?
-  template_id     Int?
-  priority_id     Int?
-  created_at      DateTime      @default(now())
-  updated_at      DateTime      @updatedAt
-
-  creator         User          @relation("CreatedTasks", fields: [created_by], references: [user_id])
-  assignee        User?         @relation("AssignedTasks", fields: [assigned_to], references: [user_id])
-  parentTask      Task?         @relation("SubTasks", fields: [parent_task_id], references: [task_id])
-  subTasks        Task[]        @relation("SubTasks")
-  template        TaskTemplate? @relation(fields: [template_id], references: [template_id])
-  priority        Priority?     @relation(fields: [priority_id], references: [priority_id])
-  comments        TaskComment[]
-  logs            TaskActivityLog[]
-  documents       TaskDocument[]
-  chatRoom        ChatRoom?
-}
-
-model TaskTemplate {
-  template_id           Int       @id @default(autoincrement())
-  name                  String
-  description           String?
-  default_title         String?
-  default_description   String?
-  default_priority_id   Int?
-  default_deadline_days Int?
-  default_status        String    @default("TODO")
-  created_by            Int
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @updatedAt
-
-  creator               User      @relation(fields: [created_by], references: [user_id])
-  tasks                 Task[]
-}
-
-// --- SCHOOL SYSTEM (TIMETABLE) ---
-
-model Schedule {
-  schedule_id Int          @id @default(autoincrement())
-  name        String
-  valid_from  DateTime?
-  valid_to    DateTime?
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
-  timetable TimeTable[]
-  classes     Class[]
-}
-
-model TimeTable {
-  slot_id       Int      @id @default(autoincrement())
-  schedule_id   Int
-  subject_id    Int
-  teacher_id    Int
-  room_id       Int
-  day_of_week   Int      // 1-6
-  lesson_number Int
-  start_time    String   // SQLite hat keinen echten Time Typ, daher String
-  end_time      String
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-
-  schedule      Schedule @relation(fields: [schedule_id], references: [schedule_id])
-  subject       Subject  @relation(fields: [subject_id], references: [subject_id])
-  teacher       Teacher  @relation(fields: [teacher_id], references: [teacher_id])
-  room          Room     @relation(fields: [room_id], references: [room_id])
-}
-
-model Room {
-  room_id     Int          @id @default(autoincrement())
-  name        String
-  type        String?
-  capacity    Int?
-  building    String?
-  slots       TimeTable[]
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
-}
-
-model Subject {
-  subject_id  Int          @id @default(autoincrement())
-  name        String
-  short_name  String?
-  slots       TimeTable[]
-  notes       Note[]
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
-}
-
-model Class {
-  class_id        Int           @id @default(autoincrement())
-  name            String
-  department_id   Int
-  head_teacher_id Int?
-  schedule_id     Int?
-  created_at      DateTime      @default(now())
-  updated_at      DateTime      @updatedAt
-
-  department      Department    @relation(fields: [department_id], references: [department_id])
-  headTeacher     Teacher?      @relation("HeadTeacher", fields: [head_teacher_id], references: [teacher_id])
-  schedule        Schedule?     @relation(fields: [schedule_id], references: [schedule_id])
-  students        Student[]
-  teachers        ClassTeacher[]
-  chatRooms       ChatRoom[]
-}
-
-// --- HELPERS & COMMUNICATION ---
-
-model Note {
-  note_id     Int            @id @default(autoincrement())
-  title       String
-  description String?
-  created_by  Int
-  subject_id  Int?
-  priority_id Int?
-  created_at  DateTime       @default(now())
-  updated_at  DateTime       @updatedAt
-
-  creator     User           @relation("CreatedNotes", fields: [created_by], references: [user_id])
-  subject     Subject?       @relation(fields: [subject_id], references: [subject_id])
-  priority    Priority?      @relation(fields: [priority_id], references: [priority_id])
-  sharedWith  NotesUser[]
-  documents   NoteDocument[]
-}
-
-model Priority {
-  priority_id Int      @id @default(autoincrement())
-  name        String
-  tasks       Task[]
-  notes       Note[]
-  created_at  DateTime @default(now())
-}
-
-model ChatRoom {
-  room_id    Int            @id @default(autoincrement())
-  name       String?
-  task_id    Int?           @unique
-  class_id   Int?
-  created_at DateTime       @default(now())
-  updated_at DateTime       @updatedAt
-
-  task       Task?          @relation(fields: [task_id], references: [task_id])
-  class      Class?         @relation(fields: [class_id], references: [class_id])
-  users      ChatRoomUser[]
-  messages   ChatMessage[]
-}
-
-model ChatMessage {
-  message_id Int      @id @default(autoincrement())
+model chat_room_users {
   room_id    Int
   user_id    Int
-  message    String
-  file_path  String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  room       ChatRoom @relation(fields: [room_id], references: [room_id])
-  user       User     @relation(fields: [user_id], references: [user_id])
-}
-
-// --- MANY-TO-MANY RESOLVERS ---
-
-model Student {
-  student_id Int      @id
-  class_id   Int?
-  updated_at DateTime @updatedAt
-  user       User     @relation(fields: [student_id], references: [user_id])
-  class      Class?   @relation(fields: [class_id], references: [class_id])
-}
-
-model Teacher {
-  teacher_id    Int      @id
-  supervisor_id Int?
-  updated_at    DateTime @updatedAt
-  user          User     @relation(fields: [teacher_id], references: [user_id])
-  supervisor    User?    @relation("SupervisorRelation", fields: [supervisor_id], references: [user_id])
-  headOfClasses Class[]  @relation("HeadTeacher")
-  classes       ClassTeacher[]
-  slots         TimeTable[]
-}
-
-model ClassTeacher {
-  class_id    Int
-  teacher_id  Int
-  assigned_at DateTime @default(now())
-  class       Class    @relation(fields: [class_id], references: [class_id])
-  teacher     Teacher  @relation(fields: [teacher_id], references: [teacher_id])
-
-  @@id([class_id, teacher_id])
-}
-
-model ChatRoomUser {
-  room_id   Int
-  user_id   Int
-  joined_at DateTime @default(now())
-  room      ChatRoom @relation(fields: [room_id], references: [room_id])
-  user      User     @relation(fields: [user_id], references: [user_id])
+  joined_at  DateTime?  @default(now()) @db.Timestamp(6)
+  chat_rooms chat_rooms @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
+  users      users      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([room_id, user_id])
 }
 
-model TaskDocument {
-  task_id     Int
-  document_id Int
-  created_at  DateTime @default(now())
-  task        Task     @relation(fields: [task_id], references: [task_id])
-  document    Document @relation(fields: [document_id], references: [document_id])
-
-  @@id([task_id, document_id])
+model chat_rooms {
+  room_id         Int               @id @default(autoincrement())
+  name            String?           @db.VarChar
+  task_id         Int?
+  class_id        Int?
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?         @db.Timestamp(6)
+  chat_messages   chat_messages[]
+  chat_room_users chat_room_users[]
+  classes         classes?          @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks           tasks?            @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model NoteDocument {
+model classes {
+  class_id         Int                @id @default(autoincrement())
+  name             String?            @db.VarChar
+  department_id    Int?
+  head_teacher_id  Int?
+  schedule_id      Int?
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @db.Timestamp(6)
+  chat_rooms       chat_rooms[]
+  departments      departments?       @relation(fields: [department_id], references: [department_id], onDelete: NoAction, onUpdate: NoAction)
+  teachers         teachers?          @relation(fields: [head_teacher_id], references: [teacher_id], onDelete: NoAction, onUpdate: NoAction)
+  schedules        schedules?         @relation(fields: [schedule_id], references: [schedule_id], onDelete: NoAction, onUpdate: NoAction)
+  classes_teachers classes_teachers[]
+  students         students[]
+}
+
+model classes_teachers {
+  class_id    Int
+  teacher_id  Int
+  assigned_at DateTime? @default(now()) @db.Timestamp(6)
+  classes     classes   @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction)
+  teachers    teachers  @relation(fields: [teacher_id], references: [teacher_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([class_id, teacher_id])
+}
+
+model departments {
+  department_id Int       @id @default(autoincrement())
+  name          String?   @db.VarChar
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @db.Timestamp(6)
+  classes       classes[]
+}
+
+model document_shares {
+  document_id Int
+  user_id     Int
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  documents   documents @relation(fields: [document_id], references: [document_id], onDelete: NoAction, onUpdate: NoAction)
+  users       users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([document_id, user_id])
+}
+
+model documents {
+  document_id     Int               @id @default(autoincrement())
+  name            String?           @db.VarChar
+  file_path       String?           @db.VarChar
+  file_size       Int?              
+  mime_type       String?           @db.VarChar 
+  added_by        Int?
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?         @db.Timestamp(6)
+  document_shares document_shares[]
+  users           users?            @relation(fields: [added_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  note_documents  note_documents[]
+  task_documents  task_documents[]
+}
+
+model lesson_slots {
+  slot_id       Int        @id @default(autoincrement())
+  schedule_id   Int?
+  subject_id    Int?
+  teacher_id    Int?
+  room_id       Int?
+  day_of_week   Int?
+  lesson_number Int?
+  start_time    DateTime?  @db.Time(6)
+  end_time      DateTime?  @db.Time(6)
+  created_at    DateTime?  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?  @db.Timestamp(6)
+  rooms         rooms?     @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
+  schedules     schedules? @relation(fields: [schedule_id], references: [schedule_id], onDelete: NoAction, onUpdate: NoAction)
+  subjects      subjects?  @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction)
+  teachers      teachers?  @relation(fields: [teacher_id], references: [teacher_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model note_documents {
   note_id     Int
   document_id Int
-  created_at  DateTime @default(now())
-  note        Note     @relation(fields: [note_id], references: [note_id])
-  document    Document @relation(fields: [document_id], references: [document_id])
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  documents   documents @relation(fields: [document_id], references: [document_id], onDelete: NoAction, onUpdate: NoAction)
+  notes       notes     @relation(fields: [note_id], references: [note_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([note_id, document_id])
 }
 
-model NotesUser {
+model notes {
+  note_id        Int              @id @default(autoincrement())
+  title          String?          @db.VarChar
+  created_by     Int?
+  description    String?
+  subject_id     Int?
+  priority_id    Int?
+  created_at     DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?        @db.Timestamp(6)
+  note_documents note_documents[]
+  users          users?           @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  priorities     priorities?      @relation(fields: [priority_id], references: [priority_id], onDelete: NoAction, onUpdate: NoAction)
+  subjects       subjects?        @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction)
+  notes_users    notes_users[]
+}
+
+model notes_users {
   note_id    Int
   user_id    Int
-  created_at DateTime @default(now())
-  note       Note     @relation(fields: [note_id], references: [note_id])
-  user       User     @relation(fields: [user_id], references: [user_id])
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  notes      notes     @relation(fields: [note_id], references: [note_id], onDelete: NoAction, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([note_id, user_id])
 }
 
-model TaskComment {
-  comment_id Int      @id @default(autoincrement())
-  task_id    Int
-  user_id    Int
-  text       String
-  created_at DateTime @default(now())
-  task       Task     @relation(fields: [task_id], references: [task_id])
-  user       User     @relation(fields: [user_id], references: [user_id])
+model notifications {
+  notification_id Int       @id @default(autoincrement())
+  user_id         Int?
+  type            String?   @db.VarChar
+  text            String?   @db.VarChar
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  is_read         Boolean?  @default(false)
+  users           users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model TaskActivityLog {
-  log_id    Int      @id @default(autoincrement())
-  task_id   Int
-  user_id   Int
-  action    String
-  timestamp DateTime @default(now())
-  task      Task     @relation(fields: [task_id], references: [task_id])
-  user      User     @relation(fields: [user_id], references: [user_id])
+model permissions {
+  permission_id     Int                 @id @default(autoincrement())
+  name              String?             @db.VarChar
+  roles_permissions roles_permissions[]
+  user_permissions  user_permissions[]
 }
 
-model Department {
-  department_id Int      @id @default(autoincrement())
-  name          String
-  classes       Class[]
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+model priorities {
+  priority_id Int       @id @default(autoincrement())
+  name        String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @db.Timestamp(6)
+  notes       notes[]
+  tasks       tasks[]
 }
 
-model Notification {
-  notification_id Int      @id @default(autoincrement())
-  user_id         Int
-  type            String
-  text            String
-  is_read         Boolean  @default(false)
-  created_at      DateTime @default(now())
-  user            User     @relation(fields: [user_id], references: [user_id])
+model roles {
+  role_id           Int                 @id @default(autoincrement())
+  name              String?             @db.VarChar
+  roles_permissions roles_permissions[]
+  user_roles        user_roles[]
+}
+
+model roles_permissions {
+  roles_id      Int
+  permission_id Int
+  assigned_at   DateTime?   @default(now()) @db.Timestamp(6)
+  permissions   permissions @relation(fields: [permission_id], references: [permission_id], onDelete: NoAction, onUpdate: NoAction)
+  roles         roles       @relation(fields: [roles_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([roles_id, permission_id])
+}
+
+model rooms {
+  room_id      Int            @id @default(autoincrement())
+  name         String?        @db.VarChar
+  type         String?        @db.VarChar
+  capacity     Int?
+  building     String?        @db.VarChar
+  created_at   DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?      @db.Timestamp(6)
+  lesson_slots lesson_slots[]
+}
+
+model schedules {
+  schedule_id  Int            @id @default(autoincrement())
+  name         String?        @db.VarChar
+  valid_from   DateTime?      @db.Date
+  valid_to     DateTime?      @db.Date
+  created_at   DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?      @db.Timestamp(6)
+  classes      classes[]
+  lesson_slots lesson_slots[]
+}
+
+model students {
+  student_id Int       @id
+  class_id   Int?
+  updated_at DateTime? @db.Timestamp(6)
+  classes    classes?  @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction)
+  users      users     @relation(fields: [student_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model subjects {
+  subject_id   Int            @id @default(autoincrement())
+  name         String?        @db.VarChar
+  short_name   String?        @db.VarChar
+  created_at   DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?      @db.Timestamp(6)
+  lesson_slots lesson_slots[]
+  notes        notes[]
+}
+
+model task_activity_log {
+  log_id    Int       @id @default(autoincrement())
+  task_id   Int?
+  user_id   Int?
+  action    String?   @db.VarChar
+  timestamp DateTime? @default(now()) @db.Timestamp(6)
+  tasks     tasks?    @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+  users     users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model task_comments {
+  comment_id Int       @id @default(autoincrement())
+  task_id    Int?
+  user_id    Int?
+  text       String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @db.Timestamp(6)
+  tasks      tasks?    @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model task_documents {
+  task_id     Int
+  document_id Int
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  documents   documents @relation(fields: [document_id], references: [document_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks       tasks     @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([task_id, document_id])
+}
+
+model task_templates {
+  template_id Int       @id @default(autoincrement())
+  name        String?   @db.VarChar
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @db.Timestamp(6)
+  tasks       tasks[]
+}
+
+model tasks {
+  task_id                        Int                 @id @default(autoincrement())
+  parent_task_id                 Int?
+  title                          String?             @db.VarChar
+  description                    String?
+  status                         task_status?        @default(TODO)
+  progress                       Int?
+  deadline                       DateTime?           @db.Timestamp(6)
+  created_by                     Int?
+  assigned_to                    Int?
+  template_id                    Int?
+  priority_id                    Int?
+  created_at                     DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at                     DateTime?           @db.Timestamp(6)
+  chat_rooms                     chat_rooms[]
+  task_activity_log              task_activity_log[]
+  task_comments                  task_comments[]
+  task_documents                 task_documents[]
+  users_tasks_assigned_toTousers users?              @relation("tasks_assigned_toTousers", fields: [assigned_to], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tasks_created_byTousers  users?              @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks                          tasks?              @relation("tasksTotasks", fields: [parent_task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+  other_tasks                    tasks[]             @relation("tasksTotasks")
+  priorities                     priorities?         @relation(fields: [priority_id], references: [priority_id], onDelete: NoAction, onUpdate: NoAction)
+  task_templates                 task_templates?     @relation(fields: [template_id], references: [template_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model teachers {
+  teacher_id                          Int                @id
+  supervisor_id                       Int?
+  updated_at                          DateTime?          @db.Timestamp(6)
+  classes                             classes[]
+  classes_teachers                    classes_teachers[]
+  lesson_slots                        lesson_slots[]
+  users_teachers_supervisor_idTousers users?             @relation("teachers_supervisor_idTousers", fields: [supervisor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_teachers_teacher_idTousers    users              @relation("teachers_teacher_idTousers", fields: [teacher_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model user_permissions {
+  user_id       Int
+  permission_id Int
+  assigned_at   DateTime?   @default(now()) @db.Timestamp(6)
+  permissions   permissions @relation(fields: [permission_id], references: [permission_id], onDelete: NoAction, onUpdate: NoAction)
+  users         users       @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([user_id, permission_id])
+}
+
+model user_roles {
+  user_id     Int
+  role_id     Int
+  assigned_at DateTime? @default(now()) @db.Timestamp(6)
+  roles       roles     @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+  users       users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([user_id, role_id])
+}
+
+model users {
+  user_id                                Int                 @id @default(autoincrement())
+  firstname                              String?             @db.VarChar
+  lastname                               String?             @db.VarChar
+  email                                  String?             @unique @db.VarChar
+  username                               String?             @unique @db.VarChar
+  password_hash                          String?             @db.VarChar
+  created_at                             DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at                             DateTime?           @db.Timestamp(6)
+  chat_messages                          chat_messages[]
+  chat_room_users                        chat_room_users[]
+  document_shares                        document_shares[]
+  documents                              documents[]
+  notes                                  notes[]
+  notes_users                            notes_users[]
+  notifications                          notifications[]
+  students                               students?
+  task_activity_log                      task_activity_log[]
+  task_comments                          task_comments[]
+  tasks_tasks_assigned_toTousers         tasks[]             @relation("tasks_assigned_toTousers")
+  tasks_tasks_created_byTousers          tasks[]             @relation("tasks_created_byTousers")
+  teachers_teachers_supervisor_idTousers teachers[]          @relation("teachers_supervisor_idTousers")
+  teachers_teachers_teacher_idTousers    teachers?           @relation("teachers_teacher_idTousers")
+  user_permissions                       user_permissions[]
+  user_roles                             user_roles[]
+}
+
+enum task_status {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  ON_HOLD
+  COMPLETED
 }
