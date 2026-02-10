@@ -8,7 +8,7 @@ export class DocumentsService {
 
 async create(file: Express.Multer.File, userId: number, mimeType: string) {
     // Hier erstellen wir den Datenbank-Eintrag 
-    return this.prisma.documents.create({
+    return this.prisma.document.create({
       data: {
         name: file.originalname,      // Aus dem Multer-File Objekt
         file_path: file.path,         // Wo die Datei auf dem Server liegt
@@ -20,13 +20,13 @@ async create(file: Express.Multer.File, userId: number, mimeType: string) {
   }
 
   async findAll() {
-    return this.prisma.documents.findMany({
+    return this.prisma.document.findMany({
       orderBy: { created_at: 'desc' },
     });
   }
   
 async findOne(id: string) {
-  return this.prisma.documents.findUnique({
+  return this.prisma.document.findUnique({
     where: { document_id: Number(id) }, // Fix: string zu number
   });
 }
@@ -35,7 +35,7 @@ async update(id: number, updateDocumentDto: UpdateDocumentDto) {
   // Wir holen userId aus dem DTO heraus
   const { userId, ...rest } = updateDocumentDto;
 
-  return this.prisma.documents.update({
+  return this.prisma.document.update({
     // 1. Dein Primärschlüssel heißt laut Schema 'document_id'
     where: { document_id: id }, 
     data: {
@@ -48,7 +48,7 @@ async update(id: number, updateDocumentDto: UpdateDocumentDto) {
 }
 
 async remove(id: string) {
-  return this.prisma.documents.delete({
+  return this.prisma.document.delete({
     where: { document_id: Number(id) }, // Fix: string zu number
   });
 }
