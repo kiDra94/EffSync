@@ -6,15 +6,15 @@ import { UpdateDocumentDto } from "./dto/update-document.dto";
 export class DocumentsService {
   constructor(private prisma: PrismaService) {}
 
-  // Erstellt einen neuen Datenbankeintrag nach erfolgreichem Upload und MIME-Check
-  async create(file: Express.Multer.File, userId: number, validatedMime: string) {
+async create(file: Express.Multer.File, userId: number, mimeType: string) {
+    // Hier erstellen wir den Datenbank-Eintrag 
     return this.prisma.document.create({
       data: {
-        name: file.originalname,
-        file_path: file.path,      // Pfad zum Speicherort (lokal oder Cloud)
-        file_size: file.size,      // Speichert die Bytes für das 25MB-Limit
-        mime_type: validatedMime,  // Der via "Magic Bytes" geprüfte Typ
-        added_by: userId,
+        name: file.originalname,      // Aus dem Multer-File Objekt
+        file_path: file.path,         // Wo die Datei auf dem Server liegt
+        file_size: file.size,         // Größe in Bytes
+        mime_type: mimeType,          // Dein validierter MIME-Typ
+        added_by: userId,             // Die konvertierte ID (aus dem Controller)
       },
     });
   }
@@ -31,10 +31,19 @@ async findOne(id: string) {
   });
 }
 
-async update(id: string, updateDocumentDto: UpdateDocumentDto) {
+async update(id: number, updateDocumentDto: UpdateDocumentDto) {
+  // Wir holen userId aus dem DTO heraus
+  const { userId, ...rest } = updateDocumentDto;
+
   return this.prisma.document.update({
-    where: { document_id: Number(id) }, // Fix: string zu number
-    data: updateDocumentDto,
+    // 1. Dein Primärschlüssel heißt laut Schema 'document_id'
+    where: { document_id: id }, 
+    data: {
+      ...rest,
+      // 2. Wir weisen den Wert dem Feld 'added_by' zu
+      // Prisma erwartet hier ein Int, daher die Konvertierung mit Number()
+      added_by: userId ? Number(userId) : undefined,
+    },
   });
 }
 

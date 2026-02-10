@@ -1,62 +1,42 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseInterceptors,
-  UploadedFile,
-  BadRequestException,
-} from "@nestjs/common";
+import {Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, BadRequestException, FileTypeValidator, ParseFilePipe, 
+  MaxFileSizeValidator, ParseIntPipe,} from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { DocumentsService } from "./documents.service";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { fileTypeFromBuffer } from "file-type"; // Magic Bytes Prüfung
+import { CreateDocumentDto } from "./dto/create-document.dto";
+import { diskStorage } from "multer";
+import { extname } from "path";
+import { v4 as uuidv4 } from 'uuid';
 
 @Controller("documents")
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  @Post("upload")
-  @UseInterceptors(
-    FileInterceptor("file", {
-      limits: {
-        fileSize: 25 * 1024 * 1024, // Hartes 25MB Limit am Server
-      },
-    }),
-  )
-  async uploadFile(
-    @UploadedFile() file: Express.Multer.File,
-    @Body("userId") userId: string,
-  ) {
-    if (!file) {
-      throw new BadRequestException("Keine Datei hochgeladen");
-    }
+@Post('upload')
+@UseInterceptors(FileInterceptor('file', {
+  storage: diskStorage({
+    destination: './uploads',
+    filename: (req, file, callback) => {
+      const uniqueSuffix = uuidv4();
+      const fileExtName = extname(file.originalname);
+      callback(null, `${uniqueSuffix}${fileExtName}`);
+    },
+  }),
+}))
+async uploadFile(
+  @UploadedFile(new ParseFilePipe({
+    validators: [
+      new MaxFileSizeValidator({ maxSize: 25 * 1024 * 1024 }),
 
-    // 1. MIME-Check via Magic Numbers (file-type)
-    // Liest die ersten Bytes des Puffers, um den echten Typ zu bestimmen
-    const type = await fileTypeFromBuffer(file.buffer);
-    
-    // Whitelist der erlaubten Typen
-    const allowedMimeTypes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/png",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
-    ];
-
-    if (!type || !allowedMimeTypes.includes(type.mime)) {
-      throw new BadRequestException(
-        `Dateityp ${type?.mime || "unbekannt"} ist nicht erlaubt!`,
-      );
-    }
-
-    // 2. Speichern via Prisma über den Service
-    // Wir übergeben das File-Objekt, die User-ID und den validierten MIME-Typ
-    return this.documentsService.create(file, Number(userId), type.mime);
-  }
+      new FileTypeValidator({ fileType: '.(png|jpeg|jpg|pdf|zip|doc|docx|odt|md|tex)' }),
+    ],
+  })) 
+  file: Express.Multer.File,
+  @Body() dto: { userId: string } 
+) {
+  return this.documentsService.create(file, Number(dto.userId), file.mimetype);
+}
 
   @Get()
   findAll() {
@@ -65,17 +45,13 @@ export class DocumentsController {
 
   @Get(":id")
   findOne(@Param("id") id: string) {
-    // Falls deine ID in Prisma ein String (UUID) ist, entferne das '+'
     return this.documentsService.findOne(id);
   }
 
-  @Patch(":id")
-  update(
-    @Param("id") id: string,
-    @Body() updateDocumentDto: UpdateDocumentDto,
-  ) {
-    return this.documentsService.update(id, updateDocumentDto);
-  }
+ @Patch(':id')
+async update(@Param('id', ParseIntPipe) id: number, @Body() updateDocumentDto: UpdateDocumentDto) {
+  return this.documentsService.update(id, updateDocumentDto);
+}
 
   @Delete(":id")
   remove(@Param("id") id: string) {
