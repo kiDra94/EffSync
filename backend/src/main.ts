@@ -32,8 +32,8 @@ async function bootstrap() {
     fs.mkdirSync(uploadDir, { recursive: true });
     console.log(`📁 Ordner ${uploadDir} wurde automatisch erstellt.`);
   }
-  app.useStaticAssets(join(__dirname, '..', uploadDir), {
-    prefix: 'api/uploads/', 
+  app.useStaticAssets(join(process.cwd(), uploadDir), {
+    prefix: '/api/uploads/', 
   });
 
   const config = new DocumentBuilder()
