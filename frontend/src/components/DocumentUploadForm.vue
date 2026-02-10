@@ -11,7 +11,7 @@
         ref="fileInput" 
         @change="handleFileChange" 
         class="hidden-input"
-        accept=".pdf,.jpg,.jpeg,.png"
+        accept=".pdf,.jpg,.jpeg,.png,.zip,.doc,.docx,.odt,.md,.tex"
       />
 
       <div 
@@ -22,7 +22,7 @@
         <div v-if="!selectedFile" class="drop-zone-prompt">
           <span class="upload-icon">📁</span>
           <p>Klicke hier, um eine Datei auszuwählen</p>
-          <span class="file-types">PDF, JPG, PNG</span>
+          <span class="file-types">'pdf', 'jpg', 'jpeg', 'png', 'zip', 'doc', 'docx', 'odt', 'md', 'tex'</span>
         </div>
         
         <div v-else class="selected-file-info">
@@ -67,7 +67,46 @@ const selectedFile = ref(null);
 const errorMessage = ref('');
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
-const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const ALLOWED_TYPES = [
+  'application/pdf', 
+  'image/jpeg', 
+  'image/png', 
+  'application/zip', 
+  'application/x-zip-compressed', // Wichtig für Windows-Uploads
+  'application/msword',                                           // .doc
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/vnd.oasis.opendocument.text',                      // .odt
+  'text/markdown',                                                // .md
+  'application/x-tex'                                             // .tex
+];
+
+const handleUpload = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+
+  formData.append('userId', '1'); 
+
+  try {
+    const response = await fetch('http://localhost:3000/documents/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      alert('Upload erfolgreich!');
+      clearSelection(); // Formular zurücksetzen
+      emit('close');    // Fenster schließen
+    } else {
+      const errorData = await response.json();
+      alert('Fehler: ' + (errorData.message || 'Server-Fehler'));
+    }
+  } catch (error) {
+    console.error('Fehler beim Upload:', error);
+    alert('Verbindung zum Server fehlgeschlagen.');
+  }
+};
 
 const triggerFileInput = () => {
   fileInput.value.click();
@@ -75,20 +114,18 @@ const triggerFileInput = () => {
 
 const handleFileChange = (event) => {
   const file = event.target.files[0];
-  errorMessage.value = '';
-
   if (!file) return;
 
-  // 1. Client-seitiger Check: Dateigröße
-  if (file.size > MAX_FILE_SIZE) {
-    errorMessage.value = "Die Datei ist zu groß! Das Limit liegt bei 25MB.";
+  const extension = file.name.split('.').pop().toLowerCase();
+  const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'zip', 'doc', 'docx', 'odt', 'md', 'tex'];
+
+  if (!ALLOWED_TYPES.includes(file.type) && !allowedExtensions.includes(extension)) {
+    errorMessage.value = "Ungültiger Dateityp.";
     selectedFile.value = null;
     return;
   }
-
-  // 2. Client-seitiger Check: MIME-Type
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    errorMessage.value = "Ungültiger Dateityp. Bitte nur PDF, JPG oder PNG hochladen.";
+  if (file.size > MAX_FILE_SIZE) {
+    errorMessage.value = "Datei ist zu groß. Maximal 25MB erlaubt.";
     selectedFile.value = null;
     return;
   }
@@ -102,15 +139,21 @@ const clearSelection = () => {
   if (fileInput.value) fileInput.value.value = '';
 };
 
-const submitUpload = () => {
+const submitUpload = async () => { 
   if (selectedFile.value && !errorMessage.value) {
-    emit('upload', selectedFile.value);
+
+    emit('upload', selectedFile.value); 
+    
+    await handleUpload(selectedFile.value);
   }
 };
 
 const getFileIcon = (type) => {
   if (type === 'application/pdf') return '📄';
   if (type.startsWith('image/')) return '🖼️';
+  if (type.includes('zip')) return '📦';
+  if (type.includes('word') || type.includes('officedocument') || type.includes('opendocument')) return '📝';
+  if (type.includes('markdown') || type.includes('tex')) return '✍️';
   return '📁';
 };
 
