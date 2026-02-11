@@ -21,8 +21,8 @@ export class UsersService {
     });
   }
 
-  findAll() {
-    return this.prisma.users.findMany();
+  async findAll() {
+    return await this.prisma.users.findMany();
   }
 
   async findOne(id: number) {
