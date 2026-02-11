@@ -14,7 +14,7 @@ export class CreateUserDto {
     firstname: string;
 
     @IsString()
-    @MinLength(3, { message: 'Der Username muss mindestens 8 Zeichen lang sein.' })
+    @MinLength(3, { message: 'Der Nachname muss mindestens 3 Zeichen lang sein.' })
     lastname: string;
 
     @IsString()
