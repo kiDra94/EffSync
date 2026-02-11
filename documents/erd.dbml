@@ -75,7 +75,7 @@ Table rooms {
   updated_at datetime
 }
 
-Table lesson_slots {
+Table timetable {
   slot_id integer [primary key]
   schedule_id integer [ref: > schedules.schedule_id]
   subject_id integer [ref: > subjects.subject_id]

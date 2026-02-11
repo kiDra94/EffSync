@@ -1,26 +1,55 @@
-import { Injectable } from "@nestjs/common";
-import { CreateDocumentDto } from "./dto/create-document.dto";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 
 @Injectable()
 export class DocumentsService {
-  create(createDocumentDto: CreateDocumentDto) {
-    return "This action adds a new document";
+  constructor(private prisma: PrismaService) {}
+
+async create(file: Express.Multer.File, userId: number, mimeType: string) {
+    // Hier erstellen wir den Datenbank-Eintrag 
+    return this.prisma.documents.create({
+      data: {
+        name: file.originalname,      // Aus dem Multer-File Objekt
+        file_path: file.path,         // Wo die Datei auf dem Server liegt
+        file_size: file.size,         // Größe in Bytes
+        mime_type: mimeType,          // Dein validierter MIME-Typ
+        added_by: userId,             // Die konvertierte ID (aus dem Controller)
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all documents`;
+  async findAll() {
+    return this.prisma.documents.findMany({
+      orderBy: { created_at: 'desc' },
+    });
   }
+  
+async findOne(id: string) {
+  return this.prisma.documents.findUnique({
+    where: { document_id: Number(id) }, // Fix: string zu number
+  });
+}
 
-  findOne(id: number) {
-    return `This action returns a #${id} document`;
-  }
+async update(id: number, updateDocumentDto: UpdateDocumentDto) {
+  // Wir holen userId aus dem DTO heraus
+  const { userId, ...rest } = updateDocumentDto;
 
-  update(id: number, updateDocumentDto: UpdateDocumentDto) {
-    return `This action updates a #${id} document`;
-  }
+  return this.prisma.documents.update({
+    // 1. Dein Primärschlüssel heißt laut Schema 'document_id'
+    where: { document_id: id }, 
+    data: {
+      ...rest,
+      // 2. Wir weisen den Wert dem Feld 'added_by' zu
+      // Prisma erwartet hier ein Int, daher die Konvertierung mit Number()
+      added_by: userId ? Number(userId) : undefined,
+    },
+  });
+}
 
-  remove(id: number) {
-    return `This action removes a #${id} document`;
-  }
+async remove(id: string) {
+  return this.prisma.documents.delete({
+    where: { document_id: Number(id) }, // Fix: string zu number
+  });
+}
 }
