@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { hash, genSalt } from "bcrypt";
@@ -22,18 +22,20 @@ export class UsersService {
   }
 
   findAll() {
-    return `This action returns all users`;
+    return this.prisma.users.findMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: number) {
+    const user = await this.prisma.users.findUnique({ where: { user_id: id } });
+    if(!user) { throw new NotFoundException(`Member with ID ${id} not found`); }
+    return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    return await this.prisma.users.update({ where: { user_id: id }, data: updateUserDto });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: number) {
+    return this.prisma.users.delete({ where: { user_id: id } });
   }
 }
