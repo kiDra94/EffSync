@@ -13,7 +13,7 @@ export class UsersService {
     const salt = await genSalt(saltRound);
     const hashPassword = await hash(createUserDto.password, salt);
     const { password, ...userWithoutPassword } = createUserDto;
-    return this.prisma.users.create({
+    return await this.prisma.users.create({
       data: {
         ...userWithoutPassword,
         password_hash: hashPassword
@@ -36,6 +36,6 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    return this.prisma.users.delete({ where: { user_id: id } });
+    return await this.prisma.users.delete({ where: { user_id: id } });
   }
 }
