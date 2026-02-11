@@ -3,11 +3,13 @@ import { UsersService } from "../users/users.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { LoginDto } from "./dto/login.dto";
 import * as bcrypt from 'bcrypt';
+import { JwtService } from "@nestjs/jwt";
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UsersService,
+    private jwtService: JwtService,
   ) {}
   async register(createUserDto: CreateUserDto) {
     return await this.userService.create(createUserDto);
@@ -23,10 +25,18 @@ export class AuthService {
       throw new UnauthorizedException('Passwort ist ungültig');
     }
     const { password_hash, ...userWithNoPassword } = user;
-    const dummyToken = 'TEST_TOKEN_123456';
+    const payload = { 
+      sub: user.user_id, 
+      username: user.username, 
+    };
+    // const dummyToken = 'TEST_TOKEN_123456';
     return {
       ...userWithNoPassword,
-      token: dummyToken,
+      token: this.jwtService.sign(payload),
     };
+  }
+  
+  async validateUser(userId: number) {
+    return await this.userService.findOne(userId);
   }
 }
