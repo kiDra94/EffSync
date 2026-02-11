@@ -36,7 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             const response = await authApi.login(credentials)
             const data = response.data;
-            const newToken = data.token; 
+            const newToken = data.token;
             const user = data.user || data;
 
             token.value = newToken
@@ -69,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-   async function loadUser() { 
+    async function loadUser() {
         if (!token.value) { return }
         try {
             if (isDevMode) {
@@ -78,10 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
             }
             // Nutzt jetzt die zentralisierte authApi (löst das TODO)
             const response = await authApi.getUserProfile()
-            
             // Anpassung je nach Backend-Antwortstruktur (oft response.data oder response.data.user)
             const user = response.data.user || response.data
-            
             userId.value = user.id
             userRole.value = user.role
             userDetails.value = user
