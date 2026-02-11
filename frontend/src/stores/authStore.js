@@ -35,7 +35,9 @@ export const useAuthStore = defineStore('auth', () => {
             }
 
             const response = await authApi.login(credentials)
-            const { token: newToken, user } = response.data
+            const data = response.data;
+            const newToken = data.token; 
+            const user = data.user || data;
 
             token.value = newToken
             userId.value = user.id
@@ -43,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
-
+            router.push({ name: 'Dashboard' })
             return response.data
         } catch (error) {
             console.error('Login failed:', error)
@@ -55,6 +57,8 @@ export const useAuthStore = defineStore('auth', () => {
             if (!isDevMode) {
                 await authApi.logout()
             }
+        } catch (error) {
+            console.error('Logout failed:', error)
         } finally {
             token.value = null
             userId.value = null
@@ -82,10 +86,8 @@ export const useAuthStore = defineStore('auth', () => {
             userRole.value = user.role
             userDetails.value = user
         } catch (error) {
-            // Wenn Token ungültig (401), logge den User aus
-            if (error.response && error.response.status === 401) {
-                await logout();
-            }
+            console.error('Failed to load user profile:', error)
+            await logout()
             throw error // Fehler weiterwerfen, falls die UI darauf reagieren soll
         }
     }
