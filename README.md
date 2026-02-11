@@ -66,7 +66,7 @@ Software, die Einzelpersonen und Teams hilft, Aufgaben zu planen, zu organisiere
 
 ### Tools:
 - Vue.js - Frontend
-- Python - Backend
+- Node.js - Backend
 - PostgreSQL - Datenbank
 - Overleaf (LateX) - Diplomarbeit
 - GitHub
