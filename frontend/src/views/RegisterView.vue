@@ -36,6 +36,7 @@ const handleRegister = async () => {
         errorMessage.value = errors[0] || 'Registrierung fehlgeschlagen.'
     } else {
         errorMessage.value = 'Ein Fehler ist aufgetreten.'
+        console.log('Registrierungsfehler:', error)
     }
   } finally {
     isLoading.value = false
