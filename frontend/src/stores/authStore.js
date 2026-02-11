@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isAuthenticated = computed(() => !!token.value)
     const isAdmin = computed(() => userRole.value === 'admin')
-    const isDevMode = import.meta.env.DEV === 'true';
+    const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
 
     function initDevMode() {
         if (isDevMode) {
