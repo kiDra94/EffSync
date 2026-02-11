@@ -5,6 +5,7 @@ Table notes {
   description text
   subject_id integer [ref: > subjects.subject_id]
   priority_id integer [ref: > priorities.priority_id]
+  document_id integer [ref: > documents.document_id]
   created_at datetime [default: `now()`]
   updated_at datetime
 }
@@ -13,12 +14,13 @@ Table documents {
   document_id integer [primary key]
   name varchar
   file_path varchar
+  task_id integer [ref: > tasks.task_id]
   added_by integer [ref: > users.user_id]
   created_at datetime [default: `now()`]
   updated_at datetime
 }
 
-Table document_shares {
+Table document_users {
   document_id integer [pk, ref: > documents.document_id]
   user_id integer [pk, ref: > users.user_id]
   created_at datetime [default: `now()`, note: "When was the document shared?"]
@@ -244,15 +246,21 @@ Table roles {
 }
 
 Table user_roles {
-  user_id integer [pk, ref: > users.user_id]
-  role_id integer [pk, ref: > roles.role_id]
-  assigned_at datetime [default: `now()`]
+  user_id integer [ref: > users.user_id]
+  role_id integer [ref: > roles.role_id]
+  valid_from datetime [default: `now()`]
+  valid_until datetime [null] 
+  primary key (user_id, role_id)
 }
 
 Table user_permissions {
-  user_id integer [pk, ref: > users.user_id]
-  permission_id integer [pk, ref: > roles.role_id]
-  assigned_at datetime [default: `now()`]
+  user_permission_id integer [pk]
+  user_id integer [ref: > users.user_id]
+  permission_id integer [ref: > permissions.permission_id]
+  granted_by integer [ref: > users.user_id]
+  valid_from datetime [default: `now()`]
+  valid_until datetime [null]
+  reason varchar
 }
 
 Table roles_permissions {
