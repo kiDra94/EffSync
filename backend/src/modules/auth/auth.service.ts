@@ -14,15 +14,19 @@ export class AuthService {
   }
   
   async login(LoginDto: LoginDto) {
-    const user = await this.userService.findByEmail(LoginDto.email);
+    const user = await this.userService.findByUsername(LoginDto.username);
     if(!user) {
-      throw new UnauthorizedException('Email existiert nicht');
+      throw new UnauthorizedException('Username existiert nicht');
     }
     const isPasswordValid = await bcrypt.compare(LoginDto.password, user.password_hash);
     if(!isPasswordValid) {
       throw new UnauthorizedException('Passwort ist ungültig');
     }
     const { password_hash, ...userWithNoPassword } = user;
-    return userWithNoPassword;
+    const dummyToken = 'TEST_TOKEN_123456';
+    return {
+      ...userWithNoPassword,
+      token: dummyToken,
+    };
   }
 }
