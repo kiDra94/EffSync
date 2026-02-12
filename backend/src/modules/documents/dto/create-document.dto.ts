@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, IsOptional } from 'class-validator';
 
 export class CreateDocumentDto {
-  @IsNotEmpty()
-  @IsString()
-  userId: string; // NestJS empfängt Body-Daten meist als String
-  @IsNumber()
-  added_by: number; // Direkt den Namen aus dem Prisma-Schema nutzen
+  @IsString() @IsNotEmpty() name: string;
+  @IsString() @IsNotEmpty() file_path: string;
+  @IsInt() @IsOptional() file_size?: number;
+  @IsString() @IsOptional() mime_type?: string;
+  @IsInt() @IsNotEmpty() added_by: number;
 }

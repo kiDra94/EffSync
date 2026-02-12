@@ -1,0 +1,12 @@
+export class CreateTaskActivityDto {}
+import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+
+export class CreateSubjectDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  short_name?: string;
+}
