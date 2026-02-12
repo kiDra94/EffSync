@@ -10,6 +10,8 @@ import './style.css'
 // 2. Haupt-Komponenten
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from '@/stores/authStore'
+import { setAuthStore } from '@/api/httpClient'
 
 // --- HIER FEHLTE DER CODE ---
 
@@ -19,6 +21,7 @@ const app = createApp(App)
 // 4. Plugins registrieren
 app.use(createPinia()) // Wichtig: Pinia aktivieren
 app.use(router)        // Wichtig: Router aktivieren
-
+const authStore = useAuthStore()
+setAuthStore(authStore)
 // 5. App in das HTML-Element mit id="app" einhängen
 app.mount('#app')

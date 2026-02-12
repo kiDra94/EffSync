@@ -1,26 +1,52 @@
-import { Injectable } from "@nestjs/common";
-import { CreateAuthDto } from "./dto/create-auth.dto";
-import { UpdateAuthDto } from "./dto/update-auth.dto";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { CreateUserDto } from "../users/dto/create-user.dto";
+import { LoginDto } from "./dto/login.dto";
+import * as bcrypt from 'bcrypt';
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "src/prisma/prisma.service";
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return "This action adds a new auth";
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
+  async register(createUserDto: CreateUserDto) {
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    return await this.prisma.users.create({
+      data: {
+        ...createUserDto,
+        password_hash: hashedPassword,
+      }
+    });
+  }
+  
+  async login(LoginDto: LoginDto) {
+    const user = await this.prisma.users.findUnique({
+      where: { username: LoginDto.username },
+    });
+    if(!user) {
+      throw new UnauthorizedException('Username existiert nicht');
+    }
+    const isPasswordValid = await bcrypt.compare(LoginDto.password, user.password_hash);
+    if(!isPasswordValid) {
+      throw new UnauthorizedException('Passwort ist ungültig');
+    }
+    const { password_hash, ...userWithNoPassword } = user;
+    const payload = { 
+      sub: user.user_id, 
+      username: user.username, 
+    };
+    // const dummyToken = 'TEST_TOKEN_123456';
+    return {
+      ...userWithNoPassword,
+      token: this.jwtService.sign(payload),
+    };
   }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  async validateUser(userId: number) {
+    return await this.prisma.users.findUnique({
+      where: { user_id: userId },
+    });
   }
 }

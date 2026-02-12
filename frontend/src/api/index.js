@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // 1. Axios Instanz erstellen
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8000/api', // Passe dies an deine Backend-URL an
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000', // Passe dies an deine Backend-URL an
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'

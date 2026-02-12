@@ -102,21 +102,21 @@ const router = createRouter({
 // --- Optimierter Navigation Guard ---
 router.beforeEach(async (to) => {
     const authStore = useAuthStore()
-    
+
     // isAuthenticated ist ein Boolean, token ist der String.
     // Wir prüfen hier auf den Token im State (oder LocalStorage durch initDevMode)
-    const hasToken = authStore.isAuthenticated 
-    
+    const hasToken = authStore.isAuthenticated
+
     const routeRequiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
     // 1. Nicht eingeloggt & Route braucht Auth -> Login
-    if (!hasToken && routeRequiresAuth) { 
-        return { name: 'Login' } 
+    if (!hasToken && routeRequiresAuth) {
+        return { name: 'Login' }
     }
 
     // 2. Eingeloggt & will zu Login/Register -> Dashboard
-    if (hasToken && (to.name === 'Login' || to.name === 'Register')) { 
-        return { name: 'Dashboard' } 
+    if (hasToken && (to.name === 'Login' || to.name === 'Register')) {
+        return { name: 'Dashboard' }
     }
 
     // 3. User Daten laden (für F5 Refresh), falls Token da ist, aber User leer
@@ -133,12 +133,14 @@ router.beforeEach(async (to) => {
     // 4. Rollen-Check (erst NACHDEM User geladen wurde)
     if (hasToken && to.meta.roles) {
         // Jetzt ist userRole sicher verfügbar
-        if (!to.meta.roles.includes(authStore.userRole)) { 
+        if (!to.meta.roles.includes(authStore.userRole)) {
             // Optional: Redirect zu einer "Unauthorized" Seite oder zurück zum Dashboard
             console.warn('Zugriff verweigert: Fehlende Rolle')
-            return { name: 'Dashboard' } 
+            return { name: 'Dashboard' }
         }
     }
+
+    return true
 })
 
 export default router

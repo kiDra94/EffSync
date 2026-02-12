@@ -96,7 +96,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggleStatus', 'change-status', 'edit-rule']);
+const emit = defineEmits(['edit', 'delete', 'toggle-status', 'change-status', 'edit-rule']);
 
 const showSubtasks = ref(false);
 const taskStore = useTaskStore();
@@ -129,7 +129,7 @@ const deleteTask = () => {
 };
 
 const toggleStatus = () => {
-  emit('toggleStatus', props.task);
+  emit('toggle-status', props.task);
 };
 
 const onStatusChange = (event) => {
