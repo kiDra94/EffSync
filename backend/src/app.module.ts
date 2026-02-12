@@ -16,7 +16,8 @@ import { SchedulesModule } from "./modules/schedules/schedules.module";
 import { ClassesModule } from "./modules/classes/classes.module";
 import { DepartmentsModule } from "./modules/departments/departments.module";
 import { PrismaModule } from "./prisma/prisma.module";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ThrottlerModule,ThrottlerModuleOptions } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -24,6 +25,18 @@ import { ConfigModule } from "@nestjs/config";
       isGlobal: true,
       envFilePath: ".env",
       cache: true,
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): ThrottlerModuleOptions => ({
+        throttlers: [
+        {
+          ttl: config.get<number>('THROTTLE_TTL')|| 60000,
+          limit: config.get<number>('THROTTLE_LIMIT')|| 10,
+        },
+      ],
+    }),
     }),
     AuthModule,
     UsersModule,

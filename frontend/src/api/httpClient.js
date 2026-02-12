@@ -2,36 +2,43 @@ import axios from 'axios';
 
 export const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    withCredentials: true, // WICHTIG: Erlaubt dem Browser, Cookies (JWT) automatisch zu senden
+    headers: {
+        'Content-Type': 'application/json'
+    }
 });
 
-let authStore = null;
-
-export const setAuthStore = (store) => {
-    authStore = store;
-};
-
-export const setAuthStoreFunc = (func) => {
-    getAuthStoreFunc = func;
-};
-
+// Request Interceptor
 apiClient.interceptors.request.use(
     config => {
-        const token = authStore?.token || localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${authStore.token}`;
-        }
+        // HINWEIS: Wenn du auf HttpOnly Cookies umsteigst, 
+        // musst du den Authorization-Header hier NICHT mehr manuell setzen!
+        // Der Browser macht das für den Cookie von alleine.
         return config;
     },
     error => { return Promise.reject(error) }
 );
 
+// Response Interceptor
 apiClient.interceptors.response.use(
     response => response,
-    async error => {
-        if (error.response?.status === 401) {
-            console.warn('Unauthorized access - logging out');
-            authStore?.logout();
+    error => {
+        const authStore = useAuthStore();
+
+        // 1. Sicherheits-Check: Rate Limiting (429)
+        if (error.response?.status === 429) {
+            console.error('Rate Limit erreicht');
+            // Hier könntest du eine globale Benachrichtigung triggern
+            return Promise.reject(new Error('Zu viele Anfragen. Bitte warte kurz.'));
         }
+
+        // 2. Sicherheits-Check: Unauthorized (401)
+        if (error.response?.status === 401) {
+            authStore.logout(); // Token/Session im Store löschen
+            // Optional: Redirect zum Login
+            // window.location.href = '/login'; 
+        }
+
         return Promise.reject(error);
     }
 );
