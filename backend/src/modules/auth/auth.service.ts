@@ -1,22 +1,30 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { UsersService } from "../users/users.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { LoginDto } from "./dto/login.dto";
 import * as bcrypt from 'bcrypt';
 import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "src/prisma/prisma.service";
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UsersService,
+    private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
   async register(createUserDto: CreateUserDto) {
-    return await this.userService.create(createUserDto);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    return await this.prisma.users.create({
+      data: {
+        ...createUserDto,
+        password_hash: hashedPassword,
+      }
+    });
   }
   
   async login(LoginDto: LoginDto) {
-    const user = await this.userService.findByUsername(LoginDto.username);
+    const user = await this.prisma.users.findUnique({
+      where: { username: LoginDto.username },
+    });
     if(!user) {
       throw new UnauthorizedException('Username existiert nicht');
     }
@@ -35,8 +43,10 @@ export class AuthService {
       token: this.jwtService.sign(payload),
     };
   }
-  
+
   async validateUser(userId: number) {
-    return await this.userService.findOne(userId);
+    return await this.prisma.users.findUnique({
+      where: { user_id: userId },
+    });
   }
 }
