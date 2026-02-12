@@ -25,7 +25,7 @@ export class CreateLessonSlotDto {
   @IsInt()
   lesson_number: number;
 
-  @IsDateString() // Für Time-Daten in Postgres oft als ISO-String empfangen
+  @IsDateString() 
   @IsOptional()
   start_time?: string;
 
