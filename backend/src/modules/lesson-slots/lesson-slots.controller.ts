@@ -8,7 +8,7 @@ import {
   Delete,
 } from "@nestjs/common";
 import { LessonSlotService } from "./lesson-slots.service";
-import { CreateLessonSlotDto } from "./dto/create-lesson-slot.dto";
+import { CreateLessonSlotDto } from "./dto/create-lesson-slots.dto";
 import { UpdateLessonSlotDto } from "./dto/update-lesson-slots.dto";
 
 @Controller("lesson-slots") 
