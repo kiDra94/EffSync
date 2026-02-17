@@ -33,18 +33,10 @@ async findOne(id: string) {
 
 async update(id: number, updateDocumentDto: UpdateDocumentDto) {
   // Wir holen userId aus dem DTO heraus
-  const { userId, ...rest } = updateDocumentDto;
-
   return this.prisma.documents.update({
-    // 1. Dein Primärschlüssel heißt laut Schema 'document_id'
-    where: { document_id: id }, 
-    data: {
-      ...rest,
-      // 2. Wir weisen den Wert dem Feld 'added_by' zu
-      // Prisma erwartet hier ein Int, daher die Konvertierung mit Number()
-      added_by: userId ? Number(userId) : undefined,
-    },
-  });
+  where: { document_id: id },
+  data: updateDocumentDto, // <-- Direkt das DTO übergeben
+});
 }
 
 async remove(id: string) {
