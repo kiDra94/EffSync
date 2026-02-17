@@ -15,12 +15,13 @@ import { ClassesModule } from "./modules/classes/classes.module";
 import { DepartmentsModule } from "./modules/departments/departments.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { ThrottlerGuard, ThrottlerModule,ThrottlerModuleOptions } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { UsersModule } from './modules/users/users.module';
 import { ChatMessagesModule } from './modules/chat-messages/chat-messages.module';
 import { ChatRoomUsersModule } from './modules/chat-room-users/chat-room-users.module';
 import { ClassesTeachersModule } from './modules/classes-teachers/classes-teachers.module';
 import { DocumentSharesModule } from './modules/document-shares/document-shares.module';
+import { RoomsModule } from './modules/rooms/room.module'; 
 import { LessonSlotsModule } from './modules/lesson-slots/lesson-slots.module';
 import { NoteDocumentsModule } from './modules/note-documents/note-documents.module';
 import { NotesUsersModule } from './modules/notes-users/notes-users.module';
@@ -49,13 +50,13 @@ import { APP_GUARD } from '@nestjs/core';
       inject: [ConfigService],
       useFactory: (config: ConfigService): ThrottlerModuleOptions => ({
         throttlers: [
-        {
-          ttl: Number(config.get('THROTTLE_TTL')) || 60000,
+          {
+            ttl: Number(config.get('THROTTLE_TTL')) || 60000,
             limit: Number(config.get('THROTTLE_LIMIT')) || 10,
-        },
-      ],
-    }),
-    }),
+          },
+        ],
+      }),
+    }), 
     AuthModule,
     UsersModule,
     TasksModule,
@@ -80,6 +81,7 @@ import { APP_GUARD } from '@nestjs/core';
     PermissionsModule,
     PrioritiesModule,
     RolesModule,
+    RoomsModule,
     RolesPermissionsModule,
     StudentsModule,
     TaskActivityLogModule,
@@ -90,7 +92,8 @@ import { APP_GUARD } from '@nestjs/core';
     UserRolesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, 
+  providers: [
+    AppService, 
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
