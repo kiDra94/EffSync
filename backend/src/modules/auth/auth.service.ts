@@ -29,6 +29,9 @@ export class AuthService {
     if(!user) {
       throw new UnauthorizedException('Username existiert nicht');
     }
+    if (!user.password_hash) {
+      throw new UnauthorizedException('Passwort ist ungültig');
+    }
     const isPasswordValid = await bcrypt.compare(LoginDto.password, user.password_hash);
     if(!isPasswordValid) {
       throw new UnauthorizedException('Passwort ist ungültig');
