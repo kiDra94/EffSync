@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authApi } from '@/api'
+import { authApi } from '@/api/authService'
 import router from '@/router'
-
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
@@ -12,29 +11,33 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isAuthenticated = computed(() => !!token.value)
     const isAdmin = computed(() => userRole.value === 'admin')
+    const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
 
     function initDevMode() {
-        if (import.meta.env.DEV) {
-            token.value = localStorage.getItem('authToken') || 'dev-token-123'
+        if (isDevMode) {
+            token.value = localStorage.getItem('authToken') || import.meta.env.VITE_DEV_TOKEN
             userId.value = 1
-            userRole.value = localStorage.getItem('userRole') || 'admin'
+            userRole.value = localStorage.getItem('userRole') || import.meta.env.VITE_DEV_ROLE
             userDetails.value = {
                 id: 1,
-                username: 'devuser',
-                role: 'admin'
+                username: import.meta.env.VITE_DEV_USERNAME || 'devuser',
+                role: import.meta.env.VITE_DEV_ROLE || 'admin'
             }
         }
     }
 
     async function login(credentials) {
         try {
-            if (import.meta.env.DEV && credentials.username === 'dev') {
+            if (isDevMode && credentials.username === import.meta.env.VITE_DEV_USERNAME) {
                 initDevMode()
+                console.log('Dev mode login successful:')
                 return { token: token.value, user: userDetails.value }
             }
 
             const response = await authApi.login(credentials)
-            const { token: newToken, user } = response.data
+            const data = response.data;
+            const newToken = data.token;
+            const user = data.user || data;
 
             token.value = newToken
             userId.value = user.id
@@ -42,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
-
+            router.push({ name: 'Dashboard' })
             return response.data
         } catch (error) {
             console.error('Login failed:', error)
@@ -51,9 +54,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function logout() {
         try {
-            if (!import.meta.env.DEV) {
+            if (!isDevMode) {
                 await authApi.logout()
             }
+        } catch (error) {
+            console.error('Logout failed:', error)
         } finally {
             token.value = null
             userId.value = null
@@ -64,29 +69,41 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-   async function loadUser() { 
+    async function loadUser() {
         if (!token.value) { return }
         try {
+            if (isDevMode) {
+                console.log('Dev-Mode: loadUser() übersprungen')
+                return
+            }
             // Nutzt jetzt die zentralisierte authApi (löst das TODO)
             const response = await authApi.getUserProfile()
-            
             // Anpassung je nach Backend-Antwortstruktur (oft response.data oder response.data.user)
             const user = response.data.user || response.data
-            
             userId.value = user.id
             userRole.value = user.role
             userDetails.value = user
         } catch (error) {
-            // Wenn Token ungültig (401), logge den User aus
-            if (error.response && error.response.status === 401) {
-                await logout();
-            }
+            console.error('Failed to load user profile:', error)
+            await logout()
             throw error // Fehler weiterwerfen, falls die UI darauf reagieren soll
         }
     }
 
-    initDevMode()
+    async function register(userData) {
+        try {
+            const response = await authApi.register(userData)
+            return response.data
+        } catch (error) {
+            console.error('Registration failed:', error)
+            throw error
+        }
+    }
 
+    if (isDevMode) {
+        console.log('Dev mode aktiviert: Automatischer Login mit Dev-Token')
+        initDevMode()
+    }
     return {
         token,
         userId,
@@ -97,5 +114,6 @@ export const useAuthStore = defineStore('auth', () => {
         login,
         logout,
         loadUser,
+        register,
     }
 })

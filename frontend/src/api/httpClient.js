@@ -17,7 +17,7 @@ apiClient.interceptors.request.use(
         // Der Browser macht das für den Cookie von alleine.
         return config;
     },
-    error => Promise.reject(error)
+    error => { return Promise.reject(error) }
 );
 
 // Response Interceptor
