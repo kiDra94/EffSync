@@ -1,6 +1,6 @@
 export const API_CONFIG = {
     TESTING: import.meta.env.VITE_DEV_MODE === 'true',
-    BASE_URL: 'import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
 };
 
 export const normalizeTask = (task) => {
