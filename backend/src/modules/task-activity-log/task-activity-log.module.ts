@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { TaskActivityLogController } from './task-activity-log.controller';
-import { TaskActivityLogService } from './task-activity-log.service';
+import { Module } from "@nestjs/common";
+import { TaskActivityLogController } from "./task-activity-log.controller";
+import { TaskActivityLogService } from "./task-activity-log.service";
 
 @Module({
   controllers: [TaskActivityLogController],
-  providers: [TaskActivityLogService]
+  providers: [TaskActivityLogService],
 })
 export class TaskActivityLogModule {}

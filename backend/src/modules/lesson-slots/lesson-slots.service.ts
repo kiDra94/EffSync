@@ -19,19 +19,19 @@ export class LessonSlotService {
   }
 
   findOne(id: number) {
-  return this.prisma.lesson_slots.findUnique({
-    // 👇 Statt 'id' wahrscheinlich 'lesson_slot_id'
-    where: { slot_id: id }, 
-  });
-}
+    return this.prisma.lesson_slots.findUnique({
+      // 👇 Statt 'id' wahrscheinlich 'lesson_slot_id'
+      where: { slot_id: id },
+    });
+  }
 
- update(id: number, updateLessonSlotDto: UpdateLessonSlotDto) {
-  return this.prisma.lesson_slots.update({
-    // 👇 Auch hier anpassen
-    where: { slot_id: id },
-    data: updateLessonSlotDto,
-  });
-}
+  update(id: number, updateLessonSlotDto: UpdateLessonSlotDto) {
+    return this.prisma.lesson_slots.update({
+      // 👇 Auch hier anpassen
+      where: { slot_id: id },
+      data: updateLessonSlotDto,
+    });
+  }
 
   remove(id: number) {
     return this.prisma.lesson_slots.delete({

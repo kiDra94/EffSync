@@ -15,28 +15,32 @@ import { ClassesModule } from "./modules/classes/classes.module";
 import { DepartmentsModule } from "./modules/departments/departments.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { ThrottlerGuard, ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
-import { UsersModule } from './modules/users/users.module';
-import { ChatMessagesModule } from './modules/chat-messages/chat-messages.module';
-import { ChatRoomUsersModule } from './modules/chat-room-users/chat-room-users.module';
-import { ClassesTeachersModule } from './modules/classes-teachers/classes-teachers.module';
-import { DocumentSharesModule } from './modules/document-shares/document-shares.module';
-import { RoomsModule } from './modules/rooms/room.module'; 
-import { LessonSlotsModule } from './modules/lesson-slots/lesson-slots.module';
-import { NoteDocumentsModule } from './modules/note-documents/note-documents.module';
-import { NotesUsersModule } from './modules/notes-users/notes-users.module';
-import { PermissionsModule } from './modules/permissions/permissions.module';
-import { PrioritiesModule } from './modules/priorities/priorities.module';
-import { RolesModule } from './modules/roles/roles.module';
-import { RolesPermissionsModule } from './modules/roles-permissions/roles-permissions.module';
-import { StudentsModule } from './modules/students/students.module';
-import { TaskActivityLogModule } from './modules/task-activity-log/task-activity-log.module';
-import { TaskDocumentsModule } from './modules/task-documents/task-documents.module';
-import { TaskTemplatesModule } from './modules/task-templates/task-templates.module';
-import { TeachersModule } from './modules/teachers/teachers.module';
-import { UserPermissionsModule } from './modules/user-permissions/user-permissions.module';
-import { UserRolesModule } from './modules/user-roles/user-roles.module';
-import { APP_GUARD } from '@nestjs/core';
+import {
+  ThrottlerGuard,
+  ThrottlerModule,
+  ThrottlerModuleOptions,
+} from "@nestjs/throttler";
+import { UsersModule } from "./modules/users/users.module";
+import { ChatMessagesModule } from "./modules/chat-messages/chat-messages.module";
+import { ChatRoomUsersModule } from "./modules/chat-room-users/chat-room-users.module";
+import { ClassesTeachersModule } from "./modules/classes-teachers/classes-teachers.module";
+import { DocumentSharesModule } from "./modules/document-shares/document-shares.module";
+import { RoomsModule } from "./modules/rooms/room.module";
+import { LessonSlotsModule } from "./modules/lesson-slots/lesson-slots.module";
+import { NoteDocumentsModule } from "./modules/note-documents/note-documents.module";
+import { NotesUsersModule } from "./modules/notes-users/notes-users.module";
+import { PermissionsModule } from "./modules/permissions/permissions.module";
+import { PrioritiesModule } from "./modules/priorities/priorities.module";
+import { RolesModule } from "./modules/roles/roles.module";
+import { RolesPermissionsModule } from "./modules/roles-permissions/roles-permissions.module";
+import { StudentsModule } from "./modules/students/students.module";
+import { TaskActivityLogModule } from "./modules/task-activity-log/task-activity-log.module";
+import { TaskDocumentsModule } from "./modules/task-documents/task-documents.module";
+import { TaskTemplatesModule } from "./modules/task-templates/task-templates.module";
+import { TeachersModule } from "./modules/teachers/teachers.module";
+import { UserPermissionsModule } from "./modules/user-permissions/user-permissions.module";
+import { UserRolesModule } from "./modules/user-roles/user-roles.module";
+import { APP_GUARD } from "@nestjs/core";
 
 @Module({
   imports: [
@@ -51,12 +55,12 @@ import { APP_GUARD } from '@nestjs/core';
       useFactory: (config: ConfigService): ThrottlerModuleOptions => ({
         throttlers: [
           {
-            ttl: Number(config.get('THROTTLE_TTL')) || 60000,
-            limit: Number(config.get('THROTTLE_LIMIT')) || 10,
+            ttl: Number(config.get("THROTTLE_TTL")) || 60000,
+            limit: Number(config.get("THROTTLE_LIMIT")) || 10,
           },
         ],
       }),
-    }), 
+    }),
     AuthModule,
     UsersModule,
     TasksModule,
@@ -93,7 +97,7 @@ import { APP_GUARD } from '@nestjs/core';
   ],
   controllers: [AppController],
   providers: [
-    AppService, 
+    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

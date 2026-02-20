@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller } from "@nestjs/common";
 
-@Controller('roles-permissions')
+@Controller("roles-permissions")
 export class RolesPermissionsController {}

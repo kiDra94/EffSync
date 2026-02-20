@@ -1,4 +1,11 @@
-import { IsInt, IsNotEmpty, IsOptional, IsDateString, Min, Max } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+  Min,
+  Max,
+} from "class-validator";
 
 export class CreateLessonSlotDto {
   @IsInt()
@@ -25,7 +32,7 @@ export class CreateLessonSlotDto {
   @IsInt()
   lesson_number: number;
 
-  @IsDateString() 
+  @IsDateString()
   @IsOptional()
   start_time?: string;
 

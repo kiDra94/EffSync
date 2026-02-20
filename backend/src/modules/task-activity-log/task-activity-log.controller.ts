@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller } from "@nestjs/common";
 
-@Controller('task-activity-log')
+@Controller("task-activity-log")
 export class TaskActivityLogController {}

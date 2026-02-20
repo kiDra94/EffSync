@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { RoomsController } from "./room.controller"; 
-import { RoomsService } from "./room.service";      
+import { RoomsController } from "./room.controller";
+import { RoomsService } from "./room.service";
 
 describe("RoomsController", () => {
   let controller: RoomsController;
@@ -11,7 +11,7 @@ describe("RoomsController", () => {
       providers: [
         {
           provide: RoomsService,
-          useValue: {}, 
+          useValue: {},
         },
       ],
     }).compile();

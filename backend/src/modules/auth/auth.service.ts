@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { LoginDto } from "./dto/login.dto";
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from "bcrypt";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "src/prisma/prisma.service";
 
@@ -18,28 +18,31 @@ export class AuthService {
       data: {
         ...userWithoutPassword,
         password_hash: hashedPassword,
-      }
+      },
     });
   }
-  
+
   async login(LoginDto: LoginDto) {
     const user = await this.prisma.users.findUnique({
       where: { username: LoginDto.username },
     });
-    if(!user) {
-      throw new UnauthorizedException('Username existiert nicht');
+    if (!user) {
+      throw new UnauthorizedException("Username existiert nicht");
     }
     if (!user.password_hash) {
-      throw new UnauthorizedException('Passwort ist ungültig');
+      throw new UnauthorizedException("Passwort ist ungültig");
     }
-    const isPasswordValid = await bcrypt.compare(LoginDto.password, user.password_hash);
-    if(!isPasswordValid) {
-      throw new UnauthorizedException('Passwort ist ungültig');
+    const isPasswordValid = await bcrypt.compare(
+      LoginDto.password,
+      user.password_hash,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException("Passwort ist ungültig");
     }
     const { password_hash, ...userWithNoPassword } = user;
-    const payload = { 
-      sub: user.user_id, 
-      username: user.username, 
+    const payload = {
+      sub: user.user_id,
+      username: user.username,
     };
     // const dummyToken = 'TEST_TOKEN_123456';
     return {

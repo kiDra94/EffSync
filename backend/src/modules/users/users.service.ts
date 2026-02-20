@@ -7,7 +7,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
-  
+
   async create(createUserDto: CreateUserDto) {
     const saltRound = 10; // standard wert fuer web 2^10 Rounds
     const salt = await genSalt(saltRound);
@@ -16,17 +16,19 @@ export class UsersService {
     return await this.prisma.users.create({
       data: {
         ...userWithoutPassword,
-        password_hash: hashPassword
-      }
+        password_hash: hashPassword,
+      },
     });
   }
 
   async findByEmail(email: string) {
-    return await this.prisma.users.findUnique({ where: { email : email } });
+    return await this.prisma.users.findUnique({ where: { email: email } });
   }
 
-  async findByUsername(username: string) { 
-    return await this.prisma.users.findUnique({ where: { username : username } });
+  async findByUsername(username: string) {
+    return await this.prisma.users.findUnique({
+      where: { username: username },
+    });
   }
 
   async findAll() {
@@ -35,12 +37,17 @@ export class UsersService {
 
   async findOne(id: number) {
     const user = await this.prisma.users.findUnique({ where: { user_id: id } });
-    if(!user) { throw new NotFoundException(`Member with ID ${id} not found`); }
+    if (!user) {
+      throw new NotFoundException(`Member with ID ${id} not found`);
+    }
     return user;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    return await this.prisma.users.update({ where: { user_id: id }, data: updateUserDto });
+    return await this.prisma.users.update({
+      where: { user_id: id },
+      data: updateUserDto,
+    });
   }
 
   async remove(id: number) {

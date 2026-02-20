@@ -1,5 +1,14 @@
-import { IsInt, IsNotEmpty, IsString, IsOptional, IsEnum, IsDateString, Min, Max } from 'class-validator';
-import { task_status } from '@prisma/client';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  Min,
+  Max,
+} from "class-validator";
+import { task_status } from "@prisma/client";
 
 export class CreateTaskDto {
   @IsString() @IsNotEmpty() title: string;

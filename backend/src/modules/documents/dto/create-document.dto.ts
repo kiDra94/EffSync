@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, IsOptional } from "class-validator";
 
 export class CreateDocumentDto {
   @IsString() @IsNotEmpty() name: string;

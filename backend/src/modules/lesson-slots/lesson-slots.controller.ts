@@ -11,7 +11,7 @@ import { LessonSlotService } from "./lesson-slots.service";
 import { CreateLessonSlotDto } from "./dto/create-lesson-slots.dto";
 import { UpdateLessonSlotDto } from "./dto/update-lesson-slots.dto";
 
-@Controller("lesson-slots") 
+@Controller("lesson-slots")
 export class LessonSlotController {
   constructor(private readonly lessonSlotService: LessonSlotService) {}
 

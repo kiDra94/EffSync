@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, IsOptional } from "class-validator";
 
 export class CreateChatMessageDto {
   @IsInt() @IsNotEmpty() room_id: number;
