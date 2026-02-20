@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
+let authStore = null;
+
+export const setAuthStore = (store) => {
+    authStore = store;
+};
+
 export const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
     withCredentials: true, // WICHTIG: Erlaubt dem Browser, Cookies (JWT) automatisch zu senden
