@@ -2,10 +2,13 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import { useNotificationStore } from '@/stores/notificationStore';
+import NotificationsList from '@/components/notifications/NotificationsList.vue';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 
 const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
@@ -76,6 +79,7 @@ const goBack = () => {
 
 onMounted(() => {
   loadUserProfile();
+  notificationStore.initFromStorage();
 });
 </script>
 
@@ -106,13 +110,16 @@ onMounted(() => {
 
     <div class="tabs">
       <button
-        v-for="tab in ['profile', 'security', 'activity']"
+        v-for="tab in ['profile', 'security', 'activity', 'notifications']"
         :key="tab"
         :class="{ active: activeTab === tab }"
         @click="activeTab = tab"
         class="tab-btn"
       >
-        {{ tab === 'profile' ? 'Profil' : tab === 'security' ? 'Sicherheit' : 'Aktivität' }}
+        {{ tab === 'profile' ? 'Profil' : tab === 'security' ? 'Sicherheit' : tab === 'activity' ? 'Aktivität' : '📬 Benachrichtigungen' }}
+        <span v-if="tab === 'notifications' && notificationStore.unreadCount > 0" class="tab-badge">
+          {{ notificationStore.unreadCount }}
+        </span>
       </button>
     </div>
 
@@ -231,6 +238,11 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <!-- Benachrichtigungen Tab -->
+      <div v-if="activeTab === 'notifications'" class="content-section">
+        <NotificationsList />
+      </div>
     </div>
   </div>
 </template>
@@ -240,10 +252,12 @@ onMounted(() => {
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 100%;
+  background-color: white;
 }
 
 .btn-back {
-  background: #f3f4f6;
+  background-color: #f3f4f6;
   border: 1px solid #d1d5db;
   padding: 10px 16px;
   border-radius: 6px;
@@ -251,17 +265,18 @@ onMounted(() => {
   font-weight: 600;
   margin-bottom: 20px;
   transition: all 0.2s;
+  color: #1f2937;
 }
 
 .btn-back:hover {
-  background: #e5e7eb;
+  background-color: #e5e7eb;
 }
 
 .profile-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background-color: white;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 20px;
@@ -278,7 +293,7 @@ onMounted(() => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: #4f46e5;
+  background-color: #4f46e5;
   color: white;
   display: flex;
   align-items: center;
@@ -295,12 +310,12 @@ onMounted(() => {
 
 .user-title p {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: #e6e8eb;
 }
 
 .role-badge {
-  background: #4f46e5;
-  color: white;
+  background-color: #4f46e5;
+  color: rgba(255, 255, 255, 0.944);
   padding: 4px 12px;
   border-radius: 4px;
   display: inline-block;
@@ -322,7 +337,7 @@ onMounted(() => {
 }
 
 .tab-btn {
-  background: none;
+  background-color: transparent;
   border: none;
   padding: 12px 16px;
   cursor: pointer;
@@ -330,6 +345,9 @@ onMounted(() => {
   font-weight: 500;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tab-btn.active {
@@ -341,8 +359,17 @@ onMounted(() => {
   color: #1f2937;
 }
 
+.tab-badge {
+  background-color: #e74c3c;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
 .tab-content {
-  background: white;
+  background-color: white;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 20px;
@@ -383,7 +410,7 @@ onMounted(() => {
 .form-display {
   padding: 10px 12px;
   color: #1f2937;
-  background: #f9fafb;
+  background-color: #f9fafb;
   border-radius: 6px;
 }
 
@@ -393,7 +420,7 @@ onMounted(() => {
 }
 
 .security-card {
-  background: #f9fafb;
+  background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
@@ -416,7 +443,7 @@ onMounted(() => {
 }
 
 .activity-card {
-  background: #f9fafb;
+  background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
@@ -474,7 +501,7 @@ onMounted(() => {
 }
 
 .btn-secondary {
-  background: #f3f4f6;
+  background-color: #f3f4f6;
   border: 1px solid #d1d5db;
   padding: 10px 20px;
   border-radius: 6px;
@@ -482,9 +509,104 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  color: #1f2937;
 }
 
 .btn-secondary:hover {
-  background: #e5e7eb;
+  background-color: #e5e7eb;
+}
+
+</style>
+
+<style>
+/* Dark Mode Styles für UserProfileView */
+body.dark-mode .profile-view {
+  background-color: #1a1a2e !important;
+  color: white !important;
+}
+
+body.dark-mode .btn-back {
+  background-color: #3b3b54 !important;
+  border-color: #555 !important;
+  color: white !important;
+}
+
+body.dark-mode .profile-header {
+  background-color: #2c2c3e !important;
+  border-color: #444 !important;
+}
+
+body.dark-mode .tabs {
+  border-bottom-color: #444 !important;
+}
+
+body.dark-mode .tab-btn {
+  color: #999 !important;
+}
+
+body.dark-mode .tab-btn.active {
+  color: #4f46e5 !important;
+  border-bottom-color: #4f46e5 !important;
+}
+
+body.dark-mode .tab-content {
+  background-color: #2c2c3e !important;
+  border-color: #444 !important;
+  color: #ddd !important;
+}
+
+body.dark-mode .btn-primary {
+  background-color: #4f46e5 !important;
+  color: white !important;
+}
+
+body.dark-mode .btn-primary:hover {
+  background-color: #4338ca !important;
+}
+
+body.dark-mode .btn-secondary {
+  background-color: #3b3b54 !important;
+  border-color: #555 !important;
+  color: white !important;
+}
+
+body.dark-mode .btn-secondary:hover {
+  background-color: #4b4b6a !important;
+}
+
+body.dark-mode .form-group label {
+  color: white !important;
+}
+
+body.dark-mode .form-display {
+  background-color: #1a1a23 !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+body.dark-mode .form-input {
+  background-color: #1a1a23 !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+body.dark-mode .security-card,
+body.dark-mode .activity-card {
+  background-color: #232330 !important;
+  border-color: #444 !important;
+  color: #ddd !important;
+}
+
+body.dark-mode .activity-item {
+  color: #ddd !important;
+  border-bottom-color: #444 !important;
+}
+
+body.dark-mode .activity-time {
+  color: #4f46e5 !important;
+}
+
+body.dark-mode .activity-location {
+  color: #999 !important;
 }
 </style>
