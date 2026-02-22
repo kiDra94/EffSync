@@ -55,7 +55,7 @@ const metrics = ref([
     subtext: 'Erstellt', 
     icon: '📝', 
     color: '#9b59b6',
-    route: 'NoteList'
+    route: 'NoteLists'
   },
   { 
     id: 5, 
@@ -64,7 +64,7 @@ const metrics = ref([
     subtext: 'Einträge', 
     icon: '⏰', 
     color: '#f39c12',
-    route: 'ScheduleList'
+    route: 'Schedules'
   },
   { 
     id: 6, 
