@@ -21,6 +21,8 @@ apiClient.interceptors.request.use(config => {
 })
 
 // 3. API-Definitionen exportieren
+export { apiClient }
+
 export const authApi = {
   login(credentials) {
     // Erwartet { username, password }
