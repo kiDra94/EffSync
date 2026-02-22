@@ -40,15 +40,15 @@ export const useAuthStore = defineStore('auth', () => {
             const user = data.user || data;
 
             token.value = newToken
-            userId.value = user.id
+            userId.value = user.id ?? user.user_id ?? null
             userRole.value = user.role
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
-            router.push({ name: 'Dashboard' })
             return response.data
         } catch (error) {
             console.error('Login failed:', error)
+            throw error
         }
     }
 
