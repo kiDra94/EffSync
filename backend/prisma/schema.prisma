@@ -352,6 +352,8 @@ model users {
   notes                                  notes[]
   notes_users                            notes_users[]
   notifications                          notifications[]
+  email_preferences                      email_preferences?
+  email_logs                             email_logs[]
   students                               students?
   task_activity_log                      task_activity_log[]
   task_comments                          task_comments[]
@@ -361,6 +363,32 @@ model users {
   teachers_teachers_teacher_idTousers    teachers?           @relation("teachers_teacher_idTousers")
   user_permissions                       user_permissions[]
   user_roles                             user_roles[]
+}
+
+model email_preferences {
+  preference_id        Int       @id @default(autoincrement())
+  user_id              Int       @unique
+  email_on_deadline    Boolean   @default(true)
+  email_on_mention     Boolean   @default(true)
+  email_on_comment     Boolean   @default(true)
+  email_digest         Boolean   @default(false)
+  digest_frequency     String    @default("daily") @db.VarChar // daily, weekly, monthly
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+  updated_at           DateTime? @updatedAt @db.Timestamp(6)
+  users                users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model email_logs {
+  email_log_id Int       @id @default(autoincrement())
+  user_id      Int
+  recipient    String    @db.VarChar
+  subject      String    @db.VarChar
+  email_type   String    @db.VarChar // 'deadline', 'mention', 'comment', 'digest'
+  status       String    @default("sent") @db.VarChar // 'sent', 'failed', 'pending'
+  error_message String?   @db.Text
+  sent_at      DateTime? @db.Timestamp(6)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  users        users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 enum task_status {
