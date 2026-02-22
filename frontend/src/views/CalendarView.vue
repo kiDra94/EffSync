@@ -4,12 +4,31 @@ import { ref, computed } from 'vue';
 // 1. STATE
 const currentDate = ref(new Date());
 const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const viewMode = ref('month'); // 'month' oder 'week'
 
 // Mock Events (Später aus API)
 const events = ref([
     { date: '2025-01-20', title: 'Mathe Test', color: '#e74c3c' },
     { date: '2025-01-22', title: 'Englisch Vokabeln', color: '#f39c12' },
     { date: '2025-02-05', title: 'Sportfest', color: '#2ecc71' }
+]);
+
+// Mock Lessons für Wochenansicht
+const lessons = ref([
+    { dayOfWeek: 0, startTime: '08:00', endTime: '08:50', subject: 'Mathematik', room: 'B101', teacher: 'Prof. Müller', color: '#3498db' },
+    { dayOfWeek: 0, startTime: '09:00', endTime: '09:50', subject: 'Deutsch', room: 'B102', teacher: 'Dr. Weber', color: '#e74c3c' },
+    { dayOfWeek: 0, startTime: '10:00', endTime: '10:50', subject: 'Englisch', room: 'B103', teacher: 'Ms. Johnson', color: '#f39c12' },
+    { dayOfWeek: 1, startTime: '08:00', endTime: '08:50', subject: 'Informatik', room: 'B201', teacher: 'Prof. Schmidt', color: '#2ecc71' },
+    { dayOfWeek: 1, startTime: '10:00', endTime: '10:50', subject: 'Sport', room: 'Gym', teacher: 'Mr. Bauer', color: '#9b59b6' },
+    { dayOfWeek: 2, startTime: '09:00', endTime: '09:50', subject: 'Biologie', room: 'B104', teacher: 'Dr. Fischer', color: '#1abc9c' },
+    { dayOfWeek: 2, startTime: '13:00', endTime: '13:50', subject: 'Chemie', room: 'B105', teacher: 'Prof. König', color: '#e67e22' },
+    { dayOfWeek: 3, startTime: '08:00', endTime: '08:50', subject: 'Geschichte', room: 'B106', teacher: 'Dr. Hoffmann', color: '#34495e' },
+    { dayOfWeek: 4, startTime: '10:00', endTime: '10:50', subject: 'Musik', room: 'B107', teacher: 'Prof. Klein', color: '#c0392b' },
+]);
+
+const timeSlots = ref([
+    '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00'
 ]);
 
 // 2. KALENDER LOGIK
@@ -20,31 +39,29 @@ const monthName = computed(() => {
     return currentDate.value.toLocaleString('de-DE', { month: 'long', year: 'numeric' });
 });
 
+const weekLabel = computed(() => {
+    const weekStart = getWeekStart(currentDate.value);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    return `${weekStart.toLocaleDateString('de-DE')} - ${weekEnd.toLocaleDateString('de-DE')}`;
+});
+
 // Berechnet alle Tage für das Gitter
 const calendarDays = computed(() => {
     const year = currentYear.value;
     const month = currentMonth.value;
 
-    // Erster Tag des Monats
     const firstDay = new Date(year, month, 1);
-    // Wie viele Tage hat der Monat? (0ter Tag des nächsten Monats = letzter des aktuellen)
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    // Wochentag-Offset berechnen (Sonntag ist 0 in JS, wir wollen Montag als Start)
-    // Mo(1) -> 0, Di(2) -> 1 ... So(0) -> 6
     const startDayIndex = (firstDay.getDay() + 6) % 7;
 
     const days = [];
 
-    // A) Leere Felder davor auffüllen
     for (let i = 0; i < startDayIndex; i++) {
         days.push({ day: '', fullDate: null, isPadding: true });
     }
 
-    // B) Echte Tage auffüllen
     for (let i = 1; i <= daysInMonth; i++) {
-        // Format YYYY-MM-DD für Vergleich bauen
-        // Achtung: Monat ist 0-basiert, daher +1
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         
         days.push({
@@ -59,9 +76,49 @@ const calendarDays = computed(() => {
     return days;
 });
 
-// Helper: Ist das Datum heute?
+// Wochentage für die aktuelle Woche
+const weekDaysWithDates = computed(() => {
+    const weekStart = getWeekStart(currentDate.value);
+    const days = [];
+    
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart);
+        date.setDate(date.getDate() + i);
+        days.push({
+            dayName: weekDays[i],
+            date: date,
+            dateStr: formatDate(date),
+            dayOfWeek: i,
+            isToday: isSameDate(new Date(), date.getFullYear(), date.getMonth(), date.getDate())
+        });
+    }
+    return days;
+});
+
+// Lessons für einen bestimmten Tag
+const getLessonsForDay = (dayOfWeek) => {
+    return lessons.value
+        .filter(l => l.dayOfWeek === dayOfWeek)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime));
+};
+
+// Helper Funktionen
+function getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
+
 function isSameDate(now, y, m, d) {
     return now.getFullYear() === y && now.getMonth() === m && now.getDate() === d;
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // Navigation
@@ -73,8 +130,37 @@ const nextMonth = () => {
     currentDate.value = new Date(currentYear.value, currentMonth.value + 1, 1);
 };
 
+const prevWeek = () => {
+    const d = new Date(currentDate.value);
+    d.setDate(d.getDate() - 7);
+    currentDate.value = d;
+};
+
+const nextWeek = () => {
+    const d = new Date(currentDate.value);
+    d.setDate(d.getDate() + 7);
+    currentDate.value = d;
+};
+
 const goToToday = () => {
     currentDate.value = new Date();
+};
+
+// Lesson Position berechnen
+const getLessonStyle = (lesson) => {
+    const startHour = parseInt(lesson.startTime.split(':')[0]);
+    const startMin = parseInt(lesson.startTime.split(':')[1]);
+    const endHour = parseInt(lesson.endTime.split(':')[0]);
+    const endMin = parseInt(lesson.endTime.split(':')[1]);
+    
+    const startIdx = timeSlots.value.findIndex(t => t === lesson.startTime);
+    const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    const heightPerSlot = 30; // px per 30 min
+    
+    return {
+        top: startIdx * heightPerSlot + 'px',
+        height: (duration / 30) * heightPerSlot + 'px'
+    };
 };
 </script>
 
@@ -82,10 +168,29 @@ const goToToday = () => {
   <div class="page-container">
     <div class="header-row">
       <h1 class="page-title">Mein Kalender 🗓️</h1>
-      <button @click="goToToday" class="btn-today">Heute</button>
+      <div class="header-controls">
+        <div class="view-tabs">
+          <button 
+            :class="{ active: viewMode === 'month' }" 
+            @click="viewMode = 'month'"
+            class="tab-btn"
+          >
+            📅 Monat
+          </button>
+          <button 
+            :class="{ active: viewMode === 'week' }" 
+            @click="viewMode = 'week'"
+            class="tab-btn"
+          >
+            📋 Woche
+          </button>
+        </div>
+        <button @click="goToToday" class="btn-today">Heute</button>
+      </div>
     </div>
 
-    <div class="calendar-card">
+    <!-- MONATSANSICHT -->
+    <div v-if="viewMode === 'month'" class="calendar-card">
       <div class="cal-header">
         <button @click="prevMonth" class="nav-btn">&lt;</button>
         <h2>{{ monthName }}</h2>
@@ -120,12 +225,70 @@ const goToToday = () => {
         </div>
       </div>
     </div>
+
+    <!-- WOCHENANSICHT MIT STUNDENPLAN -->
+    <div v-if="viewMode === 'week'" class="week-card">
+      <div class="week-header">
+        <button @click="prevWeek" class="nav-btn">&lt;</button>
+        <h2>{{ weekLabel }}</h2>
+        <button @click="nextWeek" class="nav-btn">&gt;</button>
+      </div>
+
+      <div class="timetable-container">
+        <!-- Time Slots (linke Spalte) -->
+        <div class="time-column">
+          <div class="time-header">Zeit</div>
+          <div v-for="time in timeSlots" :key="time" class="time-slot">
+            {{ time }}
+          </div>
+        </div>
+
+        <!-- Wochentage mit Lessons -->
+        <div class="days-column">
+          <!-- Header mit Wochentagen -->
+          <div class="days-header">
+            <div 
+              v-for="day in weekDaysWithDates" 
+              :key="day.dayOfWeek"
+              :class="{ 'is-today': day.isToday }"
+              class="day-header-cell"
+            >
+              <div class="day-name">{{ day.dayName }}</div>
+              <div class="day-date">{{ day.date.getDate() }}</div>
+            </div>
+          </div>
+
+          <!-- Grid mit Lessons -->
+          <div class="grid-wrapper">
+            <div v-for="day in weekDaysWithDates" :key="day.dayOfWeek" class="day-column-grid">
+              <!-- Time Slot Hintergrund -->
+              <div v-for="time in timeSlots" :key="time" class="grid-cell"></div>
+
+              <!-- Lessons überlagert -->
+              <div class="lessons-layer">
+                <div 
+                  v-for="(lesson, idx) in getLessonsForDay(day.dayOfWeek)" 
+                  :key="idx"
+                  class="lesson-card"
+                  :style="[getLessonStyle(lesson), { backgroundColor: lesson.color }]"
+                  :title="`${lesson.subject} - ${lesson.room}`"
+                >
+                  <div class="lesson-subject">{{ lesson.subject }}</div>
+                  <div class="lesson-time">{{ lesson.startTime }}-{{ lesson.endTime }}</div>
+                  <div class="lesson-room">{{ lesson.room }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .page-container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -134,11 +297,48 @@ const goToToday = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .page-title {
   color: #23234c;
   margin: 0;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  background: #f5f5f5;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.tab-btn {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+}
+
+.tab-btn:hover:not(.active) {
+  border-color: #999;
 }
 
 .btn-today {
@@ -149,10 +349,14 @@ const goToToday = () => {
   cursor: pointer;
   color: #555;
   font-weight: bold;
+  transition: all 0.2s;
 }
-.btn-today:hover { background: #f0f0f0; }
 
-/* Calendar Card */
+.btn-today:hover {
+  background: #f0f0f0;
+}
+
+/* ========== CALENDAR CARD (MONTH VIEW) ========== */
 .calendar-card {
   background: white;
   border-radius: 12px;
@@ -167,7 +371,8 @@ const goToToday = () => {
   margin-bottom: 20px;
 }
 
-.cal-header h2 {
+.cal-header h2,
+.week-header h2 {
   margin: 0;
   color: #23234c;
   text-transform: capitalize;
@@ -184,12 +389,16 @@ const goToToday = () => {
   color: #555;
   transition: background 0.2s;
 }
-.nav-btn:hover { background: #e0e0e0; }
+
+.nav-btn:hover {
+  background: #e0e0e0;
+}
 
 /* Grid System */
-.weekdays-row, .days-grid {
+.weekdays-row,
+.days-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr); /* 7 Tage Woche */
+  grid-template-columns: repeat(7, 1fr);
   gap: 10px;
 }
 
@@ -205,7 +414,7 @@ const goToToday = () => {
 }
 
 .day-cell {
-  height: 100px; /* Höhe eines Tages-Kästchens */
+  height: 100px;
   border: 1px solid #eee;
   border-radius: 8px;
   padding: 8px;
@@ -215,9 +424,9 @@ const goToToday = () => {
 }
 
 .day-cell:hover {
-    background-color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    border-color: #ddd;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-color: #ddd;
 }
 
 .day-cell.is-padding {
@@ -237,65 +446,324 @@ const goToToday = () => {
 }
 
 .day-cell.is-today .day-number {
-    color: #3498db;
+  color: #3498db;
 }
 
-/* Event Dots */
 .events-container {
-    display: flex;
-    gap: 4px;
-    margin-top: 6px;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .event-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 
-/* ========================================= */
-/* DARK MODE OVERRIDES                       */
-/* ========================================= */
+/* ========== WEEK VIEW / TIMETABLE ========== */
+.week-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
 
+.week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.timetable-container {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 800px;
+  overflow-y: auto;
+}
+
+.time-column {
+  background: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 5;
+}
+
+.time-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+}
+
+.time-slot {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #999;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.days-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  border-bottom: 2px solid #e5e7eb;
+  background: #f9fafb;
+  height: 60px;
+}
+
+.day-header-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-right: 1px solid #f0f0f0;
+}
+
+.day-header-cell.is-today {
+  background: #e3f2fd;
+}
+
+.day-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.day-date {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 2px;
+}
+
+.day-header-cell.is-today .day-name {
+  color: #3498db;
+}
+
+.day-header-cell.is-today .day-date {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.grid-wrapper {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  position: relative;
+}
+
+.day-column-grid {
+  position: relative;
+  border-right: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.day-column-grid:last-child {
+  border-right: none;
+}
+
+.grid-cell {
+  height: 30px;
+  border-bottom: 1px solid #f0f0f0;
+  background: white;
+}
+
+.grid-cell:nth-child(odd) {
+  background: #fafafa;
+}
+
+.lessons-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.lesson-card {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  padding: 6px;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.8rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lesson-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transform: scale(1.02);
+}
+
+.lesson-subject {
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lesson-time {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.lesson-room {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* ========== DARK MODE ========== */
 :global(body.dark-mode) .page-title,
-:global(body.dark-mode) .cal-header h2 { 
-    color: white !important; 
+:global(body.dark-mode) .cal-header h2,
+:global(body.dark-mode) .week-header h2 {
+  color: white !important;
 }
 
-:global(body.dark-mode) .calendar-card {
-    background-color: #2c2c3e !important;
-    border: 1px solid #444;
+:global(body.dark-mode) .calendar-card,
+:global(body.dark-mode) .week-card {
+  background-color: #2c2c3e !important;
+  border: 1px solid #444;
+}
+
+:global(body.dark-mode) .tab-btn {
+  background-color: #3b3b54 !important;
+  border: 1px solid #555 !important;
+  color: #ccc !important;
+}
+
+:global(body.dark-mode) .tab-btn.active {
+  background-color: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  color: white !important;
 }
 
 :global(body.dark-mode) .btn-today {
-    background-color: #3b3b54 !important;
-    color: white !important;
-    border: 1px solid #555 !important;
+  background-color: #3b3b54 !important;
+  border: 1px solid #555 !important;
+  color: white !important;
+}
+
+:global(body.dark-mode) .btn-today:hover {
+  background-color: #4b4b6a !important;
 }
 
 :global(body.dark-mode) .nav-btn {
-    background-color: #3b3b54 !important;
-    color: white !important;
+  background-color: #3b3b54 !important;
+  color: white !important;
 }
-:global(body.dark-mode) .nav-btn:hover { background-color: #4b4b6a !important; }
+
+:global(body.dark-mode) .nav-btn:hover {
+  background-color: #4b4b6a !important;
+}
 
 :global(body.dark-mode) .day-cell {
-    background-color: #232330 !important;
-    border: 1px solid #444 !important;
-}
-:global(body.dark-mode) .day-cell:hover {
-    background-color: #2c2c3e !important;
-}
-:global(body.dark-mode) .day-cell.is-padding {
-    background-color: transparent !important;
-    border: none !important;
+  background-color: #232330 !important;
+  border: 1px solid #444 !important;
 }
 
-:global(body.dark-mode) .day-number { color: #ddd !important; }
+:global(body.dark-mode) .day-cell:hover {
+  background-color: #2c2c3e !important;
+}
+
+:global(body.dark-mode) .day-number {
+  color: #ddd !important;
+}
 
 :global(body.dark-mode) .day-cell.is-today {
-    border: 2px solid #3498db !important;
-    background-color: #233040 !important; /* Dunkles Blau */
+  border: 2px solid #3498db !important;
+  background-color: #233040 !important;
+}
+
+:global(body.dark-mode) .time-column {
+  background-color: #232330 !important;
+}
+
+:global(body.dark-mode) .time-header {
+  border-bottom: 1px solid #444 !important;
+  color: #999 !important;
+}
+
+:global(body.dark-mode) .time-slot {
+  color: #666 !important;
+  border-bottom: 1px solid #333 !important;
+}
+
+:global(body.dark-mode) .timetable-container {
+  border: 1px solid #444 !important;
+}
+
+:global(body.dark-mode) .days-header {
+  background-color: #232330 !important;
+  border-bottom: 2px solid #444 !important;
+}
+
+:global(body.dark-mode) .day-header-cell {
+  border-right: 1px solid #333 !important;
+  color: white !important;
+}
+
+:global(body.dark-mode) .day-header-cell.is-today {
+  background-color: #233040 !important;
+}
+
+:global(body.dark-mode) .day-name,
+:global(body.dark-mode) .day-date {
+  color: #ddd !important;
+}
+
+:global(body.dark-mode) .day-header-cell.is-today .day-name,
+:global(body.dark-mode) .day-header-cell.is-today .day-date {
+  color: #3498db !important;
+}
+
+:global(body.dark-mode) .grid-cell {
+  background-color: #2c2c3e !important;
+  border-bottom: 1px solid #333 !important;
+}
+
+:global(body.dark-mode) .grid-cell:nth-child(odd) {
+  background-color: #232330 !important;
+}
+
+:global(body.dark-mode) .day-column-grid {
+  border-right: 1px solid #333 !important;
+}
+
+:global(body.dark-mode) .lesson-card {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
+}
+
+:global(body.dark-mode) .lesson-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.6) !important;
 }
 </style>
