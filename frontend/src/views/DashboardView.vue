@@ -1,48 +1,106 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useTaskStore } from '@/stores/entities/taskStore';
 
 const router = useRouter();
+const taskStore = useTaskStore();
 
-// Mock-Daten
+// Funktion zum Abrufen der Länge aus localStorage
+const getStorageCount = (key) => {
+  try {
+    const data = localStorage.getItem(`effsync_${key}`);
+    if (!data) return 0;
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch (error) {
+    console.error(`Fehler beim Lesen von effsync_${key}:`, error);
+    return 0;
+  }
+};
+
+// Dynamische Metriken
 const metrics = ref([
   { 
     id: 1, 
     title: 'Offene Aufgaben', 
-    value: '12', 
-    subtext: '3 heute fällig', 
+    value: '0', 
+    subtext: 'Zu erledigen', 
     icon: '📋', 
     color: '#3498db',
     route: 'TaskList'
   },
   { 
     id: 2, 
-    title: 'Nächster Unterricht', 
-    value: '10:00', 
-    subtext: 'Mathe - Raum 204', 
+    title: 'Klassen', 
+    value: '0', 
+    subtext: 'Verwaltung', 
     icon: '🏫', 
     color: '#e67e22',
     route: 'ClassList'
   },
   { 
     id: 3, 
-    title: 'Neue Dokumente', 
-    value: '5', 
-    subtext: 'In dieser Woche', 
+    title: 'Dokumente', 
+    value: '0', 
+    subtext: 'Geteilt', 
     icon: '📂', 
     color: '#2ecc71',
     route: 'DocumentList'
   },
   { 
     id: 4, 
-    title: 'Ungelesene Nachrichten', 
-    value: '2', 
-    subtext: 'Vom Sekretariat', 
-    icon: '💬', 
+    title: 'Notizen', 
+    value: '0', 
+    subtext: 'Erstellt', 
+    icon: '📝', 
     color: '#9b59b6',
-    route: null
+    route: 'NoteLists'
+  },
+  { 
+    id: 5, 
+    title: 'Stundenplan', 
+    value: '0', 
+    subtext: 'Einträge', 
+    icon: '⏰', 
+    color: '#f39c12',
+    route: 'Schedules'
+  },
+  { 
+    id: 6, 
+    title: 'Abteilungen', 
+    value: '0', 
+    subtext: 'Im System', 
+    icon: '🏢', 
+    color: '#1abc9c',
+    route: 'DepartmentList'
   }
 ]);
+
+// Funktion zum Aktualisieren der Metriken
+const updateMetrics = () => {
+  const counts = {
+    tasks: getStorageCount('tasks'),
+    classes: getStorageCount('classes'),
+    documents: getStorageCount('documents'),
+    notes: getStorageCount('notes'),
+    schedules: getStorageCount('schedules'),
+    departments: getStorageCount('departments')
+  };
+  
+  metrics.value[0].value = String(counts.tasks);
+  metrics.value[1].value = String(counts.classes);
+  metrics.value[2].value = String(counts.documents);
+  metrics.value[3].value = String(counts.notes);
+  metrics.value[4].value = String(counts.schedules);
+  metrics.value[5].value = String(counts.departments);
+};
+
+onMounted(() => {
+  updateMetrics();
+  // Storage Events abfangen um Live-Updates zu ermöglichen
+  window.addEventListener('storage', updateMetrics);
+});
 
 const handleCardClick = (routeName) => {
   if (routeName) {
