@@ -6,7 +6,10 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  Req,
 } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { TaskCommentsService } from "./task-comments.service";
 import { CreateTaskCommentDto } from "./dto/create-task-comment.dto";
 import { UpdateTaskCommentDto } from "./dto/update-task-comment.dto";
@@ -16,30 +19,40 @@ export class TaskCommentsController {
   constructor(private readonly taskCommentsService: TaskCommentsService) {}
 
   @Post()
-  create(@Body() createTaskCommentDto: CreateTaskCommentDto) {
-    return this.taskCommentsService.create(createTaskCommentDto);
+  @UseGuards(JwtAuthGuard)
+  async create(
+    @Body() createTaskCommentDto: CreateTaskCommentDto,
+    @Req() req: any,
+  ) {
+    const userId = (req.user as any)?.user_id;
+    return await this.taskCommentsService.create({
+      ...createTaskCommentDto,
+      user_id: userId,
+    });
   }
 
   @Get()
-  findAll() {
-    return this.taskCommentsService.findAll();
+  async findAll() {
+    return await this.taskCommentsService.findAll();
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.taskCommentsService.findOne(+id);
+  async findOne(@Param("id") id: string) {
+    return await this.taskCommentsService.findOne(+id);
   }
 
   @Patch(":id")
-  update(
+  @UseGuards(JwtAuthGuard)
+  async update(
     @Param("id") id: string,
     @Body() updateTaskCommentDto: UpdateTaskCommentDto,
   ) {
-    return this.taskCommentsService.update(+id, updateTaskCommentDto);
+    return await this.taskCommentsService.update(+id, updateTaskCommentDto);
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.taskCommentsService.remove(+id);
+  @UseGuards(JwtAuthGuard)
+  async remove(@Param("id") id: string) {
+    return await this.taskCommentsService.remove(+id);
   }
 }

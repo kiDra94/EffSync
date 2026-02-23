@@ -9,6 +9,7 @@ import { TemplatesModule } from "./modules/templates/templates.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { ChatRoomsModule } from "./modules/chat-rooms/chat-rooms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { EmailModule } from "./modules/email/email.module";
 import { NotesModule } from "./modules/notes/notes.module";
 import { SchedulesModule } from "./modules/schedules/schedules.module";
 import { ClassesModule } from "./modules/classes/classes.module";
@@ -71,6 +72,7 @@ import { APP_GUARD } from "@nestjs/core";
     ChatRoomsModule,
     ChatMessagesModule,
     NotificationsModule,
+    EmailModule,
     NotesModule,
     SchedulesModule,
     ClassesModule,
