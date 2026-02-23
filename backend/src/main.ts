@@ -42,11 +42,21 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle("Classrome API")
-    .setDescription("Meine coole API")
+    .setTitle("EffSync API")
+    .setDescription("School Management & Task System - AP 4.6")
     .setVersion("1.0")
     .addBearerAuth()
-    .addTag("auth")
+    .addTag("auth", "Authentication & Authorization")
+    .addTag("users", "User Management")
+    .addTag("tasks", "Task Management")
+    .addTag("task-comments", "Task Comments")
+    .addTag("task-activity", "Task Activity Logs")
+    .addTag("task-templates", "Task Templates")
+    .addTag("documents", "Document Management")
+    .addTag("chat-rooms", "Chat Rooms")
+    .addTag("chat-messages", "Chat Messages")
+    .addTag("notifications", "User Notifications")
+    .addTag("notes", "Personal Notes")
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
