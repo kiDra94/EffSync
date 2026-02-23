@@ -203,6 +203,11 @@ export class TasksService {
     };
   }
 
+  async createSubTask(parentTaskID: number, createTaskDto: CreateTaskDto, userId: number) {
+    await this.findOne(parentTaskID, false);
+    return this.create({...createTaskDto, parent_task_id: parentTaskID}, userId)
+  }
+
   private basicInclude() {
     return {
       users_tasks_created_byTousers: {
