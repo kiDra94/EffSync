@@ -249,6 +249,26 @@ export class TasksService {
     return taskDocuments.map(td => td.documents);
   }
 
+  async getComments(taskId: number, includeRelations = true) {
+    await this.findOne(taskId, false);
+  
+    return this.prisma.task_comments.findMany({
+      where: { task_id: taskId },
+      include: includeRelations ? this.userSelectInclude() : undefined,
+      orderBy: { created_at: 'asc' },
+    });
+  }
+
+  async getActivityLog(taskId: number, includeRelations = true) {
+    await this.findOne(taskId, false);
+  
+    return this.prisma.task_activity_log.findMany({
+      where: { task_id: taskId },
+      include: includeRelations ? this.userSelectInclude() : undefined,
+      orderBy: { timestamp: 'desc' },
+    });
+  }
+
   private basicInclude() {
     return {
       users_tasks_created_byTousers: {
@@ -269,6 +289,19 @@ export class TasksService {
       },
       priorities: true,
       tasks: true, // parent task
+    };
+  }
+
+  private userSelectInclude() {
+    return {
+      users: {
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+        },
+      },
     };
   }
 
