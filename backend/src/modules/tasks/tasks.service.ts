@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -7,8 +7,8 @@ import { QueryTasksDto } from "./dto/query-tasks.dto";
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
-  
+  constructor(private readonly prisma: PrismaService) { }
+
   async create(createTaskDto: CreateTaskDto, userId: number) {
     const {
       parent_task_id,
@@ -16,19 +16,19 @@ export class TasksService {
       ...taskData
     } = createTaskDto;
 
-    if(parent_task_id) {
+    if (parent_task_id) {
       const parentTaskId = await this.prisma.tasks.findUnique({
-        where: {task_id: parent_task_id}
+        where: { task_id: parent_task_id }
       });
-      if(!parentTaskId) {
+      if (!parentTaskId) {
         throw new NotFoundException(`Parent task with ID ${parent_task_id} not found!`)
       }
     }
-    if(priority_id) {
+    if (priority_id) {
       const priorityId = await this.prisma.priorities.findUnique({
         where: { priority_id }
       });
-      if(!priorityId) {
+      if (!priorityId) {
         throw new NotFoundException(`Priority task with ID ${priorityId} not found!`)
       }
     }
@@ -67,7 +67,7 @@ export class TasksService {
     if (priority_id) where.priority_id = priority_id;
     if (assigned_to) where.assigned_to = assigned_to;
     if (created_by) where.created_by = created_by;
-    
+
     if (parent_task_id !== undefined) {
       where.parent_task_id = parent_task_id === 0 ? null : parent_task_id;
     }
@@ -105,34 +105,79 @@ export class TasksService {
 
   async findOne(taskId: number, includeRelations = true) {
     const task = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId},
+      where: { task_id: taskId },
       include: includeRelations ? this.basicInclude() : undefined,
     });
 
-    if(!task) {
-      throw new NotFoundException (`Task with ID ${taskId} not found!`)
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${taskId} not found!`)
     }
     return task;
   }
 
   async findeOneWithSubtasks(taskId: number, includeRelations = true) {
     const rootTask = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId}
+      where: { task_id: taskId }
     });
-    if(!rootTask) {
-      throw new NotFoundException (`Task with ID ${taskId} not found!`)
+    if (!rootTask) {
+      throw new NotFoundException(`Task with ID ${taskId} not found!`)
     };
 
     const allTasks = await this.prisma.tasks.findMany({
-      where: { created_by: rootTask.created_by},
+      where: { created_by: rootTask.created_by },
       include: includeRelations ? this.basicInclude() : undefined,
     });
 
     return this.buildTree(allTasks, taskId);
   }
 
-  update(taskId: number, updateTaskDto: UpdateTaskDto) {
-    return `This action updates a #${taskId} task`;
+  async update(taskId: number, updateTaskDto: UpdateTaskDto) {
+    const {
+      parent_task_id,
+      priority_id,
+      ...taskData
+    } = updateTaskDto;
+
+    if (parent_task_id !== undefined) {
+      if (parent_task_id === taskId) {
+        throw new BadRequestException('Task cannot be its own parent');
+      }
+
+      if (parent_task_id) {
+        const parentTask = await this.prisma.tasks.findUnique({
+          where: { task_id: parent_task_id },
+        });
+        if (!parentTask) {
+          throw new NotFoundException(
+            `Parent task with ID ${parent_task_id} not found`,
+          );
+        }
+        await this.validateNoCircularReference(taskId, parent_task_id);
+      }
+    }
+
+    if (priority_id !== undefined && priority_id !== null) {
+      const priority = await this.prisma.priorities.findUnique({
+        where: { priority_id },
+      });
+      if (!priority) {
+        throw new NotFoundException(
+          `Priority with ID ${priority_id} not found`,
+        );
+      }
+    }
+
+    return this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        ...taskData,
+        parent_task_id,
+        priority_id,
+        deadline: taskData.deadline ? new Date(taskData.deadline) : undefined,
+        updated_at: new Date(),
+      },
+      include: this.basicInclude(),
+    });
   }
 
   remove(taskId: number) {
@@ -175,5 +220,28 @@ export class TasksService {
     })
 
     return taskMap.get(taskId);
+  }
+
+  private async validateNoCircularReference(taskId: number, parentTaskId: number,): Promise<void> {
+    let currentTask = await this.prisma.tasks.findUnique({
+      where: { task_id: parentTaskId },
+      select: { task_id: true, parent_task_id: true },
+    });
+
+    const visited = new Set<number>([taskId]);
+
+    while (currentTask) {
+      if (visited.has(currentTask.task_id)) {
+        throw new BadRequestException(
+          'Circular reference detected: Task cannot be ancestor of itself',
+        );
+      }
+      visited.add(currentTask.task_id);
+      if (!currentTask.parent_task_id) break;
+      currentTask = await this.prisma.tasks.findUnique({
+        where: { task_id: currentTask.parent_task_id },
+        select: { task_id: true, parent_task_id: true },
+      });
+    }
   }
 }
