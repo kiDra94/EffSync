@@ -7,23 +7,28 @@ User,/api/users/search,GET,Sucht nach Benutzern Filter: ?q=...,Geschützt,users
 User,/api/users/id,GET,Ruft öffentliche User-Details ab,Geschützt,users
 Task,/api/tasks,POST,Erstellt einen neuen Task,Geschützt,tasks
 Task,/api/tasks,GET,Ruft Tasks ab Filter/Sortierung nach Priorität Status etc.,Geschützt,tasks, priorities
-Task,/api/tasks/id,GET,Ruft Task-Details ab,Geschützt,tasks
-Task,/api/tasks/id,PUT/DELETE,Aktualisiert Task-Details/Löscht Task,Geschützt,tasks
-Subtask,/api/tasks/parent-id/subtasks,POST,Erstellt einen Subtask,Geschützt,tasks
-Comment,/api/tasks/id/comments,GET/POST,Ruft Kommentare ab bzw. fügt Kommentar hinzu,Geschützt,task-comments
-Log,/api/tasks/id/activity,GET,Ruft das Aktivitätsprotokoll ab,Geschützt,task-activity-log
+Task,/api/tasks/:id,GET,Ruft Task-Details ab (flach),Geschützt,tasks
+Task,/api/tasks/:id/tree,GET,Ruft Task inklusive aller verschachtelten Subtasks ab (Baum),Geschützt,tasks
+Task,/api/tasks/:id,PATCH,Teil-Aktualisierung (z.B. nur Status oder Deadline),Geschützt,tasks
+Task,/api/tasks/:id,DELETE,Löscht Task (nur wenn keine Subtasks vorhanden),Geschützt,tasks
+Task,/api/tasks/:id/parent,PATCH,Verschiebt Task zu einem neuen Parent (Circular Check),Geschützt,tasks
+Subtask,/api/tasks/:id/subtasks,POST,Erstellt einen Subtask direkt unter diesem Task,Geschützt,tasks
+Subtask,/api/tasks/:id/subtasks,GET,Listet alle direkten Kinder eines Tasks auf,Geschützt,tasks
+Comment,/api/tasks/:id/comments,GET,Ruft Kommentare inkl. User-Details ab,Geschützt,task-comments, users
+Comment,/api/tasks/:id/comments,POST,Fügt neuen Kommentar hinzu,Geschützt,task-comments
+Log,/api/tasks/:id/activity,GET,Ruft das Aktivitätsprotokoll inkl. User-Details ab,Geschützt,task-activity-log, users
 Template,/api/templates,GET/POST,Verwaltet Task Templates,Geschützt,task-templates
-Document,/api/documents,POST,Lädt ein Dokument hoch wird an task-id oder project-id gehängt,Geschützt,documents
-Document,/api/tasks/task-id/documents,GET,Ruft Dokumente ab die mit einem Task verknüpft sind,Geschützt,documents
-Document,/api/documents/id,GET,Download des Dokuments - Berechtigungsprüfung,Geschützt,documents
-Document,/api/documents/id/users,POST,Teilt das Dokument mit einem User,Geschützt,document-users
-Chat,/api/chat/rooms/id/messages,GET/POST,Ruft Chat-Historie ab/Sendet Nachricht,Geschützt,chat-rooms, chat-messages
+Document,/api/documents,POST,Lädt ein Dokument hoch,Geschützt,documents
+Document,/api/tasks/:id/documents,GET,Ruft alle verknüpften Dokumente eines Tasks ab,Geschützt,documents, task-documents
+Document,/api/documents/:id,GET,Download des Dokuments - Berechtigungsprüfung,Geschützt,documents
+Document,/api/documents/:id/users,POST,Teilt das Dokument mit einem User,Geschützt,document-users
+Chat,/api/chat/rooms/:id/messages,GET/POST,Ruft Chat-Historie ab/Sendet Nachricht,Geschützt,chat-rooms, chat-messages
 Notification,/api/notifications,GET,Ruft alle Benachrichtigungen des Users ab,Geschützt,notifications
-Notification,/api/notifications/id,PUT,Markiert Benachrichtigung als gelesen,Geschützt,notifications
+Notification,/api/notifications/:id,PUT,Markiert Benachrichtigung als gelesen,Geschützt,notifications
 Notes,/api/notes,GET/POST,Verwaltet Notizen,Geschützt,notes
-Notes,/api/notes/id/share,POST,Teilt eine Notiz mit einem anderen User,Geschützt,notes-users
+Notes,/api/notes/:id/share,POST,Teilt eine Notiz mit einem anderen User,Geschützt,notes-users
 Schedual,/api/scheduals/me,GET,Ruft den eigenen Stundenplan ab Schüler oder Lehrer,Geschützt,scheduals, scheduals-subjects, students/teachers
-Schedual,/api/classes/class-id/schedual,GET,Ruft den Stundenplan einer bestimmten Klasse ab,Geschützt,classes, scheduals
-Schedual,/api/scheduals/id,PUT/DELETE,Verwaltet Stundenplan-Eintrag Admin/Lehrer,Geschützt,scheduals, scheduals-subjects
+Schedual,/api/classes/:id/schedual,GET,Ruft den Stundenplan einer bestimmten Klasse ab,Geschützt,classes, scheduals
+Schedual,/api/scheduals/:id,PUT/DELETE,Verwaltet Stundenplan-Eintrag Admin/Lehrer,Geschützt,scheduals, scheduals-subjects
 Structure,/api/classes,GET/POST,Verwaltet Klassen Admin/Lehrer,Geschützt,classes
 Structure,/api/departments,GET/POST,Verwaltet Abteilungen Admin,Geschützt,departments
