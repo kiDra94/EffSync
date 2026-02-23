@@ -238,6 +238,17 @@ export class TasksService {
     });
   }
 
+  async getDocuments(taskId: number) {
+    await this.findOne(taskId, false);
+    const taskDocuments = await this.prisma.task_documents.findMany({
+      where: { task_id: taskId },
+      include: {
+        documents: true,
+      },
+    });
+    return taskDocuments.map(td => td.documents);
+  }
+
   private basicInclude() {
     return {
       users_tasks_created_byTousers: {
