@@ -103,24 +103,40 @@ export class TasksService {
     };
   }
 
-  async findOne(userId: number, includeRelations = true) {
+  async findOne(taskId: number, includeRelations = true) {
     const task = await this.prisma.tasks.findUnique({
-      where: { task_id: userId},
+      where: { task_id: taskId},
       include: includeRelations ? this.basicInclude() : undefined,
     });
 
     if(!task) {
-      throw new NotFoundException (`Task with ID ${userId} not found!`)
+      throw new NotFoundException (`Task with ID ${taskId} not found!`)
     }
     return task;
   }
 
-  update(userId: number, updateTaskDto: UpdateTaskDto) {
-    return `This action updates a #${userId} task`;
+  async findeOneWithSubtasks(taskId: number, includeRelations = true) {
+    const rootTask = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId}
+    });
+    if(!rootTask) {
+      throw new NotFoundException (`Task with ID ${taskId} not found!`)
+    };
+
+    const allTasks = await this.prisma.tasks.findMany({
+      where: { created_by: rootTask.created_by},
+      include: includeRelations ? this.basicInclude() : undefined,
+    });
+
+    return this.buildTree(allTasks, taskId);
   }
 
-  remove(userId: number) {
-    return `This action removes a #${userId} task`;
+  update(taskId: number, updateTaskDto: UpdateTaskDto) {
+    return `This action updates a #${taskId} task`;
+  }
+
+  remove(taskId: number) {
+    return `This action removes a #${taskId} task`;
   }
 
   private basicInclude() {
@@ -144,5 +160,20 @@ export class TasksService {
       priorities: true,
       tasks: true, // parent task
     };
+  }
+
+  private buildTree(allTasks: any[], taskId: number) {
+    const taskMap = new Map();
+
+    allTasks.forEach(task => {
+      taskMap.set(task.task_id, { ...task, subtasks: [] });
+    })
+    taskMap.forEach(task => {
+      const currentTaskId = taskMap.get(task.task_id);
+      const parentTaskId = taskMap.get(task.parent_task_id);
+      parentTaskId?.subtasks.push(currentTaskId);
+    })
+
+    return taskMap.get(taskId);
   }
 }
