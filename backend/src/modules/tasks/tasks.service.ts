@@ -217,6 +217,27 @@ export class TasksService {
     })
   }
 
+  async changeTaskParent(taskId: number, newParentId: number | null) {
+    const task = await this.findOne(taskId, false);
+
+    if (newParentId) {
+      await this.findOne(newParentId, false);
+      await this.validateNoCircularReference(taskId, newParentId);
+      if (taskId === newParentId) {
+        throw new BadRequestException('Task cannot be its own parent');
+      }
+    }
+
+    return this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        parent_task_id: newParentId,
+        updated_at: new Date(),
+      },
+      include: this.basicInclude(),
+    });
+  }
+
   private basicInclude() {
     return {
       users_tasks_created_byTousers: {
