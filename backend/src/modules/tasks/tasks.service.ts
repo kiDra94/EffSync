@@ -208,6 +208,15 @@ export class TasksService {
     return this.create({...createTaskDto, parent_task_id: parentTaskID}, userId)
   }
 
+  async getSubtasksOfTask(parentID: number, includeRelations = true) {
+    await this.findOne(parentID, false);
+    return this.prisma.tasks.findMany({
+      where: { parent_task_id: parentID },
+      include: includeRelations ? this.basicInclude() : undefined,
+      orderBy: { created_at: 'asc' }
+    })
+  }
+
   private basicInclude() {
     return {
       users_tasks_created_byTousers: {
