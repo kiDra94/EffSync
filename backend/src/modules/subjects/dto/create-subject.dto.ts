@@ -1,11 +1,1 @@
-import { IsString, IsNotEmpty, IsOptional } from "class-validator";
-
-export class CreateSubjectDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsOptional()
-  short_name?: string;
-}
+export class CreateSubjectDto {}

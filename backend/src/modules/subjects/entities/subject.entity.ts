@@ -1,1 +1,1 @@
-export class TaskActivity {}
+export class Subject {}
