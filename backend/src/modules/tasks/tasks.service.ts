@@ -180,8 +180,27 @@ export class TasksService {
     });
   }
 
-  remove(taskId: number) {
-    return `This action removes a #${taskId} task`;
+  async remove(taskId: number) {
+    const task = await this.findOne(taskId, false);
+
+    const subtasksCount = await this.prisma.tasks.count({
+      where: { parent_task_id: taskId },
+    });
+
+    if (subtasksCount > 0) {
+      throw new BadRequestException(
+        `Cannot delete task with ${subtasksCount} subtask(s). Delete subtasks first or reassign them.`,
+      );
+    }
+
+    await this.prisma.tasks.delete({
+      where: { task_id: taskId },
+    });
+
+    return { 
+      message: 'Task deleted successfully', 
+      task_id: taskId 
+    };
   }
 
   private basicInclude() {
