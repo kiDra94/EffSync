@@ -7,7 +7,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 @Injectable()
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
-
+  
   async create(createTaskDto: CreateTaskDto, userId: number) {
     const {
       parent_task_id,
@@ -59,5 +59,28 @@ export class TasksService {
 
   remove(id: number) {
     return `This action removes a #${id} task`;
+  }
+
+  private basicInclude() {
+    return {
+      users_tasks_created_byTousers: {
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+        },
+      },
+      users_tasks_assigned_toTousers: {
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+        },
+      },
+      priorities: true,
+      tasks: true, // parent task
+    };
   }
 }
