@@ -103,16 +103,24 @@ export class TasksService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} task`;
+  async findOne(userId: number, includeRelations = true) {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: userId},
+      include: includeRelations ? this.basicInclude() : undefined,
+    });
+
+    if(!task) {
+      throw new NotFoundException (`Task with ID ${userId} not found!`)
+    }
+    return task;
   }
 
-  update(id: number, updateTaskDto: UpdateTaskDto) {
-    return `This action updates a #${id} task`;
+  update(userId: number, updateTaskDto: UpdateTaskDto) {
+    return `This action updates a #${userId} task`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} task`;
+  remove(userId: number) {
+    return `This action removes a #${userId} task`;
   }
 
   private basicInclude() {
