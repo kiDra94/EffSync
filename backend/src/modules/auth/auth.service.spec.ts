@@ -150,4 +150,21 @@ describe("AuthService", () => {
       );
     });
   });
+
+  describe("validateUser", () => {
+    it("sollte User zurückgeben wenn User existiert", async () => {
+      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
+      const result = await service.validateUser(1);
+      expect(result).toEqual(mockUser);
+      expect(prisma.users.findUnique).toHaveBeenCalledWith({
+        where: { user_id: 1 },
+      });
+    });
+
+    it("sollte null zurückgeben wenn User nicht existiert", async () => {
+      mockPrismaService.users.findUnique.mockResolvedValue(null);
+      const result = await service.validateUser(999);
+      expect(result).toBeNull();
+    });
+  });
 });
