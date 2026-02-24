@@ -5,15 +5,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TaskActivityLogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createTaskActivityLogDto: CreateTaskActivityLogDto, userId: number, includeRelations = true) {
-    const task = await this.prisma.tasks.findUnique({
-      where: { task_id: createTaskActivityLogDto.task_id}
-    });
-    if(!task) {
-      throw new NotFoundException(`Task with ID ${createTaskActivityLogDto.task_id} not found!`);
-    };
+    const task = await this.taskGuard(createTaskActivityLogDto)
 
     return this.prisma.task_activity_log.create({
       data: {
@@ -24,8 +19,12 @@ export class TaskActivityLogService {
     })
   }
 
-  findAll() {
-    return `This action returns all taskActivityLog`;
+  async findAll(taskId: number, includeRelations = true) {
+    await this.taskGuard(taskId);
+    return await this.prisma.task_activity_log.findMany({
+      where: taskId ? { task_id: taskId } : undefined,
+      include: includeRelations ? this.basicInclude() : undefined,
+    });
   }
 
   findOne(id: number) {
@@ -56,7 +55,24 @@ export class TaskActivityLogService {
           title: true,
         }
       },
-      orderBy: { timestamp: 'desc'}
+      orderBy: { timestamp: 'desc' }
     }
+  }
+
+  private async taskGuard(taskId: number): Promise<ReturnType<typeof this.prisma.tasks.findUnique>>;
+  private async taskGuard(
+    createTaskActivityLogDto: CreateTaskActivityLogDto,
+  ): Promise<ReturnType<typeof this.prisma.tasks.findUnique>>;
+
+  private async taskGuard(arg: CreateTaskActivityLogDto | number,
+  ): Promise<ReturnType<typeof this.prisma.tasks.findUnique>> {
+    const taskId = typeof arg === 'number' ? arg : arg.task_id
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${taskId} not found!`);
+    };
+    return task;
   }
 }
