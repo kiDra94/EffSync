@@ -58,4 +58,33 @@ describe("AuthService", () => {
   it("should be defined", () => {
     expect(service).toBeDefined();
   });
+
+  describe("register", () => {
+    it("sollte User mit gehashtem Passwort erstellen", async () => {
+      const createUserDto = {
+        username: "newuser",
+        email: "new@example.com",
+        password: "password123",
+        first_name: "New",
+        last_name: "User",
+        role: "STUDENT" as any,
+      };
+      (bcrypt.hash as jest.Mock).mockResolvedValue("hashedPassword123");
+      mockPrismaService.users.create.mockResolvedValue({
+        ...mockUser,
+        username: "newuser",
+        email: "new@example.com",
+      });
+      const result = await service.register(createUserDto);
+      expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+      expect(prisma.users.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          username: "newuser",
+          email: "new@example.com",
+          password_hash: "hashedPassword123",
+        }),
+      });
+      expect(result).toHaveProperty("username", "newuser");
+    });
+  });
 });
