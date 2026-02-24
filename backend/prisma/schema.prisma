@@ -272,10 +272,12 @@ model task_documents {
 
 model task_templates {
   template_id Int       @id @default(autoincrement())
+  created_by  Int
   name        String?   @db.VarChar
   description String?
   created_at  DateTime? @default(now()) @db.Timestamp(6)
   updated_at  DateTime? @db.Timestamp(6)
+  user        users @relation(fields: [created_by], references: [user_id])
   tasks       tasks[]
 }
 
@@ -363,6 +365,7 @@ model users {
   teachers_teachers_teacher_idTousers    teachers?           @relation("teachers_teacher_idTousers")
   user_permissions                       user_permissions[]
   user_roles                             user_roles[]
+  taskTemplates                          task_templates[]
 }
 
 model email_preferences {

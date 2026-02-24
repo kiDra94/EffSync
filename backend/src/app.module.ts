@@ -42,6 +42,7 @@ import { TeachersModule } from "./modules/teachers/teachers.module";
 import { UserPermissionsModule } from "./modules/user-permissions/user-permissions.module";
 import { UserRolesModule } from "./modules/user-roles/user-roles.module";
 import { APP_GUARD } from "@nestjs/core";
+import { SubjectsModule } from './modules/subjects/subjects.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { APP_GUARD } from "@nestjs/core";
     TeachersModule,
     UserPermissionsModule,
     UserRolesModule,
+    SubjectsModule,
   ],
   controllers: [AppController],
   providers: [

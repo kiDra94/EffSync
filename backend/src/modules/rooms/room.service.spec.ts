@@ -1,18 +1,37 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { ClassesService } from "./room.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { RoomsService } from './room.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
-describe("ClassesService", () => {
-  let service: ClassesService;
+describe('RoomService', () => {
+  let service: RoomsService;
+
+  const mockPrismaService = {
+    rooms: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ClassesService],
+      providers: [
+        RoomsService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+      ],
     }).compile();
 
-    service = module.get<ClassesService>(ClassesService);
+    service = module.get<RoomsService>(RoomsService);
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(service).toBeDefined();
   });
 });
