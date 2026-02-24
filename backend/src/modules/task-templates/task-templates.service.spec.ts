@@ -170,4 +170,47 @@ describe("TaskTemplatesService", () => {
       );
     });
   });
+
+  describe("update", () => {
+    it("sollte Template aktualisieren", async () => {
+      const updateDto = {
+        name: "Aktualisiertes Template",
+        description: "Neue Beschreibung",
+      };
+
+      mockPrismaService.task_templates.findUnique.mockResolvedValue(
+        mockTemplate,
+      );
+      mockPrismaService.task_templates.update.mockResolvedValue({
+        ...mockTemplate,
+        ...updateDto,
+      });
+
+      const result = await service.update(1, updateDto, true);
+
+      expect(prisma.task_templates.findUnique).toHaveBeenCalledWith({
+        where: { template_id: 1 },
+        include: expect.any(Object),
+      });
+      expect(prisma.task_templates.update).toHaveBeenCalledWith({
+        where: { template_id: 1 },
+        data: {
+          ...updateDto,
+          updated_at: expect.any(Date),
+        },
+        include: expect.any(Object),
+      });
+      expect(result).toHaveProperty("name", "Aktualisiertes Template");
+    });
+
+    it("sollte NotFoundException werfen wenn Template nicht existiert", async () => {
+      const updateDto = { name: "Test" };
+
+      mockPrismaService.task_templates.findUnique.mockResolvedValue(null);
+
+      await expect(service.update(999, updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });
