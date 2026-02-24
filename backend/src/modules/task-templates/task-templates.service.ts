@@ -23,4 +23,24 @@ export class TaskTemplatesService {
   remove(id: number) {
     return `This action removes a #${id} taskTemplate`;
   }
+
+  private basicInclude(includeTask = false) {
+    return {
+      user: {
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+        }
+      },
+      task: includeTask ? {
+        select: {
+          task_id: true,
+          title: true,
+          created_at: true,
+        }
+      } : undefined
+    };
+  }
 }
