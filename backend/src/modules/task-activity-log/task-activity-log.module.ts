@@ -1,6 +1,6 @@
-import { Module } from "@nestjs/common";
-import { TaskActivityLogController } from "./task-activity-log.controller";
-import { TaskActivityLogService } from "./task-activity-log.service";
+import { Module } from '@nestjs/common';
+import { TaskActivityLogService } from './task-activity-log.service';
+import { TaskActivityLogController } from './task-activity-log.controller';
 
 @Module({
   controllers: [TaskActivityLogController],
