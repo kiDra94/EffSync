@@ -23,4 +23,24 @@ export class NotesService {
   remove(id: number) {
     return `This action removes a #${id} note`;
   }
+
+  private basicInclude() {
+    return {
+      users: {
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+        },
+        subjects: {
+          select: {
+            subject_id: true,
+            name: true,
+            short_name: true,
+          },
+        },
+      },
+    };
+  }
 }
