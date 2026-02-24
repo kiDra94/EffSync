@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTaskActivityLogDto } from './dto/create-task-activity-log.dto';
-import { UpdateTaskActivityLogDto } from './dto/update-task-activity-log.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
