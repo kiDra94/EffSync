@@ -144,4 +144,30 @@ describe("TaskTemplatesService", () => {
       });
     });
   });
+
+  describe("findOne", () => {
+    it("sollte Template zurückgeben wenn es existiert", async () => {
+      mockPrismaService.task_templates.findUnique.mockResolvedValue({
+        ...mockTemplate,
+        user: mockUser,
+      });
+
+      const result = await service.findOne(1, true);
+
+      expect(prisma.task_templates.findUnique).toHaveBeenCalledWith({
+        where: { template_id: 1 },
+        include: expect.any(Object),
+      });
+      expect(result).toHaveProperty("template_id", 1);
+    });
+
+    it("sollte NotFoundException werfen wenn Template nicht existiert", async () => {
+      mockPrismaService.task_templates.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(999)).rejects.toThrow(
+        "Task-Template with ID 999 not found!",
+      );
+    });
+  });
 });
