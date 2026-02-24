@@ -7,6 +7,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({
+  firstname: '',
+  lastname: '',
   username: '',
   email: '',
   password: '',
@@ -28,7 +30,14 @@ const handleRegister = async () => {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    await authStore.register(form)
+    const payload = {
+        firstname: form.firstname,
+        lastname: form.lastname,
+        username: form.username,
+        email: form.email,
+        password: form.password
+    }
+    await authStore.register(payload)
     router.push({ name: 'Dashboard' })
   } catch (error) {
     if (error.response && error.response.data && error.response.data.errors) {
@@ -36,6 +45,7 @@ const handleRegister = async () => {
         errorMessage.value = errors[0] || 'Registrierung fehlgeschlagen.'
     } else {
         errorMessage.value = 'Ein Fehler ist aufgetreten.'
+        console.log('Registrierungsfehler:', error)
     }
   } finally {
     isLoading.value = false
@@ -58,6 +68,16 @@ const handleRegister = async () => {
       <h2>Registrieren</h2>
 
       <form @submit.prevent="handleRegister">
+
+        <div class="form-group">
+          <label>Vorname</label>
+          <input type="text" v-model="form.firstname" required placeholder="Vorname eingeben" />
+        </div>
+
+        <div class="form-group">
+          <label>Nachname</label>
+          <input type="text" v-model="form.lastname" required placeholder="Nachnamen eingeben" />
+        </div>
         
         <div class="form-group">
           <label>Benutzername</label>

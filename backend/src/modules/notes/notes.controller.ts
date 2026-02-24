@@ -6,37 +6,43 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
+  UseGuards,
+  Query,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { NotesService } from "./notes.service";
 import { CreateNoteDto } from "./dto/create-note.dto";
 import { UpdateNoteDto } from "./dto/update-note.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
+@UseGuards(JwtAuthGuard)
 @Controller("notes")
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
   @Post()
-  create(@Body() createNoteDto: CreateNoteDto) {
-    return this.notesService.create(createNoteDto);
+  create(@Body() createNoteDto: CreateNoteDto, @Req() req) {
+    return this.notesService.create(createNoteDto, req.user.userId);
   }
 
   @Get()
-  findAll() {
-    return this.notesService.findAll();
+  findAll(@Req() req, @Query('subject_id', ParseIntPipe) subjectId?: number) {
+    return this.notesService.findAll(req.user.userId, subjectId);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.notesService.findOne(+id);
+  findOne(@Param("id", ParseIntPipe) noteId: number) {
+    return this.notesService.findOne(noteId);
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() updateNoteDto: UpdateNoteDto) {
-    return this.notesService.update(+id, updateNoteDto);
+  update(@Param("id", ParseIntPipe) noteId: number, @Req() req, @Body() updateNoteDto: UpdateNoteDto) {
+    return this.notesService.update(noteId, req.user.userId, updateNoteDto);
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.notesService.remove(+id);
+  remove(@Param("id", ParseIntPipe) noteId: number, @Req() req) {
+    return this.notesService.remove(noteId, req.user.userId);
   }
 }

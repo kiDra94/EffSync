@@ -29,8 +29,21 @@ const handleLogin = async () => {
     await authStore.login(credentials)
     router.push({ name: 'Dashboard' }) 
   } catch (error) {
-    if (error.response && error.response.status === 401) {
+    const status = error.response?.status
+    const backendMessage = error.response?.data?.message
+
+    if (status === 401) {
       errorMessage.value = 'Ungültige Zugangsdaten.'
+    } else if (status === 429) {
+      errorMessage.value = 'Zu viele Versuche. Bitte warte 1 Minute.'
+    } else if (status === 400) {
+      if (Array.isArray(backendMessage)) {
+        errorMessage.value = backendMessage.join(' ')
+      } else if (typeof backendMessage === 'string' && backendMessage.length > 0) {
+        errorMessage.value = backendMessage
+      } else {
+        errorMessage.value = 'Eingaben sind ungültig.'
+      }
     } else {
       errorMessage.value = 'Ein Fehler ist aufgetreten.'
     }
@@ -57,12 +70,12 @@ const handleLogin = async () => {
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label>Benutzername</label>
-          <input type="text" v-model="credentials.username" required placeholder="Benutzername" />
+          <input type="text" v-model="credentials.username" required minlength="8" maxlength="32" placeholder="Benutzername" />
         </div>
 
         <div class="form-group">
           <label>Passwort</label>
-          <input type="password" v-model="credentials.password" required placeholder="Passwort" />
+          <input type="password" v-model="credentials.password" required minlength="8" maxlength="32" placeholder="Passwort" />
         </div>
 
         <div v-if="errorMessage" class="error-msg">{{ errorMessage }}</div>

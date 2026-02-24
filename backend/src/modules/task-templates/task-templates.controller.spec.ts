@@ -1,0 +1,40 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { TaskTemplatesService } from './task-templates.service';
+import { TaskTemplatesController } from './task-templates.controller';
+import { PrismaService } from '../../prisma/prisma.service';
+
+describe('TaskTemplatesController', () => {
+  let controller: TaskTemplatesController;
+
+  const mockPrismaService = {
+    task_templates: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
+  };
+
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [TaskTemplatesController],
+      providers: [
+        TaskTemplatesService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+      ],
+    }).compile();
+
+    controller = module.get<TaskTemplatesController>(TaskTemplatesController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});

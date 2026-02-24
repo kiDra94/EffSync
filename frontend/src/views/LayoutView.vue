@@ -2,8 +2,10 @@
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
+import { useNotificationStore } from "@/stores/notificationStore";
 
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 const router = useRouter();
 const isDark = ref(false);
 const showDropdown = ref(false); // Neuer State für das Menü
@@ -69,6 +71,9 @@ const userInitial = computed(() => {
             <div v-if="authStore.isAuthenticated" class="user-menu">
                 <div class="avatar" @click.stop="toggleDropdown" title="Profil öffnen">
                     {{ userInitial }}
+                    <span v-if="notificationStore.unreadCount > 0" class="notification-badge">
+                        {{ notificationStore.unreadCount }}
+                    </span>
                 </div>
 
                 <transition name="fade">
@@ -285,6 +290,28 @@ hr {
     font-weight: bold;
     cursor: pointer;
     user-select: none;
+    position: relative;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border: 2px solid white;
+}
+
+:global(body.dark-mode) .notification-badge {
+    border-color: #2c2c3e;
 }
 
 /* Switch Styles */

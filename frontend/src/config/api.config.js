@@ -1,18 +1,18 @@
 export const API_CONFIG = {
-    TESTING: true,
-    BASE_URL: 'http://localhost:3000',
+    TESTING: import.meta.env.VITE_DEV_MODE === 'true',
+    BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
 };
 
 export const normalizeTask = (task) => {
     if (!task) return null;
-    
+
     if (API_CONFIG.TESTING) {
         return {
             ...task,
             task_id: task.id
         };
     }
-    
+
     return task;
 };
 
@@ -23,7 +23,7 @@ export const normalizeTasks = (tasks) => {
 
 export const serializeTask = (task) => {
     if (!task) return null;
-    
+
     if (API_CONFIG.TESTING) {
         const serialized = { ...task };
         if (task.task_id !== undefined) {
@@ -31,10 +31,22 @@ export const serializeTask = (task) => {
         }
         return serialized;
     }
-    
+
     return task;
 };
 
 export const buildUrl = (endpoint) => {
     return `${API_CONFIG.BASE_URL}${endpoint}`;
+};
+
+export const normalizeUser = (user) => {
+    if (!user) return null;
+    if (API_CONFIG.TESTING) {
+        return {
+            ...user,
+            id: user.user_id || user.id
+        };
+    }
+
+    return user;
 };

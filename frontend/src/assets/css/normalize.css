@@ -45,6 +45,7 @@ button, select {
 /* Klickbare Cursor für Interaktionen */
 button, [type="button"], [type="reset"], [type="submit"] {
   -webkit-appearance: button;
+  appearance: button;
   cursor: pointer;
 }
 

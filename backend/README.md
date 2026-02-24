@@ -1,98 +1,304 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Thesis Backend - Task Management System
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A modern, scalable REST API for a comprehensive task management system, built with **NestJS**, **Prisma ORM** and **PostgreSQL**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Table of Contents
 
-## Description
+- [Overview](#overview)
+- [Technology Stack](#technology-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Database Setup](#database-setup)
+- [Development](#development)
+- [Testing](#testing)
+- [API Documentation](#api-documentation)
+- [Project Structure](#project-structure)
+- [Deployment](#deployment)
+- [Contributors](#contributors)
+- [License](#license)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🎯 Overview
 
-## Project setup
+This backend system is the backbone of a task management system and offers the following features:
 
-```bash
-$ npm install
-```
+- **User Management**: Authentication, roles & permissions
+- **Classes & Teachers**: Management of classes, students and teaching staff
+- **Task Management**: Create, manage and track tasks
+- **Chat System**: Real-time communication between users
+- **Document Management**: Store, share and manage documents
+- **Notifications**: Event-based notifications
+- **Scheduling System**: Management of lesson plans and time slots
 
-## Compile and run the project
+## 🛠️ Technology Stack
 
-```bash
-# development
-$ npm run start
+- **Runtime**: Node.js (v18+)
+- **Framework**: NestJS 10+
+- **Language**: TypeScript
+- **Database**: PostgreSQL 14+
+- **ORM**: Prisma 5+
+- **Authentication**: JWT (Passport.js)
+- **Testing**: Jest, Supertest
+- **Linting**: ESLint, Prettier
+- **Validation**: class-validator, class-transformer
 
-# watch mode
-$ npm run start:dev
+## ✅ Prerequisites
 
-# production mode
-$ npm run start:prod
-```
+- **Node.js**: v18 or higher
+- **npm**: v9 or higher
+- **PostgreSQL**: v14 or higher
+- **Git**: For version control
 
-## Run tests
+## 📦 Installation
 
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 1. Clone the repository
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+git clone https://github.com/kiDra94/diplom-arbeit.git
+cd diplom-arbeit/backend
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 2. Install dependencies
 
-## Resources
+```bash
+npm install
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## ⚙️ Configuration
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Environment Variables
 
-## Support
+Create a `.env` file based on `.env.example`:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+cp .env.example .env
+```
 
-## Stay in touch
+### Required Environment Variables
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```env
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/diplom_arbeit
 
-## License
+# JWT Secret
+JWT_SECRET=your-super-secret-key-change-this-in-production
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# JWT Expiration
+JWT_EXPIRATION=24h
+
+# Server Port
+PORT=3000
+
+# Node Environment
+NODE_ENV=development
+```
+
+## 🗄️ Database Setup
+
+### Initialize the Database
+
+```bash
+# Run database migrations
+npm run prisma:migrate:dev
+
+# Alternatively: With a name for the new migration
+npx prisma migrate dev --name "migration_name"
+```
+
+### Prisma Studio (GUI for Database Data)
+
+```bash
+npm run prisma:studio
+```
+
+This opens a graphical interface at `http://localhost:5555` for managing database entries.
+
+## 🚀 Development
+
+### Start Development Server
+
+```bash
+# With watch mode (Hot Reload)
+npm run start:dev
+
+# Compile and run once
+npm run start
+
+# Production build
+npm run build
+npm run start:prod
+```
+
+The server runs by default at `http://localhost:3000`
+
+### Available NPM Scripts
+
+```bash
+npm run start           # Start the application
+npm run start:dev       # Start with watch mode
+npm run start:debug     # Debug mode with Inspector
+npm run start:prod      # Production mode
+npm run build          # Build for production
+npm run lint           # Run ESLint
+npm run format         # Format code with Prettier
+```
+
+## 🧪 Testing
+
+### Run Unit Tests
+
+```bash
+npm run test
+npm run test:watch     # Watch mode
+npm run test:cov       # With coverage report
+```
+
+### Run E2E Tests
+
+```bash
+npm run test:e2e
+npm run test:e2e:watch # Watch mode
+```
+
+### Auth Throttle E2E Tests
+
+```bash
+npm run test:e2e -- auth-throttle
+```
+
+## 📚 API Documentation
+
+### Swagger/OpenAPI
+
+The API documentation is automatically available at the following URL:
+
+```
+http://localhost:3000/api/docs
+```
+
+### Main Endpoints
+
+#### Authentication
+- `POST /auth/login` - User login
+- `POST /auth/register` - Register new user
+- `POST /auth/refresh` - Refresh token
+- `POST /auth/logout` - User logout
+
+#### Users
+- `GET /users` - Get all users
+- `GET /users/:id` - Get user details
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+#### Classes
+- `GET /classes` - Get all classes
+- `POST /classes` - Create new class
+- `GET /classes/:id` - Get class details
+- `PUT /classes/:id` - Update class
+
+#### Tasks
+- `GET /tasks` - Get all tasks
+- `POST /tasks` - Create new task
+- `GET /tasks/:id` - Get task details
+- `PUT /tasks/:id` - Update task
+- `DELETE /tasks/:id` - Delete task
+
+#### Documents
+- `GET /documents` - Get all documents
+- `POST /documents` - Upload document
+- `GET /documents/:id` - Download document
+- `DELETE /documents/:id` - Delete document
+
+#### Chat
+- `POST /chat-rooms` - Create chat room
+- `GET /chat-rooms` - Get all chat rooms
+- `POST /chat-messages` - Send message
+- `GET /chat-messages/:roomId` - Get messages from room
+
+For a complete list of all endpoints see Swagger documentation.
+
+## 📁 Project Structure
+
+```
+src/
+├── modules/                    # Business logic modules
+│   ├── auth/                   # Authentication & JWT
+│   ├── users/                  # User management
+│   ├── classes/                # Class management
+│   ├── students/               # Student management
+│   ├── teachers/               # Teacher management
+│   ├── tasks/                  # Task management
+│   ├── documents/              # Document management
+│   ├── chat-rooms/             # Chat system
+│   ├── notifications/          # Notifications
+│   ├── roles/                  # Role management
+│   ├── permissions/            # Permission management
+│   └── ...                     # Additional modules
+├── prisma/                     # Prisma service
+├── common/                     # Shared utilities/Guards
+├── app.module.ts              # Root module
+├── app.controller.ts          # Root controller
+├── main.ts                    # Entry point
+└── ...
+
+prisma/
+├── schema.prisma              # Database schema
+├── migrations/                # Database migrations
+└── seeds/                     # Seed data
+
+test/
+├── app.e2e-spec.ts           # E2E tests
+└── jest-e2e.json             # Jest configuration
+```
+
+## � Deployment
+
+When you're ready to deploy your NestJS application to production, there are several options available. For cloud-based deployment, we recommend **Mau** - the official platform for deploying NestJS applications on AWS.
+
+### Deploy with Mau (Recommended)
+
+Mau makes deployment straightforward and fast, requiring just a few simple steps:
+
+```bash
+# Install Mau globally
+npm install -g @nestjs/mau
+
+# Deploy your application
+mau deploy
+```
+
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure. The deployment involves:
+
+1. Building your NestJS application
+2. Uploading to AWS infrastructure
+3. Setting up database connections
+4. Configuring environment variables
+5. SSL/TLS certificate management
+
+### General Deployment Guidelines
+
+When deploying to production:
+
+1. Make sure all environment variables are properly configured
+2. Build the application: `npm run build`
+3. Run production mode: `npm run start:prod`
+4. Ensure database migrations are applied: `npm run prisma:migrate:deploy`
+5. Set up monitoring and logging
+6. Configure backups for your PostgreSQL database
+
+For more information on deployment, visit the [NestJS Deployment Documentation](https://docs.nestjs.com/deployment).
+
+## �👥 Contributors
+
+- **Ereny** - Backend Development
+- **Drazen** - Backend Development
+
+## 📄 License
+
+This project is part of a thesis and is subject to school guidelines.
+
+---
+
+
+
+
