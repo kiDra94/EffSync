@@ -24,6 +24,7 @@ export class TaskActivityLogService {
     return await this.prisma.task_activity_log.findMany({
       where: taskId ? { task_id: taskId } : undefined,
       include: includeRelations ? this.basicInclude() : undefined,
+      orderBy: { timestamp: 'desc' }
     });
   }
 
@@ -55,7 +56,6 @@ export class TaskActivityLogService {
           title: true,
         }
       },
-      orderBy: { timestamp: 'desc' }
     }
   }
 
