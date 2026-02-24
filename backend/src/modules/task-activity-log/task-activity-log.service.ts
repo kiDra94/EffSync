@@ -28,16 +28,15 @@ export class TaskActivityLogService {
     });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} taskActivityLog`;
-  }
-
-  update(id: number, updateTaskActivityLogDto: UpdateTaskActivityLogDto) {
-    return `This action updates a #${id} taskActivityLog`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} taskActivityLog`;
+  async findOne(logId: number, includeRelations = true) {
+    const log = await this.prisma.task_activity_log.findUnique({
+      where: { log_id: logId },
+      include: includeRelations ? this.basicInclude() : undefined,
+    });
+    if(!log) {
+      throw new NotFoundException(`Activity log iwht ID ${logId} not found!`)
+    }
+    return log;
   }
 
   private basicInclude() {
