@@ -213,4 +213,46 @@ describe("TaskTemplatesService", () => {
       );
     });
   });
+
+  describe("remove", () => {
+    it("sollte Template löschen wenn keine Tasks verknüpft sind", async () => {
+      mockPrismaService.task_templates.findUnique.mockResolvedValue(
+        mockTemplate,
+      );
+      mockPrismaService.tasks.count.mockResolvedValue(0);
+      mockPrismaService.task_templates.delete.mockResolvedValue(mockTemplate);
+
+      const result = await service.remove(1);
+
+      expect(prisma.tasks.count).toHaveBeenCalledWith({
+        where: { template_id: 1 },
+      });
+      expect(prisma.task_templates.delete).toHaveBeenCalledWith({
+        where: { template_id: 1 },
+      });
+      expect(result).toEqual({
+        message: "Template deleted successfully",
+        template_id: 1,
+      });
+    });
+
+    it("sollte NotFoundException werfen wenn Tasks verknüpft sind", async () => {
+      mockPrismaService.task_templates.findUnique.mockResolvedValue(
+        mockTemplate,
+      );
+      mockPrismaService.tasks.count.mockResolvedValue(5);
+
+      await expect(service.remove(1)).rejects.toThrow(NotFoundException);
+      await expect(service.remove(1)).rejects.toThrow(
+        "Cannot delete template with 5 associated task(s)",
+      );
+      expect(prisma.task_templates.delete).not.toHaveBeenCalled();
+    });
+
+    it("sollte NotFoundException werfen wenn Template nicht existiert", async () => {
+      mockPrismaService.task_templates.findUnique.mockResolvedValue(null);
+
+      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
+    });
+  });
 });
