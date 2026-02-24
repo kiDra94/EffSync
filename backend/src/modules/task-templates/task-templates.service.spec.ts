@@ -58,4 +58,59 @@ describe("TaskTemplatesService", () => {
   it("should be defined", () => {
     expect(service).toBeDefined();
   });
+
+  describe("create", () => {
+    it("sollte Template mit Relations erstellen", async () => {
+      const createDto = {
+        name: "Neues Template",
+        description: "Test Beschreibung",
+        default_priority: "HIGH" as any,
+        default_status: "TODO" as any,
+        estimated_duration: 60,
+      };
+
+      mockPrismaService.task_templates.create.mockResolvedValue({
+        ...mockTemplate,
+        ...createDto,
+        user: mockUser,
+      });
+
+      const result = await service.create(createDto, 1, true);
+
+      expect(prisma.task_templates.create).toHaveBeenCalledWith({
+        data: {
+          ...createDto,
+          created_by: 1,
+        },
+        include: expect.objectContaining({
+          user: expect.any(Object),
+        }),
+      });
+      expect(result).toHaveProperty("name", "Neues Template");
+    });
+
+    it("sollte Template ohne Relations erstellen", async () => {
+      const createDto = {
+        name: "Minimal Template",
+        description: "Nur Daten",
+        default_priority: "LOW" as any,
+        default_status: "TODO" as any,
+      };
+
+      mockPrismaService.task_templates.create.mockResolvedValue({
+        ...mockTemplate,
+        ...createDto,
+      });
+
+      const result = await service.create(createDto, 1, false);
+
+      expect(prisma.task_templates.create).toHaveBeenCalledWith({
+        data: {
+          ...createDto,
+          created_by: 1,
+        },
+        include: undefined,
+      });
+    });
+  });
 });
