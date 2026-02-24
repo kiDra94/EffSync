@@ -113,4 +113,35 @@ describe("TaskTemplatesService", () => {
       });
     });
   });
+
+  describe("findAll", () => {
+    it("sollte alle Templates eines Users zurückgeben", async () => {
+      mockPrismaService.task_templates.findMany.mockResolvedValue([
+        mockTemplate,
+      ]);
+
+      const result = await service.findAll(1, true);
+
+      expect(prisma.task_templates.findMany).toHaveBeenCalledWith({
+        where: { created_by: 1 },
+        include: expect.any(Object),
+        orderBy: { created_at: "desc" },
+      });
+      expect(result).toHaveLength(1);
+    });
+
+    it("sollte alle Templates zurückgeben wenn kein createdBy angegeben", async () => {
+      mockPrismaService.task_templates.findMany.mockResolvedValue([
+        mockTemplate,
+      ]);
+
+      const result = await service.findAll(undefined, false);
+
+      expect(prisma.task_templates.findMany).toHaveBeenCalledWith({
+        where: undefined,
+        include: undefined,
+        orderBy: { created_at: "desc" },
+      });
+    });
+  });
 });
