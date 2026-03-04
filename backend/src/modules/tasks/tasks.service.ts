@@ -12,6 +12,7 @@ export class TasksService {
   async create(createTaskDto: CreateTaskDto, userId: number) {
     const {
       parent_task_id,
+      created_by,
       priority_id,
       ...taskData
     } = createTaskDto;
