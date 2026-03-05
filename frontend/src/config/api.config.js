@@ -1,7 +1,3 @@
-export const API_CONFIG = {
-    BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-};
-
 export const normalizeTask = (task) => {
     if (!task) return null;
 
@@ -28,10 +24,6 @@ export const serializeTask = (task) => {
     }
 
     return serialized;
-};
-
-export const buildUrl = (endpoint) => {
-    return `${API_CONFIG.BASE_URL}${endpoint}`;
 };
 
 export const normalizeUser = (user) => {
