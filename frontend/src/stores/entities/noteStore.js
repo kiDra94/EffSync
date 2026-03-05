@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
-import { fetchNotes } from '../../api/notes';
+import { ref } from 'vue';
+import { fetchNotes, updateNote, createNote, deleteNote, shareNote } from '../../api/notes';
 
 export const useNoteStore = defineStore('note', () => {
     const notes = ref([])
@@ -60,6 +60,7 @@ export const useNoteStore = defineStore('note', () => {
     return {
         notes,
         getNotes,
+        updateNote,
         addNote,
         editNote,
         removeNote,
