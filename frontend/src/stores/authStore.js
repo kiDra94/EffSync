@@ -45,6 +45,10 @@ export const useAuthStore = defineStore('auth', () => {
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
+
+            const searchStore = useSearchStore()
+            await searchStore.ensureLoaded()
+
             return response.data
         } catch (error) {
             console.error('Login failed:', error)
@@ -66,6 +70,8 @@ export const useAuthStore = defineStore('auth', () => {
             userDetails.value = null
             localStorage.removeItem('authToken')
             await router.push({ name: 'Login' })
+            const searchStore = useSearchStore()
+            searchStore.reset()
         }
     }
 
