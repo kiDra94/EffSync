@@ -2,75 +2,31 @@
 import { ref, computed, onMounted } from 'vue';
 import NoteForm from '@/components/notes/NoteForm.vue';
 import NoteDeleteDialog from '@/components/notes/NoteDeleteDialog.vue';
+import { useNoteStore } from '@/stores/entities/noteStore';
 
-const STORAGE_KEY = 'effsync_notes';
+const noteStore = useNoteStore();
 
-const defaultNotes = [
-  { 
-    note_id: 1, 
-    title: 'Projektmeeting Notizen',
-    description: 'Diskussion über neue Features für Q1',
-    priority: 'high',
-    created_by: 'Max Mustermann',
-    created_at: '2026-02-20',
-    doc_count: 2
-  },
-  { 
-    note_id: 2, 
-    title: 'API Dokumentation',
-    description: 'Notizen zu REST API Endpoints',
-    priority: 'medium',
-    created_by: 'Anna Schmidt',
-    created_at: '2026-02-19',
-    doc_count: 1
-  },
-];
-
-const notes = ref([]);
 const selectedNote = ref(null);
 const activeModal = ref(null);
 const searchQuery = ref('');
 const filterPriority = ref('all');
 
 const filteredNotes = computed(() => {
-  let result = notes.value;
-  
+  let result = noteStore.notes;
+
   if (searchQuery.value) {
     result = result.filter(n =>
       n.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       n.description.toLowerCase().includes(searchQuery.value.toLowerCase())
     );
   }
-  
+
   if (filterPriority.value !== 'all') {
-    result = result.filter(n => n.priority === filterPriority.value);
+    result = result.filter(n => n.priority_id === filterPriority.value);
   }
-  
+
   return result;
 });
-
-const loadFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      notes.value = JSON.parse(stored);
-    } else {
-      notes.value = JSON.parse(JSON.stringify(defaultNotes));
-      saveToStorage();
-    }
-  } catch (error) {
-    console.error('Fehler beim Laden:', error);
-    notes.value = JSON.parse(JSON.stringify(defaultNotes));
-  }
-};
-
-const saveToStorage = () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes.value));
-  } catch (error) {
-    console.error('Fehler beim Speichern:', error);
-  }
-};
 
 const openNoteForm = (note = null) => {
   selectedNote.value = note ? JSON.parse(JSON.stringify(note)) : null;
@@ -90,18 +46,10 @@ const closeModal = () => {
 const saveNote = async (noteData) => {
   try {
     if (noteData.note_id) {
-      const index = notes.value.findIndex(n => n.note_id === noteData.note_id);
-      if (index !== -1) {
-        notes.value[index] = noteData;
-      }
+      await noteStore.editNote(noteData.note_id, noteData);
     } else {
-      noteData.note_id = Math.max(...notes.value.map(n => n.note_id), 0) + 1;
-      noteData.created_by = 'Aktueller Benutzer';
-      noteData.created_at = new Date().toISOString().split('T')[0];
-      noteData.doc_count = 0;
-      notes.value.push(noteData);
+      await noteStore.addNote(noteData);
     }
-    saveToStorage();
     closeModal();
   } catch (error) {
     console.error('Fehler beim Speichern:', error);
@@ -111,8 +59,7 @@ const saveNote = async (noteData) => {
 const deleteNote = async () => {
   if (selectedNote.value) {
     try {
-      notes.value = notes.value.filter(n => n.note_id !== selectedNote.value.note_id);
-      saveToStorage();
+      await noteStore.removeNote(selectedNote.value.note_id);
       closeModal();
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
@@ -129,8 +76,8 @@ const getPriorityColor = (priority) => {
   }
 };
 
-onMounted(() => {
-  loadFromStorage();
+onMounted(async () => {
+  await noteStore.getNotes();
 });
 </script>
 
