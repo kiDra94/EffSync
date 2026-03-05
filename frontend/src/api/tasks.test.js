@@ -89,7 +89,7 @@ describe('Tasks API', () => {
             const taskData = { title: 'Updated Task', status: 'IN_PROGRESS' };
             const mockResponse = { id: '1', title: 'Updated Task', status: 'IN_PROGRESS' };
 
-            mock.onPut('/tasks/1').reply(200, mockResponse);
+            mock.onPatch('/tasks/1').reply(200, mockResponse);
             const response = await updateTask('1', taskData);
 
             const respTask = { task_id: '1', title: 'Updated Task', status: 'IN_PROGRESS', id: '1' };
@@ -99,7 +99,7 @@ describe('Tasks API', () => {
         it('throws error on failed request', async () => {
             const taskData = { title: 'Updated Task', status: 'IN_PROGRESS' };
             
-            mock.onPut('/tasks/1').reply(500);
+            mock.onPatch('/tasks/1').reply(500);
             await expect(updateTask('1', taskData)).rejects.toThrow();
         })
     })

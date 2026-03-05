@@ -1,47 +1,28 @@
-export const API_CONFIG = {
-    BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-};
+const IS_MOCK = import.meta.env.VITE_DEV_MODE === 'true';
 
-export const normalizeTask = (task) => {
-    if (!task) return null;
-
+export const normalizeEntity = (entity, id_key) => {
+    if (!entity) return null;
         return {
-            ...task,
-            task_id: task.task_id ?? task.id,
+            ...entity,
+            [id_key]: entity[id_key] ?? entity.id,
         };
 };
 
-export const normalizeTasks = (tasks) => {
-    if (!Array.isArray(tasks)) return [];
-    return tasks.map(normalizeTask);
+export const normalizeEntities = (entities, idKey) => {
+    if (!Array.isArray(entities)) return [];
+    return entities.map((item) => normalizeEntity(item, idKey)); 
 };
 
-export const serializeTask = (task) => {
-    if (!task) return null;
+export const serializeEntity = (entity, id_key) => {
+    if (!entity) return null;
+    const { [id_key]: specific_id, id, ...rest } = entity;
 
-    const { task_id, id, ...rest } = task;
-    const serialized = { ...rest };
-    if (task_id !== undefined) {
-        serialized.task_id = task_id;
-    } else if (id !== undefined) {
-        serialized.id = id;
+    if(IS_MOCK){
+        const serialized = {...rest};
+        if(specific_id !== undefined) serialized.id = String(specific_id);
+        else if (id !== undefined) serialized.id = String(id);
+        return serialized;
     }
 
-    return serialized;
-};
-
-export const buildUrl = (endpoint) => {
-    return `${API_CONFIG.BASE_URL}${endpoint}`;
-};
-
-export const normalizeUser = (user) => {
-    if (!user) return null;
-    if (API_CONFIG.TESTING) {
-        return {
-            ...user,
-            id: user.user_id || user.id
-        };
-    }
-
-    return user;
+    return rest;
 };

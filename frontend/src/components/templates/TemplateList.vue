@@ -15,7 +15,7 @@ defineProps({
   templates: Array
 });
 
-const emit = defineEmits(['edit', 'delete']);
+const emit = defineEmits(['edit', 'delete', 'toggle-status']);
 
 const editTemplate = (template) => {
   emit('edit', template);
@@ -23,6 +23,10 @@ const editTemplate = (template) => {
 
 const deleteTemplate = (template) => {
   emit('delete', template);
+};
+
+const toggleStatus = (template) => {
+  emit('toggle-status', template);
 };
 </script>
 

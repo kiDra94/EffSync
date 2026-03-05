@@ -27,6 +27,7 @@ Notification,/api/notifications,GET,Ruft alle Benachrichtigungen des Users ab,Ge
 Notification,/api/notifications/:id,PUT,Markiert Benachrichtigung als gelesen,Geschützt,notifications
 Notes,/api/notes,GET/POST,Verwaltet Notizen,Geschützt,notes
 Notes,/api/notes/:id/share,POST,Teilt eine Notiz mit einem anderen User,Geschützt,notes-users
+Notes,/api/notes/:id,PATCH/DELETE,Aktualisiert oder löscht eine Notiz,Geschützt,notes
 Schedual,/api/scheduals/me,GET,Ruft den eigenen Stundenplan ab Schüler oder Lehrer,Geschützt,scheduals, scheduals-subjects, students/teachers
 Schedual,/api/classes/:id/schedual,GET,Ruft den Stundenplan einer bestimmten Klasse ab,Geschützt,classes, scheduals
 Schedual,/api/scheduals/:id,PUT/DELETE,Verwaltet Stundenplan-Eintrag Admin/Lehrer,Geschützt,scheduals, scheduals-subjects
