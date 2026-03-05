@@ -276,16 +276,16 @@ export class TasksService {
         select: {
           user_id: true,
           email: true,
-          first_name: true,
-          last_name: true,
+          firstname: true,
+          lastname: true,
         },
       },
       users_tasks_assigned_toTousers: {
         select: {
           user_id: true,
           email: true,
-          first_name: true,
-          last_name: true,
+          firstname: true,
+          lastname: true,
         },
       },
       priorities: true,
@@ -299,8 +299,8 @@ export class TasksService {
         select: {
           user_id: true,
           email: true,
-          first_name: true,
-          last_name: true,
+          firstname: true,
+          lastname: true,
         },
       },
     };
