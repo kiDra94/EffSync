@@ -40,6 +40,7 @@ export function useSocket() {
     }
 
     return {
+        socket,
         connect,
         isConnected,
         connect,
