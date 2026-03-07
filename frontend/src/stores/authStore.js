@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/api/authService'
 import router from '@/router'
 import { useSocket } from './useSocket'
+import { useSearchStore } from './searchStore'
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
