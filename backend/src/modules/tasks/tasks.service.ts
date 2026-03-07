@@ -291,8 +291,8 @@ export class TasksService {
       if (!parent.auto_complete) continue;
 
       const doneTasks = await this.prisma.tasks.findMany({
-        where: { status: 'COMPLETED' },
-        select: { task_id: true }
+        where: { parent_task_id: parent.task_id, status: 'COMPLETED' },
+        select: { task_id: true, status: true },
       });
       const completedIds = new Set(doneTasks.map(t => String(t.task_id)));
       const isFulfilled = evaluateCondition(parent.completion_rule as ConditionNode, completedIds);
@@ -304,7 +304,10 @@ export class TasksService {
         });
         if(parent.assigned_to){
           this.websocketGateway.emitTaskUpdated(parent.assigned_to, updated);
-        }
+        };
+        if (parent.created_by && parent.created_by !== parent.assigned_to) {
+          this.websocketGateway.emitTaskUpdated(parent.created_by, updated);
+        };
       } else if (!isFulfilled && parent.status === 'COMPLETED') {
         const updated = await this.prisma.tasks.update({
           where: { task_id: parent.task_id },
@@ -312,7 +315,10 @@ export class TasksService {
         });
         if(parent.assigned_to) {
           this.websocketGateway.emitTaskUpdated(parent.assigned_to, updated);
-        }
+        };
+        if (parent.created_by && parent.created_by !== parent.assigned_to) {
+          this.websocketGateway.emitTaskUpdated(parent.created_by, updated);
+        };
       }
     }
   }
