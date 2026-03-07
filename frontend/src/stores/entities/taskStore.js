@@ -1,14 +1,29 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
+import { useSocket } from '../useSocket';
 
 export const useTaskStore = defineStore('task', () => {
     const tasks = ref([]);
+    const { socket } = useSocket;
+
+    function initSocketListeners() {
+        if(!socket.value) return;
+
+        socket.value.on('task:updated', (updateTask) => {
+            const index = tasks.value.findIndex(task => task.task_id === updateTask.task_id);
+            if(index !== -1) { // findIndex gibt -1 zurueck wenn es nix findet!
+                tasks.value[index] = updateTask;
+                console.log(`Task ${updateTask.title} was updated automatically!`)
+            }
+        })
+    }
 
     async function getTasks() {
         try {
             const response = await fetchTasks();
             tasks.value = response.data || response;
+            initSocketListeners();
         } catch (error) {
             console.error('Fehler beim Abrufen der Tasks:', error);
             throw error;
