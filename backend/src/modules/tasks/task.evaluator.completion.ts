@@ -16,7 +16,7 @@ export function evaluateCondition(
     completedTaskIds: Set<string>,
 ): boolean {
     if (node.type === 'leaf') {
-        return completedTaskIds.has(node.task_id);
+        return completedTaskIds.has(String(node.task_id));
     }
 
     const results = node.operands.map(operand =>

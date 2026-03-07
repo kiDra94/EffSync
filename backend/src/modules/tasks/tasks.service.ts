@@ -189,7 +189,7 @@ export class TasksService {
     });
 
     if (updated.parent_task_id) {
-      await this.checkAndAutoComplete(updated.parent_task_id);
+      await this.checkAndAutoComplete(updated.task_id);
     }
 
     return updated;
@@ -398,7 +398,7 @@ export class TasksService {
 
   private ruleContainsTask(rule: ConditionNode, taskId: string): boolean {
     if (!rule) return false;
-    if (rule.type === 'leaf') return rule.task_id === taskId;
+    if (rule.type === 'leaf') return String(rule.task_id) === String(taskId);
     if (rule.type === 'operator') {
       return rule.operands.some(op => this.ruleContainsTask(op, taskId));
     }
