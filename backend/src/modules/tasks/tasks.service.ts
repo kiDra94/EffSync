@@ -3,11 +3,17 @@ import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { QueryTasksDto } from "./dto/query-tasks.dto";
+import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
+import { Prisma } from "@prisma/client";
+import { WebsocketGateway } from "../websocket/websocket.gateway";
 
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly websocketGateway: WebsocketGateway,
+  ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
     const {
@@ -136,6 +142,7 @@ export class TasksService {
     const {
       parent_task_id,
       priority_id,
+      completion_rule,
       ...taskData
     } = updateTaskDto;
 
@@ -168,7 +175,7 @@ export class TasksService {
       }
     }
 
-    return this.prisma.tasks.update({
+    const updated = await this.prisma.tasks.update({
       where: { task_id: taskId },
       data: {
         ...taskData,
@@ -176,9 +183,16 @@ export class TasksService {
         priority_id,
         deadline: taskData.deadline ? new Date(taskData.deadline) : undefined,
         updated_at: new Date(),
+        completion_rule: completion_rule ? (completion_rule as unknown as Prisma.InputJsonValue) : undefined,
       },
       include: this.basicInclude(),
     });
+
+    if (updated.parent_task_id) {
+      await this.checkAndAutoComplete(updated.task_id);
+    }
+
+    return updated;
   }
 
   async remove(taskId: number) {
@@ -198,15 +212,15 @@ export class TasksService {
       where: { task_id: taskId },
     });
 
-    return { 
-      message: 'Task deleted successfully', 
-      task_id: taskId 
+    return {
+      message: 'Task deleted successfully',
+      task_id: taskId
     };
   }
 
   async createSubTask(parentTaskID: number, createTaskDto: CreateTaskDto, userId: number) {
     await this.findOne(parentTaskID, false);
-    return this.create({...createTaskDto, parent_task_id: parentTaskID}, userId)
+    return this.create({ ...createTaskDto, parent_task_id: parentTaskID }, userId)
   }
 
   async getSubtasksOfTask(parentID: number, includeRelations = true) {
@@ -252,7 +266,7 @@ export class TasksService {
 
   async getComments(taskId: number, includeRelations = true) {
     await this.findOne(taskId, false);
-  
+
     return this.prisma.task_comments.findMany({
       where: { task_id: taskId },
       include: includeRelations ? this.userSelectInclude() : undefined,
@@ -262,12 +276,50 @@ export class TasksService {
 
   async getActivityLog(taskId: number, includeRelations = true) {
     await this.findOne(taskId, false);
-  
+
     return this.prisma.task_activity_log.findMany({
       where: { task_id: taskId },
       include: includeRelations ? this.userSelectInclude() : undefined,
       orderBy: { timestamp: 'desc' },
     });
+  }
+
+  async checkAndAutoComplete(childTaskId: number) {
+    const affectedParents = await this.findAffectedParents(childTaskId);
+
+    for (const parent of affectedParents) {
+      if (!parent.auto_complete) continue;
+
+      const doneTasks = await this.prisma.tasks.findMany({
+        where: { parent_task_id: parent.task_id, status: 'COMPLETED' },
+        select: { task_id: true},
+      });
+      const completedIds = new Set(doneTasks.map(t => String(t.task_id)));
+      const isFulfilled = evaluateCondition(parent.completion_rule as ConditionNode, completedIds);
+
+      if (isFulfilled && parent.status !== 'COMPLETED') {
+        const updated = await this.prisma.tasks.update({
+          where: { task_id: parent.task_id },
+          data: { status: 'COMPLETED', progress: 100 }
+        });
+        this.notifyTaskUpdate(parent, updated);
+      } else if (!isFulfilled && parent.status === 'COMPLETED') {
+        const updated = await this.prisma.tasks.update({
+          where: { task_id: parent.task_id },
+          data: { status: 'IN_PROGRESS' }
+        });
+        this.notifyTaskUpdate(parent, updated);
+      }
+    }
+  }
+
+  private notifyTaskUpdate(parent: any, updated: any) {
+    if (parent.assigned_to) {
+      this.websocketGateway.emitTaskUpdated(parent.assigned_to, updated);
+    }
+    if (parent.created_by && parent.created_by !== parent.assigned_to) {
+      this.websocketGateway.emitTaskUpdated(parent.created_by, updated);
+    }
   }
 
   private basicInclude() {
@@ -343,4 +395,24 @@ export class TasksService {
       });
     }
   }
+
+  private ruleContainsTask(rule: ConditionNode, taskId: string): boolean {
+    if (!rule) return false;
+    if (rule.type === 'leaf') return String(rule.task_id) === String(taskId);
+    if (rule.type === 'operator') {
+      return rule.operands.some(op => this.ruleContainsTask(op, taskId));
+    }
+    return false;
+  }
+
+
+  private async findAffectedParents(childTaskId: number) {
+    const allTasksWithRule = await this.prisma.tasks.findMany({
+      where: { completion_rule: { not: Prisma.JsonNull } }
+    });
+    return allTasksWithRule.filter(task =>
+      this.ruleContainsTask(task.completion_rule as ConditionNode, String(childTaskId))
+    );
+  }
+
 }

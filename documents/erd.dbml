@@ -118,6 +118,8 @@ Table tasks {
   status task_status [default: "TODO"]
   progress integer
   deadline datetime
+  completion_rule json [null, note: "Speichert komplexe Abschluss-Bedingungen"]
+  auto_complete boolean [null, default: false]
   created_by integer [ref: > users.user_id]
   assigned_to integer [ref: > users.user_id]
   template_id integer [ref: > task_templates.template_id]

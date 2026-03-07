@@ -112,7 +112,7 @@ async function main() {
 
         // --- PHASE 2: Users ---
         const passwordHash = await bcrypt.hash('password123', 10);
-        
+
         const usersData = [
             { firstname: 'Max', lastname: 'Mustermann', email: 'admin@htl.at', username: 'adminadmin' }, // ID 1 (Superuser)
             { firstname: 'Anna', lastname: 'Lehrerin', email: 'anna.lehrerin@htl.at', username: 'alehrerin' }, // ID 2
@@ -249,7 +249,7 @@ async function main() {
             deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }));
         await prisma.tasks.createMany({ data: parentTasksData });
-        
+
         const subTasksData = Array.from({ length: 10 }).map((_, i) => ({
             parent_task_id: i + 1,
             title: `Teilaufgabe ${i + 1}`,
@@ -262,6 +262,108 @@ async function main() {
         }));
         await prisma.tasks.createMany({ data: subTasksData });
         console.log(`✓ 20 Einträge in tasks erstellt (10 Parent, 10 Subtasks)`);
+        const extraSub1 = await prisma.tasks.create({
+            data: {
+                title: 'Nginx installieren',
+                description: 'Webserver auf dem Produktions-Server einrichten',
+                status: task_status.COMPLETED,
+                progress: 100,
+                created_by: 2,
+                assigned_to: 7,
+                priority_id: 3,
+                created_at: new Date('2026-01-04T08:00:00'),
+                updated_at: new Date('2026-01-04T08:00:00'),
+            }
+        });
+
+        const extraSub2 = await prisma.tasks.create({
+            data: {
+                title: 'SSL Zertifikat einrichten',
+                description: 'HTTPS mit Let\'s Encrypt konfigurieren',
+                status: task_status.COMPLETED,
+                progress: 100,
+                created_by: 2,
+                assigned_to: 7,
+                priority_id: 3,
+                created_at: new Date('2026-01-04T09:00:00'),
+                updated_at: new Date('2026-01-04T09:00:00'),
+            }
+        });
+
+        const extraSub3 = await prisma.tasks.create({
+            data: {
+                title: 'Docker aufsetzen',
+                description: 'Container-Umgebung konfigurieren',
+                status: task_status.IN_PROGRESS,
+                progress: 60,
+                created_by: 2,
+                assigned_to: 7,
+                priority_id: 3,
+                created_at: new Date('2026-01-04T10:00:00'),
+                updated_at: new Date('2026-01-04T10:00:00'),
+            }
+        });
+
+        const extraSub4 = await prisma.tasks.create({
+            data: {
+                title: 'CI/CD Pipeline einrichten',
+                description: 'GitHub Actions Workflow erstellen',
+                status: task_status.TODO,
+                progress: 0,
+                created_by: 2,
+                assigned_to: 7,
+                priority_id: 3,
+                created_at: new Date('2026-01-04T11:00:00'),
+                updated_at: new Date('2026-01-04T11:00:00'),
+            }
+        });
+
+        // Jetzt den Parent-Task mit echten Subtask-IDs erstellen
+        const extraParent = await prisma.tasks.create({
+            data: {
+                title: 'Server aufsetzen',
+                description: 'Produktions-Server für Diplomarbeit konfigurieren',
+                status: task_status.IN_PROGRESS,
+                progress: 50,
+                created_by: 2,
+                assigned_to: 7,
+                priority_id: 3,
+                auto_complete: true,
+                deadline: new Date('2026-02-15T23:59:00'),
+                created_at: new Date('2026-01-03T10:00:00'),
+                updated_at: new Date('2026-01-03T10:00:00'),
+                completion_rule: {
+                    type: 'operator',
+                    operator: 'OR',
+                    operands: [
+                        {
+                            type: 'operator',
+                            operator: 'AND',
+                            operands: [
+                                { type: 'leaf', task_id: String(extraSub1.task_id) },
+                                { type: 'leaf', task_id: String(extraSub2.task_id) },
+                            ]
+                        },
+                        {
+                            type: 'operator',
+                            operator: 'AND',
+                            operands: [
+                                { type: 'leaf', task_id: String(extraSub3.task_id) },
+                                { type: 'leaf', task_id: String(extraSub4.task_id) },
+                            ]
+                        }
+                    ]
+                }
+            }
+        });
+
+        // Subtasks dem Parent zuweisen
+        await prisma.tasks.updateMany({
+            where: { task_id: { in: [extraSub1.task_id, extraSub2.task_id, extraSub3.task_id, extraSub4.task_id] } },
+            data: { parent_task_id: extraParent.task_id }
+        });
+
+        console.log(`✓ Extra Task "Server aufsetzen" mit completion_rule erstellt (ID: ${extraParent.task_id})`);
 
         // --- PHASE 7: Notes, Documents, Chat Rooms ---
         const notesData = Array.from({ length: 10 }).map((_, i) => ({

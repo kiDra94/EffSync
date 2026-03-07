@@ -43,6 +43,7 @@ import { UserPermissionsModule } from "./modules/user-permissions/user-permissio
 import { UserRolesModule } from "./modules/user-roles/user-roles.module";
 import { APP_GUARD } from "@nestjs/core";
 import { SubjectsModule } from './modules/subjects/subjects.module';
+import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { SubjectsModule } from './modules/subjects/subjects.module';
     UserPermissionsModule,
     UserRolesModule,
     SubjectsModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [

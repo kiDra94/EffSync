@@ -2,12 +2,15 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/authService'
 import router from '@/router'
+import { useSocket } from './useSocket'
+import { useSearchStore } from './searchStore'
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
     const userId = ref(null)
     const userRole = ref(null)
     const userDetails = ref(null)
+    const { connect, disconnect } = useSocket();
 
     const isAuthenticated = computed(() => !!token.value)
     const isAdmin = computed(() => userRole.value === 'admin')
@@ -46,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             localStorage.setItem('authToken', newToken)
 
+            connect(data.token);
             const searchStore = useSearchStore()
             await searchStore.ensureLoaded()
 
@@ -64,6 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
         } catch (error) {
             console.error('Logout failed:', error)
         } finally {
+            disconnect();
             token.value = null
             userId.value = null
             userRole.value = null
@@ -89,6 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
             userId.value = user.id
             userRole.value = user.role
             userDetails.value = user
+            connect(token.value);
         } catch (error) {
             console.error('Failed to load user profile:', error)
             await logout()
