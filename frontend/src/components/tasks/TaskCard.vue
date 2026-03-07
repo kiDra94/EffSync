@@ -103,10 +103,9 @@ const taskStore = useTaskStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
 const allTasks = computed(() => taskStore.tasks);
 
-const logicFulfilled = computed(() => {
-  if (!props.task.completion_rule) return null;
-  return taskStore.isLogicFulfilled(props.task.task_id);
-});
+const logicFulfilled = computed(() =>
+  taskStore.tasks.find(t => t.task_id === props.task.task_id)?.isLogicFulfilled ?? false
+);
 
 const parsedRule = computed(() => {
   if (!props.task.completion_rule) return null;
