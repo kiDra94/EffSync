@@ -31,7 +31,7 @@ export const updateTask = async (task_id, taskData) => {
 };
 
 export const patchTask = async (task_id, attributes) => {
-    const response = await apiClient.patch(`${ENDPOINT}/${task_id}`, { attributes });
+    const response = await apiClient.patch(`${ENDPOINT}/${task_id}`, attributes);
     return normalizeEntity(response.data, ID_KEY);
 };
 
