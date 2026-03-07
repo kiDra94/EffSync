@@ -3,9 +3,11 @@ import { computed, ref } from 'vue';
 import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
 import { useSocket } from '../useSocket';
 
+let isSaving = false;
+
 export const useTaskStore = defineStore('task', () => {
     const tasks = ref([]);
-    const { socket } = useSocket;
+    const { socket } = useSocket();
 
     function initSocketListeners() {
         if(!socket.value) return;
@@ -96,6 +98,8 @@ export const useTaskStore = defineStore('task', () => {
     }
 
     async function saveCompletionRule(taskId, rule, autoComplete = false) {
+        if (isSaving) return;
+        isSaving = true;
         try {
             // const ruleJson = typeof rule === 'object' ? JSON.stringify(rule) : rule;
             await updateCompletionRule(taskId, rule, autoComplete);
