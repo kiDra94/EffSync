@@ -138,6 +138,7 @@ export class TasksService {
     const {
       parent_task_id,
       priority_id,
+      completion_rule,
       ...taskData
     } = updateTaskDto;
 
@@ -178,6 +179,7 @@ export class TasksService {
         priority_id,
         deadline: taskData.deadline ? new Date(taskData.deadline) : undefined,
         updated_at: new Date(),
+        completion_rule: completion_rule ? (completion_rule as unknown as Prisma.InputJsonValue) : undefined,
       },
       include: this.basicInclude(),
     });
