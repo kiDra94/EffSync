@@ -62,62 +62,6 @@ export const useTaskStore = defineStore('task', () => {
         return tasks.value.filter(task => task.parent_task_id === taskId);
     });
 
-    function evaluateCompletionRule(rule) {
-        if (!rule) return null;
-
-        if (rule.type === 'leaf') {
-            const leaf = tasks.value.find(t => t.task_id === rule.task_id);
-            return leaf ? leaf.status === 'COMPLETED' : false;
-        }
-
-        if (rule.type === 'operator') {
-            const results = rule.operands.map(child =>
-                evaluateCompletionRule(child)
-            );
-
-            switch (rule.operator) {
-                case 'AND':
-                    return results.every(r => r === true);
-                case 'OR':
-                    return results.some(r => r === true);
-                case 'XOR':
-                    return results.filter(r => r === true).length === 1;
-                case 'NOT':
-                    return !results[0];
-                default:
-                    return false;
-            }
-        }
-
-        return false;
-    }
-
-    const isLogicFulfilled = computed(() => (taskId) => {
-        const task = tasks.value.find(t => t.task_id === taskId);
-        if (!task?.completion_rule) return null;
-        const rule = typeof task.completion_rule === 'string' ? JSON.parse(task.completion_rule) : task.completion_rule;
-
-        return evaluateCompletionRule(rule);
-    });
-
-    function ruleContainsTask(rule, taskId) {
-        if (!rule) return false;
-        if (rule.type === 'leaf') return rule.task_id === taskId;
-        if (rule.type === 'operator') {
-            return rule.operands.some(op => ruleContainsTask(op, taskId));
-        }
-        return false;
-    }
-
-    function findAffectedParents(childTaskId) {
-        return tasks.value.filter(task => {
-            if (!task.completion_rule) return false;
-            const rule = typeof task.completion_rule === 'string' ? JSON.parse(task.completion_rule) : task.completion_rule;
-
-            return ruleContainsTask(rule, childTaskId);
-        });
-    }
-
     async function changeStatus(task_id, newStatus) {
         try {
             const updates = { status: newStatus };
@@ -130,37 +74,20 @@ export const useTaskStore = defineStore('task', () => {
                 tasks.value[index].progress = updates.progress || tasks.value[index].progress;
             }
             await patchTask(task_id, updates);
-            await checkAffectedParents(task_id);
         } catch (error) {
             console.error('Fehler beim Statuswechsel:', error);
             throw error;
         }
     }
 
-    async function checkAffectedParents(childTaskId) {
-        const affectedParents = findAffectedParents(childTaskId);
-
-        for (const parent of affectedParents) {
-            const isFulfilled = isLogicFulfilled.value(parent.task_id);
-
-            if (parent.auto_complete) {
-                if (isFulfilled && parent.status !== 'COMPLETED') {
-                    await changeStatus(parent.task_id, 'COMPLETED');
-                } else if (!isFulfilled && parent.status === 'COMPLETED') {
-                    await changeStatus(parent.task_id, 'IN_PROGRESS');
-                }
-            }
-        }
-    }
-
     async function saveCompletionRule(taskId, rule, autoComplete = false) {
         try {
-            const ruleJson = typeof rule === 'object' ? JSON.stringify(rule) : rule;
-            await updateCompletionRule(taskId, ruleJson, autoComplete);
+            // const ruleJson = typeof rule === 'object' ? JSON.stringify(rule) : rule;
+            await updateCompletionRule(taskId, rule, autoComplete);
 
             const index = tasks.value.findIndex(t => t.task_id === taskId);
             if (index !== -1) {
-                tasks.value[index].completion_rule = ruleJson;
+                tasks.value[index].completion_rule = rule;
                 tasks.value[index].auto_complete = autoComplete;
             }
         } catch (error) {
@@ -251,13 +178,8 @@ export const useTaskStore = defineStore('task', () => {
         changeStatus,
         removeTask,
         getSubtasks,
-        isLogicFulfilled,
-        evaluateCompletionRule,
         saveCompletionRule,
-        checkAffectedParents,
         createTaskWithSubtasks,
         editTaskWithSubtasks,
-        ruleContainsTask,
-        findAffectedParents,
     };
 });

@@ -3,6 +3,8 @@ import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { QueryTasksDto } from "./dto/query-tasks.dto";
+import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
+import { Prisma } from "@prisma/client";
 
 
 @Injectable()
@@ -168,7 +170,7 @@ export class TasksService {
       }
     }
 
-    return this.prisma.tasks.update({
+    const updated = await this.prisma.tasks.update({
       where: { task_id: taskId },
       data: {
         ...taskData,
@@ -179,6 +181,12 @@ export class TasksService {
       },
       include: this.basicInclude(),
     });
+
+    if (updated.parent_task_id) {
+      await this.checkAndAutoComplete(updated.parent_task_id);
+    }
+
+    return updated;
   }
 
   async remove(taskId: number) {
@@ -198,15 +206,15 @@ export class TasksService {
       where: { task_id: taskId },
     });
 
-    return { 
-      message: 'Task deleted successfully', 
-      task_id: taskId 
+    return {
+      message: 'Task deleted successfully',
+      task_id: taskId
     };
   }
 
   async createSubTask(parentTaskID: number, createTaskDto: CreateTaskDto, userId: number) {
     await this.findOne(parentTaskID, false);
-    return this.create({...createTaskDto, parent_task_id: parentTaskID}, userId)
+    return this.create({ ...createTaskDto, parent_task_id: parentTaskID }, userId)
   }
 
   async getSubtasksOfTask(parentID: number, includeRelations = true) {
@@ -252,7 +260,7 @@ export class TasksService {
 
   async getComments(taskId: number, includeRelations = true) {
     await this.findOne(taskId, false);
-  
+
     return this.prisma.task_comments.findMany({
       where: { task_id: taskId },
       include: includeRelations ? this.userSelectInclude() : undefined,
@@ -262,13 +270,41 @@ export class TasksService {
 
   async getActivityLog(taskId: number, includeRelations = true) {
     await this.findOne(taskId, false);
-  
+
     return this.prisma.task_activity_log.findMany({
       where: { task_id: taskId },
       include: includeRelations ? this.userSelectInclude() : undefined,
       orderBy: { timestamp: 'desc' },
     });
   }
+
+  async checkAndAutoComplete(childTaskId: number) {
+    const affectedParents = await this.findAffectedParents(childTaskId);
+
+    for (const parent of affectedParents) {
+      if (!parent.auto_complete) continue;
+
+      const doneTasks = await this.prisma.tasks.findMany({
+        where: { status: 'COMPLETED' },
+        select: { task_id: true }
+      });
+      const completedIds = new Set(doneTasks.map(t => String(t.task_id)));
+      const isFulfilled = evaluateCondition(parent.completion_rule as ConditionNode, completedIds);
+
+      if (isFulfilled && parent.status !== 'COMPLETED') {
+        await this.prisma.tasks.update({
+          where: { task_id: parent.task_id },
+          data: { status: 'COMPLETED', progress: 100 }
+        });
+      } else if (!isFulfilled && parent.status === 'COMPLETED') {
+        await this.prisma.tasks.update({
+          where: { task_id: parent.task_id },
+          data: { status: 'IN_PROGRESS' }
+        });
+      }
+    }
+  }
+
 
   private basicInclude() {
     return {
@@ -343,4 +379,24 @@ export class TasksService {
       });
     }
   }
+
+  private ruleContainsTask(rule: ConditionNode, taskId: string): boolean {
+    if (!rule) return false;
+    if (rule.type === 'leaf') return rule.task_id === taskId;
+    if (rule.type === 'operator') {
+      return rule.operands.some(op => this.ruleContainsTask(op, taskId));
+    }
+    return false;
+  }
+
+
+  private async findAffectedParents(childTaskId: number) {
+    const allTasksWithRule = await this.prisma.tasks.findMany({
+      where: { completion_rule: { not: Prisma.JsonNull } }
+    });
+    return allTasksWithRule.filter(task =>
+      this.ruleContainsTask(task.completion_rule as ConditionNode, String(childTaskId))
+    );
+  }
+
 }
