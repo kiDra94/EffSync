@@ -5,11 +5,15 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { QueryTasksDto } from "./dto/query-tasks.dto";
 import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
 import { Prisma } from "@prisma/client";
+import { WebsocketGateway } from "../websocket/websocket.gateway";
 
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly websocketGateway: WebsocketGateway,
+  ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
     const {
@@ -294,15 +298,21 @@ export class TasksService {
       const isFulfilled = evaluateCondition(parent.completion_rule as ConditionNode, completedIds);
 
       if (isFulfilled && parent.status !== 'COMPLETED') {
-        await this.prisma.tasks.update({
+        const updated = await this.prisma.tasks.update({
           where: { task_id: parent.task_id },
           data: { status: 'COMPLETED', progress: 100 }
         });
+        if(parent.assigned_to){
+          this.websocketGateway.emitTaskUpdated(parent.assigned_to, updated);
+        }
       } else if (!isFulfilled && parent.status === 'COMPLETED') {
-        await this.prisma.tasks.update({
+        const updated = await this.prisma.tasks.update({
           where: { task_id: parent.task_id },
           data: { status: 'IN_PROGRESS' }
         });
+        if(parent.assigned_to) {
+          this.websocketGateway.emitTaskUpdated(parent.assigned_to, updated);
+        }
       }
     }
   }
