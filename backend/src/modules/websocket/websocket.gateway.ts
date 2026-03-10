@@ -2,6 +2,8 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { ChatRoomsService } from '../chat-rooms/chat-rooms.service';
+import { ChatMessagesService } from '../chat-messages/chat-messages.service';
 
 @WebSocketGateway({
     cors: {
@@ -15,7 +17,11 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
 
     private readonly logger = new Logger(WebsocketGateway.name);
 
-    constructor(private readonly jwtService: JwtService) { }
+    constructor(
+        private readonly jwtService: JwtService,
+        private readonly chatRoomsService: ChatRoomsService,
+        private readonly chatMessagesService: ChatMessagesService,
+    ) { }
 
     afterInit() {
         this.logger.log('WebSocket Gateway initialized!!!')
@@ -72,5 +78,28 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     handleLeaveRoom(client: Socket, room: string) {
         client.leave(`chat_${room}`);
         this.logger.log(`Client ${client.id} left room ${room}`);
+    }
+
+    async handleChatSendMsg(client: Socket, payload: { roomId: number, message: string }) {
+        try {
+            const userId = client.data.user?.userId;
+            const isMember = await this.chatRoomsService.isUserInRoom(payload.roomId, userId);
+
+            if(!isMember) {
+                client.emit('error', { message: 'You are not a member of this room' });
+                return;
+            }
+
+            const chatMessage = await this.chatMessagesService.createMessage({
+                room_id: payload.roomId,
+                user_id: userId,
+                message: payload.message,
+            });
+            this.server.to(`chat_${payload.roomId}`).emit('chat:new', chatMessage);
+            this.logger.log(`User ${userId} sent message in room ${payload.roomId}`);  
+        } catch {
+            this.logger.error(`Error handling chat message from client ${client.id} in room ${payload.roomId}`);
+            client.emit('error', { message: 'Failed to send message' });
+        }
     }
 }
