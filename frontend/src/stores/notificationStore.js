@@ -6,7 +6,7 @@ import { fetchAllNotifications, markNotificationAsRead } from '@/api/notificatio
 export const useNotificationStore = defineStore('notification', () => {
     const notifications = ref([]);
     const STORAGE_KEY = 'effsync_notifications';
-    const { socket_on, socket_off } = useSocket;
+    const { socket_on, socket_off } = useSocket();
 
     async function fetchNotifications() {
         try {
@@ -20,7 +20,7 @@ export const useNotificationStore = defineStore('notification', () => {
     async function markAsRead(notification_id) {
         try {
             await markNotificationAsRead(notification_id);
-            const notification = notifications.value.find(n => n.id === notification_id);
+            const notification = notifications.value.find(n => n.notification_id === notification_id);
             if (notification) {
                 notification.read = true;
             }
@@ -39,7 +39,7 @@ export const useNotificationStore = defineStore('notification', () => {
     }
 
     function destroySocketListeners() {
-        off('notification:new');
+        socket_off('notification:new');
     }
 
     // Initialisierung aus localStorage
@@ -109,7 +109,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
     // Ungelesene Benachrichtigungen
     const unreadNotifications = computed(() => {
-        return notifications.value.filter(n => !n.read);
+        return notifications.value.filter(n => !n.is_read);
     });
 
     // Anzahl ungelesener Benachrichtigungen
