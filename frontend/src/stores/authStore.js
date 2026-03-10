@@ -26,6 +26,7 @@ export const useAuthStore = defineStore('auth', () => {
                 username: import.meta.env.VITE_DEV_USERNAME || 'devuser',
                 role: import.meta.env.VITE_DEV_ROLE || 'admin'
             }
+            connect(token.value);
         }
     }
 

@@ -29,6 +29,7 @@ Table chat_rooms {
   name varchar
   task_id integer [ref: > tasks.task_id, null]
   class_id integer [ref: > classes.class_id, null]
+  is_private boolean [default: false]
   created_at datetime [default: `now()`]
   updated_at datetime
 }

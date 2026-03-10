@@ -1,9 +1,46 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { useSocket } from './useSocket';
+import { fetchAllNotifications, markNotificationAsRead } from '@/api/notifications';
 
 export const useNotificationStore = defineStore('notification', () => {
     const notifications = ref([]);
     const STORAGE_KEY = 'effsync_notifications';
+    const { socket_on, socket_off } = useSocket();
+
+    async function fetchNotifications() {
+        try {
+            const response = await fetchAllNotifications();
+            notifications.value = response.data || response;
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Benachrichtigungen:', error);
+            throw error;
+        }
+    }
+    async function markAsRead(notification_id) {
+        try {
+            await markNotificationAsRead(notification_id);
+            const notification = notifications.value.find(n => n.notification_id === notification_id);
+            if (notification) {
+                notification.read = true;
+            }
+        } catch (error) {
+            console.error('Fehler beim Markieren der Benachrichtigung als gelesen:', error);
+            throw error;
+        }
+    }
+
+    function initSocketListeners() {
+        socket_off('notification:new');
+        socket_on('notification:new', (notification) => {
+            const exists = notifications.value.some(n => n.notification_id === notification.notification_id);
+            if (!exists) notifications.value.unshift(notification);
+        });
+    }
+
+    function destroySocketListeners() {
+        socket_off('notification:new');
+    }
 
     // Initialisierung aus localStorage
     function initFromStorage() {
@@ -46,21 +83,11 @@ export const useNotificationStore = defineStore('notification', () => {
         return newNotification;
     }
 
-    // Benachrichtigung als gelesen markieren
-    function markAsRead(notificationId) {
-        const notification = notifications.value.find(n => n.id === notificationId);
-        if (notification) {
-            notification.read = true;
-            saveToStorage();
-        }
-    }
 
     // Alle Benachrichtigungen als gelesen markieren
-    function markAllAsRead() {
-        notifications.value.forEach(n => {
-            n.read = true;
-        });
-        saveToStorage();
+    async function markAllAsRead() {
+        const unread = notifications.value.filter(n => !n.is_read);
+        await Promise.all(unread.map(n => markAsRead(n.notification_id)));
     }
 
     // Benachrichtigung löschen
@@ -82,7 +109,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
     // Ungelesene Benachrichtigungen
     const unreadNotifications = computed(() => {
-        return notifications.value.filter(n => !n.read);
+        return notifications.value.filter(n => !n.is_read);
     });
 
     // Anzahl ungelesener Benachrichtigungen
@@ -98,6 +125,7 @@ export const useNotificationStore = defineStore('notification', () => {
     });
 
     return {
+        fetchNotifications,
         notifications,
         unreadNotifications,
         unreadCount,
@@ -109,5 +137,7 @@ export const useNotificationStore = defineStore('notification', () => {
         removeNotification,
         clearAll,
         getByType,
+        initSocketListeners,
+        destroySocketListeners,
     };
 });
