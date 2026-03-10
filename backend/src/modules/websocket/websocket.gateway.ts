@@ -103,4 +103,54 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
             client.emit('error', { message: 'Failed to send message' });
         }
     }
+
+    @SubscribeMessage('chat:edit')
+    async handleChatEditMsg(client: Socket, payload: { messageId: number, message: string }) {
+        try {
+            const userId = client.data.user?.userId;
+            const isOwner = await this.chatRoomsService.isMsgOwner(payload.messageId, userId);
+
+            if(!isOwner) {
+                client.emit('error', { message: 'You can only edit your own messages!' });
+                return;
+            }
+
+            const updated = await this.chatMessagesService.updateMessage({
+                message_id: payload.messageId,
+                message: payload.message,
+            });
+            this.server.to(`chat_${payload.messageId}`).emit('chat:edited', updated);
+            this.logger.log(`User ${userId} sent message in room ${payload.messageId}`);  
+        } catch {
+            this.logger.error(`Error handling chat:edit failed for client ${client.id}`);
+            client.emit('error', { message: 'Failed to edit message!' });
+        }
+    }
+
+    @SubscribeMessage('chat:delete')
+    async handleChatDeleteMsg(client: Socket, payload: { messageId: number }) {
+        try {
+            const userId = client.data.user?.userId;
+
+            if(!userId) {
+                client.emit('error', { message: 'You can only delete your own messages!' });
+                return;
+            }
+
+            const deleted = await this.chatMessagesService.deleteMessage({ message_id: payload.messageId });
+            this.server.to(`chat_${payload.messageId}`).emit('chat:deleted', { messageId: payload.messageId });
+            this.logger.log(`User ${userId} deleted message ${payload.messageId}`);  
+        } catch {
+            this.logger.error(`Error handling chat:delete failed for client ${client.id}`);
+            client.emit('error', { message: 'Failed to edit message!' });
+        }
+    }
+
+    @SubscribeMessage('chat:typing')
+    handleChatTyping(client: Socket, data: { roomId: number }) {
+        const userId = client.data.user.userId;
+        const username = client.data.user.username;
+
+        client.broadcast.to(`chat_${data.roomId}`).emit('chat:typing', { userId, username });
+    }
 }
