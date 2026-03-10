@@ -39,10 +39,25 @@ export function useSocket() {
         isConnected.value = false;
     }
 
+    function socket_on(event, callback) {
+        socket.value?.on(event, callback);
+    }
+
+    function socket_off(event, callback) {
+        socket.value?.off(event, callback);
+    }
+
+    function socket_emit(event, data) {
+        socket.value?.emit(event, data);
+    }
+
     return {
         socket,
         connect,
         isConnected,
         disconnect,
+        socket_on,
+        socket_off,
+        socket_emit,
     }
 }
