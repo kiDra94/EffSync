@@ -1,22 +1,23 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
+import { fetchTasks, fetchTaskById, createTask, updatedTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
 import { useSocket } from '../useSocket';
 
 let isSaving = false;
 
 export const useTaskStore = defineStore('task', () => {
     const tasks = ref([]);
-    const { socket } = useSocket();
+    const { socket_on, socket_off } = useSocket();
 
     function initSocketListeners() {
         if(!socket.value) return;
+        off('task:updated');
 
-        socket.value.on('task:updated', (updateTask) => {
-            const index = tasks.value.findIndex(task => task.task_id === updateTask.task_id);
+        socket_on('task:updated', (updatedTask) => {
+            const index = tasks.value.findIndex(task => task.task_id === updatedTask.task_id);
             if(index !== -1) { // findIndex gibt -1 zurueck wenn es nix findet!
-                tasks.value[index] = updateTask;
-                console.log(`Task ${updateTask.title} was updated automatically!`)
+                tasks.value[index] = updatedTask;
+                console.log(`Task ${updatedTask.title} was updated automatically!`)
             }
         })
     }
@@ -112,6 +113,8 @@ export const useTaskStore = defineStore('task', () => {
         } catch (error) {
             console.error('Fehler beim Speichern der Completion Rule:', error);
             throw error;
+        } finally {
+            isSaving = false;
         }
     }
 
