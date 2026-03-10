@@ -6,7 +6,7 @@ const isConnected = ref(false);
 
 export function useSocket() {
     function connect(token) {
-        if(socket.value?.cinnected) return;
+        if(socket.value?.connected) return;
 
         socket.value = io(import.meta.env.VITE_WS_URL || 'http://localhost:3000', {
             auth: { token },
@@ -43,7 +43,6 @@ export function useSocket() {
         socket,
         connect,
         isConnected,
-        connect,
         disconnect,
     }
 }
