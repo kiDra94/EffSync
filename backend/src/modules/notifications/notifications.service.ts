@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
 import { PrismaService } from "../../prisma/prisma.service";
+import { WebsocketGateway } from "../websocket/websocket.gateway";
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly websocketGateway: WebsocketGateway,
+  ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
     const user = await this.prisma.users.findUnique({
@@ -13,7 +17,17 @@ export class NotificationsService {
     if(!user) {
       throw new NotFoundException (`User with ID ${createNotificationDto.user_id} not found!`)
     }
-    return this.prisma.notifications.create({ data: createNotificationDto});
+
+    const notification = await this.prisma.notifications.create({
+      data: { ...createNotificationDto },
+    });
+    this.websocketGateway.emitToUsser(
+      createNotificationDto.user_id,
+      'notification:new',
+      notification,
+    )
+    
+    return notification;
   }
 
   async findAll(userId: number, isRead?: boolean) {
