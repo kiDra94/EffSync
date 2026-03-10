@@ -79,7 +79,8 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
         client.leave(`chat_${room}`);
         this.logger.log(`Client ${client.id} left room ${room}`);
     }
-
+    // TODO: service und controller fuer chart rooms und msg machen
+    // TODO: klaren wie ich die zwischen tabelle am sinvollsten fuelle, oder ob es prisma automatisch macht
     @SubscribeMessage('chat:send')
     async handleChatSendMsg(client: Socket, payload: { roomId: number, message: string }) {
         try {
