@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { useSocket } from './useSocket';
 
 export const useNotificationStore = defineStore('notification', () => {
     const notifications = ref([]);
     const STORAGE_KEY = 'effsync_notifications';
+    const { socket_on, socket_off } = useSocket;
 
     // Initialisierung aus localStorage
     function initFromStorage() {
