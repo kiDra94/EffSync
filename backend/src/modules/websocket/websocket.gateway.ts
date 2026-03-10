@@ -80,6 +80,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
         this.logger.log(`Client ${client.id} left room ${room}`);
     }
 
+    @SubscribeMessage('chat:send')
     async handleChatSendMsg(client: Socket, payload: { roomId: number, message: string }) {
         try {
             const userId = client.data.user?.userId;
