@@ -30,6 +30,18 @@ export const useNotificationStore = defineStore('notification', () => {
         }
     }
 
+    function initSocketListeners() {
+        socket_off('notification:new');
+        socket_on('notification:new', (notification) => {
+            const exists = notifications.value.some(n => n.notification_id === notification.notification_id);
+            if (!exists) notifications.value.unshift(notification);
+        });
+    }
+
+    function destroySocketListeners() {
+        off('notification:new');
+    }
+
     // Initialisierung aus localStorage
     function initFromStorage() {
         try {
@@ -125,5 +137,7 @@ export const useNotificationStore = defineStore('notification', () => {
         removeNotification,
         clearAll,
         getByType,
+        initSocketListeners,
+        destroySocketListeners,
     };
 });
