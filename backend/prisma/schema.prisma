@@ -35,6 +35,7 @@ model chat_rooms {
   name            String?           @db.VarChar
   task_id         Int?
   class_id        Int?
+  is_private      Boolean           @default(false)
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   updated_at      DateTime?         @db.Timestamp(6)
   chat_messages   chat_messages[]
