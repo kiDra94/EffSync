@@ -53,4 +53,24 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     emitTaskUpdated(userId: number, task: any) {
         this.server.to(`user_${userId}`).emit('task:updated', task);
     }
+
+    emitToUsser(userId: number, event: string, data: any) {
+        this.server.to(`user_${userId}`).emit(event, data);
+    }
+
+    emitToRoom(room: string, event: string, data: any) {
+    this.server.to(`chat_${room}`).emit(event, data);
+    }
+
+    @SubscribeMessage('join:room')
+    handleJoinRoom(client: Socket, room: string) {
+        client.join(`chat_${room}`);
+        this.logger.log(`Client ${client.id} joined room ${room}`);
+    }
+
+    @SubscribeMessage('leave:room')
+    handleLeaveRoom(client: Socket, room: string) {
+        client.leave(`chat_${room}`);
+        this.logger.log(`Client ${client.id} left room ${room}`);
+    }
 }
