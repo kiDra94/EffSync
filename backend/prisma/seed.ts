@@ -64,10 +64,7 @@ async function main() {
         console.log(`✓ 10 Einträge in permissions erstellt`);
 
         const rolesData = [
-            { name: 'Superadmin' }, { name: 'Direktor' }, { name: 'Abteilungsvorstand' },
-            { name: 'Klassenvorstand' }, { name: 'Lehrer' }, { name: 'Schüler' },
-            { name: 'Schulsprecher' }, { name: 'Sekretariat' }, { name: 'IT-Admin' },
-            { name: 'Eltern' }
+            { name: 'Superuser' }, { name: 'Student' }, { name: 'Teacher' },{ name: 'Admin' },
         ];
         await prisma.roles.createMany({ data: rolesData });
         console.log(`✓ 10 Einträge in roles erstellt`);
@@ -189,9 +186,9 @@ async function main() {
         }
 
         const userRolesData = [
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: 1, role_id: i + 1 })), // User 1 = Alle Rollen
-            ...[2, 3, 4, 5, 6].map(id => ({ user_id: id, role_id: 5 })), // Lehrer
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 6 })) // Schüler
+            ...[1, 2, 3, 4].map(role_id => ({ user_id: 1, role_id })), // User 1 = Alle Rollen
+            ...[2, 3, 4, 5, 6].map(id => ({ user_id: id, role_id: 3 })), // Lehrer
+            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 })) // Schüler
         ];
         await prisma.user_roles.createMany({ data: userRolesData });
         console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt`);
@@ -389,7 +386,9 @@ async function main() {
         const chatRoomsData = Array.from({ length: 10 }).map((_, i) => ({
             name: i === 0 ? 'Lehrerzimmer' : `Klassenchat Gruppe ${i}`,
             class_id: i === 0 ? null : i,
-            task_id: null
+            task_id: null,
+            created_by: 2,
+            is_private: false
         }));
         await prisma.chat_rooms.createMany({ data: chatRoomsData });
         console.log(`✓ 10 Einträge in chat_rooms erstellt`);

@@ -10,12 +10,12 @@ datasource db {
 
 model chat_messages {
   message_id Int         @id @default(autoincrement())
-  room_id    Int?
-  user_id    Int?
-  message    String?
+  room_id    Int
+  user_id    Int
+  message    String
   file_path  String?     @db.VarChar
-  created_at DateTime?   @default(now()) @db.Timestamp(6)
-  updated_at DateTime?   @db.Timestamp(6)
+  created_at DateTime    @default(now()) @db.Timestamp(6)
+  updated_at DateTime?   @updatedAt @db.Timestamp(6)
   chat_rooms chat_rooms? @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
   users      users?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -23,28 +23,29 @@ model chat_messages {
 model chat_room_users {
   room_id    Int
   user_id    Int
-  joined_at  DateTime?  @default(now()) @db.Timestamp(6)
-  left_at    DateTime?  @default(now()) @db.Timestamp(6)
+  joined_at  DateTime   @default(now()) @db.Timestamp(6)
+  left_at    DateTime?  @db.Timestamp(6)
   chat_rooms chat_rooms @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
   users      users      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@id([room_id, user_id])
+  @@id([room_id, user_id, joined_at])
 }
 
 model chat_rooms {
-  room_id         Int               @id @default(autoincrement())
-  name            String?           @db.VarChar
-  task_id         Int?
-  class_id        Int?
-  is_private      Boolean           @default(false)
-  created_by      Int?
-  created_at      DateTime?         @default(now()) @db.Timestamp(6)
-  updated_at      DateTime?         @db.Timestamp(6)
-  chat_messages   chat_messages[]
-  chat_room_users chat_room_users[]
-  classes         classes?          @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction)
-  tasks           tasks?            @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
-  users           users?            @relation("chat_rooms_created", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  room_id          Int               @id @default(autoincrement())
+  name             String?           @db.VarChar
+  task_id          Int?
+  class_id         Int?
+  is_private       Boolean           @default(false)
+  direct_chat_hash String?           @unique @db.VarChar(50)
+  created_by       Int
+  created_at       DateTime          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?         @updatedAt @db.Timestamp(6)
+  chat_messages    chat_messages[]
+  chat_room_users  chat_room_users[]
+  classes          classes?          @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks            tasks?            @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?            @relation("chat_rooms_created", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model classes {
