@@ -38,6 +38,7 @@ Table chat_room_users {
   room_id integer [pk, ref: > chat_rooms.room_id]
   user_id integer [pk, ref: > users.user_id]
   joined_at datetime [default: `now()`]
+  left_at datetime [default: `now()`]
 }
 
 Table chat_messages {

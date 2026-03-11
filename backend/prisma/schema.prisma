@@ -24,6 +24,7 @@ model chat_room_users {
   room_id    Int
   user_id    Int
   joined_at  DateTime?  @default(now()) @db.Timestamp(6)
+  left_at    DateTime?  @default(now()) @db.Timestamp(6)
   chat_rooms chat_rooms @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
   users      users      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
