@@ -85,14 +85,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     async handleChatSendMsg(client: Socket, payload: { roomId: number, message: string }) {
         try {
             const userId = client.data.user?.userId;
-            const isMember = await this.chatRoomsService.isUserInRoom(payload.roomId, userId);
-
-            if(!isMember) {
-                client.emit('error', { message: 'You are not a member of this room' });
-                return;
-            }
-
-            const chatMessage = await this.chatMessagesService.createMessage({
+            const chatMessage = await this.chatMessagesService.createMsg({
                 room_id: payload.roomId,
                 user_id: userId,
                 message: payload.message,

@@ -17,7 +17,7 @@ export class ChatMessagesController {
 
   @Post()
   create(@Body() createChatMessageDto: CreateChatMessageDto) {
-    return this.chatMessagesService.create(createChatMessageDto);
+    return this.chatMessagesService.createMsg(createChatMessageDto);
   }
 
   @Get()
