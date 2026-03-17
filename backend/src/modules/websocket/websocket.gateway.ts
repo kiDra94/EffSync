@@ -102,17 +102,17 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     async handleChatEditMsg(client: Socket, payload: { messageId: number, message: string }) {
         try {
             const userId = client.data.user?.userId;
-            const isOwner = await this.chatRoomsService.isMsgOwner(payload.messageId, userId);
+            const isOwner = await this.chatMessagesService.isMsgOwner(payload.messageId, userId);
 
             if(!isOwner) {
                 client.emit('error', { message: 'You can only edit your own messages!' });
                 return;
             }
 
-            const updated = await this.chatMessagesService.updateMessage({
-                message_id: payload.messageId,
-                message: payload.message,
-            });
+            const updated = await this.chatMessagesService.updateMsg(
+                payload.messageId,
+                payload.message,
+            );
             this.server.to(`chat_${payload.messageId}`).emit('chat:edited', updated);
             this.logger.log(`User ${userId} sent message in room ${payload.messageId}`);  
         } catch {
@@ -131,7 +131,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
                 return;
             }
 
-            const deleted = await this.chatMessagesService.deleteMessage({ message_id: payload.messageId });
+            const deleted = await this.chatMessagesService.deleteMessage(payload.messageId);
             this.server.to(`chat_${payload.messageId}`).emit('chat:deleted', { messageId: payload.messageId });
             this.logger.log(`User ${userId} deleted message ${payload.messageId}`);  
         } catch {
