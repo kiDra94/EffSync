@@ -4,10 +4,12 @@ import {
     Delete,
     Get,
     Param,
+    Patch,
     Post,
 } from '@nestjs/common';
 import { ChatRoomsService } from './chat-rooms.service';
 import { CreateChatRoomDto } from './dto/create-chat-room.dto';
+import { UpdateChatRoomDto } from './dto/update-chat-room.dto';
 
 @Controller('chat-rooms')
 export class ChatRoomsController {
@@ -36,5 +38,15 @@ export class ChatRoomsController {
     @Delete(':id')
     leaveRoom(@Param('id') id: string, @Body('userId') userId: number) {
         return this.chatRoomsService.leaveRoom(+id, userId);
+    }
+
+    @Patch(':id')
+    updateRoom(@Param('id') id: string, @Body() updateChatRoomDto: UpdateChatRoomDto){
+        return this.chatRoomsService.updateRoom(+id, updateChatRoomDto);
+    }
+
+    @Delete(':id')
+    deleteRoom(@Param('id') id: string){
+        return this.chatRoomsService.deleteRoom(+id);
     }
 }

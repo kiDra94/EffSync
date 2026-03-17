@@ -5,5 +5,5 @@ export class CreateChatRoomDto {
   @IsInt() @IsOptional() task_id?: number;
   @IsInt() @IsOptional() class_id?: number;
   @IsBoolean() @IsOptional() is_private?: boolean;
-  @IsString() @IsOptional() direct_chat_has?: string;
+  @IsString() @IsOptional() direct_chat_hash?: string;
 }
