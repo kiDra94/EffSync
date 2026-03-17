@@ -45,6 +45,11 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
             };
             client.join(`user_${payload.sub}`);
 
+            const rooms = await this.chatRoomsService.findRoomsByUser(payload.sub);
+            for (const room of rooms) {
+                client.join(`chat_${room.room_id}`);
+            }
+
             this.logger.log(`Client connected: ${client.id} - User ${payload.sub}`);
         } catch {
             this.logger.warn(`Connection refused: ${client.id} - invalid Token`);
@@ -69,18 +74,33 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     }
 
     @SubscribeMessage('join:room')
-    handleJoinRoom(client: Socket, room: string) {
-        client.join(`chat_${room}`);
-        this.logger.log(`Client ${client.id} joined room ${room}`);
+    async handleJoinRoom(client: Socket, roomId: number) {
+        try {
+            const userId = client.data.user?.userId;
+            await this.chatRoomsService.joinRoom(roomId, userId);
+            client.join(`chat_${roomId}`);
+            this.server.to(`chat_${roomId}`).emit('room:user-joined', { userId, roomId });
+            this.logger.log(`Client ${client.id} joined room ${roomId}`);
+        } catch {
+            this.logger.error(`join:room failed for client ${client.id} in room ${roomId}`);
+            client.emit('error', { message: 'Failed to join room' });
+        }
     }
 
     @SubscribeMessage('leave:room')
-    handleLeaveRoom(client: Socket, room: string) {
-        client.leave(`chat_${room}`);
-        this.logger.log(`Client ${client.id} left room ${room}`);
+    async handleLeaveRoom(client: Socket, roomId: number) {
+        try {
+            const userId = client.data.user?.userId;
+            await this.chatRoomsService.leaveRoom(roomId, userId);
+            client.leave(`chat_${roomId}`);
+            this.server.to(`chat_${roomId}`).emit('room:user-left', { userId, roomId });
+            this.logger.log(`Client ${client.id} left room ${roomId}`);
+        } catch {
+            this.logger.error(`leave:room failed for client ${client.id} in room ${roomId}`);
+            client.emit('error', { message: 'Failed to leave room' });
+        }
     }
-    // TODO: service und controller fuer chart rooms und msg machen
-    // TODO: klaren wie ich die zwischen tabelle am sinvollsten fuelle, oder ob es prisma automatisch macht
+
     @SubscribeMessage('chat:send')
     async handleChatSendMsg(client: Socket, payload: { roomId: number, message: string }) {
         try {
@@ -113,8 +133,8 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
                 payload.messageId,
                 payload.message,
             );
-            this.server.to(`chat_${payload.messageId}`).emit('chat:edited', updated);
-            this.logger.log(`User ${userId} sent message in room ${payload.messageId}`);  
+            this.server.to(`chat_${updated.room_id}`).emit('chat:edited', updated);
+            this.logger.log(`User ${userId} edited message ${payload.messageId}}`);  
         } catch {
             this.logger.error(`Error handling chat:edit failed for client ${client.id}`);
             client.emit('error', { message: 'Failed to edit message!' });
@@ -128,6 +148,12 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
 
             if(!userId) {
                 client.emit('error', { message: 'You can only delete your own messages!' });
+                return;
+            }
+
+            const msg = await this.chatMessagesService.findOne(payload.messageId);
+            if (!msg) {
+                client.emit('error', { message: 'Message not found!' });
                 return;
             }
 
