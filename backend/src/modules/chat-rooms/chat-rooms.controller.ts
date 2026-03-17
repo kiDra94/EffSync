@@ -1,45 +1,40 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from "@nestjs/common";
-import { ChatRoomsService } from "./chat-rooms.service";
-import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
-import { UpdateChatRoomDto } from "./dto/update-chat-room.dto";
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+} from '@nestjs/common';
+import { ChatRoomsService } from './chat-rooms.service';
+import { CreateChatRoomDto } from './dto/create-chat-room.dto';
 
-@Controller("chat-rooms")
+@Controller('chat-rooms')
 export class ChatRoomsController {
-  constructor(private readonly chatRoomsService: ChatRoomsService) {}
+    constructor(private readonly chatRoomsService: ChatRoomsService) { }
 
-  @Post()
-  create(@Body() createChatRoomDto: CreateChatRoomDto) {
-    return this.chatRoomsService.create(createChatRoomDto);
-  }
+    @Post()
+    create(@Body() createChatRoomDto: CreateChatRoomDto, @Body('userId') userId: number) {
+        return this.chatRoomsService.createRoom(createChatRoomDto, userId);
+    }
 
-  @Get()
-  findAll() {
-    return this.chatRoomsService.findAll();
-  }
+    @Get('user/:userId')
+    findRoomsByUser(@Param('userId') userId: string) {
+        return this.chatRoomsService.findRoomsByUser(+userId);
+    }
 
-  @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.chatRoomsService.findOne(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.chatRoomsService.findOne(+id);
+    }
 
-  @Patch(":id")
-  update(
-    @Param("id") id: string,
-    @Body() updateChatRoomDto: UpdateChatRoomDto,
-  ) {
-    return this.chatRoomsService.update(+id, updateChatRoomDto);
-  }
+    @Post(':id')
+    joinRoom(@Param('id') id: string, @Body('userId') userId: number) {
+        return this.chatRoomsService.joinRoom(+id, userId);
+    }
 
-  @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.chatRoomsService.remove(+id);
-  }
+    @Delete(':id')
+    leaveRoom(@Param('id') id: string, @Body('userId') userId: number) {
+        return this.chatRoomsService.leaveRoom(+id, userId);
+    }
 }
