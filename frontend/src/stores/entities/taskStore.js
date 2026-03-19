@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { fetchTasks, fetchTaskById, createTask, updatedTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
+import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
 import { useSocket } from '../useSocket';
 
 let isSaving = false;
