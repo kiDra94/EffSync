@@ -13,6 +13,7 @@ export const useChatStore = defineStore('chat', () => {
     const messagesByRoom = ref({});
     const isLoadingRooms = ref(false);
     const isLoadingMessages = ref(false);
+    const typingUsers = ref({});
 
     const getRooms = async () => {
         isLoadingRooms.value = true;
@@ -77,12 +78,28 @@ export const useChatStore = defineStore('chat', () => {
         removeMessageFromStore(messageId);
     };
 
+    const setUserTyping = (roomId, userId, username) => {
+        if (!typingUsers.value[roomId]) {
+            typingUsers.value[roomId] = {};
+        }
+        if (typingUsers.value[roomId][userId]?.timeout) {
+            clearTimeout(typingUsers.value[roomId][userId].timeout);
+        }
+        typingUsers.value[roomId][userId] = {
+            username,
+            timeout: setTimeout(() => {
+                delete typingUsers.value[roomId][userId];
+            }, 3000),
+        };
+    };
+
     return {
         rooms,
         activeRoomId,
         messagesByRoom,
         isLoadingRooms,
         isLoadingMessages,
+        typingUsers,
         getRooms,
         selectRoom,
         loadMessages,
@@ -91,5 +108,6 @@ export const useChatStore = defineStore('chat', () => {
         removeMessageFromStore,
         editMessageAction,
         deleteMessageAction,
+        setUserTyping,
     };
 });
