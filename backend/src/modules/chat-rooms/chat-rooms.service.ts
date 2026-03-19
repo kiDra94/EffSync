@@ -26,23 +26,17 @@ export class ChatRoomsService {
     }
 
     async findRoomsByUser(userId: number) {
-        return this.prisma.chat_rooms.findMany({
-            where: {
-                chat_room_users: {
-                    some: {
-                        user_id: userId,
-                        left_at: null,
-                    },
-                },
-            },
-            include: {
-                chat_room_users: {
-                    where: { left_at: null },
-                    select: { user_id: true, joined_at: true },
-                },
-            },
-        });
+        try {
+            const rooms = await this.prisma.chat_room_users.findMany({
+                where: { user_id: userId },
+            });
+            console.log('✅ Räume gefunden:', rooms);
+            return rooms;
+        } catch (error) {
+            throw error;
+        }
     }
+    
 
     async findOne(roomId: number) {
         return this.prisma.chat_rooms.findUnique({

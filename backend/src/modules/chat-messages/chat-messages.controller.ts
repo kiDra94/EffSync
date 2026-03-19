@@ -14,7 +14,7 @@ import { UpdateChatMessageDto } from "./dto/update-chat-message.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @UseGuards(JwtAuthGuard)
-@Controller("chat-messages")
+@Controller("chat/messages")
 export class ChatMessagesController {
   constructor(private readonly chatMessagesService: ChatMessagesService) { }
 
