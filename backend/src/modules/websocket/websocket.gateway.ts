@@ -158,7 +158,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
             }
 
             const deleted = await this.chatMessagesService.deleteMessage(payload.messageId);
-            this.server.to(`chat_${payload.messageId}`).emit('chat:deleted', { messageId: payload.messageId });
+            this.server.to(`chat_${msg.room_id}`).emit('chat:deleted', { messageId: payload.messageId });
             this.logger.log(`User ${userId} deleted message ${payload.messageId}`);  
         } catch {
             this.logger.error(`Error handling chat:delete failed for client ${client.id}`);
