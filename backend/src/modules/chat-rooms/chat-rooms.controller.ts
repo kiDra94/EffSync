@@ -6,12 +6,16 @@ import {
     Param,
     Patch,
     Post,
+    Req,
+    UseGuards,
 } from '@nestjs/common';
 import { ChatRoomsService } from './chat-rooms.service';
 import { CreateChatRoomDto } from './dto/create-chat-room.dto';
 import { UpdateChatRoomDto } from './dto/update-chat-room.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@Controller('chat')
+@UseGuards(JwtAuthGuard) 
+@Controller('chat/rooms')
 export class ChatRoomsController {
     constructor(private readonly chatRoomsService: ChatRoomsService) { }
 
@@ -20,9 +24,9 @@ export class ChatRoomsController {
         return this.chatRoomsService.createRoom(createChatRoomDto, userId);
     }
 
-    @Get('user/:userId')
-    findRoomsByUser(@Param('userId') userId: string) {
-        return this.chatRoomsService.findRoomsByUser(+userId);
+    @Get()
+    findRoomsByUser(@Req() req) {
+        return this.chatRoomsService.findRoomsByUser(req.user.userId);
     }
 
     @Get(':id')

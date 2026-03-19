@@ -26,15 +26,28 @@ export class ChatRoomsService {
     }
 
     async findRoomsByUser(userId: number) {
-        try {
-            const rooms = await this.prisma.chat_room_users.findMany({
-                where: { user_id: userId },
-            });
-            console.log('✅ Räume gefunden:', rooms);
-            return rooms;
-        } catch (error) {
-            throw error;
-        }
+        console.log('🔍 findRoomsByUser aufgerufen mit userId:', userId);
+        
+        // ✅ Direkt die Räume mit JOIN holen, nicht nur chat_room_users
+        const rooms = await this.prisma.chat_rooms.findMany({
+            where: {
+                chat_room_users: {
+                    some: { user_id: userId }
+                }
+            },
+            include: {
+                chat_room_users: {
+                    select: {
+                        user_id: true,
+                        joined_at: true,
+                    }
+                }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+        
+        console.log('✅ Räume gefunden:', rooms);
+        return rooms;
     }
     
 
