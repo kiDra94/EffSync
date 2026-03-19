@@ -85,6 +85,11 @@ const routes = [
                 component: () => import('@/views/DepartmentView.vue'),
                 meta: { roles: ['admin'] },
             },
+            {
+                path: 'chat',
+                name: 'Chat',
+                component: () => import('@/views/ChatView.vue'),
+            },
         ]
     },
     {
