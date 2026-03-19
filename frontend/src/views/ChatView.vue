@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
-import { useChatStore } from '@/stores/chatStore';
+import { useChatStore } from '@/stores/entities/chatStore';
 import { useChat } from '@/composables/useChat';
 import ChatRoomList from '@/components/chat/ChatRoomList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useChat } from '@/composables/useChat';
-import { useChatStore } from '@/stores/chatStore';
+import { useChatStore } from '@/stores/entities/chatStore';
 
 const props = defineProps({
     roomId:      { type: [String, Number], required: true  },
