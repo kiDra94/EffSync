@@ -8,7 +8,7 @@ let socket= null;
 export const useChat = () => {
     const chatStore = useChatStore();
     const isConnected = ref(false);
-    const connectionError = ref<string | null>(null);
+    const connectionError = ref(null);
 
     const connect = () => {
         if (!socket) {
