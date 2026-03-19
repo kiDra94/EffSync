@@ -51,8 +51,13 @@ export const useAuthStore = defineStore('auth', () => {
             localStorage.setItem('authToken', newToken)
 
             connect(data.token);
-            const searchStore = useSearchStore()
-            await searchStore.ensureLoaded()
+            try {
+                const searchStore = useSearchStore();
+                await searchStore.ensureLoaded();
+            } catch (e) {
+                console.warn('SearchStore Fehler (nicht kritisch):', e.message);
+            }
+            
 
             return response.data
         } catch (error) {

@@ -10,8 +10,8 @@ export const useTaskStore = defineStore('task', () => {
     const { socket_on, socket_off } = useSocket();
 
     function initSocketListeners() {
-        if(!socket.value) return;
-        off('task:updated');
+        //if(!socket.value) return;
+        socket_off('task:updated');
 
         socket_on('task:updated', (updatedTask) => {
             const index = tasks.value.findIndex(task => task.task_id === updatedTask.task_id);
