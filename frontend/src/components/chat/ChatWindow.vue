@@ -1,26 +1,33 @@
 <script setup>
 import { ref, watch, nextTick, computed } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
-import { useChatStore } from '@/stores/chatStore';
-import { useSocket } from '@/stores/useSocket.js';  // ✅ DEINE useSocket
+import { useChat } from '@/composables/useChat';
 import ChatMessage from './ChatMessage.vue';
 import ChatInput from './ChatInput.vue';
 
 const props = defineProps({
-    roomId: { type: [String, Number], required: true },
-    messages: { type: Array, default: () => [] },
-    isLoading: { type: Boolean, default: false },
-    isConnected: { type: Boolean, default: false },
+    roomId:       { type: [String, Number], required: true   },
+    messages:     { type: Array,            default: () => [] },
+    isLoading:    { type: Boolean,          default: false    },
+    typingUsers:  { type: Array,            default: () => [] },
 });
 
-const emit = defineEmits(['send']);
-
 const authStore = useAuthStore();
-const chatStore = useChatStore();
-const { socket_emit } = useSocket();  // ✅ Nur socket_emit brauchen wir
+const { editMessage, deleteMessage, sendTyping, isConnected } = useChat();
+
 const messagesContainer = ref(null);
 
 const currentUserId = computed(() => authStore.userId);
+
+const othersTyping = computed(() =>
+    props.typingUsers.filter(u => u.userId !== currentUserId.value)
+);
+
+const typingLabel = computed(() => {
+    if (othersTyping.value.length === 0) return null;
+    const names = othersTyping.value.map(u => u.username).join(', ');
+    return `${names} tippt...`;
+});
 
 const scrollToBottom = async () => {
     await nextTick();
@@ -32,36 +39,36 @@ const scrollToBottom = async () => {
 watch(() => props.messages.length, scrollToBottom);
 watch(() => props.roomId, scrollToBottom);
 
-const handleSend = (content) => {
-    const sent = socket_emit('message:send', { 
-        roomId: props.roomId, 
-        content 
-    });
-    // ✅ Deine socket_emit() gibt true/false zurück (connected?)
-    return sent;
+const handleTyping = () => {
+    sendTyping(props.roomId);
 };
 
-const handleEdit = async (messageId, newContent) => {
-    await chatStore.editMessageAction(messageId, newContent);
+const handleEdit = (messageId, newText) => {
+    editMessage(messageId, newText);
 };
 
-const handleDelete = async (messageId) => {
-    await chatStore.deleteMessageAction(messageId);
+const handleDelete = (messageId) => {
+    deleteMessage(messageId);
 };
 </script>
 
 <template>
     <div class="chat-window">
         <div class="chat-window__header">
-            <span class="chat-window__status" :class="{ 'chat-window__status--online': isConnected }">
+            <span
+                class="chat-window__status"
+                :class="{ 'chat-window__status--online': isConnected }"
+            >
                 {{ isConnected ? '🟢 Verbunden' : '🔴 Getrennt' }}
             </span>
         </div>
 
         <div ref="messagesContainer" class="chat-window__messages">
-            <div v-if="isLoading" class="chat-window__loading">Nachrichten laden...</div>
+            <div v-if="isLoading" class="chat-window__state">
+                Nachrichten laden...
+            </div>
 
-            <div v-else-if="messages.length === 0" class="chat-window__empty">
+            <div v-else-if="messages.length === 0" class="chat-window__state">
                 Noch keine Nachrichten. Schreib die erste!
             </div>
 
@@ -75,7 +82,19 @@ const handleDelete = async (messageId) => {
             />
         </div>
 
-        <ChatInput :is-connected="isConnected" @send="handleSend" />
+        <!-- ✅ Typing Indikator -->
+        <div v-if="typingLabel" class="chat-window__typing">
+            <span class="typing-dots">
+                <span></span><span></span><span></span>
+            </span>
+            {{ typingLabel }}
+        </div>
+
+        <ChatInput
+            :is-connected="isConnected"
+            :room-id="roomId"
+            @typing="handleTyping"
+        />
     </div>
 </template>
 
@@ -95,14 +114,8 @@ const handleDelete = async (messageId) => {
     justify-content: flex-end;
 }
 
-.chat-window__status {
-    font-size: 0.8rem;
-    color: #9ca3af;
-}
-
-.chat-window__status--online {
-    color: #16a34a;
-}
+.chat-window__status { font-size: 0.8rem; color: #9ca3af; }
+.chat-window__status--online { color: #16a34a; }
 
 .chat-window__messages {
     flex: 1;
@@ -113,15 +126,48 @@ const handleDelete = async (messageId) => {
     gap: 8px;
 }
 
-.chat-window__loading,
-.chat-window__empty {
+.chat-window__state {
     text-align: center;
     color: #9ca3af;
     font-size: 0.9rem;
     margin: auto;
 }
 
-:global(body.dark-mode) .chat-window__header {
-    border-bottom-color: #444;
+/* Typing Indikator */
+.chat-window__typing {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 20px 8px;
+    font-size: 0.8rem;
+    color: #6b7280;
+    min-height: 28px;
 }
+
+.typing-dots {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #9ca3af;
+    animation: typing-bounce 1.2s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s;    }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s;  }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s;  }
+
+@keyframes typing-bounce {
+    0%, 80%, 100% { transform: translateY(0);    opacity: 0.4; }
+    40%           { transform: translateY(-5px); opacity: 1;   }
+}
+
+:global(body.dark-mode) .chat-window__header  { border-bottom-color: #444; }
+:global(body.dark-mode) .chat-window__typing  { color: #9ca3af; }
+:global(body.dark-mode) .typing-dots span     { background-color: #6b7280; }
 </style>
