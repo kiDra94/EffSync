@@ -79,15 +79,6 @@ export const useChat = () => {
         }
     };
 
-    onUnmounted(() => {
-        socket_off('chat:new');
-        socket_off('chat:edited');
-        socket_off('chat:deleted');
-        socket_off('chat:typing');
-        socket_off('room:new');
-        socket_off('error');
-    });
-
     return {
         isConnected,
         connect,
