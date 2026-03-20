@@ -1,19 +1,32 @@
 <script setup>
 import { computed } from 'vue';
+import { useAuthStore } from '@/stores/authStore';
 
 const props = defineProps({
-    room:     { type: Object,  required: true },
+    room: { type: Object, required: true },
     isActive: { type: Boolean, default: false },
 });
 
-const roomName = computed(() =>
-    props.room.name ||
-    (props.room.type === 'DIRECT' ? 'Direktnachricht' : 'Unbenannter Raum')
-);
+const authStore = useAuthStore();
 
-const roomIcon = computed(() =>
-    props.room.type === 'DIRECT' ? '👤' : '👥'
-);
+const roomName = computed(() => {
+    if (props.room.name) return props.room.name;
+    const other = props.room.chat_room_users?.find(
+        u => u.user_id !== Number(authStore.userId)
+    );
+    if (other?.users) return `${other.users.firstname} ${other.users.lastname}`;
+    return 'Direktnachricht';
+});
+
+const roomType = computed(() => {
+    const memberCount = props.room.chat_room_users?.length ?? 0;
+    return memberCount <= 2 ? 'Direkt' : 'Gruppe';
+});
+
+const roomIcon = computed(() => {
+    const memberCount = props.room.chat_room_users?.length ?? 0;
+    return memberCount <= 2 ? '💬' : '👥';
+});
 </script>
 
 <template>
@@ -21,7 +34,7 @@ const roomIcon = computed(() =>
         <span class="room-item__icon">{{ roomIcon }}</span>
         <div class="room-item__info">
             <span class="room-item__name">{{ roomName }}</span>
-            <span class="room-item__type">{{ room.type === 'DIRECT' ? 'Privat' : 'Gruppe' }}</span>
+            <span class="room-item__type">{{ roomType}}</span>
         </div>
     </div>
 </template>
@@ -37,14 +50,19 @@ const roomIcon = computed(() =>
     border-left: 3px solid transparent;
 }
 
-.room-item:hover { background-color: #f3f4f6; }
+.room-item:hover {
+    background-color: #f3f4f6;
+}
 
 .room-item--active {
     background-color: #ede9ff;
     border-left-color: #4f46e5;
 }
 
-.room-item__icon { font-size: 1.3rem; flex-shrink: 0; }
+.room-item__icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
 
 .room-item__info {
     display: flex;
@@ -66,7 +84,16 @@ const roomIcon = computed(() =>
     color: #9ca3af;
 }
 
-:global(body.dark-mode) .room-item:hover    { background-color: #3b3b54; }
-:global(body.dark-mode) .room-item--active  { background-color: #312e81; border-left-color: #818cf8; }
-:global(body.dark-mode) .room-item__name    { color: #ddd; }
+:global(body.dark-mode) .room-item:hover {
+    background-color: #3b3b54;
+}
+
+:global(body.dark-mode) .room-item--active {
+    background-color: #312e81;
+    border-left-color: #818cf8;
+}
+
+:global(body.dark-mode) .room-item__name {
+    color: #ddd;
+}
 </style>

@@ -72,6 +72,10 @@ const onCreated = (room) => {
 .room-list__header {
     padding: 16px 20px 12px;
     border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    line-height: 1;
 }
 
 .room-list__header h2 {
@@ -79,6 +83,65 @@ const onCreated = (room) => {
     font-size: 1.1rem;
     font-weight: 600;
     color: #1f2937;
+    line-height: 1;
+}
+
+.room-list__actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.room-list__add-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: #4f46e5;
+    line-height: 1;
+    padding: 0;
+    border-radius: 6px;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.room-list__add-btn:hover {
+    background: #ede9ff;
+}
+
+.room-list__dropdown {
+    position: absolute;
+    right: 0;
+    left: auto;
+    top: 110%;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    min-width: 190px;
+    overflow: hidden;
+}
+
+.room-list__dropdown button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #1f2937;
+    transition: background 0.15s;
+}
+
+.room-list__dropdown button:hover {
+    background: #f3f4f6;
 }
 
 .room-list__state {
@@ -88,11 +151,9 @@ const onCreated = (room) => {
     font-size: 0.9rem;
 }
 
-:global(body.dark-mode) .room-list__header {
-    border-bottom-color: #444;
-}
-
-:global(body.dark-mode) .room-list__header h2 {
-    color: #ddd;
-}
+:global(body.dark-mode) .room-list__header     { border-bottom-color: #444; }
+:global(body.dark-mode) .room-list__header h2  { color: #ddd; }
+:global(body.dark-mode) .room-list__dropdown   { background: #2c2c3e; border-color: #444; }
+:global(body.dark-mode) .room-list__dropdown button { color: #ddd; }
+:global(body.dark-mode) .room-list__dropdown button:hover { background: #3b3b54; }
 </style>

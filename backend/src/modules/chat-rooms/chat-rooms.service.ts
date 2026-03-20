@@ -34,19 +34,27 @@ export class ChatRoomsService {
             },
             include: {
                 chat_room_users: {
+                    where: { left_at: null },
                     select: {
                         user_id: true,
                         joined_at: true,
+                        users: {
+                            select: {
+                                user_id: true,
+                                firstname: true,
+                                lastname: true,
+                                username: true,
+                            }
+                        }
                     }
                 }
             },
             orderBy: { created_at: 'desc' }
         });
-        
-        console.log('✅ Räume gefunden:', rooms);
+
         return rooms;
     }
-    
+
 
     async findOne(roomId: number) {
         return this.prisma.chat_rooms.findUnique({
@@ -133,5 +141,5 @@ export class ChatRoomsService {
         if (room.created_by !== userId)
             throw new ForbiddenException('Only the room creator can do this!');
     }
-    
+
 }
