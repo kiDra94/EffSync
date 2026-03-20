@@ -5,7 +5,9 @@ import {
     fetchMessages,
     editMessage,
     deleteMessage,
-    fetchAllUsers
+    fetchAllUsers,
+    createRoom as createRoomApi,
+    addMember,
 } from '@/api/chat';
 
 export const useChatStore = defineStore('chat', () => {

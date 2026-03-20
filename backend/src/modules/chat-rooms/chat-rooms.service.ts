@@ -26,9 +26,6 @@ export class ChatRoomsService {
     }
 
     async findRoomsByUser(userId: number) {
-        console.log('🔍 findRoomsByUser aufgerufen mit userId:', userId);
-        
-        // ✅ Direkt die Räume mit JOIN holen, nicht nur chat_room_users
         const rooms = await this.prisma.chat_rooms.findMany({
             where: {
                 chat_room_users: {

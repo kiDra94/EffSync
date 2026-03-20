@@ -21,7 +21,7 @@ export class ChatRoomsController {
 
     @Post()
     create(@Body() createChatRoomDto: CreateChatRoomDto, @Req() req) {
-        return this.chatRoomsService.createRoom(createChatRoomDto, req.user.id);
+        return this.chatRoomsService.createRoom(createChatRoomDto, req.user.userId);
     }
 
     @Get()

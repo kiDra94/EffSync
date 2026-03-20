@@ -49,6 +49,7 @@ const handleCreate = async () => {
         }, selectedUsers.value.map(u => u.user_id));
         emit('created', room);
     } catch (e) {
+        console.error('createRoom Fehler:', e.response?.data ?? e.message);
         error.value = 'Fehler beim Erstellen des Raums.';
     } finally {
         isLoading.value = false;
