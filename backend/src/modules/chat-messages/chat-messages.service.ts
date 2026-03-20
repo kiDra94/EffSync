@@ -28,6 +28,24 @@ export class ChatMessagesService {
         return this.prisma.chat_messages.findUnique({ where: { message_id: id } });
     }
 
+    async findByRoom(roomId: number) {
+        return this.prisma.chat_messages.findMany({
+            where: { room_id: roomId },
+            orderBy: { created_at: 'asc' },
+            include: {
+                users: {
+                    select: {
+                        user_id: true,
+                        username: true,
+                        firstname: true,
+                        lastname: true,
+                    }
+                }
+            }
+        });
+    }
+    
+
     async updateMsg(id: number, message: string) {
         return this.prisma.chat_messages.update({
             where: { message_id: Number(id) },
