@@ -1,6 +1,5 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
-import { UpdateChatRoomDto } from "./dto/update-chat-room.dto";
 import { PrismaService } from "src/prisma/prisma.service";
 
 @Injectable()
@@ -69,7 +68,13 @@ export class ChatRoomsService {
         });
     }
 
-    async deleteRoom(roomId: number) {
+    async deleteRoom(roomId: number, userId: number) {
+        const room = await this.prisma.chat_rooms.findUnique({
+            where: { room_id: roomId },
+        });
+        if (!room) throw new NotFoundException('Room not found');
+        if (room.created_by !== userId) throw new ForbiddenException('Only the creator can delete this room');
+    
         return this.prisma.$transaction(async (trans) => {
             await trans.chat_room_users.deleteMany({
                 where: { room_id: roomId },

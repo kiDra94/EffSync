@@ -120,6 +120,16 @@ export const useChatStore = defineStore('chat', () => {
         };
     };
 
+    const removeRoomFromStore = (roomId) => {
+        rooms.value = rooms.value.filter(r =>
+            (r.room_id ?? r.id) !== Number(roomId)
+        );
+        if (activeRoomId.value === Number(roomId)) {
+            activeRoomId.value = null;
+            delete messagesByRoom.value[String(roomId)];
+        }
+    };
+
     return {
         rooms,
         activeRoomId,
@@ -138,5 +148,6 @@ export const useChatStore = defineStore('chat', () => {
         editMessageAction,
         deleteMessageAction,
         setUserTyping,
+        removeRoomFromStore,
     };
 });

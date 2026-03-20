@@ -1,4 +1,3 @@
-import { onUnmounted } from 'vue';
 import { useSocket } from '@/stores/useSocket';
 import { useChatStore } from '@/stores/entities/chatStore';
 import { sendMessageRest } from '@/api/chat';
@@ -51,6 +50,11 @@ export const useChat = () => {
             socket_emit('join:room', roomId);
         });
 
+        socket_off('delete:room');
+        socket_on('delete:room', ({ roomId }) => {
+            chatStore.removeRoomFromStore(roomId);
+        });
+
         socket_off('error');
         socket_on('error', (errorPayload) => {
             console.error('Chat WebSocket Error:', errorPayload.message);
@@ -63,6 +67,7 @@ export const useChat = () => {
     const editMessage = (messageId, newText) => socket_emit('chat:edit', { messageId, message: newText });
     const deleteMessage = (messageId) => socket_emit('chat:delete', { messageId });
     const sendTyping = (roomId) => socket_emit('chat:typing', { roomId });
+    const deleteRoom = (roomId) => socket_emit('delete:room', { roomId }); 
 
     const sendMessage = async (roomId, message) => {
         if (socket.value?.connected) {
@@ -88,6 +93,7 @@ export const useChat = () => {
         sendMessage,
         editMessage,
         deleteMessage,
+        deleteRoom,
         sendTyping,
         inviteToRoom,
     };
