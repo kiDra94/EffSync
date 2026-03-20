@@ -47,3 +47,9 @@ export const addMember = async (roomId, userId) => {
     const response = await apiClient.post(`${ROOMS_ENDPOINT}/${roomId}/members`, { userId });
     return response.data;
 };
+
+export const fetchAllUsers = async () => {
+    const response = await apiClient.get('/users');
+    const users = response.data?.data ?? response.data;
+    return users;
+};

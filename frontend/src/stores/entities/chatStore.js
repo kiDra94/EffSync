@@ -24,6 +24,23 @@ export const useChatStore = defineStore('chat', () => {
         }
     };
 
+    const createRoom = async (roomData, memberIds = []) => {
+        const room = await createRoomApi(roomData);
+        const roomId = room.room_id ?? room.id;
+
+        for (const userId of memberIds) {
+            await addMember(roomId, userId);
+        }
+
+        await getRooms();
+        return room;
+    };
+
+    const getUsers = async () => {
+        const response = await fetchAllUsers();
+        return response;
+    };
+
     const selectRoom = async (roomId) => {
         activeRoomId.value = roomId;
         if (!messagesByRoom.value[roomId]) {
@@ -101,6 +118,8 @@ export const useChatStore = defineStore('chat', () => {
         isLoadingMessages,
         typingUsers,
         getRooms,
+        createRoom,
+        getUsers,
         selectRoom,
         loadMessages,
         addIncomingMessage,

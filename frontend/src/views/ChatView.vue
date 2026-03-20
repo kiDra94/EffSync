@@ -28,13 +28,19 @@ const handleRoomSelect = async (roomId) => {
     await chatStore.selectRoom(roomId);
     await joinRoom(roomId);
 };
+
+const handleRoomCreated = async (room) => {
+    const roomId = room.room_id ?? room.id;
+    await chatStore.selectRoom(roomId);
+    await joinRoom(roomId);
+};
 </script>
 
 <template>
     <div class="chat-view">
         <div class="chat-sidebar">
             <ChatRoomList :rooms="chatStore.rooms" :active-room-id="chatStore.activeRoomId"
-                :is-loading="chatStore.isLoadingRooms" @select="handleRoomSelect" />
+                :is-loading="chatStore.isLoadingRooms" @select="handleRoomSelect" @created="handleRoomCreated" />
         </div>
 
         <div class="chat-main">
