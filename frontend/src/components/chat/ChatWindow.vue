@@ -76,7 +76,7 @@ const handleDelete = (messageId) => {
                 v-for="msg in messages"
                 :key="msg.message_id ?? msg.id"
                 :message="msg"
-                :is-own="(msg.sender_id ?? msg.senderId ?? msg.user_id) === currentUserId"
+                :is-own="(msg.senderId ?? msg.user_id) === currentUserId"
                 @edit="handleEdit"
                 @delete="handleDelete"
             />

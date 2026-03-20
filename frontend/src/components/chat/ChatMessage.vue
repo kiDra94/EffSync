@@ -12,7 +12,13 @@ const isEditing  = ref(false);
 const editText   = ref('');
 
 const messageId  = computed(() => props.message.message_id ?? props.message.id);
-const senderName = computed(() => props.message.sender?.username ?? props.message.username ?? 'Unbekannt');
+const senderName = computed(() =>
+    props.message.users?.username ??
+    props.message.users?.firstname ??
+    props.message.sender?.username ??
+    'Unbekannt'
+);
+
 const timestamp  = computed(() => {
     const d = new Date(props.message.created_at ?? props.message.createdAt);
     return d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
