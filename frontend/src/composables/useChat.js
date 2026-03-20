@@ -36,6 +36,13 @@ export const useChat = () => {
         });
 
         socket.off('chat:new').on('chat:new', (message) => {
+            if (!message.users) {
+                const room = chatStore.rooms.find(room =>
+                    (room.room_id ?? room.id) === (message.room_id ?? message.roomId)
+                );
+                const member = room?.chat_room_users?.find(user => user.user_id === message.user_id);
+                if (member?.users) message.users = member.users;
+            }
             chatStore.addIncomingMessage(message);
         });
 
@@ -51,7 +58,6 @@ export const useChat = () => {
             console.error('Chat WebSocket Error:', errorPayload.message);
         });
 
-        // 3. NEU: roomId hinzugefügt
         socket.off('chat:typing').on('chat:typing', ({ roomId, userId, username }) => {
             chatStore.setUserTyping(roomId, userId, username);
         });

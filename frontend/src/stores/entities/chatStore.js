@@ -46,10 +46,13 @@ export const useChatStore = defineStore('chat', () => {
 
     const selectRoom = async (roomId) => {
         activeRoomId.value = roomId;
-        if (!messagesByRoom.value[roomId]) {
-            await loadMessages(roomId);
+        const room = rooms.value.find(r => (r.room_id ?? r.id) === roomId);
+        if (!room?.chat_room_users?.length) {
+            await getRooms();
         }
+        await loadMessages(roomId);
     };
+    
 
     const loadMessages = async (roomId) => {
         isLoadingMessages.value = true;
