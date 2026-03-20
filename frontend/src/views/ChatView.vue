@@ -35,6 +35,16 @@ const handleRoomCreated = async (room) => {
     await joinRoom(roomId);
     await chatStore.loadMessages(roomId);
 };
+
+const getTypingUsers = (roomId) => {
+    const typingObj = chatStore.typingUsers[roomId];
+    if (!typingObj) return [];
+    
+    return Object.entries(typingObj).map(([userId, data]) => ({
+        userId: Number(userId),
+        username: data.username
+    }));
+};
 </script>
 
 <template>
@@ -47,8 +57,8 @@ const handleRoomCreated = async (room) => {
         <div class="chat-main">
             <ChatWindow v-if="chatStore.activeRoomId" :room-id="chatStore.activeRoomId"
                 :messages="chatStore.messagesByRoom[chatStore.activeRoomId] || []"
-                :is-loading="chatStore.isLoadingMessages"
-                :typing-users="chatStore.typingUsers[chatStore.activeRoomId] || []" />
+                :is-loading="chatStore.isLoadingMessages" 
+                :typing-users="getTypingUsers(chatStore.activeRoomId)" />
 
             <div v-else class="chat-placeholder">
                 <span>💬</span>
