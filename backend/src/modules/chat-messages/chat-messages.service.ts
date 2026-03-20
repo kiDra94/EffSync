@@ -73,9 +73,9 @@ export class ChatMessagesService {
 
     async isMsgOwner(messageId: number, userId: number) {
         const msg = await this.prisma.chat_messages.findUnique({
-            where: { message_id: messageId },
+            where: { message_id: Number(messageId) },
             select: { user_id: true },
         });
-        return !!msg && msg.user_id === userId;
+        return !!msg && msg.user_id === Number(userId);
     }
 }

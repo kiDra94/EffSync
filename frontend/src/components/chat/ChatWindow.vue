@@ -76,7 +76,8 @@ const handleDelete = (messageId) => {
             </div>
 
             <ChatMessage v-for="msg in messages" :key="msg.message_id ?? msg.id" :message="msg"
-                :is-own="Number(msg.user_id ?? msg.senderId) === Number(authStore.userId)" @delete="handleDelete" />
+                :is-own="Number(msg.user_id ?? msg.senderId) === Number(authStore.userId)" @edit="handleEdit"
+                @delete="handleDelete" />
         </div>
 
         <div v-if="typingLabel" class="chat-window__typing">

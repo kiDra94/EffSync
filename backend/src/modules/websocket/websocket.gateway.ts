@@ -122,7 +122,8 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     async handleChatEditMsg(client: Socket, payload: { messageId: number, message: string }) {
         try {
             const userId = client.data.user?.userId;
-            const isOwner = await this.chatMessagesService.isMsgOwner(payload.messageId, userId);
+            const messageId = Number(payload.messageId);
+            const isOwner = await this.chatMessagesService.isMsgOwner(messageId, userId);
 
             if (!isOwner) {
                 client.emit('error', { message: 'You can only edit your own messages!' });
@@ -130,7 +131,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
             }
 
             const updated = await this.chatMessagesService.updateMsg(
-                payload.messageId,
+                messageId,
                 payload.message,
             );
             this.server.to(`chat_${updated.room_id}`).emit('chat:edited', updated);
