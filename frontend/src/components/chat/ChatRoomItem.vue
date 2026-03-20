@@ -27,6 +27,7 @@ const roomIcon = computed(() => {
     const memberCount = props.room.chat_room_users?.length ?? 0;
     return memberCount <= 2 ? '💬' : '👥';
 });
+// TODO: implement delete btn hier
 </script>
 
 <template>
