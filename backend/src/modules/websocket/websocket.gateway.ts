@@ -130,8 +130,8 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
             });
             this.server.to(`chat_${payload.roomId}`).emit('chat:new', chatMessage);
             this.logger.log(`User ${userId} sent message in room ${payload.roomId}`);
-        } catch {
-            this.logger.error(`Error handling chat message from client ${client.id} in room ${payload.roomId}`);
+        } catch (error) {
+            this.logger.error(`chat:send failed for client ${client.id} in room ${payload.roomId}: ${error.message}`);
             client.emit('error', { message: 'Failed to send message' });
         }
     }
