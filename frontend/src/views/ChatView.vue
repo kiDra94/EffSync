@@ -4,9 +4,11 @@ import { useChatStore } from '@/stores/entities/chatStore';
 import { useChat } from '@/composables/useChat';
 import ChatRoomList from '@/components/chat/ChatRoomList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
+import { useAuthStore } from '../stores/authStore';
 
 const chatStore = useChatStore();
 const { connect, joinRoom, leaveRoom } = useChat();
+const authStore = useAuthStore();
 
 onMounted(async () => {
     connect();
@@ -31,22 +33,15 @@ const handleRoomSelect = async (roomId) => {
 <template>
     <div class="chat-view">
         <div class="chat-sidebar">
-            <ChatRoomList
-                :rooms="chatStore.rooms"
-                :active-room-id="chatStore.activeRoomId"
-                :is-loading="chatStore.isLoadingRooms"
-                @select="handleRoomSelect"
-            />
+            <ChatRoomList :rooms="chatStore.rooms" :active-room-id="chatStore.activeRoomId"
+                :is-loading="chatStore.isLoadingRooms" @select="handleRoomSelect" />
         </div>
 
         <div class="chat-main">
-            <ChatWindow
-                v-if="chatStore.activeRoomId"
-                :room-id="chatStore.activeRoomId"
+            <ChatWindow v-if="chatStore.activeRoomId" :room-id="chatStore.activeRoomId"
                 :messages="chatStore.messagesByRoom[chatStore.activeRoomId] || []"
                 :is-loading="chatStore.isLoadingMessages"
-                :typing-users="chatStore.typingUsers[chatStore.activeRoomId] || []"
-            />
+                :typing-users="chatStore.typingUsers[chatStore.activeRoomId] || []" />
 
             <div v-else class="chat-placeholder">
                 <span>💬</span>
@@ -89,8 +84,14 @@ const handleRoomSelect = async (roomId) => {
     gap: 12px;
 }
 
-.chat-placeholder span { font-size: 3rem; }
-.chat-placeholder p { font-size: 1rem; margin: 0; }
+.chat-placeholder span {
+    font-size: 3rem;
+}
+
+.chat-placeholder p {
+    font-size: 1rem;
+    margin: 0;
+}
 
 :global(body.dark-mode) .chat-sidebar {
     background: #2c2c3e;
