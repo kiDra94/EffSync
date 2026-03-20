@@ -92,7 +92,7 @@ export class ChatRoomsService {
                     left_at: null,
                 },
             });
-            if (isInRoom) throw new BadRequestException('User is already in this room!');
+            if (isInRoom) return isInRoom;
 
             return trans.chat_room_users.create({
                 data: {

@@ -23,6 +23,7 @@ const handleRoomSelect = async (roomId) => {
     if (chatStore.activeRoomId && chatStore.activeRoomId !== roomId) {
         leaveRoom(chatStore.activeRoomId);
     }
+    await chatStore.selectRoom(roomId);
     await joinRoom(roomId);
 };
 </script>
