@@ -78,7 +78,7 @@ export const useChatStore = defineStore('chat', () => {
         const idx = messages.findIndex(
             (m) => (m.message_id ?? m.id) === (updatedMessage.message_id ?? updatedMessage.id)
         );
-        if (idx !== -1) messages[idx] = updatedMessage;
+        if (idx !== -1) messages[idx] = { ...messages[idx], ...updatedMessage };
     };
 
     const removeMessageFromStore = (messageId) => {

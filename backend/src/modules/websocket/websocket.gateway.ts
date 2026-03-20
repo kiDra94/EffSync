@@ -30,7 +30,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     async handleConnection(client: Socket) {
         try {
             const token = client.handshake.auth?.token;
-            if(!token) {
+            if (!token) {
                 client.disconnect();
                 return;
             };
@@ -70,7 +70,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     }
 
     emitToRoom(room: string, event: string, data: any) {
-    this.server.to(`chat_${room}`).emit(event, data);
+        this.server.to(`chat_${room}`).emit(event, data);
     }
 
     @SubscribeMessage('join:room')
@@ -111,7 +111,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
                 message: payload.message,
             });
             this.server.to(`chat_${payload.roomId}`).emit('chat:new', chatMessage);
-            this.logger.log(`User ${userId} sent message in room ${payload.roomId}`);  
+            this.logger.log(`User ${userId} sent message in room ${payload.roomId}`);
         } catch {
             this.logger.error(`Error handling chat message from client ${client.id} in room ${payload.roomId}`);
             client.emit('error', { message: 'Failed to send message' });
@@ -124,7 +124,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
             const userId = client.data.user?.userId;
             const isOwner = await this.chatMessagesService.isMsgOwner(payload.messageId, userId);
 
-            if(!isOwner) {
+            if (!isOwner) {
                 client.emit('error', { message: 'You can only edit your own messages!' });
                 return;
             }
@@ -134,9 +134,9 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
                 payload.message,
             );
             this.server.to(`chat_${updated.room_id}`).emit('chat:edited', updated);
-            this.logger.log(`User ${userId} edited message ${payload.messageId}}`);  
-        } catch {
-            this.logger.error(`Error handling chat:edit failed for client ${client.id}`);
+            this.logger.log(`User ${userId} edited message ${payload.messageId}}`);
+        } catch (error) {
+            this.logger.error(`chat:edit failed for client ${client.id}: ${error.message}`);
             client.emit('error', { message: 'Failed to edit message!' });
         }
     }
@@ -146,7 +146,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
         try {
             const userId = client.data.user?.userId;
 
-            if(!userId) {
+            if (!userId) {
                 client.emit('error', { message: 'You can only delete your own messages!' });
                 return;
             }
@@ -159,7 +159,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
 
             const deleted = await this.chatMessagesService.deleteMessage(payload.messageId);
             this.server.to(`chat_${msg.room_id}`).emit('chat:deleted', { messageId: payload.messageId });
-            this.logger.log(`User ${userId} deleted message ${payload.messageId}`);  
+            this.logger.log(`User ${userId} deleted message ${payload.messageId}`);
         } catch {
             this.logger.error(`Error handling chat:delete failed for client ${client.id}`);
             client.emit('error', { message: 'Failed to edit message!' });
@@ -168,9 +168,17 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
 
     @SubscribeMessage('chat:typing')
     handleChatTyping(client: Socket, data: { roomId: number }) {
-        const userId = client.data.user.userId;
-        const username = client.data.user.username;
+        try {
+            const userId = client.data.user?.userId;
+            const username = client.data.user?.username;
 
-        client.broadcast.to(`chat_${data.roomId}`).emit('chat:typing', { userId, username });
+            if (!userId || !data?.roomId) return;
+
+            client.broadcast
+                .to(`chat_${data.roomId}`)
+                .emit('chat:typing', { userId, username });
+        } catch (err) {
+            this.logger.error(`chat:typing failed: ${err.message}`);
+        }
     }
 }

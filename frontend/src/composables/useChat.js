@@ -47,6 +47,13 @@ export const useChat = () => {
         });
 
         socket.off('chat:edited').on('chat:edited', (message) => {
+            if (!message.users) {
+                const room = chatStore.rooms.find(r =>
+                    (r.room_id ?? r.id) === (message.room_id ?? message.roomId)
+                );
+                const member = room?.chat_room_users?.find(u => u.user_id === message.user_id);
+                if (member?.users) message.users = member.users;
+            }
             chatStore.updateMessageInStore(message);
         });
 
