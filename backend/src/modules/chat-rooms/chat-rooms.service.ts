@@ -117,7 +117,7 @@ export class ChatRoomsService {
                     left_at: null,
                 },
             });
-            if (!isInRoom) throw new NotFoundException('User is not an active member of this room!');
+            if (!isInRoom) return null;
 
             return trans.chat_room_users.update({
                 where: {

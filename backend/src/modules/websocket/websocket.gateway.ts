@@ -87,6 +87,24 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
         }
     }
 
+    notifyUserNewRoom(userId: number, roomId: number) {
+        this.server.to(`user_${userId}`).emit('room:new', { roomId });
+    }
+
+    @SubscribeMessage('invite:room')
+    async handleRoomInvite(client: Socket, payload: { roomId: number, userId: number }) {
+        try {
+            const requesterId = client.data.user?.userId;
+            await this.chatRoomsService.joinRoom(payload.roomId, payload.userId);
+
+            this.server.to(`user_${payload.userId}`).emit('room:new', { roomId: payload.roomId });
+            this.logger.log(`User ${requesterId} invited ${payload.userId} to room ${payload.roomId}`);
+        } catch (error) {
+            this.logger.error(`room:invite failed: ${error.message}`);
+            client.emit('error', { message: 'Failed to invite user' });
+        }
+    }
+
     @SubscribeMessage('leave:room')
     async handleLeaveRoom(client: Socket, roomId: number) {
         try {
