@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useChatStore } from '@/stores/entities/chatStore';
 
 const emit = defineEmits(['close', 'created']);
@@ -9,7 +9,11 @@ const searchQuery = ref('');
 const isLoading = ref(false);
 const error = ref('');
 
-const allUsers = ref(await chatStore.getUsers());
+const allUsers = ref([]);
+
+onMounted(async () => {
+    allUsers.value = await chatStore.getUsers();
+});
 
 const filteredUsers = computed(() => {
     if (!searchQuery.value.trim()) return allUsers.value;

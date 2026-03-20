@@ -5,6 +5,7 @@ import {
     fetchMessages,
     editMessage,
     deleteMessage,
+    fetchAllUsers
 } from '@/api/chat';
 
 export const useChatStore = defineStore('chat', () => {
