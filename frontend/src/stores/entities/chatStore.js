@@ -27,12 +27,16 @@ export const useChatStore = defineStore('chat', () => {
         }
     };
 
-    const createRoom = async (roomData, memberIds = []) => {
+    const createRoom = async (roomData, memberIds = [], onMemberAdd = null) => {
         const room = await createRoomApi(roomData);
         const roomId = room.room_id ?? room.id;
 
         for (const userId of memberIds) {
-            await addMember(roomId, userId);
+            if (onMemberAdd) {
+                onMemberAdd(roomId, userId);
+            } else {
+                await addMember(roomId, userId);
+            }
         }
 
         await getRooms();
@@ -52,7 +56,7 @@ export const useChatStore = defineStore('chat', () => {
         }
         await loadMessages(roomId);
     };
-    
+
 
     const loadMessages = async (roomId) => {
         isLoadingMessages.value = true;

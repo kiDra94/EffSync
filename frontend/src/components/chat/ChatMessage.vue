@@ -2,16 +2,16 @@
 import { ref, computed } from 'vue';
 
 const props = defineProps({
-    message: { type: Object,  required: true  },
-    isOwn:   { type: Boolean, default: false  },
+    message: { type: Object, required: true },
+    isOwn: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['edit', 'delete']);
 
-const isEditing  = ref(false);
-const editText   = ref('');
+const isEditing = ref(false);
+const editText = ref('');
 
-const messageId  = computed(() => props.message.message_id ?? props.message.id);
+const messageId = computed(() => props.message.message_id ?? props.message.id);
 const senderName = computed(() =>
     props.message.users?.username ??
     props.message.users?.firstname ??
@@ -19,7 +19,7 @@ const senderName = computed(() =>
     'Unbekannt'
 );
 
-const timestamp  = computed(() => {
+const timestamp = computed(() => {
     const d = new Date(props.message.created_at ?? props.message.createdAt);
     return d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
 });
@@ -48,13 +48,8 @@ const submitEdit = () => {
             <span v-if="!isOwn" class="chat-msg__sender">{{ senderName }}</span>
 
             <div v-if="isEditing" class="chat-msg__edit">
-                <input
-                    v-model="editText"
-                    class="chat-msg__edit-input"
-                    @keydown.enter.prevent="submitEdit"
-                    @keydown.esc="cancelEdit"
-                    autofocus
-                />
+                <input v-model="editText" class="chat-msg__edit-input" @keydown.enter.prevent="submitEdit"
+                    @keydown.esc="cancelEdit" autofocus />
                 <div class="chat-msg__edit-actions">
                     <button @click="submitEdit" class="btn-primary">Speichern</button>
                     <button @click="cancelEdit" class="btn-secondary">Abbrechen</button>
@@ -69,8 +64,8 @@ const submitEdit = () => {
         </div>
 
         <div v-if="isOwn && !isEditing" class="chat-msg__actions">
-            <button @click="startEdit"                         class="chat-msg__action-btn" title="Bearbeiten">✏️</button>
-            <button @click="emit('delete', messageId)"        class="chat-msg__action-btn" title="Löschen">🗑️</button>
+            <button @click="startEdit" class="chat-msg__action-btn" title="Bearbeiten">✏️</button>
+            <button @click="emit('delete', messageId)" class="chat-msg__action-btn" title="Löschen">🗑️</button>
         </div>
     </div>
 </template>
@@ -83,7 +78,9 @@ const submitEdit = () => {
     gap: 4px;
 }
 
-.chat-msg--own { align-items: flex-end; }
+.chat-msg--own {
+    align-items: flex-end;
+}
 
 .chat-msg__bubble {
     max-width: 70%;
@@ -113,8 +110,13 @@ const submitEdit = () => {
     word-break: break-word;
 }
 
-.chat-msg--own .chat-msg__text  { color: white; }
-.chat-msg--own .chat-msg__time  { color: rgba(255,255,255,0.6); }
+.chat-msg--own .chat-msg__text {
+    color: white;
+}
+
+.chat-msg--own .chat-msg__time {
+    color: rgba(255, 255, 255, 0.6);
+}
 
 .chat-msg__time {
     font-size: 0.7rem;
@@ -137,7 +139,9 @@ const submitEdit = () => {
     transition: background 0.15s;
 }
 
-.chat-msg__action-btn:hover { background: #e5e7eb; }
+.chat-msg__action-btn:hover {
+    background: #e5e7eb;
+}
 
 .chat-msg__edit-input {
     width: 100%;
@@ -153,7 +157,16 @@ const submitEdit = () => {
     margin-top: 4px;
 }
 
-:global(body.dark-mode) .chat-msg__bubble         { background: #3b3b54; color: #ddd; }
-:global(body.dark-mode) .chat-msg--own .chat-msg__bubble { background: #4f46e5; }
-:global(body.dark-mode) .chat-msg__action-btn:hover { background: #444; }
+:global(body.dark-mode) .chat-msg__bubble {
+    background: #3b3b54;
+    color: #ddd;
+}
+
+:global(body.dark-mode) .chat-msg--own .chat-msg__bubble {
+    background: #4f46e5;
+}
+
+:global(body.dark-mode) .chat-msg__action-btn:hover {
+    background: #444;
+}
 </style>

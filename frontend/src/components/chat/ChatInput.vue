@@ -36,7 +36,6 @@ const handleInput = () => {
 
 <template>
     <div class="chat-input">
-        <span>DEBUG: "{{ text }}"</span>  <!-- ← kurz einfügen -->
         <textarea v-model="text"
             :placeholder="isConnected ? 'Nachricht schreiben...' : 'Verbindung wird hergestellt...'" rows="1"
             class="chat-input__textarea" @keydown="handleKeydown" @input="handleInput" />

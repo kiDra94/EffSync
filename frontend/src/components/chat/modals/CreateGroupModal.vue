@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useChatStore } from '@/stores/entities/chatStore';
+import { useChat } from '@/composables/useChat';
 
 const emit = defineEmits(['close', 'created']);
 const chatStore = useChatStore();
@@ -12,6 +13,7 @@ const isLoading = ref(false);
 const error = ref('');
 
 const allUsers = ref([]);
+const { inviteToRoom } = useChat();
 
 onMounted(async () => {
     allUsers.value = await chatStore.getUsers();
@@ -43,10 +45,11 @@ const handleCreate = async () => {
     isLoading.value = true;
     error.value = '';
     try {
-        const room = await chatStore.createRoom({
-            name: name.value.trim(),
-            is_private: false,
-        }, selectedUsers.value.map(u => u.user_id));
+        const room = await chatStore.createRoom(
+            { name: name.value.trim(), is_private: false },
+            selectedUsers.value.map(u => u.user_id),
+            inviteToRoom
+        );
         emit('created', room);
     } catch (e) {
         console.error('createRoom Fehler:', e.response?.data ?? e.message);

@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useChatStore } from '@/stores/entities/chatStore';
+import { useChat } from '@/composables/useChat';
 
 const emit = defineEmits(['close', 'created']);
 const chatStore = useChatStore();
+const { inviteToRoom } = useChat();
 
 const searchQuery = ref('');
 const isLoading = ref(false);
@@ -29,10 +31,11 @@ const handleSelect = async (user) => {
     isLoading.value = true;
     error.value = '';
     try {
-        const room = await chatStore.createRoom({
-            name: null,
-            is_private: true,
-        }, [user.user_id]);
+        const room = await chatStore.createRoom(
+            { name: null, is_private: true },
+            [user.user_id],
+            inviteToRoom
+        );
         emit('created', room);
     } catch (e) {
         error.value = 'Fehler beim Erstellen der Direktnachricht.';

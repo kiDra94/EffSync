@@ -33,6 +33,7 @@ const handleRoomCreated = async (room) => {
     const roomId = room.room_id ?? room.id;
     await chatStore.selectRoom(roomId);
     await joinRoom(roomId);
+    await chatStore.loadMessages(roomId);
 };
 </script>
 
