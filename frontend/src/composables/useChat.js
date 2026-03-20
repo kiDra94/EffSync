@@ -1,9 +1,10 @@
 import { ref, onUnmounted } from 'vue';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { useChatStore } from '@/stores/entities/chatStore';
+import { sendMessageRest } from '@/api/chat';
 
 
-let socket= null;
+let socket = null;
 
 export const useChat = () => {
     const chatStore = useChatStore();
@@ -49,7 +50,7 @@ export const useChat = () => {
         socket.off('error').on('error', (errorPayload) => {
             console.error('Chat WebSocket Error:', errorPayload.message);
         });
-        
+
         // 3. NEU: roomId hinzugefügt
         socket.off('chat:typing').on('chat:typing', ({ roomId, userId, username }) => {
             chatStore.setUserTyping(roomId, userId, username);
@@ -72,10 +73,20 @@ export const useChat = () => {
         socket?.emit('leave:room', roomId);
     };
 
-    const sendMessage = (roomId, message) => {
-        if (!socket?.connected) return false;
-        socket.emit('chat:send', { roomId, message });
-        return true;
+
+    const sendMessage = async (roomId, message) => {
+        if (socket?.connected) {
+            socket.emit('chat:send', { roomId, message });
+            return true;
+        }
+        try {
+            await sendMessageRest(roomId, message);
+            await chatStore.selectRoom(roomId);
+            return true;
+        } catch (error) {
+            console.error('Nachricht senden fehlgeschlagen:', error);
+            return false;
+        }
     };
 
     const editMessage = (messageId, newText) => {

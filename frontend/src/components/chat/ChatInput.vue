@@ -4,8 +4,8 @@ import { useChat } from '@/composables/useChat';
 import { useChatStore } from '@/stores/entities/chatStore';
 
 const props = defineProps({
-    roomId:      { type: [String, Number], required: true  },
-    isConnected: { type: Boolean,          default: false  },
+    roomId: { type: [String, Number], required: true },
+    isConnected: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['typing']);
@@ -17,7 +17,7 @@ const text = ref('');
 
 const handleSend = () => {
     const trimmed = text.value.trim();
-    if (!trimmed || !props.isConnected) return;
+    if (!trimmed) return;
     sendMessage(props.roomId, trimmed);
     text.value = '';
 };
@@ -36,20 +36,11 @@ const handleInput = () => {
 
 <template>
     <div class="chat-input">
-        <textarea
-            v-model="text"
-            :disabled="!isConnected"
-            :placeholder="isConnected ? 'Nachricht schreiben… (Enter zum Senden)' : 'Verbindung wird hergestellt…'"
-            rows="1"
-            class="chat-input__textarea"
-            @keydown="handleKeydown"
-            @input="handleInput"
-        />
-        <button
-            @click="handleSend"
-            :disabled="!isConnected || !text.trim()"
-            class="btn-primary chat-input__btn"
-        >
+        <span>DEBUG: "{{ text }}"</span>  <!-- ← kurz einfügen -->
+        <textarea v-model="text"
+            :placeholder="isConnected ? 'Nachricht schreiben...' : 'Verbindung wird hergestellt...'" rows="1"
+            class="chat-input__textarea" @keydown="handleKeydown" @input="handleInput" />
+        <button @click="handleSend" :disabled="!text.trim()" class="chat-input__btn">
             Senden
         </button>
     </div>
@@ -63,6 +54,8 @@ const handleInput = () => {
     padding: 16px 20px;
     border-top: 1px solid #e5e7eb;
     background: white;
+    position: relative;
+    z-index: 1;
 }
 
 .chat-input__textarea {
@@ -76,6 +69,7 @@ const handleInput = () => {
     max-height: 120px;
     overflow-y: auto;
     transition: border 0.2s;
+    pointer-events: all;
 }
 
 .chat-input__textarea:focus {
@@ -88,16 +82,26 @@ const handleInput = () => {
     color: #9ca3af;
 }
 
-.chat-input__btn { padding: 10px 20px; flex-shrink: 0; }
-
-:global(body.dark-mode) .chat-input {
-    background: #2c2c3e;
-    border-top-color: #444;
+.chat-input__btn {
+    padding: 10px 20px;
+    flex-shrink: 0;
+    width: auto;
+    white-space: nowrap;
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
 }
 
-:global(body.dark-mode) .chat-input__textarea {
-    background: #1e1e2f;
-    border-color: #444;
-    color: #ddd;
+.chat-input__btn:hover:not(:disabled) {
+    background-color: #4338ca;
+}
+
+.chat-input__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 </style>
