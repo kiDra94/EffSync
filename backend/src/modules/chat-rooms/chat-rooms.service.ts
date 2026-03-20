@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
 import { UpdateChatRoomDto } from "./dto/update-chat-room.dto";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -126,4 +126,15 @@ export class ChatRoomsService {
             });
         });
     }
+
+    async assertIsCreator(roomId: number, userId: number) {
+        const room = await this.prisma.chat_rooms.findUnique({
+            where: { room_id: roomId },
+            select: { created_by: true },
+        });
+        if (!room) throw new NotFoundException('Room not found!');
+        if (room.created_by !== userId)
+            throw new ForbiddenException('Only the room creator can do this!');
+    }
+    
 }

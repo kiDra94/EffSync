@@ -20,8 +20,8 @@ export class ChatRoomsController {
     constructor(private readonly chatRoomsService: ChatRoomsService) { }
 
     @Post()
-    create(@Body() createChatRoomDto: CreateChatRoomDto, @Body('userId') userId: number) {
-        return this.chatRoomsService.createRoom(createChatRoomDto, userId);
+    create(@Body() createChatRoomDto: CreateChatRoomDto, @Req() req) {
+        return this.chatRoomsService.createRoom(createChatRoomDto, req.user.id);
     }
 
     @Get()
@@ -50,7 +50,22 @@ export class ChatRoomsController {
     }
 
     @Delete(':id')
-    deleteRoom(@Param('id') id: string){
+    async deleteRoom(@Param('id') id: string, @Req() req){
+        await this.chatRoomsService.assertIsCreator(+id, req.user.userId);
         return this.chatRoomsService.deleteRoom(+id);
+    }
+
+    @Post(':id/members')
+    addMember(@Param('id') roomId: string, @Body('userId') newMember: string) {
+        return this.chatRoomsService.joinRoom(+roomId, +newMember);
+    }
+
+    @Delete(':id/members/:userId')
+    async removeMember(@Param('id') roomId: string, @Param('userId') targetUserId: string, @Req() req) {
+        const requestUserId = req.user.userId;
+        if(requestUserId !== +targetUserId) {
+            await this.chatRoomsService.assertIsCreator(+roomId, requestUserId);
+        }
+        return this.chatRoomsService.leaveRoom(+roomId, +targetUserId);
     }
 }
