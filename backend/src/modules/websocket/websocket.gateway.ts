@@ -125,10 +125,10 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
             const userId = Number(client.data.user?.userId);
             const roomId = Number(payload.roomId);
             await this.chatRoomsService.deleteRoom(roomId, userId);
-            this.server.to(`chat_${roomId}`).emit('room:deleted', { roomId });
+            this.server.to(`chat_${roomId}`).emit('delete:room', { roomId });
             this.logger.log(`User ${userId} deleted room ${roomId}`);
         } catch (err) {
-            this.logger.error(`room:delete failed: ${err.message}`);
+            this.logger.error(`delete:room failed: ${err.message}`);
             client.emit('error', { message: err.message || 'Failed to delete room' });
         }
     }
