@@ -52,7 +52,7 @@ export class ChatRoomsController {
     @Delete(':id')
     async deleteRoom(@Param('id') id: string, @Req() req){
         await this.chatRoomsService.assertIsCreator(+id, req.user.userId);
-        return this.chatRoomsService.deleteRoom(+id);
+        return this.chatRoomsService.deleteRoom(+id, req.user.userId);
     }
 
     @Post(':id/members')
