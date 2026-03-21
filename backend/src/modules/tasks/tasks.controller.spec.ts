@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -23,10 +24,8 @@ describe('TasksController', () => {
       controllers: [TasksController],
       providers: [
         TasksService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: WebsocketGateway, useValue: {} },
       ],
     }).compile();
 
