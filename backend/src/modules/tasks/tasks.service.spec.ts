@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TasksService } from './tasks.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 describe('TasksService', () => {
   let service: TasksService;
@@ -22,10 +23,8 @@ describe('TasksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: WebsocketGateway, useValue: {} },
       ],
     }).compile();
 

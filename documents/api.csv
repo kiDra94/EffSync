@@ -22,7 +22,16 @@ Document,/api/documents,POST,Lädt ein Dokument hoch,Geschützt,documents
 Document,/api/tasks/:id/documents,GET,Ruft alle verknüpften Dokumente eines Tasks ab,Geschützt,documents, task-documents
 Document,/api/documents/:id,GET,Download des Dokuments - Berechtigungsprüfung,Geschützt,documents
 Document,/api/documents/:id/users,POST,Teilt das Dokument mit einem User,Geschützt,document-users
-Chat,/api/chat/rooms/:id/messages,GET/POST,Ruft Chat-Historie ab/Sendet Nachricht,Geschützt,chat-rooms, chat-messages
+Chat,/api/chat/rooms,POST,Erstellt einen neuen Chatraum (privat oder Gruppe),Geschützt,chat-rooms, chat-room-users
+Chat,/api/chat/rooms,GET,Ruft alle Chaträume des eingeloggten Users ab,Geschützt,chat-rooms, chat-room-users
+Chat,/api/chat/rooms/:id,GET,Ruft Raum-Details inkl. Mitglieder ab,Geschützt,chat-rooms, chat-room-users
+Chat,/api/chat/rooms/:id,DELETE,Löscht einen Chatraum (nur Ersteller),Geschützt,chat-rooms
+Chat,/api/chat/rooms/:id/members,POST,Fügt ein Mitglied zum Chatraum hinzu,Geschützt,chat-room-users
+Chat,/api/chat/rooms/:id/members/:userId,DELETE,Entfernt ein Mitglied aus dem Chatraum,Geschützt,chat-room-users
+Chat,/api/chat/rooms/:id/messages,GET,Ruft alle Nachrichten eines Raums ab (kein Paging scrollbar),Geschützt,chat-messages, users
+Chat,/api/chat/rooms/:id/messages,POST,Sendet eine Nachricht per REST (Fallback),Geschützt,chat-messages
+Chat,/api/chat/messages/:id,PATCH,Bearbeitet eine eigene Nachricht,Geschützt,chat-messages
+Chat,/api/chat/messages/:id,DELETE,Löscht eine eigene Nachricht (Hard Delete),Geschützt,chat-messages
 Notification,/api/notifications,GET,Ruft alle Benachrichtigungen des Users ab,Geschützt,notifications
 Notification,/api/notifications/:id,PATCH,Markiert Benachrichtigung als gelesen,Geschützt,notifications
 Notes,/api/notes,GET/POST,Verwaltet Notizen,Geschützt,notes

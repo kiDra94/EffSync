@@ -5,20 +5,20 @@ import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class NotesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   async create(createNoteDto: CreateNoteDto, userId: number, includeRelations = true) {
-    if(createNoteDto.subject_id) {
+    if (createNoteDto.subject_id) {
       const subject = await this.prisma.subjects.findUnique({
         where: { subject_id: createNoteDto.subject_id }
       });
-      if(!subject) {
+      if (!subject) {
         throw new NotFoundException(`Subjcket with ID ${createNoteDto.subject_id} not found!`);
       };
     };
     return await this.prisma.notes.create({
       data: {
-        ...CreateNoteDto,
-        created_by : userId
+        ...createNoteDto,
+        created_by: userId
       },
       include: includeRelations ? this.basicInclude() : undefined,
     })
@@ -31,7 +31,7 @@ export class NotesService {
         subject_id: subjectId,
       },
       include: includeRelations ? this.basicInclude() : undefined,
-      orderBy: { created_at : 'desc' },
+      orderBy: { created_at: 'desc' },
     });
   }
 
@@ -40,7 +40,7 @@ export class NotesService {
       where: { note_id: noteId },
       include: includeRelations ? this.basicInclude() : undefined,
     });
-    if(!note) {
+    if (!note) {
       throw new NotFoundException(`Note with ID ${noteId} not found!`);
     };
     return note;
@@ -48,7 +48,7 @@ export class NotesService {
 
   async update(noteId: number, userId: number, updateNoteDto: UpdateNoteDto, includeRelations = true) {
     const note = await this.findOne(noteId);
-    if(note.created_by !== userId) {
+    if (note.created_by !== userId) {
       throw new ForbiddenException(`You can only edit your own notes`)
     }
     return this.prisma.notes.update({
@@ -79,15 +79,16 @@ export class NotesService {
         select: {
           user_id: true,
           email: true,
-          first_name: true,
-          last_name: true,
+          username: true,
+          firstname: true, 
+          lastname: true,
         },
-        subjects: {
-          select: {
-            subject_id: true,
-            name: true,
-            short_name: true,
-          },
+      },
+      subjects: {
+        select: {
+          subject_id: true,
+          name: true,
+          short_name: true,
         },
       },
     };

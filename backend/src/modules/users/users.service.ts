@@ -6,7 +6,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createUserDto: CreateUserDto) {
     const saltRound = 10; // standard wert fuer web 2^10 Rounds
@@ -32,14 +32,29 @@ export class UsersService {
   }
 
   async findAll() {
-    return await this.prisma.users.findMany();
+    return await this.prisma.users.findMany({
+      select: {
+        user_id: true,
+        firstname: true,
+        lastname: true,
+        username: true,
+        email: true,
+      }
+    });
   }
 
   async findOne(id: number) {
-    const user = await this.prisma.users.findUnique({ where: { user_id: id } });
-    if (!user) {
-      throw new NotFoundException(`Member with ID ${id} not found`);
-    }
+    const user = await this.prisma.users.findUnique({
+      where: { user_id: id },
+      select: {
+        user_id: true,
+        firstname: true,
+        lastname: true,
+        username: true,
+        email: true,
+      }
+    });
+    if (!user) throw new NotFoundException(`Member with ID ${id} not found`);
     return user;
   }
 

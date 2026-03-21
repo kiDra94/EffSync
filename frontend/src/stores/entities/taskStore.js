@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { fetchTasks, fetchTaskById, createTask, updatedTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
+import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
 import { useSocket } from '../useSocket';
 
 let isSaving = false;
@@ -10,8 +10,8 @@ export const useTaskStore = defineStore('task', () => {
     const { socket_on, socket_off } = useSocket();
 
     function initSocketListeners() {
-        if(!socket.value) return;
-        off('task:updated');
+        //if(!socket.value) return;
+        socket_off('task:updated');
 
         socket_on('task:updated', (updatedTask) => {
             const index = tasks.value.findIndex(task => task.task_id === updatedTask.task_id);

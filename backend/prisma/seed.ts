@@ -64,10 +64,7 @@ async function main() {
         console.log(`✓ 10 Einträge in permissions erstellt`);
 
         const rolesData = [
-            { name: 'Superadmin' }, { name: 'Direktor' }, { name: 'Abteilungsvorstand' },
-            { name: 'Klassenvorstand' }, { name: 'Lehrer' }, { name: 'Schüler' },
-            { name: 'Schulsprecher' }, { name: 'Sekretariat' }, { name: 'IT-Admin' },
-            { name: 'Eltern' }
+            { name: 'Superuser' }, { name: 'Student' }, { name: 'Teacher' },{ name: 'Admin' },
         ];
         await prisma.roles.createMany({ data: rolesData });
         console.log(`✓ 10 Einträge in roles erstellt`);
@@ -189,9 +186,9 @@ async function main() {
         }
 
         const userRolesData = [
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: 1, role_id: i + 1 })), // User 1 = Alle Rollen
-            ...[2, 3, 4, 5, 6].map(id => ({ user_id: id, role_id: 5 })), // Lehrer
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 6 })) // Schüler
+            ...[1, 2, 3, 4].map(role_id => ({ user_id: 1, role_id })), // User 1 = Alle Rollen
+            ...[2, 3, 4, 5, 6].map(id => ({ user_id: id, role_id: 3 })), // Lehrer
+            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 })) // Schüler
         ];
         await prisma.user_roles.createMany({ data: userRolesData });
         console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt`);
@@ -386,29 +383,99 @@ async function main() {
         await prisma.documents.createMany({ data: documentsData });
         console.log(`✓ 10 Einträge in documents erstellt`);
 
-        const chatRoomsData = Array.from({ length: 10 }).map((_, i) => ({
-            name: i === 0 ? 'Lehrerzimmer' : `Klassenchat Gruppe ${i}`,
-            class_id: i === 0 ? null : i,
-            task_id: null
-        }));
-        await prisma.chat_rooms.createMany({ data: chatRoomsData });
-        console.log(`✓ 10 Einträge in chat_rooms erstellt`);
+        // Direct Chats (is_private: true, direct_chat_hash = 'direct_{minId}_{maxId}')
+        // Room IDs 1-3
+        const directChatsData = [
+            { name: null, is_private: true, direct_chat_hash: 'direct_1_2', created_by: 1 }, // Admin <-> Anna
+            { name: null, is_private: true, direct_chat_hash: 'direct_1_7', created_by: 1 }, // Admin <-> Felix
+            { name: null, is_private: true, direct_chat_hash: 'direct_2_3', created_by: 2 }, // Anna <-> Peter
+        ];
+        await prisma.chat_rooms.createMany({ data: directChatsData });
+        console.log(`✓ 3 Direct Chat Rooms erstellt (IDs 1–3)`);
+
+        // Group Rooms (is_private: false)
+        // Room IDs 4-6
+        const groupRoomsData = [
+            { name: 'Lehrerkonferenz', is_private: false, created_by: 2 },                      // alle Lehrer + Admin
+            { name: '5AHITM Klassenchat', is_private: false, class_id: 5, created_by: 6 },      // KV + Klasse 5
+            { name: 'Diplomarbeit Gruppe', is_private: false, created_by: 3 },                  // Peter + ein paar Schüler
+        ];
+        await prisma.chat_rooms.createMany({ data: groupRoomsData });
+        console.log(`✓ 3 Group Chat Rooms erstellt (IDs 4–6)`);
 
         // --- PHASE 8: Junction & Log Tables ---
-        const chatMessagesData = Array.from({ length: 10 }).map((_, i) => ({
-            room_id: 1,
-            user_id: (i % 5) + 2,
-            message: `Nachricht ${i + 1} im Lehrerzimmer`,
-        }));
-        await prisma.chat_messages.createMany({ data: chatMessagesData });
-        console.log(`✓ 10 Einträge in chat_messages erstellt`);
-
-        const chatRoomUsersData = Array.from({ length: 10 }).map((_, i) => ({
-            room_id: i + 1,
-            user_id: 2
-        }));
+        // --- Chat Room Users ---
+        // Klasse 5 Schüler: user_id 11 (Tobias) und 16 (Emma) → class_id = (i%5)+1 für i=4 und i=9
+        const chatRoomUsersData = [
+            // Room 1 – Direct: Admin (1) <-> Anna (2)
+            { room_id: 1, user_id: 1 },
+            { room_id: 1, user_id: 2 },
+            // Room 2 – Direct: Admin (1) <-> Felix (7)
+            { room_id: 2, user_id: 1 },
+            { room_id: 2, user_id: 7 },
+            // Room 3 – Direct: Anna (2) <-> Peter (3)
+            { room_id: 3, user_id: 2 },
+            { room_id: 3, user_id: 3 },
+            // Room 4 – Lehrerkonferenz: Admin + alle Lehrer
+            { room_id: 4, user_id: 1 },
+            { room_id: 4, user_id: 2 },
+            { room_id: 4, user_id: 3 },
+            { room_id: 4, user_id: 4 },
+            { room_id: 4, user_id: 5 },
+            { room_id: 4, user_id: 6 },
+            // Room 5 – 5AHITM: KV Julia (6) + Tobias (11) + Emma (16)
+            { room_id: 5, user_id: 6 },
+            { room_id: 5, user_id: 11 },
+            { room_id: 5, user_id: 16 },
+            // Room 6 – Diplomarbeit: Peter (3) + Felix (7) + Laura (8) + David (9)
+            { room_id: 6, user_id: 3 },
+            { room_id: 6, user_id: 7 },
+            { room_id: 6, user_id: 8 },
+            { room_id: 6, user_id: 9 },
+        ];
         await prisma.chat_room_users.createMany({ data: chatRoomUsersData });
-        console.log(`✓ 10 Einträge in chat_room_users erstellt`);
+        console.log(`✓ ${chatRoomUsersData.length} Einträge in chat_room_users erstellt`);
+
+        // --- Chat Messages ---
+        const chatMessagesData = [
+            // Room 1 – Admin <-> Anna (Direct)
+            { room_id: 1, user_id: 1, message: 'Hallo Anna, kannst du mir kurz sagen wann die nächste Lehrerkonferenz ist?' },
+            { room_id: 1, user_id: 2, message: 'Hi Max! Ja, kommenden Dienstag um 14 Uhr im großen Konferenzsaal.' },
+            { room_id: 1, user_id: 1, message: 'Super, danke! Ich trag das gleich ein.' },
+
+            // Room 2 – Admin <-> Felix (Direct)
+            { room_id: 2, user_id: 7, message: 'Guten Tag, ich wollte fragen ob mein Zugang zum Schulsystem schon freigeschaltet wurde?' },
+            { room_id: 2, user_id: 1, message: 'Hallo Felix! Ja, sollte jetzt gehen. Einfach mit deinem Schulaccount einloggen.' },
+            { room_id: 2, user_id: 7, message: 'Perfekt, hat geklappt. Danke!' },
+
+            // Room 3 – Anna <-> Peter (Direct)
+            { room_id: 3, user_id: 2, message: 'Peter, hast du die Abgaben von der 3AHITM schon korrigiert?' },
+            { room_id: 3, user_id: 3, message: 'Bin gerade dabei, dauert noch bis morgen Abend.' },
+            { room_id: 3, user_id: 2, message: 'Kein Stress, Deadline ist erst Freitag. 👍' },
+
+            // Room 4 – Lehrerkonferenz (Group)
+            { room_id: 4, user_id: 2, message: 'Guten Morgen alle! Erinnerung: Zeugnisnoten bis Donnerstag ins System einpflegen.' },
+            { room_id: 4, user_id: 4, message: 'Danke für die Erinnerung! Mache ich heute Nachmittag.' },
+            { room_id: 4, user_id: 5, message: 'Gilt das auch für die Nachtragsbeurteilungen?' },
+            { room_id: 4, user_id: 2, message: 'Ja, alles was noch offen ist bitte bis Donnerstag.' },
+            { room_id: 4, user_id: 1, message: 'Ich schick euch noch eine offizielle Erinnerungsmail raus.' },
+
+            // Room 5 – 5AHITM Klassenchat (Group)
+            { room_id: 5, user_id: 6, message: 'Hallo 5AHITM! Die Schularbeit am Freitag findet im EDV 1 statt, nicht im Klassenzimmer.' },
+            { room_id: 5, user_id: 11, message: 'Danke für die Info! Welche Themen kommen dran?' },
+            { room_id: 5, user_id: 6, message: 'Kapitel 3 bis 6 aus dem Skriptum, wie besprochen.' },
+            { room_id: 5, user_id: 16, message: 'Dürfen wir Unterlagen mitnehmen?' },
+            { room_id: 5, user_id: 6, message: 'Nein, closed book. Viel Erfolg beim Lernen! 📚' },
+
+            // Room 6 – Diplomarbeit (Group)
+            { room_id: 6, user_id: 3, message: 'Guten Morgen! Wie ist der aktuelle Stand beim Backend?' },
+            { room_id: 6, user_id: 7, message: 'Nginx läuft, SSL ist eingerichtet. Gerade noch am Docker-Setup.' },
+            { room_id: 6, user_id: 8, message: 'Ich hab das Frontend-Deployment fertig, warte auf die API-URL von Felix.' },
+            { room_id: 6, user_id: 9, message: 'Die Doku hab ich auf den neuesten Stand gebracht.' },
+            { room_id: 6, user_id: 3, message: 'Sehr gut! Nächstes Meeting Mittwoch 10 Uhr, dann schauen wir uns alles gemeinsam an.' },
+        ];
+        await prisma.chat_messages.createMany({ data: chatMessagesData });
+        console.log(`✓ ${chatMessagesData.length} Einträge in chat_messages erstellt`);
 
         const documentSharesData = Array.from({ length: 10 }).map((_, i) => ({
             document_id: i + 1,
@@ -480,6 +547,10 @@ async function main() {
         console.log('Daten für Schulverwaltungssystem generiert.');
         console.log('User ID 1 (Max Mustermann / adminadmin) ist Superuser.');
         console.log('Passwörter für alle User: "password123"');
+        console.log('');
+        console.log('Chat-Übersicht:');
+        console.log('  Direct:  Admin↔Anna (R1) | Admin↔Felix (R2) | Anna↔Peter (R3)');
+        console.log('  Groups:  Lehrerkonferenz (R4) | 5AHITM (R5) | Diplomarbeit (R6)');
         console.log('=============================================\n');
 
     } catch (error) {

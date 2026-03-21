@@ -30,6 +30,7 @@ Table chat_rooms {
   task_id integer [ref: > tasks.task_id, null]
   class_id integer [ref: > classes.class_id, null]
   is_private boolean [default: false]
+  direct_chat_hash string [unique]
   created_at datetime [default: `now()`]
   updated_at datetime
 }
@@ -37,7 +38,8 @@ Table chat_rooms {
 Table chat_room_users {
   room_id integer [pk, ref: > chat_rooms.room_id]
   user_id integer [pk, ref: > users.user_id]
-  joined_at datetime [default: `now()`]
+  joined_at datetime [pk, default: `now()`]
+  left_at datetime
 }
 
 Table chat_messages {

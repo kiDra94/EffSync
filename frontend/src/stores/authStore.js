@@ -7,7 +7,7 @@ import { useSearchStore } from './searchStore'
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
-    const userId = ref(null)
+    const userId = ref(Number(localStorage.getItem('userId')) || null)
     const userRole = ref(null)
     const userDetails = ref(null)
     const { connect, disconnect } = useSocket();
@@ -44,15 +44,21 @@ export const useAuthStore = defineStore('auth', () => {
             const user = data.user || data;
 
             token.value = newToken
-            userId.value = user.id ?? user.user_id ?? null
+            userId.value = user.user_id ?? user.id ?? null
             userRole.value = user.role
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
+            localStorage.setItem('userId', userId.value);
 
             connect(data.token);
-            const searchStore = useSearchStore()
-            await searchStore.ensureLoaded()
+            try {
+                const searchStore = useSearchStore();
+                await searchStore.ensureLoaded();
+            } catch (e) {
+                console.warn('SearchStore Fehler (nicht kritisch):', e.message);
+            }
+            
 
             return response.data
         } catch (error) {
@@ -75,6 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
             userRole.value = null
             userDetails.value = null
             localStorage.removeItem('authToken')
+            localStorage.removeItem('userId');
             await router.push({ name: 'Login' })
             const searchStore = useSearchStore()
             searchStore.reset()
@@ -88,7 +95,6 @@ export const useAuthStore = defineStore('auth', () => {
                 console.log('Dev-Mode: loadUser() übersprungen')
                 return
             }
-            // Nutzt jetzt die zentralisierte authApi (löst das TODO)
             const response = await authApi.getUserProfile()
             // Anpassung je nach Backend-Antwortstruktur (oft response.data oder response.data.user)
             const user = response.data.user || response.data

@@ -1,7 +1,7 @@
 generator client {
   provider     = "prisma-client-js"
   moduleFormat = "cjs"
-  engineType = "library"
+  engineType   = "library"
 }
 
 datasource db {
@@ -10,12 +10,12 @@ datasource db {
 
 model chat_messages {
   message_id Int         @id @default(autoincrement())
-  room_id    Int?
-  user_id    Int?
-  message    String?
+  room_id    Int
+  user_id    Int
+  message    String
   file_path  String?     @db.VarChar
-  created_at DateTime?   @default(now()) @db.Timestamp(6)
-  updated_at DateTime?   @db.Timestamp(6)
+  created_at DateTime    @default(now()) @db.Timestamp(6)
+  updated_at DateTime?   @updatedAt @db.Timestamp(6)
   chat_rooms chat_rooms? @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
   users      users?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -23,25 +23,29 @@ model chat_messages {
 model chat_room_users {
   room_id    Int
   user_id    Int
-  joined_at  DateTime?  @default(now()) @db.Timestamp(6)
+  joined_at  DateTime   @default(now()) @db.Timestamp(6)
+  left_at    DateTime?  @db.Timestamp(6)
   chat_rooms chat_rooms @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
   users      users      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@id([room_id, user_id])
+  @@id([room_id, user_id, joined_at])
 }
 
 model chat_rooms {
-  room_id         Int               @id @default(autoincrement())
-  name            String?           @db.VarChar
-  task_id         Int?
-  class_id        Int?
-  is_private      Boolean           @default(false)
-  created_at      DateTime?         @default(now()) @db.Timestamp(6)
-  updated_at      DateTime?         @db.Timestamp(6)
-  chat_messages   chat_messages[]
-  chat_room_users chat_room_users[]
-  classes         classes?          @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction)
-  tasks           tasks?            @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+  room_id          Int               @id @default(autoincrement())
+  name             String?           @db.VarChar
+  task_id          Int?
+  class_id         Int?
+  is_private       Boolean           @default(false)
+  direct_chat_hash String?           @unique @db.VarChar(50)
+  created_by       Int
+  created_at       DateTime          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?         @updatedAt @db.Timestamp(6)
+  chat_messages    chat_messages[]
+  chat_room_users  chat_room_users[]
+  classes          classes?          @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks            tasks?            @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?            @relation("chat_rooms_created", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model classes {
@@ -92,8 +96,8 @@ model documents {
   document_id     Int               @id @default(autoincrement())
   name            String?           @db.VarChar
   file_path       String?           @db.VarChar
-  file_size       Int?              
-  mime_type       String?           @db.VarChar 
+  file_size       Int?
+  mime_type       String?           @db.VarChar
   added_by        Int?
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   updated_at      DateTime?         @db.Timestamp(6)
@@ -278,7 +282,7 @@ model task_templates {
   description String?
   created_at  DateTime? @default(now()) @db.Timestamp(6)
   updated_at  DateTime? @db.Timestamp(6)
-  user        users @relation(fields: [created_by], references: [user_id])
+  user        users     @relation(fields: [created_by], references: [user_id])
   tasks       tasks[]
 }
 
@@ -342,14 +346,14 @@ model user_roles {
 }
 
 model users {
-  user_id       Int       @id @default(autoincrement())
-  firstname     String    @db.VarChar
-  lastname      String    @db.VarChar
-  email         String    @unique @db.VarChar
-  username      String    @unique @db.VarChar
-  password_hash String    @db.VarChar
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-  updated_at    DateTime? @updatedAt @db.Timestamp(6)
+  user_id                                Int                 @id @default(autoincrement())
+  firstname                              String              @db.VarChar
+  lastname                               String              @db.VarChar
+  email                                  String              @unique @db.VarChar
+  username                               String              @unique @db.VarChar
+  password_hash                          String              @db.VarChar
+  created_at                             DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at                             DateTime?           @updatedAt @db.Timestamp(6)
   chat_messages                          chat_messages[]
   chat_room_users                        chat_room_users[]
   document_shares                        document_shares[]
@@ -369,32 +373,33 @@ model users {
   user_permissions                       user_permissions[]
   user_roles                             user_roles[]
   taskTemplates                          task_templates[]
+  chat_rooms_created                     chat_rooms[]        @relation("chat_rooms_created")
 }
 
 model email_preferences {
-  preference_id        Int       @id @default(autoincrement())
-  user_id              Int       @unique
-  email_on_deadline    Boolean   @default(true)
-  email_on_mention     Boolean   @default(true)
-  email_on_comment     Boolean   @default(true)
-  email_digest         Boolean   @default(false)
-  digest_frequency     String    @default("daily") @db.VarChar // daily, weekly, monthly
-  created_at           DateTime? @default(now()) @db.Timestamp(6)
-  updated_at           DateTime? @updatedAt @db.Timestamp(6)
-  users                users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  preference_id     Int       @id @default(autoincrement())
+  user_id           Int       @unique
+  email_on_deadline Boolean   @default(true)
+  email_on_mention  Boolean   @default(true)
+  email_on_comment  Boolean   @default(true)
+  email_digest      Boolean   @default(false)
+  digest_frequency  String    @default("daily") @db.VarChar // daily, weekly, monthly
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @updatedAt @db.Timestamp(6)
+  users             users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model email_logs {
-  email_log_id Int       @id @default(autoincrement())
-  user_id      Int
-  recipient    String    @db.VarChar
-  subject      String    @db.VarChar
-  email_type   String    @db.VarChar // 'deadline', 'mention', 'comment', 'digest'
-  status       String    @default("sent") @db.VarChar // 'sent', 'failed', 'pending'
+  email_log_id  Int       @id @default(autoincrement())
+  user_id       Int
+  recipient     String    @db.VarChar
+  subject       String    @db.VarChar
+  email_type    String    @db.VarChar // 'deadline', 'mention', 'comment', 'digest'
+  status        String    @default("sent") @db.VarChar // 'sent', 'failed', 'pending'
   error_message String?   @db.Text
-  sent_at      DateTime? @db.Timestamp(6)
-  created_at   DateTime? @default(now()) @db.Timestamp(6)
-  users        users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  sent_at       DateTime? @db.Timestamp(6)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  users         users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 enum task_status {
