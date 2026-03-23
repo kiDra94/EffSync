@@ -1,16 +1,27 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useTaskStore } from '@/stores/entities/taskStore';
+import TaskForm from '@/components/tasks/TaskForm.vue';
 
 // 1. STATE
 const currentDate = ref(new Date());
 const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const viewMode = ref('month'); // 'month' oder 'week'
+const taskStore = useTaskStore();
+const selectedTask = ref(null);
+const isModalOpen = ref(false);
+
+onMounted(async () => {
+    if (taskStore.tasks.length === 0) {
+        await taskStore.getTasks();
+  }
+});
 
 // Mock Events (Später aus API)
 const events = ref([
-    { date: '2025-01-20', title: 'Mathe Test', color: '#e74c3c' },
-    { date: '2025-01-22', title: 'Englisch Vokabeln', color: '#f39c12' },
-    { date: '2025-02-05', title: 'Sportfest', color: '#2ecc71' }
+    { date: '2026-03-05', title: 'Mathe Test', color: '#e74c3c' },
+    { date: '2026-03-12', title: 'Englisch Vokabeln', color: '#f39c12' },
+    { date: '2026-03-23', title: 'Sportfest', color: '#2ecc71' }
 ]);
 
 // Mock Lessons für Wochenansicht
@@ -27,9 +38,14 @@ const lessons = ref([
 ]);
 
 const timeSlots = ref([
-    '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00'
+    '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00', '03:30',
+    '04:00', '04:30', '05:00', '05:30', '06:00', '06:30', '07:00', '07:30',
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30',
+    '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30'
 ]);
+
 
 // 2. KALENDER LOGIK
 const currentYear = computed(() => currentDate.value.getFullYear());
@@ -63,13 +79,21 @@ const calendarDays = computed(() => {
 
     for (let i = 1; i <= daysInMonth; i++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+        const dayTasks = taskStore.tasks
+            .filter(task => task.deadline && task.deadline.startsWith(dateStr))
+            .map(task => ({id: task.task_id, title: task.title, color: '#4f46e5', type: 'task' }));
+
+        const dayEvents = events.value
+            .filter(event => event.date === dateStr)
+            .map(event => ({ ...event, type: 'event' }));
         
         days.push({
             day: i,
             fullDate: dateStr,
             isPadding: false,
             isToday: isSameDate(new Date(), year, month, i),
-            events: events.value.filter(e => e.date === dateStr)
+            events: [...dayTasks, ...dayEvents],
         });
     }
 
@@ -162,6 +186,141 @@ const getLessonStyle = (lesson) => {
         height: (duration / 30) * heightPerSlot + 'px'
     };
 };
+
+const currentDayFormated = computed(() => {
+    const date = currentDate.value;
+    const dayIndex = (date.getDay() + 6) % 7;
+
+    return {
+        dayName: weekDays[dayIndex],
+        date: date,
+        dateStr: formatDate(date),
+        dayOfWeek: dayIndex,
+        isToday: isSameDate(new Date(), date.getFullYear(), date.getMonth(), date.getDate())
+    };
+});
+
+const prevDay = () => {
+    const d = new Date(currentDate.value);
+    d.setDate(d.getDate() - 1);
+    currentDate.value = d;
+};
+
+const nextDay= () => {
+    const d = new Date(currentDate.value);
+    d.setDate(d.getDate() + 1);
+    currentDate.value = d;
+};
+
+const dayLable = computed(() => {
+    const today = currentDate.value;
+    return `${today.toLocaleDateString('de-DE')}`;
+});
+
+const currentDayEntries = computed(() => {
+    const dateStr = currentDayFormated.value.dateStr;
+
+    const dayTasks = taskStore.tasks
+        .filter(task => task.deadline && task.deadline.startsWith(dateStr))
+        .map(task => ({
+            id: task.task_id,
+            title: task.title,
+            deadline: task.deadline,
+            priority_id: task.priority_id,
+            status: task.status, 
+            type: 'task'
+        }));
+    console.log(dayTasks);
+
+    const dayEvents = events.value
+        .filter(event => event.date === dateStr)
+        .map(event => ({ ...event, type: 'event' }));
+
+    return [...dayTasks, ...dayEvents];
+});
+
+const openTaskModal = (event) => {
+    if(event.type === "task") {
+        const task = taskStore.tasks.find(t => t.task_id === event.id);
+        if(task) {
+            selectedTask.value = task;
+            isModalOpen.value = true;
+        }
+    }
+}
+
+const closeModal = () => {
+    selectedTask.value = null;
+    isModalOpen.value = false;
+}
+
+const handleSave = async (taskData) => {
+    try {
+        if (taskData.task_id) {
+            await taskStore.editTask(taskData.task_id, taskData);
+        } else {
+            await taskStore.addTask(taskData);
+        }
+        closeModal();
+    } catch (error) {
+        console.error("Fehler beim Speichern:", error);
+    }
+};
+
+const handleSaveWithSubtasks = async ({ taskData, subtasks }) => {
+    try {
+        await taskStore.editTaskWithSubtasks(taskData.task_id, taskData, subtasks);
+        closeModal();
+    } catch (error) {
+        console.error("Fehler beim Speichern mit Subtasks:", error);
+    }
+};
+
+const taskColors = {
+  1: '#34a853', // Grün
+  2: '#fbbc04', // Gelb
+  3: '#ea4335', // Rot
+  4: '#a142f4', // Lila
+  COMPLETED: '#9ca3af' // Grau
+};
+
+const getTaskStyle = (task, index) => {
+    //if (!task.deadline) return { display: 'none' };
+    const HEADEROFFSET = 60; // Höhe des Headers
+    const HEGIHTOFFSET = 35; // Höhe eines Task-Blocks
+    const MAXIMALMINS = 24 * 60; // 1440 Minuten pro Tag
+    
+    const d = new Date(task.deadline);
+    const deadlineMins = d.getHours() * 60 + d.getMinutes();
+    const startMins = 0; // 00:00 Uhr
+    console.log(deadlineMins);
+    let calculatedTop = deadlineMins - startMins - HEADEROFFSET - HEGIHTOFFSET;
+    if (calculatedTop < 0) calculatedTop = 0;
+    if (calculatedTop > MAXIMALMINS - HEADEROFFSET) calculatedTop = MAXIMALMINS - HEADEROFFSET;
+
+    const bgColor = task.status === 'COMPLETED' ? taskColors.COMPLETED : (taskColors[task.priority_id] || '#4f46e5');
+
+    return {
+        top: `${calculatedTop}px`,
+        height: '35px',
+        left: `${30 + (index * 20)}px`, 
+        width: '160px',
+        backgroundColor: bgColor,
+        position: 'absolute',
+        zIndex: 10 + index,
+        borderLeft: '3px solid rgba(255,255,255,0.5)',
+        boxShadow: '2px 2px 8px rgba(0,0,0,0.2)',
+        color: 'white',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '0.75rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        pointerEvents: 'auto'
+    };
+};
 </script>
 
 <template>
@@ -184,47 +343,59 @@ const getLessonStyle = (lesson) => {
           >
             📋 Woche
           </button>
+          <button 
+            :class="{ active: viewMode === 'day' }" 
+            @click="viewMode = 'day'"
+            class="tab-btn"
+          >
+            📋 Tag
+          </button>
         </div>
         <button @click="goToToday" class="btn-today">Heute</button>
       </div>
     </div>
 
     <!-- MONATSANSICHT -->
-    <div v-if="viewMode === 'month'" class="calendar-card">
-      <div class="cal-header">
-        <button @click="prevMonth" class="nav-btn">&lt;</button>
-        <h2>{{ monthName }}</h2>
-        <button @click="nextMonth" class="nav-btn">&gt;</button>
-      </div>
-
-      <div class="weekdays-row">
-        <div v-for="day in weekDays" :key="day" class="weekday">{{ day }}</div>
-      </div>
-
-      <div class="days-grid">
-        <div 
-            v-for="(dayObj, index) in calendarDays" 
-            :key="index"
-            class="day-cell"
-            :class="{ 
-                'is-padding': dayObj.isPadding, 
-                'is-today': dayObj.isToday 
-            }"
+<div v-if="viewMode === 'month'" class="calendar-card">
+  <div class="cal-header">
+    <button @click="prevMonth" class="nav-btn">&lt;</button>
+    <h2>{{ monthName }}</h2>
+    <button @click="nextMonth" class="nav-btn">&gt;</button>
+  </div>
+ 
+  <div class="weekdays-row">
+    <div v-for="day in weekDays" :key="day" class="weekday">{{ day }}</div>
+  </div>
+ 
+  <div class="days-grid">
+    <div
+      v-for="(dayObj, index) in calendarDays"
+      :key="index"
+      class="day-cell"
+      :class="{
+        'is-padding': dayObj.isPadding,
+        'is-today': dayObj.isToday
+      }"
+    >
+      <span v-if="!dayObj.isPadding" class="day-number">{{ dayObj.day }}</span>
+ 
+      <div class="events-container">
+        <div
+          v-for="(evt, i) in dayObj.events"
+          :key="i"
+          class="event-box"
+          :class="evt.type === 'task' ? 'event-box--task' : 'event-box--event'"
+          @click="openTaskModal(evt)"
+          :style="{ backgroundColor: evt.color }"
+          :title="evt.title"
         >
-            <span v-if="!dayObj.isPadding" class="day-number">{{ dayObj.day }}</span>
-            
-            <div class="events-container">
-                <div 
-                    v-for="(evt, i) in dayObj.events" 
-                    :key="i" 
-                    class="event-dot" 
-                    :style="{ backgroundColor: evt.color }"
-                    :title="evt.title"
-                ></div>
-            </div>
+          {{ evt.title }}
         </div>
       </div>
     </div>
+  </div>
+</div>
+ 
 
     <!-- WOCHENANSICHT MIT STUNDENPLAN -->
     <div v-if="viewMode === 'week'" class="week-card">
@@ -283,7 +454,91 @@ const getLessonStyle = (lesson) => {
         </div>
       </div>
     </div>
+
+    <!-- TAGESANSICHT MIT STUNDENPLAN -->
+    <div v-if="viewMode === 'day'" class="week-card">
+      <div class="week-header">
+        <button @click="prevDay" class="nav-btn">&lt;</button>
+        <h2>{{ dayLable }}</h2>
+        <button @click="nextDay" class="nav-btn">&gt;</button>
+      </div>
+
+      <div class="timetable-container">
+        <!-- Time Slots (linke Spalte) -->
+        <div class="time-column">
+          <div class="time-header">Zeit</div>
+          <div v-for="time in timeSlots" :key="time" class="time-slot">
+            {{ time }}
+          </div>
+        </div>
+
+        <!-- Heute mit Lessons -->
+        <div class="days-column">
+          <!-- Header mit heute -->
+          <div class="days-header days-header--day">
+            <div 
+              :key="currentDate.dayOfWeek"
+              :class="{ 'is-today':  currentDayFormated.isToday}"
+              class="day-header-cell"
+            >
+              <div class="day-name">{{ currentDayFormated.dayName }}</div>
+              <div class="day-date">{{ currentDayFormated.date.getDate() }}</div>
+            </div>
+          </div>
+
+          <!-- Grid mit Lessons -->
+          <div class="grid-wrapper grid-wrapper--day">
+            <div class="day-column-grid">
+              <!-- Time Slot Hintergrund -->
+              <div v-for="time in timeSlots" :key="time" class="grid-cell"></div>
+
+              <!-- Lessons überlagert -->
+              <div class="lessons-layer">
+                <div 
+                  v-for="lesson in getLessonsForDay(currentDayFormated.dayOfWeek)" 
+                  class="lesson-card"
+                  :style="[getLessonStyle(lesson), { backgroundColor: lesson.color }]"
+                  :title="`${lesson.subject} - ${lesson.room}`"
+                >
+                  <div class="lesson-subject">{{ lesson.subject }}</div>
+                  <div class="lesson-time">{{ lesson.startTime }}-{{ lesson.endTime }}</div>
+                  <div class="lesson-room">{{ lesson.room }}</div>
+                </div>
+              </div>
+
+              <div class="day-entries">
+                <div
+                v-for="(evt, i) in currentDayEntries"
+                :key="i"
+                class="event-box"
+                :class="evt.type === 'task' ? 'event-box--task' : 'event-box--event'"
+                @click="openTaskModal(evt)"
+                :style="getTaskStyle(evt, i)"
+                :title="evt.title"
+                >
+                {{ evt.title }}
+                </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+  <div class="modal-content">
+    <button class="modal-close-btn" @click="closeModal">✕</button>
+    
+    <TaskForm 
+      v-if="selectedTask" 
+      :task="selectedTask" 
+      @save="handleSave"
+      @save-with-subtasks="handleSaveWithSubtasks"
+      @close="closeModal" 
+    />
+    </div>
+</div>
 </template>
 
 <style scoped>
@@ -414,13 +669,16 @@ const getLessonStyle = (lesson) => {
 }
 
 .day-cell {
-  height: 100px;
+  min-height: 90px;
   border: 1px solid #eee;
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   position: relative;
   background-color: #fafafa;
   transition: 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .day-cell:hover {
@@ -442,7 +700,10 @@ const getLessonStyle = (lesson) => {
 
 .day-number {
   font-weight: bold;
+  font-size: 0.85rem;
+  line-height: 1;
   color: #333;
+  margin-bottom: 2px;
 }
 
 .day-cell.is-today .day-number {
@@ -451,15 +712,26 @@ const getLessonStyle = (lesson) => {
 
 .events-container {
   display: flex;
-  gap: 4px;
-  margin-top: 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
 }
 
-.event-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.event-box {
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.event-box:hover {
+  opacity: 0.85;
 }
 
 /* ========== WEEK VIEW / TIMETABLE ========== */
@@ -566,6 +838,14 @@ const getLessonStyle = (lesson) => {
   font-weight: 600;
 }
 
+.day-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid #e5e7eb;
+}
+
 .grid-wrapper {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -642,6 +922,55 @@ const getLessonStyle = (lesson) => {
   margin-top: 2px;
 }
 
+.grid-wrapper--day {
+  grid-template-columns: 1fr;
+}
+
+.days-header--day {
+  grid-template-columns: 1fr;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 30px;
+  right: 35px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  z-index: 10;
+  font-weight: bold;
+}
+
+.modal-close-btn:hover {
+  background: #f0f0f0;
+}
+ 
 /* ========== DARK MODE ========== */
 :global(body.dark-mode) .page-title,
 :global(body.dark-mode) .cal-header h2,
@@ -702,6 +1031,11 @@ const getLessonStyle = (lesson) => {
 :global(body.dark-mode) .day-cell.is-today {
   border: 2px solid #3498db !important;
   background-color: #233040 !important;
+}
+
+/* CHANGED: dark mode for event-box (replaces event-dot) */
+:global(body.dark-mode) .event-box {
+  opacity: 0.9;
 }
 
 :global(body.dark-mode) .time-column {
