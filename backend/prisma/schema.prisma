@@ -35,6 +35,7 @@ model chat_rooms {
   name            String?           @db.VarChar
   task_id         Int?
   class_id        Int?
+  is_private      Boolean           @default(false)
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   updated_at      DateTime?         @db.Timestamp(6)
   chat_messages   chat_messages[]
@@ -168,7 +169,11 @@ model notifications {
 
 model permissions {
   permission_id     Int                 @id @default(autoincrement())
-  name              String?             @db.VarChar
+  name              String              @db.VarChar  // z.B. 'create_task', 'edit_grades'
+  description       String?
+  flags             Int                 @default(7)          // 4=READ, 2=WRITE, 1=EXECUTE (7=RWX)
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?           @updatedAt @db.Timestamp(6)
   roles_permissions roles_permissions[]
   user_permissions  user_permissions[]
 }
@@ -323,11 +328,14 @@ model teachers {
 model user_permissions {
   user_id       Int
   permission_id Int
+  valid_from    DateTime?   @default(now()) @db.Timestamp(6)     // Wann die Permission startet
+  valid_to      DateTime?                   @db.Timestamp(6)     // Wann die Permission ENDET (null=unbegrenzt)
   assigned_at   DateTime?   @default(now()) @db.Timestamp(6)
-  permissions   permissions @relation(fields: [permission_id], references: [permission_id], onDelete: NoAction, onUpdate: NoAction)
-  users         users       @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  permissions   permissions @relation(fields: [permission_id], references: [permission_id], onDelete: Cascade, onUpdate: NoAction)
+  users         users       @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([user_id, permission_id])
+  @@index([valid_from, valid_to])  // Für schnelle Zeitabfragen
 }
 
 model user_roles {
@@ -340,6 +348,13 @@ model user_roles {
   @@id([user_id, role_id])
 }
 
+enum user_role {
+  Superuser
+  Admin
+  Teacher
+  Student
+}
+
 model users {
   user_id       Int       @id @default(autoincrement())
   firstname     String    @db.VarChar
@@ -347,6 +362,7 @@ model users {
   email         String    @unique @db.VarChar
   username      String    @unique @db.VarChar
   password_hash String    @db.VarChar
+  role          user_role @default(Student)                 // Benutzerrolle
   created_at    DateTime? @default(now()) @db.Timestamp(6)
   updated_at    DateTime? @updatedAt @db.Timestamp(6)
   chat_messages                          chat_messages[]

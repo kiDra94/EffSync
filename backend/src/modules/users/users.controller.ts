@@ -29,6 +29,16 @@ export class UsersController {
     return this.usersService.findOne(req.user.userId);
   }
 
+  @Get("me/permissions")
+  async getMyPermissions(@Req() req) {
+    return this.usersService.getUserPermissionsAndRoles(req.user.userId);
+  }
+
+  @Get(":id/permissions")
+  async getUserPermissions(@Param("id") id: string) {
+    return this.usersService.getUserPermissionsAndRoles(+id);
+  }
+
   @Get()
   findAll() {
     return this.usersService.findAll();
