@@ -8,9 +8,9 @@ const viewMode = ref('month'); // 'month' oder 'week'
 
 // Mock Events (Später aus API)
 const events = ref([
-    { date: '2025-01-20', title: 'Mathe Test', color: '#e74c3c' },
-    { date: '2025-01-22', title: 'Englisch Vokabeln', color: '#f39c12' },
-    { date: '2025-02-05', title: 'Sportfest', color: '#2ecc71' }
+    { date: '2026-03-05', title: 'Mathe Test', color: '#e74c3c' },
+    { date: '2026-03-12', title: 'Englisch Vokabeln', color: '#f39c12' },
+    { date: '2026-03-23', title: 'Sportfest', color: '#2ecc71' }
 ]);
 
 // Mock Lessons für Wochenansicht
@@ -226,7 +226,6 @@ const dayLable = computed(() => {
       </div>
     </div>
 
-    <!-- MONATSANSICHT -->
     <!-- MONATSANSICHT -->
 <div v-if="viewMode === 'month'" class="calendar-card">
   <div class="cal-header">
