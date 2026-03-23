@@ -87,6 +87,7 @@ const navigateToResult = (result) => {
       <router-link :to="{ name: 'TaskList' }" title="Aufgaben">📋</router-link>
       <router-link :to="{ name: 'TemplateLists' }" title="Vorlagen">📄</router-link>
       <router-link :to="{ name: 'NoteLists' }" title="Notizen">📝</router-link>
+      <router-link :to="{ name: 'Chat' }" title="Chat">💬</router-link>
     </div>
 
     <div class="main-wrapper">

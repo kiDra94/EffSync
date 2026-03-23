@@ -23,7 +23,6 @@ import {
 } from "@nestjs/throttler";
 import { UsersModule } from "./modules/users/users.module";
 import { ChatMessagesModule } from "./modules/chat-messages/chat-messages.module";
-import { ChatRoomUsersModule } from "./modules/chat-room-users/chat-room-users.module";
 import { ClassesTeachersModule } from "./modules/classes-teachers/classes-teachers.module";
 import { DocumentSharesModule } from "./modules/document-shares/document-shares.module";
 import { RoomsModule } from "./modules/rooms/room.module";
@@ -80,7 +79,6 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ClassesModule,
     DepartmentsModule,
     PrismaModule,
-    ChatRoomUsersModule,
     ClassesTeachersModule,
     DocumentSharesModule,
     LessonSlotsModule,

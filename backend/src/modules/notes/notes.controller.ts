@@ -19,7 +19,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 @UseGuards(JwtAuthGuard)
 @Controller("notes")
 export class NotesController {
-  constructor(private readonly notesService: NotesService) {}
+  constructor(private readonly notesService: NotesService) { }
 
   @Post()
   create(@Body() createNoteDto: CreateNoteDto, @Req() req) {
@@ -27,8 +27,9 @@ export class NotesController {
   }
 
   @Get()
-  findAll(@Req() req, @Query('subject_id', ParseIntPipe) subjectId?: number) {
-    return this.notesService.findAll(req.user.userId, subjectId);
+  findAll(@Req() req, @Query('subject_id') subjectId?: string) {
+    const parsedId = subjectId ? parseInt(subjectId, 10) : undefined;
+    return this.notesService.findAll(req.user.userId, parsedId);
   }
 
   @Get(":id")

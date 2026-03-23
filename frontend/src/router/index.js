@@ -90,6 +90,11 @@ const routes = [
                 name: 'PermissionsDetail',
                 component: () => import('@/views/PermissionsDetailView.vue'),
             },
+            {
+                path: 'chat',
+                name: 'Chat',
+                component: () => import('@/views/ChatView.vue'),
+            },
         ]
     },
     {

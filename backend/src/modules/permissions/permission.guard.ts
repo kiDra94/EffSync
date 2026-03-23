@@ -6,7 +6,7 @@ import {
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PermissionCheckerService, PermissionFlag } from './permission-checker.service';
+import { PermissionsService, PermissionFlag } from './permissions.service';
 
 export const PERMISSION_KEY = 'permission';
 export const REQUIRED_FLAG_KEY = 'requiredFlag';
@@ -36,7 +36,7 @@ export function RequireRole(roleName: string) {
 export class PermissionGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    private permissionChecker: PermissionCheckerService
+    private permissionsService: PermissionsService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -59,7 +59,7 @@ export class PermissionGuard implements CanActivate {
         context.getHandler()
       ) || PermissionFlag.READ;
 
-      const hasPermission = await this.permissionChecker.hasPermission(
+      const hasPermission = await this.permissionsService.hasPermission(
         userId,
         requiredPermission,
         requiredFlag
@@ -76,7 +76,7 @@ export class PermissionGuard implements CanActivate {
     const requiredRole = this.reflector.get<string>('role', context.getHandler());
 
     if (requiredRole) {
-      const hasRole = await this.permissionChecker.hasRole(userId, requiredRole);
+      const hasRole = await this.permissionsService.hasRole(userId, requiredRole);
 
       if (!hasRole) {
         throw new ForbiddenException(
