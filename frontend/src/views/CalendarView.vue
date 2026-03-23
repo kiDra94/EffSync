@@ -1,10 +1,18 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useTaskStore } from '@/stores/entities/taskStore';
 
 // 1. STATE
 const currentDate = ref(new Date());
 const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const viewMode = ref('month'); // 'month' oder 'week'
+const taskStore = useTaskStore();
+
+onMounted(async () => {
+    if (taskStore.tasks.length === 0) {
+        await taskStore.getTasks();
+  }
+});
 
 // Mock Events (Später aus API)
 const events = ref([
@@ -63,13 +71,21 @@ const calendarDays = computed(() => {
 
     for (let i = 1; i <= daysInMonth; i++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+        const dayTasks = taskStore.tasks
+            .filter(task => task.deadline && task.deadline.startsWith(dateStr))
+            .map(task => ({id: task.task_id, title: task.title, color: '#4f46e5', type: 'task' }));
+
+        const dayEvents = events.value
+            .filter(event => event.date === dateStr)
+            .map(event => ({ ...event, type: 'event' }));
         
         days.push({
             day: i,
             fullDate: dateStr,
             isPadding: false,
             isToday: isSameDate(new Date(), year, month, i),
-            events: events.value.filter(e => e.date === dateStr)
+            events: [...dayTasks, ...dayEvents],
         });
     }
 
@@ -189,8 +205,22 @@ const nextDay= () => {
 };
 
 const dayLable = computed(() => {
-    const today = getWeekStart(currentDate.value);
+    const today = currentDate.value;
     return `${today.toLocaleDateString('de-DE')}`;
+});
+
+const currentDayEntries = computed(() => {
+    const dateStr = currentDayFormated.value.dateStr;
+
+    const dayTasks = taskStore.tasks
+        .filter(task => task.deadline && task.deadline.startsWith(dateStr))
+        .map(task=> ({id: task.task_id, title: task.title, color: '#4f46e5', type: 'task' }));
+
+    const dayEvents = events.value
+        .filter(event => event.date === dateStr)
+        .map(event => ({ ...event, type: 'event' }));
+
+    return [...dayTasks, ...dayEvents];
 });
 </script>
 
@@ -255,6 +285,7 @@ const dayLable = computed(() => {
           v-for="(evt, i) in dayObj.events"
           :key="i"
           class="event-box"
+          :class="evt.type === 'task' ? 'event-box--task' : 'event-box--event'"
           :style="{ backgroundColor: evt.color }"
           :title="evt.title"
         >
@@ -374,6 +405,19 @@ const dayLable = computed(() => {
                   <div class="lesson-room">{{ lesson.room }}</div>
                 </div>
               </div>
+
+              <div class="day-entries">
+                <div
+                v-for="(evt, i) in currentDayEntries"
+                :key="i"
+                class="event-box"
+                :class="evt.type === 'task' ? 'event-box--task' : 'event-box--event'"
+                :style="{ backgroundColor: evt.color }"
+                :title="evt.title"
+                >
+                {{ evt.title }}
+                </div>
+            </div>
             </div>
           </div>
         </div>
@@ -677,6 +721,14 @@ const dayLable = computed(() => {
 .day-header-cell.is-today .day-date {
   color: #3498db;
   font-weight: 600;
+}
+
+.day-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .grid-wrapper {
