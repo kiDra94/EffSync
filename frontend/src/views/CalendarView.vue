@@ -1,12 +1,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import TaskForm from '@/components/tasks/TaskForm.vue';
 
 // 1. STATE
 const currentDate = ref(new Date());
 const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const viewMode = ref('month'); // 'month' oder 'week'
 const taskStore = useTaskStore();
+const selectedTask = ref(null);
+const isModalOpen = ref(false);
 
 onMounted(async () => {
     if (taskStore.tasks.length === 0) {
@@ -222,6 +225,43 @@ const currentDayEntries = computed(() => {
 
     return [...dayTasks, ...dayEvents];
 });
+
+const openTaskModal = (event) => {
+    if(event.type === "task") {
+        const task = taskStore.tasks.find(t => t.task_id === event.id);
+        if(task) {
+            selectedTask.value = task;
+            isModalOpen.value = true;
+        }
+    }
+}
+
+const closeModal = () => {
+    selectedTask.value = null;
+    isModalOpen.value = false;
+}
+
+const handleSave = async (taskData) => {
+    try {
+        if (taskData.task_id) {
+            await taskStore.editTask(taskData.task_id, taskData);
+        } else {
+            await taskStore.addTask(taskData);
+        }
+        closeModal();
+    } catch (error) {
+        console.error("Fehler beim Speichern:", error);
+    }
+};
+
+const handleSaveWithSubtasks = async ({ taskData, subtasks }) => {
+    try {
+        await taskStore.editTaskWithSubtasks(taskData.task_id, taskData, subtasks);
+        closeModal();
+    } catch (error) {
+        console.error("Fehler beim Speichern mit Subtasks:", error);
+    }
+};
 </script>
 
 <template>
@@ -286,6 +326,7 @@ const currentDayEntries = computed(() => {
           :key="i"
           class="event-box"
           :class="evt.type === 'task' ? 'event-box--task' : 'event-box--event'"
+          @click="openTaskModal(evt)"
           :style="{ backgroundColor: evt.color }"
           :title="evt.title"
         >
@@ -412,6 +453,7 @@ const currentDayEntries = computed(() => {
                 :key="i"
                 class="event-box"
                 :class="evt.type === 'task' ? 'event-box--task' : 'event-box--event'"
+                @click="openTaskModal(evt)"
                 :style="{ backgroundColor: evt.color }"
                 :title="evt.title"
                 >
@@ -424,6 +466,20 @@ const currentDayEntries = computed(() => {
       </div>
     </div>
   </div>
+
+  <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+  <div class="modal-content">
+    <button class="modal-close-btn" @click="closeModal">✕</button>
+    
+    <TaskForm 
+      v-if="selectedTask" 
+      :task="selectedTask" 
+      @save="handleSave"
+      @save-with-subtasks="handleSaveWithSubtasks"
+      @close="closeModal" 
+    />
+    </div>
+</div>
 </template>
 
 <style scoped>
@@ -813,6 +869,47 @@ const currentDayEntries = computed(() => {
 
 .days-header--day {
   grid-template-columns: 1fr;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 30px;
+  right: 35px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  z-index: 10;
+  font-weight: bold;
+}
+
+.modal-close-btn:hover {
+  background: #f0f0f0;
 }
  
 /* ========== DARK MODE ========== */
