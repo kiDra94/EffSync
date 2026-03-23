@@ -162,6 +162,36 @@ const getLessonStyle = (lesson) => {
         height: (duration / 30) * heightPerSlot + 'px'
     };
 };
+
+const currentDayFormated = computed(() => {
+    const date = currentDate.value;
+    const dayIndex = (date.getDay() + 6) % 7;
+
+    return {
+        dayName: weekDays[dayIndex],
+        date: date,
+        dateStr: formatDate(date),
+        dayOfWeek: dayIndex,
+        isToday: isSameDate(new Date(), date.getFullYear(), date.getMonth(), date.getDate())
+    };
+});
+
+const prevDay = () => {
+    const d = new Date(currentDate.value);
+    d.setDate(d.getDate() - 1);
+    currentDate.value = d;
+};
+
+const nextDay= () => {
+    const d = new Date(currentDate.value);
+    d.setDate(d.getDate() + 1);
+    currentDate.value = d;
+};
+
+const dayLable = computed(() => {
+    const today = getWeekStart(currentDate.value);
+    return `${today.toLocaleDateString('de-DE')}`;
+});
 </script>
 
 <template>
@@ -184,47 +214,58 @@ const getLessonStyle = (lesson) => {
           >
             📋 Woche
           </button>
+          <button 
+            :class="{ active: viewMode === 'day' }" 
+            @click="viewMode = 'day'"
+            class="tab-btn"
+          >
+            📋 Tag
+          </button>
         </div>
         <button @click="goToToday" class="btn-today">Heute</button>
       </div>
     </div>
 
     <!-- MONATSANSICHT -->
-    <div v-if="viewMode === 'month'" class="calendar-card">
-      <div class="cal-header">
-        <button @click="prevMonth" class="nav-btn">&lt;</button>
-        <h2>{{ monthName }}</h2>
-        <button @click="nextMonth" class="nav-btn">&gt;</button>
-      </div>
-
-      <div class="weekdays-row">
-        <div v-for="day in weekDays" :key="day" class="weekday">{{ day }}</div>
-      </div>
-
-      <div class="days-grid">
-        <div 
-            v-for="(dayObj, index) in calendarDays" 
-            :key="index"
-            class="day-cell"
-            :class="{ 
-                'is-padding': dayObj.isPadding, 
-                'is-today': dayObj.isToday 
-            }"
+    <!-- MONATSANSICHT -->
+<div v-if="viewMode === 'month'" class="calendar-card">
+  <div class="cal-header">
+    <button @click="prevMonth" class="nav-btn">&lt;</button>
+    <h2>{{ monthName }}</h2>
+    <button @click="nextMonth" class="nav-btn">&gt;</button>
+  </div>
+ 
+  <div class="weekdays-row">
+    <div v-for="day in weekDays" :key="day" class="weekday">{{ day }}</div>
+  </div>
+ 
+  <div class="days-grid">
+    <div
+      v-for="(dayObj, index) in calendarDays"
+      :key="index"
+      class="day-cell"
+      :class="{
+        'is-padding': dayObj.isPadding,
+        'is-today': dayObj.isToday
+      }"
+    >
+      <span v-if="!dayObj.isPadding" class="day-number">{{ dayObj.day }}</span>
+ 
+      <div class="events-container">
+        <div
+          v-for="(evt, i) in dayObj.events"
+          :key="i"
+          class="event-box"
+          :style="{ backgroundColor: evt.color }"
+          :title="evt.title"
         >
-            <span v-if="!dayObj.isPadding" class="day-number">{{ dayObj.day }}</span>
-            
-            <div class="events-container">
-                <div 
-                    v-for="(evt, i) in dayObj.events" 
-                    :key="i" 
-                    class="event-dot" 
-                    :style="{ backgroundColor: evt.color }"
-                    :title="evt.title"
-                ></div>
-            </div>
+          {{ evt.title }}
         </div>
       </div>
     </div>
+  </div>
+</div>
+ 
 
     <!-- WOCHENANSICHT MIT STUNDENPLAN -->
     <div v-if="viewMode === 'week'" class="week-card">
@@ -269,6 +310,62 @@ const getLessonStyle = (lesson) => {
                 <div 
                   v-for="(lesson, idx) in getLessonsForDay(day.dayOfWeek)" 
                   :key="idx"
+                  class="lesson-card"
+                  :style="[getLessonStyle(lesson), { backgroundColor: lesson.color }]"
+                  :title="`${lesson.subject} - ${lesson.room}`"
+                >
+                  <div class="lesson-subject">{{ lesson.subject }}</div>
+                  <div class="lesson-time">{{ lesson.startTime }}-{{ lesson.endTime }}</div>
+                  <div class="lesson-room">{{ lesson.room }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAGESANSICHT MIT STUNDENPLAN -->
+    <div v-if="viewMode === 'day'" class="week-card">
+      <div class="week-header">
+        <button @click="prevDay" class="nav-btn">&lt;</button>
+        <h2>{{ dayLable }}</h2>
+        <button @click="nextDay" class="nav-btn">&gt;</button>
+      </div>
+
+      <div class="timetable-container">
+        <!-- Time Slots (linke Spalte) -->
+        <div class="time-column">
+          <div class="time-header">Zeit</div>
+          <div v-for="time in timeSlots" :key="time" class="time-slot">
+            {{ time }}
+          </div>
+        </div>
+
+        <!-- Heute mit Lessons -->
+        <div class="days-column">
+          <!-- Header mit heute -->
+          <div class="days-header days-header--day">
+            <div 
+              :key="currentDate.dayOfWeek"
+              :class="{ 'is-today':  currentDayFormated.isToday}"
+              class="day-header-cell"
+            >
+              <div class="day-name">{{ currentDayFormated.dayName }}</div>
+              <div class="day-date">{{ currentDayFormated.date.getDate() }}</div>
+            </div>
+          </div>
+
+          <!-- Grid mit Lessons -->
+          <div class="grid-wrapper grid-wrapper--day">
+            <div class="day-column-grid">
+              <!-- Time Slot Hintergrund -->
+              <div v-for="time in timeSlots" :key="time" class="grid-cell"></div>
+
+              <!-- Lessons überlagert -->
+              <div class="lessons-layer">
+                <div 
+                  v-for="lesson in getLessonsForDay(currentDayFormated.dayOfWeek)" 
                   class="lesson-card"
                   :style="[getLessonStyle(lesson), { backgroundColor: lesson.color }]"
                   :title="`${lesson.subject} - ${lesson.room}`"
@@ -414,13 +511,16 @@ const getLessonStyle = (lesson) => {
 }
 
 .day-cell {
-  height: 100px;
+  min-height: 90px;
   border: 1px solid #eee;
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   position: relative;
   background-color: #fafafa;
   transition: 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .day-cell:hover {
@@ -442,7 +542,10 @@ const getLessonStyle = (lesson) => {
 
 .day-number {
   font-weight: bold;
+  font-size: 0.85rem;
+  line-height: 1;
   color: #333;
+  margin-bottom: 2px;
 }
 
 .day-cell.is-today .day-number {
@@ -451,15 +554,26 @@ const getLessonStyle = (lesson) => {
 
 .events-container {
   display: flex;
-  gap: 4px;
-  margin-top: 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
 }
 
-.event-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.event-box {
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.event-box:hover {
+  opacity: 0.85;
 }
 
 /* ========== WEEK VIEW / TIMETABLE ========== */
@@ -642,6 +756,14 @@ const getLessonStyle = (lesson) => {
   margin-top: 2px;
 }
 
+.grid-wrapper--day {
+  grid-template-columns: 1fr;
+}
+
+.days-header--day {
+  grid-template-columns: 1fr;
+}
+ 
 /* ========== DARK MODE ========== */
 :global(body.dark-mode) .page-title,
 :global(body.dark-mode) .cal-header h2,
@@ -702,6 +824,11 @@ const getLessonStyle = (lesson) => {
 :global(body.dark-mode) .day-cell.is-today {
   border: 2px solid #3498db !important;
   background-color: #233040 !important;
+}
+
+/* CHANGED: dark mode for event-box (replaces event-dot) */
+:global(body.dark-mode) .event-box {
+  opacity: 0.9;
 }
 
 :global(body.dark-mode) .time-column {
