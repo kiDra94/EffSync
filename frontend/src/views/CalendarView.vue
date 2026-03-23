@@ -38,9 +38,14 @@ const lessons = ref([
 ]);
 
 const timeSlots = ref([
-    '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00'
+    '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00', '03:30',
+    '04:00', '04:30', '05:00', '05:30', '06:00', '06:30', '07:00', '07:30',
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30',
+    '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30'
 ]);
+
 
 // 2. KALENDER LOGIK
 const currentYear = computed(() => currentDate.value.getFullYear());
@@ -217,7 +222,15 @@ const currentDayEntries = computed(() => {
 
     const dayTasks = taskStore.tasks
         .filter(task => task.deadline && task.deadline.startsWith(dateStr))
-        .map(task=> ({id: task.task_id, title: task.title, color: '#4f46e5', type: 'task' }));
+        .map(task => ({
+            id: task.task_id,
+            title: task.title,
+            deadline: task.deadline,
+            priority_id: task.priority_id,
+            status: task.status, 
+            type: 'task'
+        }));
+    console.log(dayTasks);
 
     const dayEvents = events.value
         .filter(event => event.date === dateStr)
@@ -261,6 +274,52 @@ const handleSaveWithSubtasks = async ({ taskData, subtasks }) => {
     } catch (error) {
         console.error("Fehler beim Speichern mit Subtasks:", error);
     }
+};
+
+const taskColors = {
+  1: '#34a853', // Grün
+  2: '#fbbc04', // Gelb
+  3: '#ea4335', // Rot
+  4: '#a142f4', // Lila
+  COMPLETED: '#9ca3af' // Grau
+};
+
+const getTaskStyle = (task, index) => {
+    //if (!task.deadline) return { display: 'none' };
+    const HEADEROFFSET = 60; // Höhe des Headers
+    const HEGIHTOFFSET = 35; // Höhe eines Task-Blocks
+    const MAXIMALMINS = 24 * 60; // 1440 Minuten pro Tag
+    
+    const d = new Date(task.deadline);
+    const deadlineMins = d.getHours() * 60 + d.getMinutes();
+    const startMins = 0; // 00:00 Uhr
+    console.log(deadlineMins);
+    let calculatedTop = deadlineMins - startMins - HEADEROFFSET - HEGIHTOFFSET;
+    if (calculatedTop < 0) calculatedTop = 0;
+    if (calculatedTop > MAXIMALMINS - HEADEROFFSET) calculatedTop = MAXIMALMINS - HEADEROFFSET;
+
+    const bgColor = task.status === 'COMPLETED' ? taskColors.COMPLETED : (taskColors[task.priority_id] || '#4f46e5');
+
+    return {
+        top: `${calculatedTop}px`,
+        height: '35px',
+        left: `${30 + (index * 20)}px`, 
+        width: '160px',
+        backgroundColor: bgColor,
+        position: 'absolute',
+        zIndex: 10 + index,
+        borderLeft: '3px solid rgba(255,255,255,0.5)',
+        boxShadow: '2px 2px 8px rgba(0,0,0,0.2)',
+        color: 'white',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '0.75rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        pointerEvents: 'auto'
+    };
 };
 </script>
 
@@ -454,7 +513,7 @@ const handleSaveWithSubtasks = async ({ taskData, subtasks }) => {
                 class="event-box"
                 :class="evt.type === 'task' ? 'event-box--task' : 'event-box--event'"
                 @click="openTaskModal(evt)"
-                :style="{ backgroundColor: evt.color }"
+                :style="getTaskStyle(evt, i)"
                 :title="evt.title"
                 >
                 {{ evt.title }}
