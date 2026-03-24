@@ -133,7 +133,7 @@ const navigateToResult = (result) => {
                   👤 Mein Profil
                 </router-link>
 
-                <a href="#" class="dropdown-item">⚙️ Einstellungen</a>
+                <router-link :to="{name: 'Settings'}" class="dropdown-item" @click="showDropdown = false">⚙️ Einstellungen</router-link>
 
                 <hr>
 
