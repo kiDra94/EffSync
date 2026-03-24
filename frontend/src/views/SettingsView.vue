@@ -5,6 +5,7 @@ import SecurityTab from '@/components/notifications/SecurityTab.vue';
 import EmailPreferences from '@/components/notifications/EmailPreferences.vue';
 import NotificationsList from '@/components/notifications/NotificationsList.vue';
 import GeneralSettings from '../components/settings/GeneralSettings.vue';
+import CalendarSettings from '../components/settings/CalendarSettings.vue';
 
 const router = useRouter();
 const tabs = [
@@ -31,9 +32,10 @@ const activeTab = ref('security');
                 </button>
             </div>
             <div class="setting-main">
-                <SecurityTab v-if="activeTab === 'security'" />
+                <CalendarSettings v-if="activeTab === 'calendar'" />
                 <EmailPreferences v-if="activeTab === 'email'" />
                 <NotificationsList v-if="activeTab === 'notifications'" />
+                <SecurityTab v-if="activeTab === 'security'" />
                 <GeneralSettings v-if="activeTab === 'general'" />
             </div>
         </div>
