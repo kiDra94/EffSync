@@ -1,5 +1,8 @@
 <script setup>
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import SecurityTab from '@/components/notifications/SecurityTab.vue';
+import EmailPreferences from '@/components/notifications/EmailPreferences.vue';
 
 const router = useRouter();
 const tabs = [
@@ -9,6 +12,7 @@ const tabs = [
     { id: 'general', label: '⚙️ Allgemein', icon: '🔧' },
 ];
 const goBack = () => router.back();
+const activeTab = ref('security');
 </script>
 
 <template>
@@ -25,7 +29,8 @@ const goBack = () => router.back();
                 </button>
             </div>
             <div class="setting-main">
-                <p>hier dann der inhalt</p>
+                <SecurityTab v-if="activeTab === 'security'" />
+                <EmailPreferences v-if="activeTab === 'notifications'" />
             </div>
         </div>
     </div>
@@ -33,11 +38,11 @@ const goBack = () => router.back();
 
 <style scoped>
 .settings-view {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  min-height: 100%;
-  background-color: white;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100%;
+    background-color: white;
 }
 
 .settings-header {
@@ -106,7 +111,7 @@ body.dark-mode .btn-back {
 }
 
 body.dark-mode .settings-view {
-  background-color: #1a1a2e !important;
-  color: white !important;
+    background-color: #1a1a2e !important;
+    color: white !important;
 }
 </style>

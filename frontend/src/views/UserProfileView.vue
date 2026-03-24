@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import NotificationsList from '@/components/notifications/NotificationsList.vue';
+import SecurityTab from '@/components/notifications/SecurityTab.vue';
+import EmailPreferences from '@/components/notifications/EmailPreferences.vue';
 import { emailPreferencesService } from '@/api/emailPreferences';
 
 const route = useRoute();
@@ -15,21 +17,6 @@ const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
 
 const STORAGE_KEY_PREFIX = 'effsync_user_profile_';
-
-// Email Preferences State
-const emailPreferences = ref({
-  preference_id: null,
-  user_id: null,
-  email_on_deadline: true,
-  email_on_mention: true,
-  email_on_comment: true,
-  email_digest: false,
-  digest_frequency: 'daily',
-});
-
-const loadingPreferences = ref(false);
-const savingPreferences = ref(false);
-const preferencesError = ref('');
 
 // Mock user data
 const user = ref({
@@ -93,55 +80,9 @@ const goBack = () => {
   router.back();
 };
 
-// Load Email Preferences
-const loadEmailPreferences = async () => {
-  if (!isOwnProfile.value) return;
-  
-  loadingPreferences.value = true;
-  preferencesError.value = '';
-  
-  try {
-    const prefs = await emailPreferencesService.getPreferences();
-    emailPreferences.value = prefs;
-  } catch (error) {
-    console.error('Error loading email preferences:', error);
-    preferencesError.value = 'Fehler beim Laden der E-Mail-Einstellungen';
-  } finally {
-    loadingPreferences.value = false;
-  }
-};
-
-// Save Email Preferences
-const saveEmailPreferences = async () => {
-  savingPreferences.value = true;
-  preferencesError.value = '';
-  
-  try {
-    const updated = await emailPreferencesService.updatePreferences({
-      email_on_deadline: emailPreferences.value.email_on_deadline,
-      email_on_mention: emailPreferences.value.email_on_mention,
-      email_on_comment: emailPreferences.value.email_on_comment,
-      email_digest: emailPreferences.value.email_digest,
-      digest_frequency: emailPreferences.value.digest_frequency,
-    });
-    
-    emailPreferences.value = updated;
-    // Show success message
-    setTimeout(() => {
-      preferencesError.value = '';
-    }, 3000);
-  } catch (error) {
-    console.error('Error saving email preferences:', error);
-    preferencesError.value = 'Fehler beim Speichern der E-Mail-Einstellungen';
-  } finally {
-    savingPreferences.value = false;
-  }
-};
-
 onMounted(() => {
   loadUserProfile();
   notificationStore.initFromStorage();
-  loadEmailPreferences();
 });
 </script>
 
@@ -252,117 +193,13 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Sicherheit Tab -->
+      <!-- Sicherheit Tab - mit neuen Komponenten -->
       <div v-if="activeTab === 'security'" class="content-section">
-        <div class="security-card">
-          <h2>Passwort ändern</h2>
-          <form class="security-form">
-            <div class="form-group">
-              <label>Aktuelles Passwort</label>
-              <input type="password" class="form-input" placeholder="••••••••" />
-            </div>
-            <div class="form-group">
-              <label>Neues Passwort</label>
-              <input type="password" class="form-input" placeholder="••••••••" />
-            </div>
-            <div class="form-group">
-              <label>Passwort bestätigen</label>
-              <input type="password" class="form-input" placeholder="••••••••" />
-            </div>
-            <button type="button" class="btn-secondary">Passwort ändern</button>
-          </form>
-        </div>
-
-        <div class="security-card">
-          <h2>Zwei-Faktor-Authentifizierung</h2>
-          <p>Sichern Sie Ihr Konto mit 2FA.</p>
-          <button class="btn-secondary">2FA aktivieren</button>
-        </div>
-
-        <div class="security-card">
-          <h2>📧 E-Mail-Benachrichtigungen</h2>
-          <div v-if="preferencesError" class="error-msg">{{ preferencesError }}</div>
-          
-          <div v-if="loadingPreferences" class="loading-text">Lädt...</div>
-          <div v-else class="email-preferences-form">
-            <!-- Deadline Notifications -->
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="emailPreferences.email_on_deadline"
-                  class="checkbox-input"
-                />
-                <span class="checkbox-text">⏰ E-Mail bei Aufgaben-Fälligkeit</span>
-              </label>
-              <small>Erhalte E-Mails wenn deine Aufgaben bald fällig sind</small>
-            </div>
-
-            <!-- Mention Notifications -->
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="emailPreferences.email_on_mention"
-                  class="checkbox-input"
-                />
-                <span class="checkbox-text">📢 E-Mail bei Erwähnungen</span>
-              </label>
-              <small>Erhalte E-Mails wenn du in einem Kommentar erwähnt wirst</small>
-            </div>
-
-            <!-- Comment Notifications -->
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="emailPreferences.email_on_comment"
-                  class="checkbox-input"
-                />
-                <span class="checkbox-text">💬 E-Mail bei neuen Kommentaren</span>
-              </label>
-              <small>Erhalte E-Mails wenn neue Kommentare zu deinen Aufgaben hinzugefügt werden</small>
-            </div>
-
-            <!-- Digest Toggle -->
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  v-model="emailPreferences.email_digest"
-                  class="checkbox-input"
-                />
-                <span class="checkbox-text">📋 Tägliche E-Mail-Zusammenfassung</span>
-              </label>
-              <small>Erhalte eine zusammengefasste E-Mail statt einzelner Benachrichtigungen</small>
-            </div>
-
-            <!-- Digest Frequency -->
-            <div v-if="emailPreferences.email_digest" class="form-group">
-              <label for="digest_frequency">Zusammenfassungs-Häufigkeit:</label>
-              <select 
-                id="digest_frequency" 
-                v-model="emailPreferences.digest_frequency"
-                class="form-select"
-              >
-                <option value="daily">📅 Täglich</option>
-                <option value="weekly">📆 Wöchentlich</option>
-                <option value="monthly">📊 Monatlich</option>
-              </select>
-            </div>
-
-            <!-- Save Button -->
-            <div class="form-group">
-              <button 
-                @click="saveEmailPreferences" 
-                :disabled="savingPreferences"
-                class="btn-secondary"
-              >
-                {{ savingPreferences ? '💾 Speichert...' : '💾 Einstellungen speichern' }}
-              </button>
-            </div>
-          </div>
-        </div>
+        <!-- 1. Security Features (Passwort + 2FA) -->
+        <SecurityTab />
+        
+        <!-- 2. Email Preferences -->
+        <EmailPreferences />
       </div>
 
       <!-- Aktivität Tab -->
@@ -566,29 +403,6 @@ onMounted(() => {
   font-size: 0.85rem;
 }
 
-.security-card {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.security-card h2 {
-  margin: 0 0 12px;
-  color: #1f2937;
-}
-
-.security-card p {
-  margin: 0 0 12px;
-  color: #6b7280;
-}
-
-.security-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 .activity-card {
   background-color: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -737,7 +551,6 @@ body.dark-mode .form-input {
   border-color: #444 !important;
 }
 
-body.dark-mode .security-card,
 body.dark-mode .activity-card {
   background-color: #232330 !important;
   border-color: #444 !important;
@@ -755,101 +568,6 @@ body.dark-mode .activity-time {
 
 body.dark-mode .activity-location {
   color: #999 !important;
-}
-
-/* Email Preferences Styles */
-.email-preferences-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.checkbox-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  gap: 0.75rem;
-  font-size: 1rem;
-}
-
-.checkbox-input {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: #4f46e5;
-}
-
-.checkbox-label:hover {
-  opacity: 0.8;
-}
-
-.checkbox-group small {
-  margin-left: 2rem;
-  color: #666;
-  font-size: 0.85rem;
-}
-
-body.dark-mode .checkbox-group small {
-  color: #aaa;
-}
-
-.form-select {
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid #ddd;
-  background-color: white;
-  color: #333;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.form-select:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-body.dark-mode .form-select {
-  background-color: #1a1a23;
-  color: #e0e0e0;
-  border-color: #444;
-}
-
-body.dark-mode .form-select:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
-}
-
-.error-msg {
-  background-color: #fee;
-  color: #c33;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #fcc;
-  margin-bottom: 1rem;
-}
-
-body.dark-mode .error-msg {
-  background-color: #4c2424;
-  color: #ff9999;
-  border-color: #633;
-}
-
-.loading-text {
-  color: #666;
-  font-style: italic;
-  margin: 1rem 0;
-}
-
-body.dark-mode .loading-text {
-  color: #aaa;
 }
 
 /* Button disabled state */
