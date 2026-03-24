@@ -3,13 +3,15 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import SecurityTab from '@/components/notifications/SecurityTab.vue';
 import EmailPreferences from '@/components/notifications/EmailPreferences.vue';
+import NotificationsList from '@/components/notifications/NotificationsList.vue';
 
 const router = useRouter();
 const tabs = [
-    { id: 'calendar', label: '📅 Kalender & Ansicht', icon: '🗓️' },
-    { id: 'notifications', label: '📬 Benachrichtigungen', icon: '🔔' },
-    { id: 'security', label: '🛡️ Sicherheit', icon: '🔒' },
-    { id: 'general', label: '⚙️ Allgemein', icon: '🔧' },
+    { id: 'calendar', label: '📅 Kalender & Ansicht'},
+    { id: 'email', label: '📬 Email Benachrichtigungen'},
+    { id: 'notifications', label: '🔔 Benachrichtigungen'},
+    { id: 'security', label: '🛡️ Sicherheit'},
+    { id: 'general', label: '⚙️ Allgemein'},
 ];
 const goBack = () => router.back();
 const activeTab = ref('security');
@@ -24,13 +26,13 @@ const activeTab = ref('security');
             <div class="setting-sidebar">
                 <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id" class="nav-item"
                     :class="{ active: activeTab === tab.id }">
-                    <span class="icon">{{ tab.icon }}</span>
                     <span class="label">{{ tab.label }}</span>
                 </button>
             </div>
             <div class="setting-main">
                 <SecurityTab v-if="activeTab === 'security'" />
-                <EmailPreferences v-if="activeTab === 'notifications'" />
+                <EmailPreferences v-if="activeTab === 'email'" />
+                <NotificationsList v-if="activeTab === 'notifications'" />
             </div>
         </div>
     </div>
