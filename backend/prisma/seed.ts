@@ -71,10 +71,13 @@ async function main() {
         console.log(`✓ 10 Einträge in permissions erstellt (mit Flags)`);
 
         const rolesData = [
-            { name: 'Superuser' }, { name: 'Student' }, { name: 'Teacher' },{ name: 'Admin' },
+            { name: 'Superuser' }, 
+            { name: 'Student' }, 
+            { name: 'Teacher' },
+            { name: 'Admin' }
         ];
         await prisma.roles.createMany({ data: rolesData });
-        console.log(`✓ 10 Einträge in roles erstellt`);
+        console.log(`✓ ${rolesData.length} Einträge in roles erstellt`);
 
         const schedulesData = Array.from({ length: 10 }).map((_, i) => ({
             name: `Semester ${2020 + Math.floor(i / 2)}${i % 2 === 0 ? 'WS' : 'SS'}`,
@@ -193,9 +196,16 @@ async function main() {
         }
 
         const userRolesData = [
-            ...[1, 2, 3, 4].map(role_id => ({ user_id: 1, role_id })), // User 1 = Alle Rollen
-            ...[2, 3, 4, 5, 6].map(id => ({ user_id: id, role_id: 3 })), // Lehrer
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 })) // Schüler
+            // User 1: Todas Rollen (Superuser mit allen Rollen)
+            { user_id: 1, role_id: 1 },  // Superuser
+            // User 2-6: Teachers
+            { user_id: 2, role_id: 3 },
+            { user_id: 3, role_id: 3 },
+            { user_id: 4, role_id: 3 },
+            { user_id: 5, role_id: 3 },
+            { user_id: 6, role_id: 3 },
+            // User 7-16: Students
+            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 }))
         ];
         await prisma.user_roles.createMany({ data: userRolesData });
         console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt`);
@@ -326,42 +336,25 @@ async function main() {
 
         // === ROLLEN-PERMISSION-MAPPINGS ===
         const rolesPermissionsData = [
-            // Superadmin: Alle Permissions
+            // Superuser (ID 1): Alle Permissions
             ...Array.from({ length: 10 }).map((_, i) => ({
                 roles_id: 1, permission_id: i + 1
             })),
-            // Direktor: manage_users, manage_classes, manage_system
-            { roles_id: 2, permission_id: 2 },   // manage_users
-            { roles_id: 2, permission_id: 8 },   // manage_classes
-            { roles_id: 2, permission_id: 10 },  // manage_system
-            // Abteilungsvorstand: manage_classes, view_schedules, view_grades
-            { roles_id: 3, permission_id: 8 },   // manage_classes
-            { roles_id: 3, permission_id: 9 },   // view_schedules
-            { roles_id: 3, permission_id: 6 },   // view_grades
-            // Klassenvorstand: create_tasks, edit_tasks, view_grades
-            { roles_id: 4, permission_id: 3 },   // create_tasks
-            { roles_id: 4, permission_id: 4 },   // edit_tasks
-            { roles_id: 4, permission_id: 6 },   // view_grades
-            // Lehrer: create_tasks, edit_tasks, edit_grades
-            { roles_id: 5, permission_id: 3 },   // create_tasks
-            { roles_id: 5, permission_id: 4 },   // edit_tasks
-            { roles_id: 5, permission_id: 7 },   // edit_grades
-            // Schüler: view_dashboard, view_grades
-            { roles_id: 6, permission_id: 1 },   // view_dashboard
-            { roles_id: 6, permission_id: 6 },   // view_grades
-            // Schulsprecher: view_dashboard, view_schedules
-            { roles_id: 7, permission_id: 1 },   // view_dashboard
-            { roles_id: 7, permission_id: 9 },   // view_schedules
-            // Sekretariat: view_dashboard, manage_users
-            { roles_id: 8, permission_id: 1 },   // view_dashboard
-            { roles_id: 8, permission_id: 2 },   // manage_users
-            // IT-Admin: manage_system
-            { roles_id: 9, permission_id: 10 },  // manage_system
-            // Eltern: view_grades
-            { roles_id: 10, permission_id: 6 }   // view_grades
+            // Student (ID 2): view_dashboard, view_grades, view_schedules
+            { roles_id: 2, permission_id: 1 },   // view_dashboard
+            { roles_id: 2, permission_id: 6 },   // view_grades
+            { roles_id: 2, permission_id: 9 },   // view_schedules
+            // Teacher (ID 3): create_tasks, edit_tasks, edit_grades
+            { roles_id: 3, permission_id: 3 },   // create_tasks
+            { roles_id: 3, permission_id: 4 },   // edit_tasks
+            { roles_id: 3, permission_id: 7 },   // edit_grades
+            // Admin (ID 4): manage_users, manage_classes, manage_system
+            { roles_id: 4, permission_id: 2 },   // manage_users
+            { roles_id: 4, permission_id: 8 },   // manage_classes
+            { roles_id: 4, permission_id: 10 }   // manage_system
         ];
         await prisma.roles_permissions.createMany({ data: rolesPermissionsData });
-        console.log(`✓ ${rolesPermissionsData.length} Einträge in roles_permissions erstellt (mit Rolle-spezifischen Permissions)`);
+        console.log(`✓ ${rolesPermissionsData.length} Einträge in roles_permissions erstellt`);
 
         // --- PHASE 5: Classes_Teachers, Lesson Slots, Task Templates ---
         const classesTeachersData = Array.from({ length: 10 }).map((_, i) => ({
