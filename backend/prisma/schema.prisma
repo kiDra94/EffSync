@@ -279,6 +279,17 @@ model task_documents {
   @@id([task_id, document_id])
 }
 
+model task_members {
+  task_id   Int
+  user_id   Int
+  joined_at DateTime @default(now()) @db.Timestamp(6)
+
+  tasks     tasks    @relation(fields: [task_id], references: [task_id], onDelete: Cascade)
+  users     users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@id([task_id, user_id])
+}
+
 model task_templates {
   template_id Int       @id @default(autoincrement())
   created_by  Int
@@ -310,6 +321,7 @@ model tasks {
   task_activity_log              task_activity_log[]
   task_comments                  task_comments[]
   task_documents                 task_documents[]
+  task_members                   task_members[]
   users_tasks_assigned_toTousers users?              @relation("tasks_assigned_toTousers", fields: [assigned_to], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   users_tasks_created_byTousers  users?              @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   tasks                          tasks?              @relation("tasksTotasks", fields: [parent_task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
@@ -387,6 +399,7 @@ model users {
   user_permissions                       user_permissions[]
   user_roles                             user_roles[]
   taskTemplates                          task_templates[]
+  task_members                           task_members[]
   chat_rooms_created                     chat_rooms[]        @relation("chat_rooms_created")
 }
 
