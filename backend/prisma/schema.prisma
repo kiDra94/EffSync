@@ -315,8 +315,11 @@ model tasks {
   priority_id                    Int?
   completion_rule                Json?
   auto_complete                  Boolean?
+  is_locked                      Boolean?            @default(false)
+  locked_reason                  String?             @db.VarChar
+  locked_until                   DateTime?           @db.Timestamp(6)
   created_at                     DateTime?           @default(now()) @db.Timestamp(6)
-  updated_at                     DateTime?           @db.Timestamp(6)
+  updated_at                     DateTime?           @updatedAt @db.Timestamp(6)
   chat_rooms                     chat_rooms[]
   task_activity_log              task_activity_log[]
   task_comments                  task_comments[]
