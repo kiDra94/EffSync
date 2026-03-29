@@ -75,6 +75,15 @@
 
         <SubtaskBuilder v-model="subtasks" />
 
+        <!-- Task Members Section (nur wenn Task bereits existiert) -->
+        <TaskMembersList
+          v-if="task?.task_id"
+          :taskId="task.task_id"
+          :creatorId="task.created_by"
+          :assignedToId="task.assigned_to"
+          @members-updated="handleMembersUpdated"
+        />
+
         <div v-if="showSummary && hasErrors" class="error-summary">
           ⚠️ Bitte korrigiere die markierten Fehler
         </div>
@@ -97,6 +106,7 @@ import { reactive, ref } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
 import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
+import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
 
 const props = defineProps({
@@ -177,6 +187,12 @@ const submitTask = () => {
 
 const close = () => {
   emit('close');
+};
+
+const handleMembersUpdated = (members) => {
+  // Optional: Handle members update if needed
+  // For now, just log it
+  console.log('Members updated:', members);
 };
 </script>
 

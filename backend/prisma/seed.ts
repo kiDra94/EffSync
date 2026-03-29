@@ -54,20 +54,30 @@ async function main() {
         await prisma.priorities.createMany({ data: prioritiesData });
         console.log(`✓ 10 Einträge in priorities erstellt`);
 
+        // Flags: READ=4, WRITE=2, EXECUTE=1
         const permissionsData = [
-            { name: 'view_dashboard' }, { name: 'manage_users' }, { name: 'create_tasks' },
-            { name: 'edit_tasks' }, { name: 'delete_tasks' }, { name: 'view_grades' },
-            { name: 'edit_grades' }, { name: 'manage_classes' }, { name: 'view_schedules' },
-            { name: 'manage_system' }
+            { name: 'view_dashboard', description: 'Dashboard anschauen', flags: 4 },                // READ
+            { name: 'manage_users', description: 'Benutzer verwalten', flags: 7 },                  // RWX
+            { name: 'create_tasks', description: 'Aufgaben erstellen', flags: 7 },                  // RWX
+            { name: 'edit_tasks', description: 'Aufgaben bearbeiten', flags: 6 },                   // RW
+            { name: 'delete_tasks', description: 'Aufgaben löschen', flags: 1 },                    // X
+            { name: 'view_grades', description: 'Noten einsehen', flags: 4 },                       // READ
+            { name: 'edit_grades', description: 'Noten eintragen', flags: 6 },                      // RW
+            { name: 'manage_classes', description: 'Klassen verwalten', flags: 7 },                 // RWX
+            { name: 'view_schedules', description: 'Stundenpläne anschauen', flags: 4 },            // READ
+            { name: 'manage_system', description: 'System administrieren', flags: 7 }               // RWX
         ];
         await prisma.permissions.createMany({ data: permissionsData });
-        console.log(`✓ 10 Einträge in permissions erstellt`);
+        console.log(`✓ 10 Einträge in permissions erstellt (mit Flags)`);
 
         const rolesData = [
-            { name: 'Superuser' }, { name: 'Student' }, { name: 'Teacher' },{ name: 'Admin' },
+            { name: 'Superuser' }, 
+            { name: 'Student' }, 
+            { name: 'Teacher' },
+            { name: 'Admin' }
         ];
         await prisma.roles.createMany({ data: rolesData });
-        console.log(`✓ 10 Einträge in roles erstellt`);
+        console.log(`✓ ${rolesData.length} Einträge in roles erstellt`);
 
         const schedulesData = Array.from({ length: 10 }).map((_, i) => ({
             name: `Semester ${2020 + Math.floor(i / 2)}${i % 2 === 0 ? 'WS' : 'SS'}`,
@@ -186,24 +196,165 @@ async function main() {
         }
 
         const userRolesData = [
-            ...[1, 2, 3, 4].map(role_id => ({ user_id: 1, role_id })), // User 1 = Alle Rollen
-            ...[2, 3, 4, 5, 6].map(id => ({ user_id: id, role_id: 3 })), // Lehrer
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 })) // Schüler
+            // User 1: Todos Rollen (Superuser mit allen Rollen)
+            { user_id: 1, role_id: 1 },  // Superuser
+            // User 2-6: Teachers
+            { user_id: 2, role_id: 3 },
+            { user_id: 3, role_id: 3 },
+            { user_id: 4, role_id: 3 },
+            { user_id: 5, role_id: 3 },
+            { user_id: 6, role_id: 3 },
+            // User 7-16: Students
+            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 }))
         ];
         await prisma.user_roles.createMany({ data: userRolesData });
         console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt`);
 
-        const userPermissionsData = Array.from({ length: 10 }).map((_, i) => ({
-            user_id: 1, permission_id: i + 1
+        // === ERWEITERTE USER-PERMISSIONS MIT VERSCHIEDENEN TESTSZENARIEN ===
+        
+        // SZENARIO 1: Superadmin (User 1) - Alle Permissions unbegrenzt
+        const superadminPermissions = Array.from({ length: 10 }).map((_, i) => ({
+            user_id: 1,
+            permission_id: i + 1,
+            valid_from: new Date('2026-01-01'),
+            valid_to: null  // Unbegrenzt für Admin
         }));
-        await prisma.user_permissions.createMany({ data: userPermissionsData });
-        console.log(`✓ 10 Einträge in user_permissions erstellt`);
 
-        const rolesPermissionsData = Array.from({ length: 10 }).map((_, i) => ({
-            roles_id: 1, permission_id: i + 1 // Superadmin hat alle Berechtigungen
-        }));
+        // SZENARIO 2: Direktor (User 2) - Manage_users und manage_classes gültig, manage_system abgelaufen
+        const directorPermissions = [
+            {
+                user_id: 2,
+                permission_id: 2,  // manage_users
+                valid_from: new Date('2026-01-01'),
+                valid_to: new Date('2026-12-31')  // Gültig
+            },
+            {
+                user_id: 2,
+                permission_id: 8,  // manage_classes
+                valid_from: new Date('2026-01-01'),
+                valid_to: new Date('2026-12-31')  // Gültig
+            },
+            {
+                user_id: 2,
+                permission_id: 10,  // manage_system
+                valid_from: new Date('2025-09-01'),
+                valid_to: new Date('2025-12-31')  // ABGELAUFEN
+            }
+        ];
+
+        // SZENARIO 3: Abteilungsvorstand (User 3) - manage_classes, view_grades (zukunftsdatiert)
+        const deptLeadPermissions = [
+            {
+                user_id: 3,
+                permission_id: 8,  // manage_classes
+                valid_from: new Date('2026-01-01'),
+                valid_to: new Date('2026-12-31')  // Gültig
+            },
+            {
+                user_id: 3,
+                permission_id: 6,  // view_grades
+                valid_from: new Date('2026-04-01'),  // Zukunftsdatiert
+                valid_to: new Date('2026-12-31')
+            }
+        ];
+
+        // SZENARIO 4: Klassenvorstand (User 4) - create_tasks, edit_tasks
+        const classLeadPermissions = [
+            {
+                user_id: 4,
+                permission_id: 3,  // create_tasks
+                valid_from: new Date('2026-01-01'),
+                valid_to: new Date('2026-07-31')
+            },
+            {
+                user_id: 4,
+                permission_id: 4,  // edit_tasks
+                valid_from: new Date('2026-01-01'),
+                valid_to: new Date('2026-07-31')
+            }
+        ];
+
+        // SZENARIO 5: Lehrer (User 5, 6) - create_tasks, edit_tasks, edit_grades (gültig bis Juli 2026)
+        const teacherPermissions = [5, 6].flatMap(teacher_id =>
+            [3, 4, 7].map(perm_id => ({  // create_tasks, edit_tasks, edit_grades
+                user_id: teacher_id,
+                permission_id: perm_id,
+                valid_from: new Date('2026-01-01'),
+                valid_to: new Date('2026-07-31')  // Gültig für Schuljahr
+            }))
+        );
+
+        // SZENARIO 6: Schüler - Permissions mit unterschiedlichen Gültigkeiten
+        const studentPermissions = [
+            // Normaler Schüler (User 7) - view_dashboard gültig
+            {
+                user_id: 7,
+                permission_id: 1,  // view_dashboard
+                valid_from: new Date('2026-02-01'),
+                valid_to: new Date('2026-06-30')  // Gültig
+            },
+            // Schüler (User 8) - permission abgelaufen
+            {
+                user_id: 8,
+                permission_id: 1,  // view_dashboard
+                valid_from: new Date('2025-12-01'),
+                valid_to: new Date('2026-01-31')  // ABGELAUFEN
+            },
+            // Schüler (User 9) - permission noch nicht gültig
+            {
+                user_id: 9,
+                permission_id: 1,  // view_dashboard
+                valid_from: new Date('2026-05-01'),  // Zukunft
+                valid_to: new Date('2026-08-31')
+            },
+            // Schüler (User 10) - view_grades (normalerweise nicht für Schüler)
+            {
+                user_id: 10,
+                permission_id: 6,  // view_grades - Sonderfall
+                valid_from: new Date('2026-02-01'),
+                valid_to: new Date('2026-06-30')
+            },
+            // Schüler (User 11-16) - Standard view_dashboard
+            ...Array.from({ length: 6 }).map((_, i) => ({
+                user_id: 11 + i,
+                permission_id: 1,  // view_dashboard
+                valid_from: new Date('2026-02-01'),
+                valid_to: new Date('2026-06-30')
+            }))
+        ];
+
+        const allUserPermissions = [
+            ...superadminPermissions,
+            ...directorPermissions,
+            ...deptLeadPermissions,
+            ...classLeadPermissions,
+            ...teacherPermissions,
+            ...studentPermissions
+        ];
+        await prisma.user_permissions.createMany({ data: allUserPermissions });
+        console.log(`✓ ${allUserPermissions.length} Einträge in user_permissions erstellt (mit erweiterten Testszenarien)`);
+
+        // === ROLLEN-PERMISSION-MAPPINGS ===
+        const rolesPermissionsData = [
+            // Superuser (ID 1): Alle Permissions
+            ...Array.from({ length: 10 }).map((_, i) => ({
+                roles_id: 1, permission_id: i + 1
+            })),
+            // Student (ID 2): view_dashboard, view_grades, view_schedules
+            { roles_id: 2, permission_id: 1 },   // view_dashboard
+            { roles_id: 2, permission_id: 6 },   // view_grades
+            { roles_id: 2, permission_id: 9 },   // view_schedules
+            // Teacher (ID 3): create_tasks, edit_tasks, edit_grades
+            { roles_id: 3, permission_id: 3 },   // create_tasks
+            { roles_id: 3, permission_id: 4 },   // edit_tasks
+            { roles_id: 3, permission_id: 7 },   // edit_grades
+            // Admin (ID 4): manage_users, manage_classes, manage_system
+            { roles_id: 4, permission_id: 2 },   // manage_users
+            { roles_id: 4, permission_id: 8 },   // manage_classes
+            { roles_id: 4, permission_id: 10 }   // manage_system
+        ];
         await prisma.roles_permissions.createMany({ data: rolesPermissionsData });
-        console.log(`✓ 10 Einträge in roles_permissions erstellt`);
+        console.log(`✓ ${rolesPermissionsData.length} Einträge in roles_permissions erstellt`);
 
         // --- PHASE 5: Classes_Teachers, Lesson Slots, Task Templates ---
         const classesTeachersData = Array.from({ length: 10 }).map((_, i) => ({
