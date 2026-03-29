@@ -73,7 +73,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
       if (!existing) {
         await request(app.getHttpServer())
-          .post('/auth/register')
+          .post('/api/auth/register')
           .send(userData);
       }
     }
@@ -115,7 +115,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
   async function loginUser(username: string, password: string): Promise<string> {
     const response = await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send({ username, password });
 
     if (!response.body.token) {
@@ -128,7 +128,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
   async function createTask(token: string, taskData: any) {
     const response = await request(app.getHttpServer())
-      .post('/tasks')
+      .post('/api/tasks')
       .set('Authorization', `Bearer ${token}`)
       .send(taskData);
 
@@ -223,7 +223,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should get current user permissions', async () => {
       const response = await request(app.getHttpServer())
-        .get('/users/me/permissions')
+        .get('/api/users/me/permissions')
         .set('Authorization', `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
@@ -237,7 +237,7 @@ describe('Mitgliederverwaltung E2E', () => {
       const userId = studentRecord?.user_id || 0;
 
       const response = await request(app.getHttpServer())
-        .get(`/users/${userId}/permissions`)
+        .get(`/api/users/${userId}/permissions`)
         .set('Authorization', `Bearer ${studentToken}`);
 
       // Returns 200 (allowed) or 403 (denied) - pragmatic for now
