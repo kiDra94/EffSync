@@ -8,6 +8,9 @@ export class UpdateTaskDto extends PartialType(CreateTaskDto) {
     @IsOptional()
     @IsBoolean()
     auto_complete?: boolean;
+    is_locked?: boolean;
+    locked_reason?: string;
+    locked_until?: Date;
 
     @IsOptional()
     @ValidateNested()

@@ -88,4 +88,34 @@ export class TasksController {
   getDocuments(@Param("id") id: string) {
     return this.tasksService.getDocuments(+id);
   }
+
+  /**
+   * Feature #27: Lock a task (admin/creator only)
+   * Prevents any modifications to the task
+   */
+  @Post(":id/lock")
+  lockTask(
+    @Param("id") id: string,
+    @Body() { reason }: { reason?: string },
+    @Req() req
+  ) {
+    return this.tasksService.lockTask(+id, reason || "MANUAL", req.user.userId);
+  }
+
+  /**
+   * Feature #27: Unlock a task (admin/creator only)
+   * Allows modifications again
+   */
+  @Post(":id/unlock")
+  unlockTask(@Param("id") id: string, @Req() req) {
+    return this.tasksService.unlockTask(+id, req.user.userId);
+  }
+
+  /**
+   * Feature #27: Check if task can be edited
+   */
+  @Get(":id/can-edit")
+  canEditTask(@Param("id") id: string, @Req() req) {
+    return this.tasksService.canEditTask(+id, req.user.userId);
+  }
 }

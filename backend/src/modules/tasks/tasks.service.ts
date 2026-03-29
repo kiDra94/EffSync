@@ -451,5 +451,94 @@ export class TasksService {
       this.ruleContainsTask(task.completion_rule as ConditionNode, String(childTaskId))
     );
   }
+  /**
+   * Feature #27: Sperrt eine Aufgabe automatisch wenn sie überfällig ist
+   */
+  async lockOverdueTask(taskId: number, reason: string = 'OVERDUE'): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
 
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: true,
+        locked_reason: reason,
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
+      }
+    });
+
+    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    if (task.assigned_to) {
+      this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
+    }
+  }
+
+  /**
+   * Feature #27: Manuelles Sperren einer Aufgabe (Creator/Admin only)
+   */
+  async lockTask(taskId: number, reason: string = 'MANUAL', userId: number): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+    if (task.created_by !== userId) {
+      throw new BadRequestException('Only task creator can lock this task');
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: true,
+        locked_reason: reason,
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
+      }
+    });
+
+    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    if (task.assigned_to) {
+      this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
+    }
+  }
+
+  /**
+   * Feature #27: Entsperrt eine Aufgabe (Creator/Admin only)
+   */
+  async unlockTask(taskId: number, userId: number): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+    if (task.created_by !== userId) {
+      throw new BadRequestException('Only task creator can unlock this task');
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: false,
+        locked_reason: null,
+        locked_until: null
+      }
+    });
+  }
+
+  /**
+   * Prüfe ob Task bearbeitet werden darf
+   */
+  async canEditTask(taskId: number, userId: number): Promise<boolean> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) return false;
+    if (task.is_locked) return false; // Gesperrt = keine Änderungen
+    if (task.created_by !== userId) return false; // Nur Creator darf ändern
+
+    return true;
+  }
 }
