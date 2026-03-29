@@ -49,6 +49,7 @@ export class PermissionsService {
 
   /**
    * Prüfe, ob User eine PERMISSION hat (mit Zeit- & Flag-Validierung)
+   * Prüft DIREKTE Permissions UND Permissions über Rollen
    * 
    * @param userId - User ID
    * @param permissionName - z.B. 'create_task', 'edit_grades'
@@ -60,6 +61,7 @@ export class PermissionsService {
     permissionName: string,
     requiredFlag: PermissionFlag = PermissionFlag.READ
   ): Promise<boolean> {
+    // 1. Prüfe DIREKTE Permissions
     const userPermission = await this.prisma.user_permissions.findFirst({
       where: {
         user_id: userId,
@@ -68,25 +70,58 @@ export class PermissionsService {
       include: { permissions: true }
     });
 
-    if (!userPermission) {
-      return false;
+    if (userPermission) {
+      // Prüfe Zeitfenster
+      const now = new Date();
+      const isTimeValid =
+        (!userPermission.valid_from || now >= userPermission.valid_from) &&
+        (!userPermission.valid_to || now <= userPermission.valid_to);
+
+      if (isTimeValid) {
+        // Prüfe Flags (wie Unix: bitweises AND)
+        const hasFlagBits =
+          (userPermission.permissions.flags & requiredFlag) === requiredFlag;
+        if (hasFlagBits) {
+          return true;
+        }
+      }
     }
 
-    // Prüfe Zeitfenster
-    const now = new Date();
-    const isTimeValid =
-      (!userPermission.valid_from || now >= userPermission.valid_from) &&
-      (!userPermission.valid_to || now <= userPermission.valid_to);
+    // 2. Prüfe Permissions über ROLLEN
+    const rolePermission = await this.prisma.user_roles.findFirst({
+      where: {
+        user_id: userId,
+        roles: {
+          roles_permissions: {
+            some: {
+              permissions: { name: permissionName }
+            }
+          }
+        }
+      },
+      include: {
+        roles: {
+          include: {
+            roles_permissions: {
+              where: {
+                permissions: { name: permissionName }
+              },
+              include: { permissions: true }
+            }
+          }
+        }
+      }
+    });
 
-    if (!isTimeValid) {
-      return false;
+    if (rolePermission && rolePermission.roles.roles_permissions.length > 0) {
+      const permission = rolePermission.roles.roles_permissions[0].permissions;
+      // Rollen haben keine Zeitlimits, daher direkt Flags prüfen
+      const hasFlagBits =
+        (permission.flags & requiredFlag) === requiredFlag;
+      return hasFlagBits;
     }
 
-    // Prüfe Flags (wie Unix: bitweises AND)
-    const hasFlagBits =
-      (userPermission.permissions.flags & requiredFlag) === requiredFlag;
-
-    return hasFlagBits;
+    return false;
   }
 
   /**
