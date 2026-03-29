@@ -10,6 +10,228 @@ Diese Anleitung dokumentiert das Mitgliederverwaltungs-System basierend auf den 
 
 ---
 
+## 🌱 Seed-Daten - Demo-Umgebung aufsetzen
+
+### Quick Start: Datenbank mit Demo-Daten füllen
+
+```bash
+cd backend
+npx prisma db seed
+```
+
+Nach erfolgreicher Ausführung hast du eine vollständig funktionierende Test-Umgebung!
+
+### Erstellte Demo-Daten
+
+| Entity | Anzahl | Beschreibung |
+|--------|--------|-------------|
+| **Users** | 16 | Admin, Teacher, Student (Passwort: `password123`) |
+| **Roles** | 4 | Superuser, Admin, Teacher, Student |
+| **Permissions** | 10 | mit Bitwise-Flags (READ, WRITE, EXECUTE) |
+| **Tasks** | 20 | 10 Parent-Tasks + 10 Subtasks |
+| **Task-Members** | Viele | Automatisch für Demonstrations-Workflows |
+| **Classes** | 10 | Klassen mit Teachers und Schülern |
+| **Chat Rooms** | 6 | 3 Direct-Chats + 3 Group-Chats (mit Messages) |
+| **Teachers** | 5 | Mit Supervisor-Hierarchien |
+| **Students** | 10 | In verschiedenen Klassen |
+| **Departments** | 10 | Schulabteilungen |
+| **Subjects** | 10 | Fächer/Kurse |
+| **Schedules** | 10 | Stundenplan |
+| **Rooms** | 10 | Schulräume mit Kapazität |
+
+**Summe:** ~350+ Datensätze über alle Tabellen verteilt
+
+### Test-Benutzer zum Anmelden
+
+| Username | Role | Passwort | Verwendung |
+|----------|------|----------|-----------|
+| **adminadmin** | Superuser | `password123` | Admin-Tests, alle Rechte |
+| **teacher1** | Teacher | `password123` | Teacher-Workflows |
+| **student1** | Student | `password123` | Student-Sicht |
+| anna | Teacher | `password123` | Chat-Demo |
+| felix | Admin | `password123` | Admin-Workflows |
+| peter | Teacher | `password123` | Direct-Chat-Demo |
+| (+ 10 weitere) | Mixed | `password123` | Für Mass-Tests |
+
+**Alle Passwörter:** `password123`
+
+### Chat-Übersicht (Pre-seeded)
+
+#### Direct Chats:
+- **Room 1:** Admin ↔ Anna (10 Messages)
+- **Room 2:** Admin ↔ Felix (8 Messages)
+- **Room 3:** Anna ↔ Peter (6 Messages)
+
+#### Group Chats:
+- **Room 4:** Lehrerkonferenz (5 Teacher)
+- **Room 5:** 5AHITM Class Group (8 Members)
+- **Room 6:** Diplomarbeit Project (6 Members)
+
+### Permission & Role Mapping
+
+Jeder angelegte Teacher/Student erhält automatisch entsprechende Rollen und etwa 2-3 Direct-Permissions mit verschiedener Gültigkeit, um Zeitlimit-Validierung zu testen:
+
+**Beispiel Teacher:**
+- ✅ Rolle: Teacher
+- ✅ Permission: `create_tasks` (unbegrenzt)
+- ✅ Permission: `edit_tasks` (gültig bis 2026-07-31)
+- ❌ Permission: `manage_users` (NICHT vorhanden)
+
+**Beispiel Admin:**
+- ✅ Rolle: Admin
+- ✅ Permission: `manage_users` (unbegrenzt)
+- ✅ Alle anderen Permissions auch verfügbar
+
+### Task-Members Struktur
+
+Die 20 erstellten Tasks haben automatisch:
+- **assigned_to:** Einem Benutzer (verantwortlich)
+- **created_by:** Admin/Teacher
+- **task_members:** 2-3 zusätzliche Collaborators
+
+Dies ermöglicht Tests wie:
+- ✅ User können seine eigenen Tasks sehen
+- ✅ Task-Members können im Team arbeiten
+- ✅ Nicht-Members können nicht hinzufügen
+- ✅ Permissions-Checks funktionieren korrekt
+
+### Nach dem Seeden: Nächste Schritte
+
+1. **Backend starten:**
+   ```bash
+   npm run start
+   ```
+
+2. **Frontend starten:**
+   ```bash
+   cd ../frontend && npm run dev
+   ```
+
+3. **Mit Testbenutzer anmelden:**
+   - Username: `adminadmin`
+   - Passwort: `password123`
+
+4. **Workflows testen:**
+   - Folge den Schritten in diesem Guide: SCHRITT-FÜR-SCHRITT TESTING (siehe unten)
+   - Siehe auch [Task-Assignment-Model](./task-assignment-model.md)
+
+---
+
+## 🔐 SCHRITT-FÜR-SCHRITT: Permissions & Roles testen
+
+Nach dem Seeden kannst du alle Funktionen direkt testen. Diese Sektion zeigt dir, wie du neue User erstellst, ihnen Roles/Permissions zuweist und testest, was sie dürfen.
+
+---
+
+### SCHRITT 1: Als Admin anmelden
+
+**Frontend:** `http://localhost:5173/`  
+**Username:** `adminadmin` | **Passwort:** `password123`
+
+---
+
+### SCHRITT 2: Neuen User erstellen
+
+**Es gibt zwei Wege:**
+
+**Variante A - Web-UI:**
+Admin Panel → Users → "Neuen User erstellen" → Formular ausfüllen
+
+**Variante B - API:**
+```bash
+POST http://localhost:3001/users
+Body: { firstname, lastname, username, email, password }
+```
+
+Notiere die **user_id** der neuen Person!
+
+---
+
+### SCHRITT 3: Rolle zuweisen
+
+**Web-UI:** User-Profil → "Rolle zuweisen" → Select → Speichern
+
+**API:** `POST /users/{id}/roles` mit `{ role_id: 3 }`
+
+**Was passiert:** Der User erhält automatisch alle Permissions der Rolle!
+
+---
+
+### SCHRITT 4: Zusätzliche Permissions zuweisen (optional)
+
+**Zeitlich unbegrenzt:**  
+Admin Panel → User-Profil → "Permission hinzufügen" → Select → Speichern
+
+**Mit Zeitlimit (z.B. bis 30.6.26):**  
+API: `POST /users/{id}/permissions` mit:
+```json
+{
+  "permission_id": 5,
+  "valid_from": "2026-03-26",
+  "valid_to": "2026-06-30"
+}
+```
+
+---
+
+### SCHRITT 5: Testen - Was kann der User?
+
+1. **User anmelden** mit den neuen Credentials
+2. **GET `/users/me/permissions`** → Sieht seine Roles & Permissions
+3. **Tasks erstellen?** → `POST /tasks` (braucht `create_tasks` Permission)
+4. **User verwalten?** → `GET /users` (braucht `manage_users` Permission)
+
+| Endpoint | Permission nötig | Test-Ergebnis |
+|----------|-----------------|---------------|
+| `GET /users` | manage_users | ✅ Erfolgreich ODER ❌ 403 |
+| `POST /tasks` | create_task | ✅ Erfolgreich ODER ❌ 403 |
+| `GET /users/me/permissions` | (keine) | ✅ Immer erfolgreich |
+
+---
+
+### Beispiel-Szenarios
+
+**Szenario 1: Lehrer ohne Admin-Rechte**
+1. User erstellen: "Anna"
+2. Rolle Teacher zuweisen → ✅ kann Tasks erstellen
+3. Test: `GET /users` → ❌ 403 (kein manage_users)
+
+**Szenario 2: Befristeter Zugriff**
+1. User erstellen: "Bob"
+2. Rolle Student zuweisen
+3. Permission `edit_tasks` mit Expiration "2026-06-30"
+4. Heute (26.3.26): ✅ kann editieren
+5. Nach 30.6.26: ❌ Permission abgelaufen
+
+---
+
+### API-Endpoints (Quick Reference)
+
+| Aktion | Endpoint | Methode |
+|--------|----------|---------|
+| User erstellen | `/users` | POST |
+| Alle Users | `/users` | GET |
+| Rolle zuweisen | `/users/{id}/roles` | POST |
+| Permission geben | `/users/{id}/permissions` | POST |
+| Eigene Permissions | `/users/me/permissions` | GET |
+| Alle Permissions | `/permissions` | GET |
+| Alle Roles | `/roles` | GET |
+
+---
+
+### ⚙️ Debugging
+
+**Problem:** 403 Forbidden beim Zugriff auf `/users`  
+**Lösung:** Admin muss `manage_users` Permission haben  
+```bash
+GET /users/1/permissions  # Check Admin-Permissions
+```
+
+**Problem:** Seed-Daten nicht vorhanden  
+**Lösung:** `npx prisma db seed` in backend-Ordner ausführen
+
+---
+
 ## 🔑 TEIL 1: Grundlagen - Das Permission-System
 
 ### 1.1 Die 3 Kern-Tabellen
@@ -2501,4 +2723,633 @@ frontend/
 ---
 
 **Status: ✅ FERTIG - Alle Komponenten sind implementiert und dokumentiert!**
+
+---
+
+## 📧 TEIL 8: Benutzer zu Tasks hinzufügen (Add Member)
+
+Da alle Benutzer in einer Schulumgebung bereits registriert sind, ist der einfache **"Add Member"** Workflow die optimale Lösung. Der bestehende **taskMembers.addMember()** Service wird direkt über das Frontend verwendet.
+
+### 8.1 Frontend: Add Member Button
+
+**Datei:** `frontend/src/components/TaskDetailView.vue`
+
+```vue
+<template>
+  <div class="task-detail">
+    <!-- Task Header -->
+    <div class="task-header">
+      <h1>{{ task.title }}</h1>
+      
+      <!-- Add Member Button -->
+      <button 
+        @click="showAddMemberDialog = true"
+        class="btn-add-member"
+        v-if="canEditTask"
+      >
+        👥 Mitglied hinzufügen
+      </button>
+    </div>
+
+    <!-- Task Content -->
+    <div class="task-content">
+      <p>{{ task.description }}</p>
+    </div>
+
+    <!-- Members List -->
+    <div class="members-section">
+      <h3>👥 Mitglieder ({{ members.length }})</h3>
+      
+      <div v-if="members.length === 0" class="no-members">
+        Noch keine Mitglieder
+      </div>
+
+      <div v-else class="members-list">
+        <div v-for="member in members" :key="member.user_id" class="member-item">
+          <div class="member-info">
+            <strong>{{ member.firstname }} {{ member.lastname }}</strong>
+            <small>{{ member.email }}</small>
+          </div>
+          
+          <div class="member-actions">
+            <!-- Zeige Permissions -->
+            <span class="permissions-badge">
+              {{ formatPermissions(member) }}
+            </span>
+
+            <!-- Remove Button (nur wenn nicht Creator/Assigned-to) -->
+            <button
+              v-if="canRemoveMember(member.user_id)"
+              @click="removeMember(member.user_id)"
+              class="btn-remove"
+              title="Aus Task entfernen"
+            >
+              ❌
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Member Dialog -->
+    <AddMemberDialog
+      v-if="showAddMemberDialog"
+      :taskId="taskId"
+      :currentMembers="members"
+      :availableUsers="availableUsers"
+      @member-added="onMemberAdded"
+      @close="showAddMemberDialog = false"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { useTaskMembersApi } from '@/api/taskMembers';
+import { useTasksApi } from '@/api/tasks';
+import { useUsersApi } from '@/api/users';
+import { useAuthStore } from '@/stores/authStore';
+import AddMemberDialog from '@/components/AddMemberDialog.vue';
+
+const route = useRoute();
+const auth = useAuthStore();
+const taskMembers = useTaskMembersApi();
+const tasksApi = useTasksApi();
+const usersApi = useUsersApi();
+
+const taskId = computed(() => parseInt(route.params.id));
+const task = ref(null);
+const members = ref([]);
+const availableUsers = ref([]);
+const showAddMemberDialog = ref(false);
+
+onMounted(async () => {
+  // Lade Task
+  const taskResponse = await tasksApi.getTask(taskId.value);
+  task.value = taskResponse.data;
+
+  // Lade Mitglieder
+  const membersResponse = await taskMembers.getByTask(taskId.value);
+  members.value = membersResponse.data;
+
+  // Lade alle Users für Dialog
+  const usersResponse = await usersApi.getAll();
+  availableUsers.value = usersResponse.data;
+});
+
+// Kann ich die Task bearbeiten?
+const canEditTask = computed(() => {
+  return task.value && (
+    task.value.created_by === auth.user.id ||
+    task.value.assigned_to === auth.user.id
+  );
+});
+
+// Kann ich dieses Mitglied entfernen?
+const canRemoveMember = (userId) => {
+  if (!task.value) return false;
+  
+  // Creator und Assigned-to können nicht entfernt werden
+  return (
+    userId !== task.value.created_by &&
+    userId !== task.value.assigned_to
+  );
+};
+
+// Formatiere Permissions
+const formatPermissions = (member) => {
+  // Mock: In Production würde man die echten Permissions laden
+  return member.isMember ? '✓ Member' : '✗ Non-Member';
+};
+
+// Mitglied hinzufügen
+const onMemberAdded = async (newMember) => {
+  // Aktualisiere Members-Liste
+  if (!members.value.some(m => m.user_id === newMember.user_id)) {
+    members.value.push(newMember);
+  }
+  showAddMemberDialog.value = false;
+};
+
+// Mitglied entfernen
+const removeMember = async (userId) => {
+  if (!confirm('Mitglied wirklich entfernen?')) return;
+
+  try {
+    await taskMembers.removeMember(taskId.value, userId);
+    members.value = members.value.filter(m => m.user_id !== userId);
+  } catch (err) {
+    console.error('Error removing member:', err);
+  }
+};
+</script>
+
+<style scoped>
+.task-detail {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+}
+
+.task-header h1 {
+  margin: 0;
+  color: #333;
+}
+
+.btn-add-member {
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-add-member:hover {
+  background: #764ba2;
+}
+
+.members-section {
+  margin-top: 30px;
+}
+
+.members-section h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.no-members {
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  color: #999;
+  text-align: center;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.member-item:hover {
+  background: #f0f0f0;
+  border-color: #667eea;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-info strong {
+  display: block;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.member-info small {
+  color: #999;
+  font-size: 12px;
+}
+
+.member-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.permissions-badge {
+  background: #e8f0fe;
+  color: #1967d2;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btn-remove {
+  background: #ff5252;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.btn-remove:hover {
+  background: #ff1744;
+}
+</style>
+```
+
+### 8.2 Frontend: AddMemberDialog Komponente
+
+**Datei:** `frontend/src/components/AddMemberDialog.vue`
+
+```vue
+<template>
+  <div class="dialog-overlay" @click="$emit('close')">
+    <div class="dialog" @click.stop>
+      <h2>👥 Mitglied hinzufügen</h2>
+
+      <div v-if="error" class="error-message">
+        ❌ {{ error }}
+      </div>
+
+      <!-- User Selection -->
+      <div class="form-group">
+        <label>Benutzer auswählen *</label>
+        <select v-model.number="selectedUserId" required>
+          <option :value="null">-- Auswählen --</option>
+          <option
+            v-for="user in availableUsers"
+            :key="user.user_id"
+            :value="user.user_id"
+            :disabled="isMemberAlready(user.user_id)"
+          >
+            {{ user.firstname }} {{ user.lastname }}
+            {{ isMemberAlready(user.user_id) ? '(bereits Mitglied)' : '' }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Selected User Preview -->
+      <div v-if="selectedUser" class="user-preview">
+        <div class="user-info">
+          <strong>{{ selectedUser.firstname }} {{ selectedUser.lastname }}</strong>
+          <small>{{ selectedUser.email }}</small>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="dialog-actions">
+        <button
+          @click="addMember"
+          class="btn-primary"
+          :disabled="!selectedUserId || loading"
+        >
+          {{ loading ? 'Wird hinzugefügt...' : '✅ Hinzufügen' }}
+        </button>
+
+        <button
+          @click="$emit('close')"
+          class="btn-secondary"
+          :disabled="loading"
+        >
+          Abbrechen
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue';
+import { useTaskMembersApi } from '@/api/taskMembers';
+import { useAuthStore } from '@/stores/authStore';
+
+const emit = defineEmits(['close', 'member-added']);
+const props = defineProps({
+  taskId: Number,
+  currentMembers: Array,
+  availableUsers: Array
+});
+
+const auth = useAuthStore();
+const taskMembers = useTaskMembersApi();
+
+const selectedUserId = ref(null);
+const loading = ref(false);
+const error = ref(null);
+
+const selectedUser = computed(() => {
+  if (!selectedUserId.value) return null;
+  return props.availableUsers?.find(u => u.user_id === selectedUserId.value);
+});
+
+// Ist dieser User bereits Mitglied?
+const isMemberAlready = (userId) => {
+  return props.currentMembers?.some(m => m.user_id === userId);
+};
+
+// Mitglied hinzufügen
+const addMember = async () => {
+  if (!selectedUserId.value) return;
+
+  error.value = null;
+  loading.value = true;
+
+  try {
+    // Call Backend
+    const response = await taskMembers.addMember(
+      props.taskId,
+      selectedUserId.value
+    );
+
+    // Emit event mit neuem Mitglied
+    emit('member-added', {
+      user_id: selectedUserId.value,
+      ...selectedUser.value
+    });
+  } catch (err) {
+    error.value = err.message || 'Fehler beim Hinzufügen des Mitglieds';
+  } finally {
+    loading.value = false;
+  }
+};
+</script>
+
+<style scoped>
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.dialog h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.user-preview {
+  background: #f0f0f0;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.user-info {
+  text-align: left;
+}
+
+.user-info strong {
+  display: block;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.user-info small {
+  color: #999;
+  font-size: 12px;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-primary,
+.btn-secondary {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #764ba2;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>
+```
+
+### 8.3 API Service
+
+**Datei:** `frontend/src/api/taskMembers.js`
+
+```javascript
+import { useHttpClient } from './httpClient';
+
+export const useTaskMembersApi = () => {
+  const httpClient = useHttpClient();
+
+  return {
+    // Mitglieder einer Task abrufen
+    getByTask: (taskId) => {
+      return httpClient.get(`/api/tasks/${taskId}/members`);
+    },
+
+    // Mitglied hinzufügen
+    addMember: (taskId, userId) => {
+      return httpClient.post(`/api/tasks/${taskId}/members`, {
+        user_id: userId
+      });
+    },
+
+    // Mitglied entfernen
+    removeMember: (taskId, userId) => {
+      return httpClient.delete(`/api/tasks/${taskId}/members/${userId}`);
+    },
+
+    // Berechtigungen überprüfen
+    checkPermissions: (taskId, userId) => {
+      return httpClient.get(
+        `/api/tasks/${taskId}/members/${userId}/permissions`
+      );
+    }
+  };
+};
+```
+
+### 8.4 Praktisches Beispiel: Workflow
+
+**Szenario:** Teacher Max fügt Schüler Anna zu Task #42 hinzu.
+
+**Schritt 1: Task öffnen**
+- Max navigiert zu Task #42
+- Sieht "Mitglieder" Sektion mit 2 Mitgliedern
+
+**Schritt 2: Add Member Button klicken**
+```
+👥 Mitglied hinzufügen (Button)
+```
+
+**Schritt 3: Dialog öffnet**
+- Zeigt Dropdown mit allen Usern
+- Bereits Mitglieder sind deaktiviert (grayed out)
+
+**Schritt 4: User auswählen**
+```
+Dropdown: Anna Schmidt (anna@school.de)
+```
+
+**Schritt 5: Backend Request**
+```http
+POST /api/tasks/42/members
+{
+  "user_id": 5
+}
+```
+
+**Schritt 6: Backend verarbeitet**
+- TaskMembersService.addMember(42, 5)
+- Prüft Permissions (Max ist Creator/Editor)
+- Erstellt: task_members(task_id=42, user_id=5, joined_at=NOW)
+- Returniert: User-Details mit Permissions
+
+**Schritt 7: Frontend aktualisiert**
+- Dialog schließt
+- Members-Liste wird aktualisiert
+- Anna erscheint in der Listen mit "✓ Member"
+
+**Schritt 8: Success**
+```
+✅ Anna wurde zu Task #42 hinzugefügt
+```
+
+---
+
+## 📊 Zusammenfassung
+
+| Was | Lösung | Status |
+|-----|--------|--------|
+| **Benutzer zu Tasks hinzufügen** | ✅ Add Member Button im Frontend | ✅ EINFACH |
+| **Vorabsteuerung** | ✅ Dropdown zeigt nur nicht-Members | ✅ UX-OPTIMIERT |
+| **Berechtigung** | ✅ Nur Creator/Assigned-to darf hinzufügen | ✅ SICHER |
+| **Mitglied entfernen** | ✅ Remove Button (außer Creator/Assigned-to) | ✅ GESCHÜTZT |
+| **Email-Invites** | ❌ Nicht nötig (alle registriert) | ✅ PRAGMATISCH |
+
+---
+
+**Status: ✅ FERTIG - Add Member ist die optimale Lösung für Schulumgebung!**
 
