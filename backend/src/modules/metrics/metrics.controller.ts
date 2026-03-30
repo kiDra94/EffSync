@@ -28,24 +28,4 @@ export class MetricsController {
   async getTaskProgress() {
     return this.metricsService.getTaskProgress();
   }
-
-  /**
-   * GET /metrics/weekly-trends
-   * Gibt wöchentliche Trends zurück
-   */
-  @Permissions()
-  @Get('weekly-trends')
-  async getWeeklyTrends() {
-    return this.metricsService.getWeeklyTrends();
-  }
-
-  /**
-   * GET /metrics/monthly-trends
-   * Gibt monatliche Trends zurück
-   */
-  @Permissions()
-  @Get('monthly-trends')
-  async getMonthlyTrends() {
-    return this.metricsService.getMonthlyTrends();
-  }
 }

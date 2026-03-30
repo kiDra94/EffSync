@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
-import WeeklyTrendsChart from '@/components/dashboard/WeeklyTrendsChart.vue';
 
 const router = useRouter();
 const taskStore = useTaskStore();
@@ -151,7 +150,6 @@ const handleCardClick = (routeName) => {
     <div class="metrics-section">
       <StatusDistributionChart />
       <TaskProgressChart />
-      <WeeklyTrendsChart />
     </div>
   </div>
 </template>
