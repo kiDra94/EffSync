@@ -2,6 +2,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
+import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
+import WeeklyTrendsChart from '@/components/dashboard/WeeklyTrendsChart.vue';
 
 const router = useRouter();
 const taskStore = useTaskStore();
@@ -143,6 +146,13 @@ const handleCardClick = (routeName) => {
         <p>Hier könnte ein Textfeld für Notizen sein...</p>
       </div>
     </div>
+
+    <!-- Dashboard Metrics -->
+    <div class="metrics-section">
+      <StatusDistributionChart />
+      <TaskProgressChart />
+      <WeeklyTrendsChart />
+    </div>
   </div>
 </template>
 
@@ -227,6 +237,7 @@ const handleCardClick = (routeName) => {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 20px;
+  margin-bottom: 40px;
 }
 
 .placeholder-box {
@@ -239,7 +250,16 @@ const handleCardClick = (routeName) => {
 .placeholder-box h3 { margin-top: 0; color: #23234c; }
 .placeholder-box p { color: #666; }
 
+/* --- METRICS SECTION --- */
+.metrics-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+}
+
 @media (max-width: 768px) {
   .content-section { grid-template-columns: 1fr; }
+  .metrics-section { grid-template-columns: 1fr; }
 }
 </style>

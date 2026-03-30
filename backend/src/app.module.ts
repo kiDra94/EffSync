@@ -44,6 +44,7 @@ import { UserRolesModule } from "./modules/user-roles/user-roles.module";
 import { APP_GUARD } from "@nestjs/core";
 import { SubjectsModule } from './modules/subjects/subjects.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     UserRolesModule,
     SubjectsModule,
     WebsocketModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [
