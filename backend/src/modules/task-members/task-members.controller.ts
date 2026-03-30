@@ -12,6 +12,8 @@ import {
   Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { TaskMembersService, TaskPermissionFlags } from './task-members.service';
 import { CreateTaskMemberDto } from './dto/create-task-member.dto';
 import { TaskMemberEntity } from './entities/task-member.entity';
@@ -22,7 +24,7 @@ import { TaskMemberEntity } from './entities/task-member.entity';
  * Alle Endpoints erfordern Authentifizierung (JwtAuthGuard)
  */
 @Controller('api/tasks/:taskId/members')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TaskMembersController {
   constructor(private readonly taskMembersService: TaskMembersService) {}
 
@@ -38,6 +40,7 @@ export class TaskMembersController {
    * - Requester hat WRITE-Permission auf dieser Task
    */
   @Post()
+  @Permissions()
   async addMember(
     @Param('taskId') taskId: string,
     @Body() createDto: CreateTaskMemberDto,
@@ -80,6 +83,7 @@ export class TaskMembersController {
    * - Requester hat READ-Permission auf dieser Task
    */
   @Get()
+  @Permissions()
   async findMembers(
     @Param('taskId') taskId: string,
     @Req() req: any,
@@ -127,6 +131,7 @@ export class TaskMembersController {
    */
   @Delete(':userId')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @Permissions()
   async removeMember(
     @Param('taskId') taskId: string,
     @Param('userId') userId: string,
@@ -161,6 +166,7 @@ export class TaskMembersController {
    * }
    */
   @Get('check-permission')
+  @Permissions()
   async checkPermission(
     @Param('taskId') taskId: string,
     @Req() req: any,

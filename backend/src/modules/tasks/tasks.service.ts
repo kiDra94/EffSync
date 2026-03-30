@@ -6,6 +6,7 @@ import { QueryTasksDto } from "./dto/query-tasks.dto";
 import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
 import { Prisma } from "@prisma/client";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { TaskActivityLogService } from "../task-activity-log/task-activity-log.service";
 
 
 @Injectable()
@@ -13,6 +14,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
+    private readonly activityLogService: TaskActivityLogService,
   ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
@@ -50,6 +52,17 @@ export class TasksService {
       },
       include: this.basicInclude(),
     });
+
+    // Log activity
+    try {
+      await this.activityLogService.create({
+        task_id: task.task_id,
+        action: `Task created: "${task.title}"`,
+      }, userId, false);
+    } catch (error) {
+      console.error('Failed to log task creation activity:', error);
+    }
+
     return task;
   }
 
@@ -188,6 +201,18 @@ export class TasksService {
       include: this.basicInclude(),
     });
 
+    // Log activity
+    try {
+      if (updated.created_by) {
+        await this.activityLogService.create({
+          task_id: updated.task_id,
+          action: `Task updated: "${updated.title}"`,
+        }, updated.created_by, false);
+      }
+    } catch (error) {
+      console.error('Failed to log task update activity:', error);
+    }
+
     if (updated.parent_task_id) {
       await this.checkAndAutoComplete(updated.task_id);
     }
@@ -211,6 +236,18 @@ export class TasksService {
     await this.prisma.tasks.delete({
       where: { task_id: taskId },
     });
+
+    // Log activity
+    try {
+      if (task.created_by) {
+        await this.activityLogService.create({
+          task_id: task.task_id,
+          action: `Task deleted: "${task.title}"`,
+        }, task.created_by, false);
+      }
+    } catch (error) {
+      console.error('Failed to log task deletion activity:', error);
+    }
 
     return {
       message: 'Task deleted successfully',
