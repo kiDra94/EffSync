@@ -41,13 +41,18 @@ export class UsersController {
 
   /**
    * GET /users/profile
-   * Holt das Profil des aktuellen Benutzers.
+   * Holt das Profil des aktuellen Benutzers mit Rolle.
    * 
    * Keine speziellen Berechtigungen erforderlich (nur JWT erforderlich).
    */
   @Get("profile")
   getProfile(@Req() req) {
-    return this.usersService.findOne(req.user.userId);
+    console.log('👤 Profile endpoint - returning req.user:', req.user);
+    // req.user enthält bereits: id, userId, username, role (von JwtStrategy)
+    return {
+      ...req.user,
+      // Zusätzliche Felder können hier hinzugefügt werden
+    };
   }
 
   /**
@@ -203,7 +208,10 @@ export class UsersController {
     @Param('id') userId: string,
     @Body() dto: { role_id: number }
   ) {
-    return this.usersService.addRoleToUser(+userId, dto.role_id);
+    console.log(`🔗 POST /users/:id/roles - userId=${userId}, roleId=${dto.role_id}`);
+    const result = await this.usersService.addRoleToUser(+userId, dto.role_id);
+    console.log(`  └─ ✅ Role assigned`);
+    return result;
   }
 
   /**

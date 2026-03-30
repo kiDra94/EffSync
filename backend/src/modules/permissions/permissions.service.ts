@@ -61,6 +61,8 @@ export class PermissionsService {
     permissionName: string,
     requiredFlag: PermissionFlag = PermissionFlag.READ
   ): Promise<boolean> {
+    console.log(`    📋 hasPermission check: userId=${userId}, permission="${permissionName}"`);
+
     // 1. Prüfe DIREKTE Permissions
     const userPermission = await this.prisma.user_permissions.findFirst({
       where: {
@@ -71,6 +73,7 @@ export class PermissionsService {
     });
 
     if (userPermission) {
+      console.log(`      ├─ Found direct permission`);
       // Prüfe Zeitfenster
       const now = new Date();
       const isTimeValid =
@@ -82,6 +85,7 @@ export class PermissionsService {
         const hasFlagBits =
           (userPermission.permissions.flags & requiredFlag) === requiredFlag;
         if (hasFlagBits) {
+          console.log(`      └─ ✅ Direct permission valid`);
           return true;
         }
       }
@@ -115,12 +119,15 @@ export class PermissionsService {
 
     if (rolePermission && rolePermission.roles.roles_permissions.length > 0) {
       const permission = rolePermission.roles.roles_permissions[0].permissions;
+      console.log(`      ├─ Found role-based permission from role: ${rolePermission.roles.name}`);
       // Rollen haben keine Zeitlimits, daher direkt Flags prüfen
       const hasFlagBits =
         (permission.flags & requiredFlag) === requiredFlag;
+      console.log(`      └─ ✅ Role permission valid`);
       return hasFlagBits;
     }
 
+    console.log(`      └─ ❌ No permission found`);
     return false;
   }
 
@@ -217,5 +224,39 @@ export class PermissionsService {
           (up.valid_to!.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
         )
       }));
+  }
+
+  /**
+   * Hole alle verfügbaren Permissions
+   */
+  async findAll() {
+    return this.prisma.permissions.findMany({
+      include: {
+        roles_permissions: {
+          include: {
+            roles: true,
+          },
+        },
+        user_permissions: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * Hole eine Permission mit ihren Details
+   */
+  async findOne(permissionId: number) {
+    return this.prisma.permissions.findUnique({
+      where: { permission_id: permissionId },
+      include: {
+        roles_permissions: {
+          include: {
+            roles: true,
+          },
+        },
+        user_permissions: true,
+      },
+    });
   }
 }
