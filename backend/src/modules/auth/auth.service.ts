@@ -25,6 +25,11 @@ export class AuthService {
   async login(LoginDto: LoginDto) {
     const user = await this.prisma.users.findUnique({
       where: { username: LoginDto.username },
+      include: {
+        user_roles: {
+          include: { roles: true },
+        },
+      },
     });
     if (!user) {
       throw new UnauthorizedException("Username existiert nicht");
@@ -39,14 +44,22 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException("Passwort ist ungültig");
     }
+    
+    // Hole die erste Rolle des Benutzers (Primary Role)
+    const primaryRole = user.user_roles && user.user_roles.length > 0 
+      ? user.user_roles[0].roles?.name?.toLowerCase() 
+      : 'user'; // Default Rolle
+    
     const { password_hash, ...userWithNoPassword } = user;
     const payload = {
       sub: user.user_id,
       username: user.username,
+      role: primaryRole, // Rolle hinzufügen!
     };
     // const dummyToken = 'TEST_TOKEN_123456';
     return {
       ...userWithNoPassword,
+      role: primaryRole, // Rolle auch in Response mitgeben
       token: this.jwtService.sign(payload),
     };
   }

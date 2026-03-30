@@ -8,12 +8,12 @@ import { useSearchStore } from './searchStore'
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
     const userId = ref(Number(localStorage.getItem('userId')) || null)
-    const userRole = ref(null)
+    const userRole = ref(localStorage.getItem('userRole') || null)
     const userDetails = ref(null)
     const { connect, disconnect } = useSocket();
 
     const isAuthenticated = computed(() => !!token.value)
-    const isAdmin = computed(() => userRole.value === 'admin')
+    const isAdmin = computed(() => ['admin', 'superuser'].includes(userRole.value))
     const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
 
     function initDevMode() {
@@ -43,13 +43,21 @@ export const useAuthStore = defineStore('auth', () => {
             const newToken = data.token;
             const user = data.user || data;
 
+            // Debug logging
+            console.log('📝 Login Response Data:', data)
+            console.log('👤 User from response:', user)
+            console.log('🔐 User role from response:', user.role)
+
             token.value = newToken
             userId.value = user.user_id ?? user.id ?? null
-            userRole.value = user.role
+            userRole.value = user.role ? user.role.toLowerCase() : null
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
-            localStorage.setItem('userId', userId.value);
+            localStorage.setItem('userId', userId.value)
+            localStorage.setItem('userRole', userRole.value || '')
+
+            console.log('✅ Stored userRole in authStore:', userRole.value)
 
             connect(data.token);
             try {
@@ -81,7 +89,8 @@ export const useAuthStore = defineStore('auth', () => {
             userRole.value = null
             userDetails.value = null
             localStorage.removeItem('authToken')
-            localStorage.removeItem('userId');
+            localStorage.removeItem('userId')
+            localStorage.removeItem('userRole')
             await router.push({ name: 'Login' })
             const searchStore = useSearchStore()
             searchStore.reset()
@@ -98,9 +107,16 @@ export const useAuthStore = defineStore('auth', () => {
             const response = await authApi.getUserProfile()
             // Anpassung je nach Backend-Antwortstruktur (oft response.data oder response.data.user)
             const user = response.data.user || response.data
-            userId.value = user.id
-            userRole.value = user.role
+            console.log('📋 Full Response:', JSON.stringify(response, null, 2))
+            console.log('📋 LoadUser Response:', user)
+            console.log('🔐 User role from profile:', user.role)
+            console.log('🔐 User object keys:', Object.keys(user))
+            
+            userId.value = user.user_id || user.id
+            userRole.value = user.role ? user.role.toLowerCase() : null
             userDetails.value = user
+            localStorage.setItem('userRole', userRole.value || '')
+            console.log('✅ Loaded userRole from profile:', userRole.value)
             connect(token.value);
         } catch (error) {
             console.error('Failed to load user profile:', error)
