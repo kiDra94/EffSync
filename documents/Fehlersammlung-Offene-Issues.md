@@ -380,3 +380,107 @@ Vor Abgabe folgende User-Workflows testen:
 
 **Zuletzt aktualisiert:** 1. April 2026  
 **Verantwortlich:** Ereny
+
+
+
+______________________________________________________________________________________________
+
+# 🛠️ Bugfix-Status – Feature-Branch
+
+**Datum:** 01.04.2026  
+**Repository:** `kiDra94/diplom-arbeit`  
+**Branch:** `feature-35-dashboard-metriken-ausbau`  
+**Basis-Branch:** `main`  
+**Verantwortlich:** _<Name eintragen>_  
+**Gesamtstatus:** 🟡 In Arbeit
+
+---
+
+## 📌 Kurzstatus (Stand heute)
+
+- **Offen:** _<Anzahl>_
+- **In Arbeit:** _<Anzahl>_
+- **Erledigt:** _<Anzahl>_
+- **Blockiert:** _<Anzahl>_
+
+---
+
+## ✅ Erledigte Bugfixes
+
+- [x] _<Issue/Bugtitel #1>_  
+  - Datei(en): `_path_`
+  - Fix: _Kurzbeschreibung_
+  - Getestet: _ja/nein_
+
+- [x] _<Issue/Bugtitel #2>_  
+  - Datei(en): `_path_`
+  - Fix: _Kurzbeschreibung_
+  - Getestet: _ja/nein_
+
+---
+
+## 🔧 In Arbeit
+
+- [ ] _<Issue/Bugtitel #1>_  
+  - Datei(en): `_path_`
+  - Nächster Schritt: _Kurzbeschreibung_
+  - ETA: _<Datum/Uhrzeit>_
+
+- [ ] _<Issue/Bugtitel #2>_  
+  - Datei(en): `_path_`
+  - Nächster Schritt: _Kurzbeschreibung_
+  - ETA: _<Datum/Uhrzeit>_
+
+---
+
+## ⛔ Blocker / Risiken
+
+- [ ] _<Blocker #1>_  
+  - Ursache: _..._
+  - Benötigt von: _..._
+  - Workaround: _..._
+
+---
+
+## 🧪 Teststatus
+
+- [ ] Unit Tests laufen lokal
+- [ ] Backend-API manuell geprüft
+- [ ] Frontend-Flows manuell geprüft
+- [ ] Rollen-/Rechteprüfung (Schüler/Lehrer/Admin)
+- [ ] Regressionstest Kernfunktionen
+
+---
+
+## 📂 Betroffene Bereiche
+
+- [ ] Auth
+- [ ] Dashboard/Metriken
+- [ ] Dokumente
+- [ ] Notizen
+- [ ] Stundenplan
+- [ ] Rollen & Berechtigungen
+
+---
+
+## 🚀 Nächste Schritte (morgen/nächster Slot)
+
+1. _<Task 1>_
+2. _<Task 2>_
+3. _<Task 3>_
+
+---
+
+## 🔁 Merge-Readiness
+
+- [ ] Alle kritischen Bugs (Prio 🔴) behoben
+- [ ] Keine offenen Security-Issues
+- [ ] CI grün / Tests grün
+- [ ] Code Review durchgeführt
+- [ ] Bereit für PR gegen `main`
+
+---
+
+## 📝 Notizen
+
+_<Freitext für Entscheidungen, offene Fragen, Links zu Commits/PRs>_
