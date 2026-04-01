@@ -71,7 +71,7 @@ const handleLogin = async () => {
         <div class="form-group">
           <label>Benutzername</label>
 
-          <input type="text" v-model="credentials.username" required minlength="8" maxlength="32"
+          <input type="text" v-model="credentials.username" required minlength="3" maxlength="32"
             placeholder="Benutzername" />
         </div>
 

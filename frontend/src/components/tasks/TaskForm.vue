@@ -148,7 +148,24 @@ const lockedReason = computed(() => {
 
 function formatForInput(isoString) {
   if (!isoString) return '';
-  return isoString.slice(0, 16);
+  // Konvertiere ISO-String zu datetime-local Format (YYYY-MM-DDTHH:mm)
+  // datetime-local inputs arbeiten immer in lokaler Zeit
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function formatForSubmit(datetimeLocal) {
+  if (!datetimeLocal) return null;
+  // Konvertiere datetime-local Format zu ISO-String mit Timezone
+  // datetime-local Format ist YYYY-MM-DDTHH:mm
+  const date = new Date(datetimeLocal);
+  // Stelle sicher, dass wir UTC Zeit senden
+  return date.toISOString();
 }
 
 const formData = reactive({
@@ -186,15 +203,31 @@ const applyTemplate = (template) => {
 const submitTask = () => {
   showSummary.value = true;
 
-  if (!validateAll(formData, props.task?.task_id)) { return; }
+  console.log('📝 submitTask: Validierung wird gestartet...');
+  if (!validateAll(formData, props.task?.task_id)) { 
+    console.error('❌ Validierung fehlgeschlagen:', errors);
+    return; 
+  }
+
+  console.log('✓ Validierung erfolgreich');
   const taskData = {
-    ...formData,
+    title: formData.title,
+    description: formData.description || '',
+    deadline: formData.deadline ? formatForSubmit(formData.deadline) : null,
+    priority_id: formData.priority_id || 2,
+    status: formData.status || 'TODO',
+    progress: formData.progress ?? 0,
     ...(props.task?.task_id && { task_id: props.task.task_id })
   };
 
+  console.log('📤 Task-Daten zum Speichern (final):', taskData);
+  console.log('📤 Subtasks:', subtasks.value);
+
   if (subtasks.value.length > 0) {
+    console.log('💾 Speichere Task MIT Subtasks...');
     emit('save-with-subtasks', { taskData, subtasks: subtasks.value });
   } else {
+    console.log('💾 Speichere Task ohne Subtasks...');
     emit('save', taskData);
   }
 

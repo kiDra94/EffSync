@@ -12,7 +12,15 @@ export class NotesService {
         where: { subject_id: createNoteDto.subject_id }
       });
       if (!subject) {
-        throw new NotFoundException(`Subjcket with ID ${createNoteDto.subject_id} not found!`);
+        throw new NotFoundException(`Subject with ID ${createNoteDto.subject_id} not found!`);
+      };
+    };
+    if (createNoteDto.task_id) {
+      const task = await this.prisma.tasks.findUnique({
+        where: { task_id: createNoteDto.task_id }
+      });
+      if (!task) {
+        throw new NotFoundException(`Task with ID ${createNoteDto.task_id} not found!`);
       };
     };
     return await this.prisma.notes.create({

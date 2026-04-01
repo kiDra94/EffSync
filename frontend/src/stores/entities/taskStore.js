@@ -55,13 +55,17 @@ export const useTaskStore = defineStore('task', () => {
 
     async function editTask(task_id, task) {
         try {
+            console.log('🔧 [taskStore] editTask aufgerufen mit task_id:', task_id, 'task:', task);
             const updatedTask = await updateTask(task_id, task);
+            console.log('✅ [taskStore] Task aktualisiert vom Backend:', updatedTask);
             const index = tasks.value.findIndex((i) => i.task_id === task_id);
             if (index !== -1) {
                 tasks.value[index] = updatedTask.data || updatedTask;
             }
         } catch (error) {
-            console.error('Fehler beim Bearbeiten eines Tasks:', error);
+            console.error('❌ [taskStore] Fehler beim Bearbeiten eines Tasks:', error);
+            console.error('📋 Backend-Status:', error?.response?.status);
+            console.error('📋 Backend-Fehler:', error?.response?.data);
             throw error;
         }
     }

@@ -28,4 +28,14 @@ export class MetricsController {
   async getTaskProgress() {
     return this.metricsService.getTaskProgress();
   }
+
+  /**
+   * GET /metrics/tasks-by-status
+   * Gibt alle Tasks gruppiert nach Status zurück
+   */
+  @Permissions()
+  @Get('tasks-by-status')
+  async getTasksByStatus() {
+    return this.metricsService.getTasksByStatus();
+  }
 }

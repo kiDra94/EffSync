@@ -20,4 +20,8 @@ export class CreateNoteDto {
   @IsInt()
   @IsOptional()
   priority_id?: number;
+
+  @IsInt()
+  @IsOptional()
+  task_id?: number;
 }

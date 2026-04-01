@@ -14,8 +14,9 @@ export class MetricsService {
     });
 
     const distribution = {
-      OPEN: 0,
+      TODO: 0,
       IN_PROGRESS: 0,
+      IN_REVIEW: 0,
       COMPLETED: 0,
       ON_HOLD: 0,
     };
@@ -27,10 +28,11 @@ export class MetricsService {
     });
 
     return {
-      labels: ['Offen', 'In Bearbeitung', 'Abgeschlossen', 'In Wartestellung'],
+      labels: ['Offen', 'In Bearbeitung', 'In Review', 'Abgeschlossen', 'In Wartestellung'],
       data: [
-        distribution.OPEN,
+        distribution.TODO,
         distribution.IN_PROGRESS,
+        distribution.IN_REVIEW,
         distribution.COMPLETED,
         distribution.ON_HOLD,
       ],
@@ -84,4 +86,37 @@ export class MetricsService {
           : 0,
     };
   }
+
+  /*
+   * Tasks pro Status
+   */
+  async getTasksByStatus() {
+    const tasks = await this.prisma.tasks.findMany({
+      select: {
+        task_id: true,
+        title: true,
+        status: true,
+        deadline: true,
+        progress: true,
+      },
+      orderBy: { status: 'asc' },
+    });
+
+    const byStatus: Record<string, any[]> = {
+      TODO: [],
+      IN_PROGRESS: [],
+      IN_REVIEW: [],
+      COMPLETED: [],
+      ON_HOLD: [],
+    };
+
+    tasks.forEach((task) => {
+      if (task.status && task.status in byStatus) {
+        byStatus[task.status].push(task);
+      }
+    });
+
+    return byStatus;
+  }
+
 }

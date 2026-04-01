@@ -2,8 +2,8 @@ import { IsEmail, IsString, MaxLength, MinLength } from "class-validator";
 
 export class LoginDto {
   @IsString()
-  @MinLength(8, {
-    message: "Der Username muss mindestens 8 Zeichen lang sein.",
+  @MinLength(3, {
+    message: "Der Username muss mindestens 3 Zeichen lang sein.",
   })
   @MaxLength(32, { message: "Der Username soll maximal 32 Zeichen lang sein." })
   username: string;

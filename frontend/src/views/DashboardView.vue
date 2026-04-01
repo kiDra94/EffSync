@@ -8,6 +8,28 @@ import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 const router = useRouter();
 const taskStore = useTaskStore();
 
+// Schnelle Notiz
+const quickNote = ref('');
+const noteInput = ref('');
+
+const addQuickNote = () => {
+  if (noteInput.value.trim()) {
+    quickNote.value = noteInput.value;
+    // Speichern in Notes
+    const notes = JSON.parse(localStorage.getItem('effsync_notes') || '[]');
+    const newNote = {
+      id: Date.now(),
+      title: 'Schnelle Notiz vom Dashboard',
+      content: noteInput.value,
+      created_at: new Date().toISOString()
+    };
+    notes.unshift(newNote);
+    localStorage.setItem('effsync_notes', JSON.stringify(notes));
+    noteInput.value = '';
+    window.dispatchEvent(new Event('storage'));
+  }
+};
+
 // Funktion zum Abrufen der Länge aus localStorage
 const getStorageCount = (key) => {
   try {
@@ -136,13 +158,34 @@ const handleCardClick = (routeName) => {
     </div>
 
     <div class="content-section">
-      <div class="placeholder-box">
+      <!-- Stundenplan -->
+      <div class="placeholder-box clickable" @click="router.push({name: 'Schedules'})">
         <h3>📅 Heutiger Stundenplan</h3>
-        <p>Hier könnte eine Liste der heutigen Stunden stehen...</p>
+        <p style="margin-bottom: 10px; color: #666;">Deine heutigen Stunden anschauen...</p>
+        <button style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+          Zum Stundenplan →
+        </button>
       </div>
+      
+      <!-- Schnelle Notizen -->
       <div class="placeholder-box">
-        <h3>⚡ Schnelle Notizen</h3>
-        <p>Hier könnte ein Textfeld für Notizen sein...</p>
+        <h3>⚡ Schnelle Notiz erfassen</h3>
+        <input 
+          v-model="noteInput"
+          type="text" 
+          placeholder="Notiz eingeben..."
+          style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px;"
+          @keyup.enter="addQuickNote"
+        />
+        <button 
+          @click="addQuickNote"
+          style="background: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; width: 100%;"
+        >
+          Speichern in Notizen
+        </button>
+        <p v-if="quickNote" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 6px; color: #333;">
+          ✓ Gespeichert: "{{ quickNote }}"
+        </p>
       </div>
     </div>
 
@@ -244,6 +287,14 @@ const handleCardClick = (routeName) => {
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);
   min-height: 200px;
+}
+.placeholder-box.clickable {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.placeholder-box.clickable:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
 .placeholder-box h3 { margin-top: 0; color: #23234c; }
 .placeholder-box p { color: #666; }

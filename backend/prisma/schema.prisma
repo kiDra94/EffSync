@@ -139,6 +139,7 @@ model notes {
   note_id        Int              @id @default(autoincrement())
   title          String?          @db.VarChar
   created_by     Int?
+  task_id        Int?
   description    String?
   subject_id     Int?
   priority_id    Int?
@@ -146,6 +147,7 @@ model notes {
   updated_at     DateTime?        @db.Timestamp(6)
   note_documents note_documents[]
   users          users?           @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks          tasks?           @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
   priorities     priorities?      @relation(fields: [priority_id], references: [priority_id], onDelete: NoAction, onUpdate: NoAction)
   subjects       subjects?        @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction)
   notes_users    notes_users[]
@@ -325,6 +327,7 @@ model tasks {
   task_comments                  task_comments[]
   task_documents                 task_documents[]
   task_members                   task_members[]
+  notes                          notes[]
   users_tasks_assigned_toTousers users?              @relation("tasks_assigned_toTousers", fields: [assigned_to], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   users_tasks_created_byTousers  users?              @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   tasks                          tasks?              @relation("tasksTotasks", fields: [parent_task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
