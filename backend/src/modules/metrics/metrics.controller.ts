@@ -30,22 +30,12 @@ export class MetricsController {
   }
 
   /**
-   * GET /metrics/weekly-trends
-   * Gibt wöchentliche Trends zurück
+   * GET /metrics/tasks-by-status
+   * Gibt alle Tasks gruppiert nach Status zurück
    */
   @Permissions()
-  @Get('weekly-trends')
-  async getWeeklyTrends() {
-    return this.metricsService.getWeeklyTrends();
-  }
-
-  /**
-   * GET /metrics/monthly-trends
-   * Gibt monatliche Trends zurück
-   */
-  @Permissions()
-  @Get('monthly-trends')
-  async getMonthlyTrends() {
-    return this.metricsService.getMonthlyTrends();
+  @Get('tasks-by-status')
+  async getTasksByStatus() {
+    return this.metricsService.getTasksByStatus();
   }
 }

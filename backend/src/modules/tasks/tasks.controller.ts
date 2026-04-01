@@ -31,8 +31,8 @@ export class TasksController {
 
   @Get()
   @Permissions()
-  findAll(@Query() queryDto: QueryTasksDto) {
-    return this.tasksService.findAll(queryDto);
+  findAll(@Query() queryDto: QueryTasksDto, @Req() req) {
+    return this.tasksService.findAll(queryDto, req.user.userId);
   }
 
   @Get(":id/tree")

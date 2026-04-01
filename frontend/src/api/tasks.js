@@ -26,8 +26,20 @@ export const createTask = async (taskData) => {
 
 export const updateTask = async (task_id, taskData) => {
     const serializedData = serializeEntity(taskData, ID_KEY);
-    const response = await apiClient.patch(`${ENDPOINT}/${task_id}`, serializedData);
-    return normalizeEntity(response.data, ID_KEY);
+    console.log('📤 [updateTask API] Task-ID:', task_id);
+    console.log('📤 [updateTask API] Original Daten:', taskData);
+    console.log('📤 [updateTask API] Serialisierte Daten:', serializedData);
+    try {
+        const response = await apiClient.patch(`${ENDPOINT}/${task_id}`, serializedData);
+        console.log('✅ [updateTask API] Backend antwortet mit Status:', response.status);
+        console.log('✅ [updateTask API] Response-Daten:', response.data);
+        return normalizeEntity(response.data, ID_KEY);
+    } catch (error) {
+        console.error('❌ [updateTask API] HTTP-Fehler:', error.response?.status);
+        console.error('❌ [updateTask API] Fehler-Message:', error.response?.data);
+        console.error('❌ [updateTask API] Full Error:', error);
+        throw error;
+    }
 };
 
 export const patchTask = async (task_id, attributes) => {

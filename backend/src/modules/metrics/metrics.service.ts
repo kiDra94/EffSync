@@ -14,8 +14,9 @@ export class MetricsService {
     });
 
     const distribution = {
-      OPEN: 0,
+      TODO: 0,
       IN_PROGRESS: 0,
+      IN_REVIEW: 0,
       COMPLETED: 0,
       ON_HOLD: 0,
     };
@@ -27,10 +28,11 @@ export class MetricsService {
     });
 
     return {
-      labels: ['Offen', 'In Bearbeitung', 'Abgeschlossen', 'In Wartestellung'],
+      labels: ['Offen', 'In Bearbeitung', 'In Review', 'Abgeschlossen', 'In Wartestellung'],
       data: [
-        distribution.OPEN,
+        distribution.TODO,
         distribution.IN_PROGRESS,
+        distribution.IN_REVIEW,
         distribution.COMPLETED,
         distribution.ON_HOLD,
       ],
@@ -85,115 +87,36 @@ export class MetricsService {
     };
   }
 
-  /**
-   * Wöchentliche Trends: Tasks die diese Woche abgeschlossen wurden
+  /*
+   * Tasks pro Status
    */
-  async getWeeklyTrends() {
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay()); // Sonntag
-    weekStart.setHours(0, 0, 0, 0);
-
+  async getTasksByStatus() {
     const tasks = await this.prisma.tasks.findMany({
-      where: {
-        status: 'COMPLETED',
-        updated_at: {
-          gte: weekStart,
-        },
-      },
       select: {
         task_id: true,
-        updated_at: true,
+        title: true,
+        status: true,
+        deadline: true,
+        progress: true,
       },
+      orderBy: { status: 'asc' },
     });
 
-    // Gruppiere nach Wochentag
-    const trendsByDay = {
-      Sonntag: 0,
-      Montag: 0,
-      Dienstag: 0,
-      Mittwoch: 0,
-      Donnerstag: 0,
-      Freitag: 0,
-      Samstag: 0,
+    const byStatus: Record<string, any[]> = {
+      TODO: [],
+      IN_PROGRESS: [],
+      IN_REVIEW: [],
+      COMPLETED: [],
+      ON_HOLD: [],
     };
 
-    const dayNames = [
-      'Sonntag',
-      'Montag',
-      'Dienstag',
-      'Mittwoch',
-      'Donnerstag',
-      'Freitag',
-      'Samstag',
-    ];
-
     tasks.forEach((task) => {
-      if (!task.updated_at) return;
-      const dayIndex = new Date(task.updated_at).getDay();
-      const dayName = dayNames[dayIndex];
-      if (dayName in trendsByDay) {
-        trendsByDay[dayName]++;
+      if (task.status && task.status in byStatus) {
+        byStatus[task.status].push(task);
       }
     });
 
-    return {
-      labels: Object.keys(trendsByDay),
-      data: Object.values(trendsByDay),
-      totalThisWeek: tasks.length,
-    };
+    return byStatus;
   }
 
-  /**
-   * Monatliche Übersicht: Tasks pro Monat
-   */
-  async getMonthlyTrends() {
-    const now = new Date();
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(now.getMonth() - 5);
-
-    const tasks = await this.prisma.tasks.findMany({
-      where: {
-        status: 'COMPLETED',
-        updated_at: {
-          gte: sixMonthsAgo,
-        },
-      },
-      select: {
-        task_id: true,
-        updated_at: true,
-      },
-    });
-
-    // Gruppiere nach Monat
-    const trendsByMonth: Record<string, number> = {};
-
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now);
-      date.setMonth(now.getMonth() - i);
-      const monthKey = date.toLocaleDateString('de-DE', {
-        month: 'short',
-        year: '2-digit',
-      });
-      trendsByMonth[monthKey] = 0;
-    }
-
-    tasks.forEach((task) => {
-      if (!task.updated_at) return;
-      const date = new Date(task.updated_at);
-      const monthKey = date.toLocaleDateString('de-DE', {
-        month: 'short',
-        year: '2-digit',
-      });
-      if (monthKey in trendsByMonth) {
-        trendsByMonth[monthKey]++;
-      }
-    });
-
-    return {
-      labels: Object.keys(trendsByMonth),
-      data: Object.values(trendsByMonth),
-      totalLast6Months: tasks.length,
-    };
-  }
 }

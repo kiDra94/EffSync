@@ -17,8 +17,8 @@ describe("AuthService", () => {
     username: "testuser",
     email: "test@example.com",
     password_hash: "$2b$10$hashedPasswordExample",
-    first_name: "Test",
-    last_name: "User",
+    firstname: "Test",
+    lastname: "User",
     role: "STUDENT",
     created_at: new Date(),
     updated_at: new Date(),
@@ -65,8 +65,8 @@ describe("AuthService", () => {
         username: "newuser",
         email: "new@example.com",
         password: "password123",
-        first_name: "New",
-        last_name: "User",
+        firstname: "New",
+        lastname: "User",
         role: "STUDENT" as any,
       };
       (bcrypt.hash as jest.Mock).mockResolvedValue("hashedPassword123");

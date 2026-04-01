@@ -66,7 +66,7 @@ export class TasksService {
     return task;
   }
 
-  async findAll(queryDto: QueryTasksDto) {
+  async findAll(queryDto: QueryTasksDto, userId?: number) {
     const {
       status,
       priority_id,
@@ -97,6 +97,29 @@ export class TasksService {
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    // **SICHERHEIT**: Filtere Tasks nach User-Berechtigung
+    if (userId) {
+      // Überprüfe ob der User ein Teacher/Admin ist
+      const userRoles = await this.prisma.user_roles.findMany({
+        where: { user_id: userId },
+        include: { roles: true },
+      });
+
+      const isTeacher = userRoles.some(ur => 
+        ur.roles.name === 'Teacher' || ur.roles.name === 'Admin' || ur.roles.name === 'Superuser'
+      );
+
+      // Wenn NICHT Teacher → Nur eigene Tasks zeigen
+      if (!isTeacher) {
+        where.OR = [
+          { created_by: userId },                    // User hat Task erstellt
+          { assigned_to: userId },                   // Task ist User zugeordnet
+          { task_members: { some: { user_id: userId } } }, // User ist Mitglied
+        ];
+      }
+      // Wenn Teacher → Zeige ALLE Tasks zum Bewerten
     }
 
     const skip = (page - 1) * limit;

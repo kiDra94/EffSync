@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { fetchMetrics } from '@/api/metrics';
 
+const router = useRouter();
 const metrics = ref(null);
 const loading = ref(true);
 
@@ -22,6 +24,10 @@ const getProgressColor = (value) => {
   if (value >= 40) return '#e74c3c'; // Red
   return '#c0392b'; // Dark Red
 };
+
+const goToTasks = () => {
+  router.push({ name: 'TaskList' });
+};
 </script>
 
 <template>
@@ -30,9 +36,9 @@ const getProgressColor = (value) => {
     
     <div v-if="loading" class="loading">Lädt...</div>
     
-    <div v-else-if="metrics" class="metrics-grid">
+    <div v-else-if="metrics" class="metrics-grid" @click="goToTasks">
       <!-- Completion Rate -->
-      <div class="metric-item">
+      <div class="metric-item clickable">
         <div class="metric-label">Abschlussquote</div>
         <div class="progress-bar-container">
           <div 
@@ -44,7 +50,7 @@ const getProgressColor = (value) => {
       </div>
 
       <!-- Average Progress -->
-      <div class="metric-item">
+      <div class="metric-item clickable">
         <div class="metric-label">Durchschnittlicher Fortschritt</div>
         <div class="progress-bar-container">
           <div 
@@ -56,7 +62,7 @@ const getProgressColor = (value) => {
       </div>
 
       <!-- Overdue Tasks -->
-      <div class="metric-item">
+      <div class="metric-item clickable">
         <div class="metric-label">Überfällige Aufgaben</div>
         <div class="metric-stat-box overdue">
           <span class="stat-number">{{ metrics.overtasks }}</span>
@@ -65,7 +71,7 @@ const getProgressColor = (value) => {
       </div>
 
       <!-- Total Tasks -->
-      <div class="metric-item">
+      <div class="metric-item clickable">
         <div class="metric-label">Gesamtaufgaben</div>
         <div class="metric-stat-box">
           <span class="stat-number">{{ metrics.totalTasks }}</span>
@@ -98,6 +104,16 @@ const getProgressColor = (value) => {
   padding: 15px;
   background: #f8f9fa;
   border-radius: 8px;
+}
+
+.metric-item.clickable {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.metric-item.clickable:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .metric-label {
