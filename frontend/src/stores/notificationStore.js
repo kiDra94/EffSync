@@ -5,6 +5,9 @@ import { fetchAllNotifications, markNotificationAsRead } from '@/api/notificatio
 
 let notificationSocket = null;
 
+// Toast-Benachrichtigungen speichern (für DeadlineToast Component)
+const activeToasts = ref([]);
+
 export const useNotificationStore = defineStore('notification', () => {
     const notifications = ref([]);
     const isLoading = ref(false);
@@ -23,6 +26,19 @@ export const useNotificationStore = defineStore('notification', () => {
 
     const unreadCount = computed(() => {
         return unreadNotifications.value.length;
+    });
+
+    // Feature #27: Deadline & Overdue Notifications
+    const deadlineNotifications = computed(() => {
+        return notifications.value.filter(n => n.type === 'task_deadline');
+    });
+
+    const overdueNotifications = computed(() => {
+        return notifications.value.filter(n => n.type === 'task_overdue');
+    });
+
+    const taskLockedNotifications = computed(() => {
+        return notifications.value.filter(n => n.type === 'task_locked');
     });
 
 
@@ -53,9 +69,26 @@ export const useNotificationStore = defineStore('notification', () => {
         }
     }
 
+    // Feature #27: Mark all as read
     async function markAllAsRead() {
         const unread = unreadNotifications.value;
         await Promise.all(unread.map(n => markAsRead(n.notification_id || n.id)));
+    }
+
+    // Feature #27: Toast Notifications für Deadlines/Overdue
+    function addToast(notification) {
+        const toastId = Date.now();
+        const toast = { ...notification, toastId };
+        activeToasts.value.push(toast);
+        
+        // Auto-remove nach 5 Sekunden
+        setTimeout(() => {
+            activeToasts.value = activeToasts.value.filter(t => t.toastId !== toastId);
+        }, 5000);
+    }
+
+    function removeToast(toastId) {
+        activeToasts.value = activeToasts.value.filter(t => t.toastId !== toastId);
     }
 
     function initSocketListeners() {
@@ -67,6 +100,7 @@ export const useNotificationStore = defineStore('notification', () => {
             });
         }
 
+        // Feature #27: Handle deadline notifications
         notificationSocket.off('notification:new').on('notification:new', (newNotification) => {
             const exists = notifications.value.some(
                 n => (n.notification_id || n.id) === (newNotification.notification_id || newNotification.id)
@@ -74,7 +108,26 @@ export const useNotificationStore = defineStore('notification', () => {
             
             if (!exists) {
                 notifications.value.unshift(newNotification);
+                
+                // Zeige Toast für kritische Notifications
+                if (newNotification.type === 'task_deadline' || newNotification.type === 'task_overdue') {
+                    addToast(newNotification);
+                }
             }
+        });
+
+        // Feature #27: Handle task locked events
+        notificationSocket.off('task:locked').on('task:locked', (data) => {
+            const notification = {
+                type: 'task_locked',
+                text: `🔒 Aufgabe "${data.taskTitle}" wurde automatisch gesperrt!`,
+                is_read: false,
+                notification_id: Date.now(),
+                created_at: new Date().toISOString(),
+            };
+            
+            notifications.value.unshift(notification);
+            addToast(notification);
         });
     }
 
@@ -90,9 +143,15 @@ export const useNotificationStore = defineStore('notification', () => {
         sortedNotifications,
         unreadNotifications,
         unreadCount,
+        deadlineNotifications,        // Feature #27
+        overdueNotifications,         // Feature #27
+        taskLockedNotifications,      // Feature #27
+        activeToasts,                 // Feature #27
         fetchNotifications,
         markAsRead,
-        markAllAsRead,
+        markAllAsRead,                // Feature #27
+        addToast,                     // Feature #27
+        removeToast,                  // Feature #27
         initSocketListeners,
         destroySocketListeners,
     };

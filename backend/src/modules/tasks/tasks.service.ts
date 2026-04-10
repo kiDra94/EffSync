@@ -6,6 +6,7 @@ import { QueryTasksDto } from "./dto/query-tasks.dto";
 import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
 import { Prisma } from "@prisma/client";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { TaskActivityLogService } from "../task-activity-log/task-activity-log.service";
 
 
 @Injectable()
@@ -13,6 +14,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
+    private readonly activityLogService: TaskActivityLogService,
   ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
@@ -50,10 +52,21 @@ export class TasksService {
       },
       include: this.basicInclude(),
     });
+
+    // Log activity
+    try {
+      await this.activityLogService.create({
+        task_id: task.task_id,
+        action: `Task created: "${task.title}"`,
+      }, userId, false);
+    } catch (error) {
+      console.error('Failed to log task creation activity:', error);
+    }
+
     return task;
   }
 
-  async findAll(queryDto: QueryTasksDto) {
+  async findAll(queryDto: QueryTasksDto, userId?: number) {
     const {
       status,
       priority_id,
@@ -84,6 +97,29 @@ export class TasksService {
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    // **SICHERHEIT**: Filtere Tasks nach User-Berechtigung
+    if (userId) {
+      // Überprüfe ob der User ein Teacher/Admin ist
+      const userRoles = await this.prisma.user_roles.findMany({
+        where: { user_id: userId },
+        include: { roles: true },
+      });
+
+      const isTeacher = userRoles.some(ur => 
+        ur.roles.name === 'Teacher' || ur.roles.name === 'Admin' || ur.roles.name === 'Superuser'
+      );
+
+      // Wenn NICHT Teacher → Nur eigene Tasks zeigen
+      if (!isTeacher) {
+        where.OR = [
+          { created_by: userId },                    // User hat Task erstellt
+          { assigned_to: userId },                   // Task ist User zugeordnet
+          { task_members: { some: { user_id: userId } } }, // User ist Mitglied
+        ];
+      }
+      // Wenn Teacher → Zeige ALLE Tasks zum Bewerten
     }
 
     const skip = (page - 1) * limit;
@@ -188,6 +224,18 @@ export class TasksService {
       include: this.basicInclude(),
     });
 
+    // Log activity
+    try {
+      if (updated.created_by) {
+        await this.activityLogService.create({
+          task_id: updated.task_id,
+          action: `Task updated: "${updated.title}"`,
+        }, updated.created_by, false);
+      }
+    } catch (error) {
+      console.error('Failed to log task update activity:', error);
+    }
+
     if (updated.parent_task_id) {
       await this.checkAndAutoComplete(updated.task_id);
     }
@@ -211,6 +259,18 @@ export class TasksService {
     await this.prisma.tasks.delete({
       where: { task_id: taskId },
     });
+
+    // Log activity
+    try {
+      if (task.created_by) {
+        await this.activityLogService.create({
+          task_id: task.task_id,
+          action: `Task deleted: "${task.title}"`,
+        }, task.created_by, false);
+      }
+    } catch (error) {
+      console.error('Failed to log task deletion activity:', error);
+    }
 
     return {
       message: 'Task deleted successfully',
@@ -414,5 +474,94 @@ export class TasksService {
       this.ruleContainsTask(task.completion_rule as ConditionNode, String(childTaskId))
     );
   }
+  /**
+   * Feature #27: Sperrt eine Aufgabe automatisch wenn sie überfällig ist
+   */
+  async lockOverdueTask(taskId: number, reason: string = 'OVERDUE'): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
 
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: true,
+        locked_reason: reason,
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
+      }
+    });
+
+    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    if (task.assigned_to) {
+      this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
+    }
+  }
+
+  /**
+   * Feature #27: Manuelles Sperren einer Aufgabe (Creator/Admin only)
+   */
+  async lockTask(taskId: number, reason: string = 'MANUAL', userId: number): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+    if (task.created_by !== userId) {
+      throw new BadRequestException('Only task creator can lock this task');
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: true,
+        locked_reason: reason,
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
+      }
+    });
+
+    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    if (task.assigned_to) {
+      this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
+    }
+  }
+
+  /**
+   * Feature #27: Entsperrt eine Aufgabe (Creator/Admin only)
+   */
+  async unlockTask(taskId: number, userId: number): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+    if (task.created_by !== userId) {
+      throw new BadRequestException('Only task creator can unlock this task');
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: false,
+        locked_reason: null,
+        locked_until: null
+      }
+    });
+  }
+
+  /**
+   * Prüfe ob Task bearbeitet werden darf
+   */
+  async canEditTask(taskId: number, userId: number): Promise<boolean> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) return false;
+    if (task.is_locked) return false; // Gesperrt = keine Änderungen
+    if (task.created_by !== userId) return false; // Nur Creator darf ändern
+
+    return true;
+  }
 }

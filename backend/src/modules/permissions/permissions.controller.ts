@@ -1,4 +1,44 @@
-import { Controller } from "@nestjs/common";
+import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth } from "@nestjs/swagger";
+import { PermissionsService } from "./permissions.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
 
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('bearer')
 @Controller("permissions")
-export class PermissionsController {}
+export class PermissionsController {
+  constructor(private readonly permissionsService: PermissionsService) {}
+
+  /**
+   * GET /permissions
+   * Holt alle verfügbaren Permissions.
+   * 
+   * Berechtigungen:
+   * - Muss Permission 'manage_users' haben
+   */
+  @Get()
+  @UseGuards(PermissionsGuard)
+  @Permissions('manage_users')
+  async findAll() {
+    console.log('📋 GET /permissions - Fetching all permissions');
+    const permissions = await this.permissionsService.findAll();
+    console.log(`  └─ ✅ Returned ${permissions.length} permissions`);
+    return permissions;
+  }
+
+  /**
+   * GET /permissions/:id
+   * Holt eine spezifische Permission mit ihren Details.
+   * 
+   * Berechtigungen:
+   * - Muss Permission 'manage_users' haben
+   */
+  @Get(":id")
+  @UseGuards(PermissionsGuard)
+  @Permissions('manage_users')
+  async findOne(@Param("id") id: string) {
+    return this.permissionsService.findOne(+id);
+  }
+}

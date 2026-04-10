@@ -6,14 +6,19 @@
         <button @click="close" class="close-btn" aria-label="Schließen">×</button>
       </div>
 
-      <form @submit.prevent="submitTask" class="task-form" novalidate>
+      <!-- Feature #27: Display lock warning -->
+      <div v-if="isTaskLocked" class="lock-warning">
+        🔒 <strong>Aufgabe gesperrt:</strong> {{ lockedReason }}
+      </div>
+
+      <form @submit.prevent="submitTask" class="task-form" novalidate :class="{ 'is-locked': isTaskLocked }">
 
         <TaskTemplateSelector v-if="!task" @templateSelected="applyTemplate" />
 
         <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
           <input v-model="formData.title" id="title" type="text" placeholder="z.B. API-Struktur implementieren"
-            @blur="validateTitle" @input="errors.title = ''" />
+            @blur="validateTitle" @input="errors.title = ''" :disabled="isTaskLocked" />
           <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
         </div>
 
@@ -24,7 +29,7 @@
           </label>
           <textarea v-model="formData.description" id="description" rows="3"
             placeholder="Detaillierte Beschreibung der Aufgabe" @blur="validateDescription"
-            @input="errors.description = ''"></textarea>
+            @input="errors.description = ''" :disabled="isTaskLocked"></textarea>
           <span v-if="errors.description" class="error-message">{{ errors.description }}</span>
           <span v-if="formData.priority_id >= 3" class="info-message">
             ℹ️ Wichtige Aufgaben benötigen eine Beschreibung
@@ -33,7 +38,7 @@
 
         <div class="form-group">
           <label for="priority_id">Priorität *</label>
-          <select v-model.number="formData.priority_id" id="priority_id" @change="validateDescription">
+          <select v-model.number="formData.priority_id" id="priority_id" @change="validateDescription" :disabled="isTaskLocked">
             <option :value="1">Niedrig</option>
             <option :value="2">Mittel</option>
             <option :value="3">Hoch</option>
@@ -44,14 +49,14 @@
         <div class="form-group" :class="{ 'has-error': errors.deadline }">
           <label for="deadline">Deadline *</label>
           <input type="datetime-local" v-model="formData.deadline" id="deadline" @blur="validateDeadline"
-            @change="validateDeadline" />
+            @change="validateDeadline" :disabled="isTaskLocked" />
           <span v-if="errors.deadline" class="error-message">{{ errors.deadline }}</span>
           <span v-if="warnings.deadline" class="warning-message">{{ warnings.deadline }}</span>
         </div>
 
         <div class="form-group" :class="{ 'has-error': errors.status }">
           <label for="status">Status *</label>
-          <select v-model="formData.status" id="status" @change="validateStatusProgress">
+          <select v-model="formData.status" id="status" @change="validateStatusProgress" :disabled="isTaskLocked">
             <option value="TODO">Zu erledigen</option>
             <option value="IN_PROGRESS">In Bearbeitung</option>
             <option value="IN_REVIEW">In Review</option>
@@ -65,9 +70,9 @@
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
             <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
-              class="progress-slider" @input="validateStatusProgress" />
+              class="progress-slider" @input="validateStatusProgress" :disabled="isTaskLocked" />
             <input type="number" v-model.number="formData.progress" min="0" max="100" class="progress-number"
-              @blur="validateStatusProgress" @input="validateStatusProgress" />
+              @blur="validateStatusProgress" @input="validateStatusProgress" :disabled="isTaskLocked" />
             <span class="progress-label">%</span>
           </div>
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
@@ -75,12 +80,21 @@
 
         <SubtaskBuilder v-model="subtasks" />
 
+        <!-- Task Members Section (nur wenn Task bereits existiert) -->
+        <TaskMembersList
+          v-if="task?.task_id"
+          :taskId="task.task_id"
+          :creatorId="task.created_by"
+          :assignedToId="task.assigned_to"
+          @members-updated="handleMembersUpdated"
+        />
+
         <div v-if="showSummary && hasErrors" class="error-summary">
           ⚠️ Bitte korrigiere die markierten Fehler
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn-primary">
+          <button type="submit" class="btn-primary" :disabled="isTaskLocked">
             {{ task ? 'Speichern' : 'Erstellen' }}
           </button>
           <button type="button" @click="close" class="btn-secondary">
@@ -93,10 +107,11 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
 import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
+import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
 
 const props = defineProps({
@@ -120,9 +135,37 @@ const {
   validateAll
 } = useTaskValidation(props.existingTasks)
 
+/**
+ * Feature #27: Überprüfe ob Task blockiert ist
+ */
+const isTaskLocked = computed(() => props.task?.is_locked);
+const lockedReason = computed(() => {
+  if (!props.task?.locked_reason) return 'System';
+  if (props.task.locked_reason === 'OVERDUE') return 'Überfällig - automatisch gesperrt';
+  if (props.task.locked_reason === 'MANUAL') return 'Manuell gesperrt';
+  return props.task.locked_reason;
+});
+
 function formatForInput(isoString) {
   if (!isoString) return '';
-  return isoString.slice(0, 16);
+  // Konvertiere ISO-String zu datetime-local Format (YYYY-MM-DDTHH:mm)
+  // datetime-local inputs arbeiten immer in lokaler Zeit
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function formatForSubmit(datetimeLocal) {
+  if (!datetimeLocal) return null;
+  // Konvertiere datetime-local Format zu ISO-String mit Timezone
+  // datetime-local Format ist YYYY-MM-DDTHH:mm
+  const date = new Date(datetimeLocal);
+  // Stelle sicher, dass wir UTC Zeit senden
+  return date.toISOString();
 }
 
 const formData = reactive({
@@ -160,15 +203,31 @@ const applyTemplate = (template) => {
 const submitTask = () => {
   showSummary.value = true;
 
-  if (!validateAll(formData, props.task?.task_id)) { return; }
+  console.log('📝 submitTask: Validierung wird gestartet...');
+  if (!validateAll(formData, props.task?.task_id)) { 
+    console.error('❌ Validierung fehlgeschlagen:', errors);
+    return; 
+  }
+
+  console.log('✓ Validierung erfolgreich');
   const taskData = {
-    ...formData,
+    title: formData.title,
+    description: formData.description || '',
+    deadline: formData.deadline ? formatForSubmit(formData.deadline) : null,
+    priority_id: formData.priority_id || 2,
+    status: formData.status || 'TODO',
+    progress: formData.progress ?? 0,
     ...(props.task?.task_id && { task_id: props.task.task_id })
   };
 
+  console.log('📤 Task-Daten zum Speichern (final):', taskData);
+  console.log('📤 Subtasks:', subtasks.value);
+
   if (subtasks.value.length > 0) {
+    console.log('💾 Speichere Task MIT Subtasks...');
     emit('save-with-subtasks', { taskData, subtasks: subtasks.value });
   } else {
+    console.log('💾 Speichere Task ohne Subtasks...');
     emit('save', taskData);
   }
 
@@ -177,6 +236,12 @@ const submitTask = () => {
 
 const close = () => {
   emit('close');
+};
+
+const handleMembersUpdated = (members) => {
+  // Optional: Handle members update if needed
+  // For now, just log it
+  console.log('Members updated:', members);
 };
 </script>
 
@@ -411,5 +476,52 @@ const close = () => {
   border-radius: 8px;
   margin-bottom: 16px;
   font-weight: 600;
+}
+
+/* Feature #27: Task Lock Styling */
+.lock-warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+  border-left: 4px solid #d97706;
+  padding: 12px 16px;
+  margin: 0 20px 16px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #92400e;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-form.is-locked {
+  opacity: 0.85;
+  background-color: #fafaf9;
+}
+
+.task-form.is-locked input:disabled,
+.task-form.is-locked textarea:disabled,
+.task-form.is-locked select:disabled {
+  background-color: #f5f5f4;
+  color: #78716c;
+  cursor: not-allowed;
+  border-color: #e7e5e4;
+}
+
+.task-form.is-locked button[type="submit"]:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.task-form.is-locked button[type="submit"]:disabled:hover {
+  background-color: #d1d5db;
 }
 </style>

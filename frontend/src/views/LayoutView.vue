@@ -88,6 +88,8 @@ const navigateToResult = (result) => {
       <router-link :to="{ name: 'TemplateLists' }" title="Vorlagen">📄</router-link>
       <router-link :to="{ name: 'NoteLists' }" title="Notizen">📝</router-link>
       <router-link :to="{ name: 'Chat' }" title="Chat">💬</router-link>
+      <!-- DEBUG: isAdmin={{ authStore.isAdmin }}, userRole={{ authStore.userRole }} -->
+      <router-link v-if="authStore.isAdmin" :to="{ name: 'AdminUsers' }" title="Admin">⚙️</router-link>
     </div>
 
     <div class="main-wrapper">

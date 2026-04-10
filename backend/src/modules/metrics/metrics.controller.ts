@@ -1,0 +1,41 @@
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { MetricsService } from './metrics.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('metrics')
+export class MetricsController {
+  constructor(private readonly metricsService: MetricsService) {}
+
+  /**
+   * GET /metrics/status-distribution
+   * Gibt die Verteilung der Task-Status zurück
+   */
+  @Permissions()
+  @Get('status-distribution')
+  async getStatusDistribution() {
+    return this.metricsService.getStatusDistribution();
+  }
+
+  /**
+   * GET /metrics/task-progress
+   * Gibt Fortschrittsmetriken zurück
+   */
+  @Permissions()
+  @Get('task-progress')
+  async getTaskProgress() {
+    return this.metricsService.getTaskProgress();
+  }
+
+  /**
+   * GET /metrics/tasks-by-status
+   * Gibt alle Tasks gruppiert nach Status zurück
+   */
+  @Permissions()
+  @Get('tasks-by-status')
+  async getTasksByStatus() {
+    return this.metricsService.getTasksByStatus();
+  }
+}
