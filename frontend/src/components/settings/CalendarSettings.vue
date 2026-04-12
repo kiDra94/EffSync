@@ -352,3 +352,59 @@ small {
     color: #9ca3af;
 }
 </style>
+
+<style>
+body.dark-mode .section-label,
+.app-container.dark-mode .section-label {
+  color: #b2b9cb !important;
+  letter-spacing: 0.08em;
+}
+
+body.dark-mode .settings-group,
+.app-container.dark-mode .settings-group {
+  border-color: #434963 !important;
+}
+
+body.dark-mode .toggle-item span,
+.app-container.dark-mode .toggle-item span {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .chip:not(.active),
+.app-container.dark-mode .chip:not(.active) {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .chip:not(.active):hover,
+.app-container.dark-mode .chip:not(.active):hover {
+  background: #3d4460 !important;
+  border-color: #5b6280 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .time-input-group label,
+.app-container.dark-mode .time-input-group label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .time-input-wrap input[type="number"],
+.app-container.dark-mode .time-input-wrap input[type="number"] {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .time-input-wrap span,
+body.dark-mode .time-divider,
+.app-container.dark-mode .time-input-wrap span,
+.app-container.dark-mode .time-divider {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .calendar-settings small,
+.app-container.dark-mode .calendar-settings small {
+  color: #7a8199 !important;
+}
+</style>

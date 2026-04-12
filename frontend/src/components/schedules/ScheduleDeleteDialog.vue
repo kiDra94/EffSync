@@ -178,3 +178,48 @@ const close = () => {
   background: #e5e7eb;
 }
 </style>
+
+<style>
+body.dark-mode .modal-content,
+.app-container.dark-mode .modal-content {
+  background: #1f2333 !important;
+  border: 1px solid #434963 !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+}
+
+body.dark-mode .modal-header,
+.app-container.dark-mode .modal-header {
+  background: #262b3f !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .modal-header h2,
+.app-container.dark-mode .modal-header h2 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .modal-body,
+.app-container.dark-mode .modal-body {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .warning-box,
+.app-container.dark-mode .warning-box {
+  background: #3a1a1a !important;
+  border-color: #7a2a2a !important;
+  color: #ff9999 !important;
+}
+
+body.dark-mode .modal-footer,
+.app-container.dark-mode .modal-footer {
+  background: #262b3f !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .btn-secondary,
+.app-container.dark-mode .btn-secondary {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+</style>

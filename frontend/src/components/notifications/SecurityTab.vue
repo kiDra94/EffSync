@@ -134,4 +134,38 @@ body.dark-mode .btn-secondary {
 body.dark-mode .btn-secondary:hover {
   background-color: #4b4b6a !important;
 }
+
+body.dark-mode .security-section,
+.app-container.dark-mode .security-section {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .security-card,
+.app-container.dark-mode .security-card {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .security-card h2,
+.app-container.dark-mode .security-card h2 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .security-card p,
+.app-container.dark-mode .security-card p {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .form-group label,
+.app-container.dark-mode .form-group label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .form-input,
+.app-container.dark-mode .form-input {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
 </style>

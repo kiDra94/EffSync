@@ -18,9 +18,18 @@
       <!-- Benutzer Liste -->
       <div class="users-section">
         <h2>📌 Benutzer</h2>
+        <div class="user-search-wrap">
+          <input
+            v-model="userSearch"
+            type="text"
+            class="user-search-input"
+            placeholder="🔍 Name oder E-Mail suchen…"
+          />
+          <span v-if="userSearch" class="user-search-count">{{ filteredUsers.length }} Treffer</span>
+        </div>
         <div class="users-list">
           <div
-            v-for="user in users"
+            v-for="user in filteredUsers"
             :key="user.user_id"
             class="user-card"
             :class="{ active: selectedUserId === user.user_id }"
@@ -173,6 +182,17 @@ export default {
     const error = ref(null);
     const isAdding = ref(false);
     const isRemoving = ref(false);
+
+    const userSearch = ref('');
+
+    const filteredUsers = computed(() => {
+      if (!userSearch.value.trim()) return users.value;
+      const q = userSearch.value.trim().toLowerCase();
+      return users.value.filter(u =>
+        `${u.firstname} ${u.lastname}`.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q)
+      );
+    });
 
     const newRoleId = ref('');
     const newPermissionId = ref('');
@@ -368,6 +388,8 @@ export default {
       newPermissionValidTo,
       availableRoles,
       availablePermissions,
+      userSearch,
+      filteredUsers,
       loadUsers,
       selectUser,
       addRoleToUser,
@@ -450,6 +472,9 @@ export default {
   padding: 20px;
   border-radius: 8px;
   border: 1px solid #ddd;
+  align-self: start;
+  position: sticky;
+  top: 20px;
 }
 
 .users-section h2 {
@@ -457,11 +482,40 @@ export default {
   color: #1a1a1a;
 }
 
+.user-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.user-search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.user-search-input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.12);
+}
+
+.user-search-count {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+}
+
 .users-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 70vh;
+  max-height: calc(100vh - 180px);
   overflow-y: auto;
 }
 
@@ -750,5 +804,182 @@ export default {
   .date-inputs {
     grid-template-columns: 1fr;
   }
+}
+</style>
+
+<style>
+body.dark-mode .admin-container,
+.app-container.dark-mode .admin-container {
+  color: #edf0fa;
+}
+
+body.dark-mode .admin-header h1,
+.app-container.dark-mode .admin-header h1 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .subtitle,
+.app-container.dark-mode .subtitle {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .users-section,
+.app-container.dark-mode .users-section {
+  background: #25283a !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .users-section h2,
+.app-container.dark-mode .users-section h2 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .user-search-input,
+.app-container.dark-mode .user-search-input {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .user-search-input::placeholder,
+.app-container.dark-mode .user-search-input::placeholder {
+  color: #7a8199 !important;
+}
+
+body.dark-mode .user-search-count,
+.app-container.dark-mode .user-search-count {
+  color: #7a8199 !important;
+}
+
+body.dark-mode .user-card,
+.app-container.dark-mode .user-card {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .user-card:hover,
+.app-container.dark-mode .user-card:hover {
+  background: #31364d !important;
+  border-color: #5b82c2 !important;
+}
+
+body.dark-mode .user-card.active,
+.app-container.dark-mode .user-card.active {
+  background: #2d3a5a !important;
+  border-color: #4a90e2 !important;
+}
+
+body.dark-mode .user-card-header h3,
+.app-container.dark-mode .user-card-header h3 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .user-id,
+.app-container.dark-mode .user-id {
+  background: #434963 !important;
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .user-email,
+.app-container.dark-mode .user-email {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .no-roles,
+.app-container.dark-mode .no-roles {
+  color: #7a8199 !important;
+}
+
+body.dark-mode .details-section,
+.app-container.dark-mode .details-section {
+  background: transparent !important;
+}
+
+body.dark-mode .details-section h2,
+.app-container.dark-mode .details-section h2 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .management-card,
+.app-container.dark-mode .management-card {
+  background: #25283a !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .management-card h3,
+.app-container.dark-mode .management-card h3 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .role-item,
+body.dark-mode .permission-item,
+.app-container.dark-mode .role-item,
+.app-container.dark-mode .permission-item {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .role-name,
+body.dark-mode .permission-name,
+.app-container.dark-mode .role-name,
+.app-container.dark-mode .permission-name {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .permission-dates,
+.app-container.dark-mode .permission-dates {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .no-items,
+.app-container.dark-mode .no-items {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+  color: #7a8199 !important;
+}
+
+body.dark-mode .add-role-section,
+body.dark-mode .add-permission-section,
+.app-container.dark-mode .add-role-section,
+.app-container.dark-mode .add-permission-section {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .add-role-section label,
+body.dark-mode .add-permission-section label,
+.app-container.dark-mode .add-role-section label,
+.app-container.dark-mode .add-permission-section label {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .date-group label,
+.app-container.dark-mode .date-group label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .select-field,
+body.dark-mode .input-field,
+.app-container.dark-mode .select-field,
+.app-container.dark-mode .input-field {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .select-field option,
+.app-container.dark-mode .select-field option {
+  background: #31364d !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .no-selection,
+.app-container.dark-mode .no-selection {
+  color: #7a8199 !important;
+}
+
+body.dark-mode .loading-spinner,
+.app-container.dark-mode .loading-spinner {
+  color: #b2b9cb !important;
 }
 </style>

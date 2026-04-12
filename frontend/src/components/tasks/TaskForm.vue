@@ -1,6 +1,6 @@
 <template>
-  <div class="modal-overlay" @click.self="close">
-    <div class="modal-content">
+  <div class="modal-overlay task-form-overlay" @click.self="close">
+    <div class="modal-content task-form-modal">
       <div class="modal-header">
         <h2>{{ task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}</h2>
         <button @click="close" class="close-btn" aria-label="Schließen">×</button>
@@ -523,5 +523,188 @@ const handleMembersUpdated = (members) => {
 
 .task-form.is-locked button[type="submit"]:disabled:hover {
   background-color: #d1d5db;
+}
+
+:global(body.dark-mode) .modal-content,
+:global(.app-container.dark-mode) .modal-content {
+  background: #1f2333 !important;
+  color: #edf0fa !important;
+  border: 1px solid #434963 !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+:global(body.dark-mode) .modal-header,
+:global(.app-container.dark-mode) .modal-header {
+  background: #1f2333 !important;
+  border-bottom: 1px solid #434963 !important;
+}
+
+:global(body.dark-mode) .modal-header h2,
+:global(.app-container.dark-mode) .modal-header h2,
+:global(body.dark-mode) .form-group label,
+:global(.app-container.dark-mode) .form-group label,
+:global(body.dark-mode) .progress-label,
+:global(.app-container.dark-mode) .progress-label {
+  color: #edf0fa !important;
+}
+
+:global(body.dark-mode) .close-btn,
+:global(.app-container.dark-mode) .close-btn {
+  background: #3c415b !important;
+  border-radius: 6px !important;
+  color: #cfd5e6 !important;
+}
+
+:global(body.dark-mode) .close-btn:hover,
+:global(.app-container.dark-mode) .close-btn:hover {
+  background: #4a5070 !important;
+  color: #ffffff !important;
+}
+
+:global(body.dark-mode) .form-group input,
+:global(body.dark-mode) .form-group select,
+:global(body.dark-mode) .form-group textarea,
+:global(.app-container.dark-mode) .form-group input,
+:global(.app-container.dark-mode) .form-group select,
+:global(.app-container.dark-mode) .form-group textarea {
+  background: #31364d !important;
+  border-color: #59607d !important;
+  color: #f5f7ff !important;
+}
+
+:global(body.dark-mode) .form-group input::placeholder,
+:global(body.dark-mode) .form-group textarea::placeholder,
+:global(.app-container.dark-mode) .form-group input::placeholder,
+:global(.app-container.dark-mode) .form-group textarea::placeholder {
+  color: #b2b9cb !important;
+}
+
+:global(body.dark-mode) .form-group input:disabled,
+:global(body.dark-mode) .form-group select:disabled,
+:global(body.dark-mode) .form-group textarea:disabled,
+:global(.app-container.dark-mode) .form-group input:disabled,
+:global(.app-container.dark-mode) .form-group select:disabled,
+:global(.app-container.dark-mode) .form-group textarea:disabled {
+  background: #2b3044 !important;
+  color: #c7cede !important;
+  border-color: #474d66 !important;
+}
+
+:global(body.dark-mode) .btn-secondary,
+:global(.app-container.dark-mode) .btn-secondary {
+  background: #39405a !important;
+  color: #edf0fa !important;
+}
+
+:global(body.dark-mode) .btn-secondary:hover,
+:global(.app-container.dark-mode) .btn-secondary:hover {
+  background: #48506f !important;
+}
+
+:global(body.dark-mode) .error-summary,
+:global(.app-container.dark-mode) .error-summary {
+  background: #482b2f !important;
+  color: #ffb4b4 !important;
+}
+
+:global(body.dark-mode) .info-message,
+:global(.app-container.dark-mode) .info-message {
+  color: #93b7ff !important;
+}
+
+:global(body.dark-mode) .warning-message,
+:global(.app-container.dark-mode) .warning-message {
+  color: #f5c56f !important;
+}
+
+:global(body.dark-mode) .task-form.is-locked,
+:global(.app-container.dark-mode) .task-form.is-locked {
+  background-color: #1f2333 !important;
+}
+
+:global(body.dark-mode) .task-form,
+:global(.app-container.dark-mode) .task-form {
+  background: #1f2333 !important;
+}
+
+:global(body.dark-mode) .subtask-builder,
+:global(.app-container.dark-mode) .subtask-builder,
+:global(body.dark-mode) .subtask-item,
+:global(.app-container.dark-mode) .subtask-item {
+  background: #2a2f45 !important;
+}
+
+:global(body.dark-mode) .task-form.is-locked button[type="submit"]:disabled,
+:global(.app-container.dark-mode) .task-form.is-locked button[type="submit"]:disabled {
+  background-color: #59607d !important;
+  color: #d7dced !important;
+}
+
+:global(body.dark-mode) .lock-warning,
+:global(.app-container.dark-mode) .lock-warning {
+  background: linear-gradient(135deg, #6d4b00 0%, #9f6f00 100%) !important;
+  color: #fff3c4 !important;
+  border-left-color: #ffd166 !important;
+}
+</style>
+
+<style>
+body.dark-mode .task-form-overlay .task-form-modal,
+.app-container.dark-mode .task-form-overlay .task-form-modal {
+  background: #1f2333 !important;
+  border: 1px solid #434963 !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55) !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .task-form-overlay .modal-header,
+.app-container.dark-mode .task-form-overlay .modal-header,
+body.dark-mode .task-form-overlay .task-form,
+.app-container.dark-mode .task-form-overlay .task-form {
+  background: #1f2333 !important;
+}
+
+body.dark-mode .task-form-overlay .modal-header,
+.app-container.dark-mode .task-form-overlay .modal-header {
+  border-bottom: 1px solid #434963 !important;
+}
+
+body.dark-mode .task-form-overlay .modal-header h2,
+.app-container.dark-mode .task-form-overlay .modal-header h2,
+body.dark-mode .task-form-overlay .form-group label,
+.app-container.dark-mode .task-form-overlay .form-group label,
+body.dark-mode .task-form-overlay .progress-label,
+.app-container.dark-mode .task-form-overlay .progress-label {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .task-form-overlay .close-btn,
+.app-container.dark-mode .task-form-overlay .close-btn {
+  background: #3c415b !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .task-form-overlay .close-btn:hover,
+.app-container.dark-mode .task-form-overlay .close-btn:hover {
+  background: #4a5070 !important;
+}
+
+body.dark-mode .task-form-overlay .form-group input,
+body.dark-mode .task-form-overlay .form-group select,
+body.dark-mode .task-form-overlay .form-group textarea,
+.app-container.dark-mode .task-form-overlay .form-group input,
+.app-container.dark-mode .task-form-overlay .form-group select,
+.app-container.dark-mode .task-form-overlay .form-group textarea {
+  background: #31364d !important;
+  border: 1px solid #59607d !important;
+  color: #f5f7ff !important;
+}
+
+body.dark-mode .task-form-overlay .subtask-builder,
+body.dark-mode .task-form-overlay .task-members-section,
+.app-container.dark-mode .task-form-overlay .subtask-builder,
+.app-container.dark-mode .task-form-overlay .task-members-section {
+  background: #262b3f !important;
+  border: 1px solid #59607d !important;
 }
 </style>

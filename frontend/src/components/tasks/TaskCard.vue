@@ -197,7 +197,7 @@ const getPriorityLabel = (priorityId) => {
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return '';
+  if (!dateString) return 'Kein Datum';
   const date = new Date(dateString);
   return date.toLocaleDateString('de-DE', {
     day: '2-digit',

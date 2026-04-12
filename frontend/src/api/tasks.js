@@ -8,6 +8,27 @@ import {
 const ENDPOINT = '/tasks';
 const ID_KEY = 'task_id';
 
+const ALLOWED_TASK_FIELDS = new Set([
+    'title',
+    'description',
+    'status',
+    'progress',
+    'deadline',
+    'created_by',
+    'assigned_to',
+    'parent_task_id',
+    'priority_id',
+    'auto_complete',
+    'completion_rule',
+]);
+
+const sanitizeTaskPayload = (payload) => {
+    if (!payload || typeof payload !== 'object') return payload;
+    return Object.fromEntries(
+        Object.entries(payload).filter(([key]) => ALLOWED_TASK_FIELDS.has(key))
+    );
+};
+
 export const fetchTasks = async () => {
     const response = await apiClient.get(ENDPOINT);
 	const tasks = response.data?.data ?? response.data;
@@ -20,14 +41,17 @@ export const fetchTaskById = async (task_id) => {
 };
 
 export const createTask = async (taskData) => {
-    const response = await apiClient.post(ENDPOINT, serializeEntity(taskData, ID_KEY));
+    const sanitized = sanitizeTaskPayload(taskData);
+    const response = await apiClient.post(ENDPOINT, serializeEntity(sanitized, ID_KEY));
     return normalizeEntity(response.data, ID_KEY);
 };
 
 export const updateTask = async (task_id, taskData) => {
-    const serializedData = serializeEntity(taskData, ID_KEY);
+    const sanitized = sanitizeTaskPayload(taskData);
+    const serializedData = serializeEntity(sanitized, ID_KEY);
     console.log('📤 [updateTask API] Task-ID:', task_id);
     console.log('📤 [updateTask API] Original Daten:', taskData);
+    console.log('📤 [updateTask API] Bereinigte Daten:', sanitized);
     console.log('📤 [updateTask API] Serialisierte Daten:', serializedData);
     try {
         const response = await apiClient.patch(`${ENDPOINT}/${task_id}`, serializedData);
@@ -43,7 +67,8 @@ export const updateTask = async (task_id, taskData) => {
 };
 
 export const patchTask = async (task_id, attributes) => {
-    const response = await apiClient.patch(`${ENDPOINT}/${task_id}`, attributes);
+    const sanitized = sanitizeTaskPayload(attributes);
+    const response = await apiClient.patch(`${ENDPOINT}/${task_id}`, sanitized);
     return normalizeEntity(response.data, ID_KEY);
 };
 

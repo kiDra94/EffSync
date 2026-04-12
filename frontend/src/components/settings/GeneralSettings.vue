@@ -120,3 +120,46 @@ onUnmounted(() => mql.removeEventListener('change', updateDarkMode))
   background: linear-gradient(135deg, #10b981, #059669);
 }
 </style>
+
+<style>
+body.dark-mode .general-settings h2,
+body.dark-mode .general-settings h3,
+body.dark-mode .section-title,
+.app-container.dark-mode .general-settings h2,
+.app-container.dark-mode .general-settings h3,
+.app-container.dark-mode .section-title {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .setting-item,
+.app-container.dark-mode .setting-item {
+  border-color: #434963 !important;
+}
+
+body.dark-mode .setting-label,
+body.dark-mode .setting-item label,
+.app-container.dark-mode .setting-label,
+.app-container.dark-mode .setting-item label {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .setting-desc,
+body.dark-mode .setting-item p,
+.app-container.dark-mode .setting-desc,
+.app-container.dark-mode .setting-item p {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .toggle-btn,
+.app-container.dark-mode .toggle-btn {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .toggle-btn:hover,
+.app-container.dark-mode .toggle-btn:hover {
+  border-color: #7a90ff !important;
+  color: #edf0fa !important;
+}
+</style>

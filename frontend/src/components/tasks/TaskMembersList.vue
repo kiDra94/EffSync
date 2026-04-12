@@ -329,7 +329,7 @@ watch(() => props.taskId, () => {
 
 .members-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
 }
 
@@ -432,6 +432,56 @@ watch(() => props.taskId, () => {
   color: white;
 }
 
+:global(body.dark-mode) .task-members-section,
+:global(.app-container.dark-mode) .task-members-section {
+  background: #2a2f45 !important;
+  border-color: #4f5672 !important;
+}
+
+:global(body.dark-mode) .section-title,
+:global(body.dark-mode) .loading-spinner,
+:global(body.dark-mode) .empty-state,
+:global(body.dark-mode) .add-member-section h4,
+:global(.app-container.dark-mode) .section-title,
+:global(.app-container.dark-mode) .loading-spinner,
+:global(.app-container.dark-mode) .empty-state,
+:global(.app-container.dark-mode) .add-member-section h4 {
+  color: #edf0fa !important;
+}
+
+:global(body.dark-mode) .member-card,
+:global(.app-container.dark-mode) .member-card {
+  background: #25283a !important;
+  border-color: #444b66 !important;
+}
+
+:global(body.dark-mode) .member-name,
+:global(.app-container.dark-mode) .member-name {
+  color: #f5f7ff !important;
+}
+
+:global(body.dark-mode) .member-email,
+:global(.app-container.dark-mode) .member-email {
+  color: #b2b9cb !important;
+}
+
+:global(body.dark-mode) .empty-state,
+:global(body.dark-mode) .add-member-section,
+:global(.app-container.dark-mode) .empty-state,
+:global(.app-container.dark-mode) .add-member-section {
+  background: #25283a !important;
+  border-color: #4f5672 !important;
+}
+
+:global(body.dark-mode) .member-select,
+:global(.app-container.dark-mode) .member-select,
+:global(body.dark-mode) .btn-add,
+:global(.app-container.dark-mode) .btn-add {
+  background: #31364d !important;
+  border-color: #59607d !important;
+  color: #f5f7ff !important;
+}
+
 .empty-state {
   padding: 40px 20px;
   text-align: center;
@@ -459,10 +509,13 @@ watch(() => props.taskId, () => {
 .add-member-form {
   display: flex;
   gap: 8px;
+  align-items: stretch;
+  flex-wrap: wrap;
 }
 
 .member-select {
-  flex: 1;
+  flex: 1 1 220px;
+  min-width: 0;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -486,6 +539,7 @@ watch(() => props.taskId, () => {
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .btn-add:hover:not(:disabled) {
@@ -606,5 +660,65 @@ watch(() => props.taskId, () => {
     transform: translateX(0);
     opacity: 1;
   }
+}
+</style>
+
+<style>
+body.dark-mode .task-members-section,
+.app-container.dark-mode .task-members-section {
+  background: #2a2f45 !important;
+  border: 1px solid #4f5672 !important;
+}
+
+body.dark-mode .task-members-section .section-title,
+.app-container.dark-mode .task-members-section .section-title,
+body.dark-mode .task-members-section .loading-spinner,
+.app-container.dark-mode .task-members-section .loading-spinner,
+body.dark-mode .task-members-section .empty-state,
+.app-container.dark-mode .task-members-section .empty-state,
+body.dark-mode .task-members-section .add-member-section h4,
+.app-container.dark-mode .task-members-section .add-member-section h4 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .task-members-section .member-card,
+.app-container.dark-mode .task-members-section .member-card,
+body.dark-mode .task-members-section .empty-state,
+.app-container.dark-mode .task-members-section .empty-state,
+body.dark-mode .task-members-section .add-member-section,
+.app-container.dark-mode .task-members-section .add-member-section {
+  background: #25283a !important;
+  border-color: #444b66 !important;
+}
+
+body.dark-mode .task-members-section .member-name,
+.app-container.dark-mode .task-members-section .member-name {
+  color: #f5f7ff !important;
+}
+
+body.dark-mode .task-members-section .member-email,
+.app-container.dark-mode .task-members-section .member-email {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .task-members-section .member-select,
+.app-container.dark-mode .task-members-section .member-select,
+body.dark-mode .task-members-section .btn-add,
+.app-container.dark-mode .task-members-section .btn-add {
+  background: #31364d !important;
+  border: 1px solid #59607d !important;
+  color: #f5f7ff !important;
+}
+
+body.dark-mode .task-members-section .members-container,
+.app-container.dark-mode .task-members-section .members-container,
+body.dark-mode .task-members-section .members-list,
+.app-container.dark-mode .task-members-section .members-list {
+  background: transparent !important;
+}
+
+body.dark-mode .task-members-section .add-member-form,
+.app-container.dark-mode .task-members-section .add-member-form {
+  background: transparent !important;
 }
 </style>

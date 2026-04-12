@@ -384,24 +384,139 @@ async function main() {
         await prisma.task_templates.createMany({ data: taskTemplatesData });
         console.log(`✓ 10 Einträge in task_templates erstellt`);
 
-        // --- PHASE 6: Tasks ---
-        const parentTasksData = Array.from({ length: 10 }).map((_, i) => ({
-            title: `Laborübung ${i + 1}`,
-            description: `Bitte die Laborübung ${i + 1} bis zum Ende der Woche abschließen.`,
-            status: [task_status.TODO, task_status.IN_PROGRESS, task_status.COMPLETED][i % 3],
-            progress: i % 3 === 2 ? 100 : (i * 10),
-            created_by: 2,
-            assigned_to: i + 7,
-            template_id: i + 1,
-            priority_id: (i % 5) + 1,
-            deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        }));
+        // --- PHASE 6: Tasks mit realistischen Daten für Kalender ---
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Tasks für verschiedene Tage dieser Woche und nächste Woche
+        const parentTasksData = [
+            // Diese Woche Montag
+            {
+                title: 'Mathe Test',
+                description: 'Vorbereitung auf Mathe Test - Integralrechnung',
+                status: task_status.TODO,
+                progress: 30,
+                created_by: 2,
+                assigned_to: 7,
+                template_id: 1,
+                priority_id: 5,  // Wichtig
+                deadline: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000)  // +1 Tag
+            },
+            // Diese Woche Mittwoch
+            {
+                title: 'Englisch Vokabeln',
+                description: 'Unit 5 Vokabeln lernen für Quiz',
+                status: task_status.IN_PROGRESS,
+                progress: 60,
+                created_by: 2,
+                assigned_to: 8,
+                template_id: 2,
+                priority_id: 4,  // Normal
+                deadline: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)  // +3 Tage
+            },
+            // Diese Woche Freitag
+            {
+                title: 'Informatik Projekt',
+                description: 'REST API für Schulverwaltung fertigstellen',
+                status: task_status.IN_PROGRESS,
+                progress: 75,
+                created_by: 2,
+                assigned_to: 9,
+                template_id: 3,
+                priority_id: 5,  // Wichtig
+                deadline: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000)  // +5 Tage
+            },
+            // Nächste Woche Montag
+            {
+                title: 'Sportfest',
+                description: 'Schulinternes Sportfest - Anmeldung erforderlich',
+                status: task_status.TODO,
+                progress: 0,
+                created_by: 2,
+                assigned_to: 10,
+                template_id: 4,
+                priority_id: 3,  // Normal
+                deadline: new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000)  // +8 Tage
+            },
+            // Nächste Woche Mittwoch
+            {
+                title: 'Chemie Versuchsprotokoll',
+                description: 'Laborversuch dokumentieren und analysieren',
+                status: task_status.TODO,
+                progress: 0,
+                created_by: 2,
+                assigned_to: 11,
+                template_id: 5,
+                priority_id: 4,  // Normal
+                deadline: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000)  // +10 Tage
+            },
+            // Nächste Woche Freitag
+            {
+                title: 'Deutsch Referat',
+                description: 'Präsentation über Literatur der Klassik halten',
+                status: task_status.TODO,
+                progress: 20,
+                created_by: 2,
+                assigned_to: 12,
+                template_id: 6,
+                priority_id: 5,  // Wichtig
+                deadline: new Date(today.getTime() + 12 * 24 * 60 * 60 * 1000)  // +12 Tage
+            },
+            // In zwei Wochen
+            {
+                title: 'Historieprojekt',
+                description: 'Zeitzeugenbefragung durchführen',
+                status: task_status.TODO,
+                progress: 0,
+                created_by: 2,
+                assigned_to: 13,
+                template_id: 7,
+                priority_id: 3,  // Normal
+                deadline: new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000)  // +15 Tage
+            },
+            // In zwei Wochen + 2 Tage
+            {
+                title: 'PhysikVerstehen Übungen',
+                description: 'Kapitel 7-8 Aufgaben 1-42 lösen',
+                status: task_status.COMPLETED,
+                progress: 100,
+                created_by: 2,
+                assigned_to: 14,
+                template_id: 8,
+                priority_id: 2,  // Niedrig
+                deadline: new Date(today.getTime() + 17 * 24 * 60 * 60 * 1000)  // +17 Tage
+            },
+            // OberflächenTest - abgelaufen (Vergangenheit)
+            {
+                title: 'Bio Test (Vergangenheit)',
+                description: 'Bereits abgelaufene Aufgabe',
+                status: task_status.COMPLETED,
+                progress: 100,
+                created_by: 2,
+                assigned_to: 15,
+                template_id: 9,
+                priority_id: 1,  // Niedrig
+                deadline: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)  // -3 Tage
+            },
+            // Extra Task
+            {
+                title: 'GW Exkursion',
+                description: 'Vorbereitungsmaterialien sammeln',
+                status: task_status.TODO,
+                progress: 10,
+                created_by: 2,
+                assigned_to: 16,
+                template_id: 10,
+                priority_id: 3,  // Normal
+                deadline: new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000)  // +20 Tage
+            }
+        ];
         await prisma.tasks.createMany({ data: parentTasksData });
 
         const subTasksData = Array.from({ length: 10 }).map((_, i) => ({
             parent_task_id: i + 1,
             title: `Teilaufgabe ${i + 1}`,
-            description: `Teilschritt für Laborübung ${i + 1}`,
+            description: `Teilschritt für Aufgabe ${i + 1}`,
             status: task_status.TODO,
             progress: 0,
             created_by: 2,

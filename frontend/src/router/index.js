@@ -71,7 +71,6 @@ const routes = [
                 path: 'classes',
                 name: 'ClassList',
                 component: () => import('@/views/ClassListView.vue'),
-                meta: { roles: ['admin', 'teacher',] },
             },
             {
                 path: 'classes/:id',

@@ -170,3 +170,28 @@ const submitEdit = () => {
     background: #444;
 }
 </style>
+
+<style>
+body.dark-mode .chat-msg__bubble,
+.app-container.dark-mode .chat-msg__bubble {
+    background: #31364d !important;
+    color: #edf0fa !important;
+}
+
+body.dark-mode .chat-msg--own .chat-msg__bubble,
+.app-container.dark-mode .chat-msg--own .chat-msg__bubble {
+    background: #4f46e5 !important;
+}
+
+body.dark-mode .chat-msg__sender,
+.app-container.dark-mode .chat-msg__sender,
+body.dark-mode .chat-msg__time,
+.app-container.dark-mode .chat-msg__time {
+    color: #b2b9cb !important;
+}
+
+body.dark-mode .chat-msg__action-btn:hover,
+.app-container.dark-mode .chat-msg__action-btn:hover {
+    background: #434963 !important;
+}
+</style>

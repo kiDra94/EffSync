@@ -104,3 +104,23 @@ const handleInput = () => {
     cursor: not-allowed;
 }
 </style>
+
+<style>
+body.dark-mode .chat-input,
+.app-container.dark-mode .chat-input {
+    background: #25283a !important;
+    border-top: 1px solid #434963 !important;
+}
+
+body.dark-mode .chat-input__textarea,
+.app-container.dark-mode .chat-input__textarea {
+    background: #31364d !important;
+    border: 1px solid #59607d !important;
+    color: #f5f7ff !important;
+}
+
+body.dark-mode .chat-input__textarea::placeholder,
+.app-container.dark-mode .chat-input__textarea::placeholder {
+    color: #b2b9cb !important;
+}
+</style>
