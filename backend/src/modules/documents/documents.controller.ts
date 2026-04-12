@@ -3,23 +3,25 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
+  Req,
+  UseGuards,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
-  FileTypeValidator,
   ParseFilePipe,
   MaxFileSizeValidator,
-  ParseIntPipe,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { DocumentsService } from "./documents.service";
 import { diskStorage } from "multer";
 import { extname } from "path";
 import { v4 as uuidv4 } from "uuid";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
 
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("documents")
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
@@ -65,17 +67,20 @@ export class DocumentsController {
   }
 
   @Get()
-  findAll() {
-    return this.documentsService.findAll();
+  @Permissions()
+  findAll(@Req() req) {
+    return this.documentsService.findAll(req.user.userId, req.user.role);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.documentsService.findOne(id);
+  @Permissions()
+  findOne(@Param("id") id: string, @Req() req) {
+    return this.documentsService.findOne(id, req.user.userId, req.user.role);
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.documentsService.remove(id);
+  @Permissions()
+  remove(@Param("id") id: string, @Req() req) {
+    return this.documentsService.remove(id, req.user.userId, req.user.role);
   }
 }

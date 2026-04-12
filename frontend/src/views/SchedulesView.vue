@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import ScheduleForm from '@/components/schedules/ScheduleForm.vue';
 import ScheduleDeleteDialog from '@/components/schedules/ScheduleDeleteDialog.vue';
+import { useAuthStore } from '@/stores/authStore';
 
 const STORAGE_KEY = 'effsync_schedules';
 
@@ -37,6 +38,12 @@ const selectedSchedule = ref(null);
 const activeModal = ref(null);
 const activeView = ref('list');
 const searchQuery = ref('');
+const authStore = useAuthStore();
+
+const canManageSchedules = computed(() => {
+  const role = (authStore.userRole || '').toLowerCase();
+  return ['admin', 'superuser', 'director'].includes(role);
+});
 
 const filteredSchedules = computed(() => {
   if (!searchQuery.value) return schedules.value;
@@ -69,6 +76,7 @@ const saveToStorage = () => {
 };
 
 const openScheduleForm = (schedule = null) => {
+  if (!canManageSchedules.value) return;
   selectedSchedule.value = schedule ? JSON.parse(JSON.stringify(schedule)) : null;
   activeModal.value = 'form';
 };
@@ -79,6 +87,7 @@ const openScheduleDetail = (schedule) => {
 };
 
 const openDeleteDialog = (schedule) => {
+  if (!canManageSchedules.value) return;
   selectedSchedule.value = schedule;
   activeModal.value = 'delete';
 };
@@ -89,6 +98,7 @@ const closeModal = () => {
 };
 
 const saveSchedule = async (scheduleData) => {
+  if (!canManageSchedules.value) return;
   try {
     if (scheduleData.schedule_id) {
       const index = schedules.value.findIndex(s => s.schedule_id === scheduleData.schedule_id);
@@ -110,6 +120,7 @@ const saveSchedule = async (scheduleData) => {
 };
 
 const deleteSchedule = async () => {
+  if (!canManageSchedules.value) return;
   if (selectedSchedule.value) {
     try {
       schedules.value = schedules.value.filter(s => s.schedule_id !== selectedSchedule.value.schedule_id);
@@ -144,7 +155,7 @@ onMounted(() => {
     <div v-if="activeView === 'list'">
       <div class="schedules-header">
         <h1>Stundenpläne</h1>
-        <button @click="openScheduleForm()" class="btn-primary">
+        <button v-if="canManageSchedules" @click="openScheduleForm()" class="btn-primary">
           + Neuer Stundenplan
         </button>
       </div>
@@ -167,8 +178,8 @@ onMounted(() => {
             </div>
             <div class="schedule-actions">
               <button @click="openScheduleDetail(schedule)" class="btn-icon" title="Details anzeigen">👁️</button>
-              <button @click="openScheduleForm(schedule)" class="btn-icon" title="Bearbeiten">✏️</button>
-              <button @click="openDeleteDialog(schedule)" class="btn-icon btn-danger" title="Löschen">🗑️</button>
+              <button v-if="canManageSchedules" @click="openScheduleForm(schedule)" class="btn-icon" title="Bearbeiten">✏️</button>
+              <button v-if="canManageSchedules" @click="openDeleteDialog(schedule)" class="btn-icon btn-danger" title="Löschen">🗑️</button>
             </div>
           </div>
 
@@ -197,7 +208,8 @@ onMounted(() => {
 
       <div v-else class="empty-state">
         <p>Keine Stundenpläne vorhanden.</p>
-        <button @click="openScheduleForm()" class="btn-primary">Ersten Stundenplan erstellen</button>
+        <button v-if="canManageSchedules" @click="openScheduleForm()" class="btn-primary">Ersten Stundenplan erstellen</button>
+        <p v-else>Du hast nur Leserechte für Stundenpläne.</p>
       </div>
     </div>
 
@@ -207,7 +219,7 @@ onMounted(() => {
 
       <div class="detail-header">
         <h1>{{ selectedSchedule.name }}</h1>
-        <div class="detail-actions">
+        <div v-if="canManageSchedules" class="detail-actions">
           <button @click="openScheduleForm(selectedSchedule)" class="btn-secondary">Bearbeiten</button>
           <button @click="openDeleteDialog(selectedSchedule)" class="btn-danger">Löschen</button>
         </div>
