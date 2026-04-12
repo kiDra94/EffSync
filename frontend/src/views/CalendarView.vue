@@ -1,37 +1,99 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { fetchTasks } from '@/api/tasks';
+import { fetchAllLessonSlots } from '@/api/lessonSlots';
 
 // 1. STATE
 const currentDate = ref(new Date());
 const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const viewMode = ref('month'); // 'month' oder 'week'
+const viewMode = ref('month');
 
-// Mock Events (Später aus API)
-const events = ref([
-    { date: '2025-01-20', title: 'Mathe Test', color: '#e74c3c' },
-    { date: '2025-01-22', title: 'Englisch Vokabeln', color: '#f39c12' },
-    { date: '2025-02-05', title: 'Sportfest', color: '#2ecc71' }
-]);
+// Loading & Error States
+const loading = ref(false);
+const error = ref(null);
 
-// Mock Lessons für Wochenansicht
-const lessons = ref([
-    { dayOfWeek: 0, startTime: '08:00', endTime: '08:50', subject: 'Mathematik', room: 'B101', teacher: 'Prof. Müller', color: '#3498db' },
-    { dayOfWeek: 0, startTime: '09:00', endTime: '09:50', subject: 'Deutsch', room: 'B102', teacher: 'Dr. Weber', color: '#e74c3c' },
-    { dayOfWeek: 0, startTime: '10:00', endTime: '10:50', subject: 'Englisch', room: 'B103', teacher: 'Ms. Johnson', color: '#f39c12' },
-    { dayOfWeek: 1, startTime: '08:00', endTime: '08:50', subject: 'Informatik', room: 'B201', teacher: 'Prof. Schmidt', color: '#2ecc71' },
-    { dayOfWeek: 1, startTime: '10:00', endTime: '10:50', subject: 'Sport', room: 'Gym', teacher: 'Mr. Bauer', color: '#9b59b6' },
-    { dayOfWeek: 2, startTime: '09:00', endTime: '09:50', subject: 'Biologie', room: 'B104', teacher: 'Dr. Fischer', color: '#1abc9c' },
-    { dayOfWeek: 2, startTime: '13:00', endTime: '13:50', subject: 'Chemie', room: 'B105', teacher: 'Prof. König', color: '#e67e22' },
-    { dayOfWeek: 3, startTime: '08:00', endTime: '08:50', subject: 'Geschichte', room: 'B106', teacher: 'Dr. Hoffmann', color: '#34495e' },
-    { dayOfWeek: 4, startTime: '10:00', endTime: '10:50', subject: 'Musik', room: 'B107', teacher: 'Prof. Klein', color: '#c0392b' },
-]);
+// Events (Tasks von API)
+const events = ref([]);
+
+// Lessons (Stundenplan von API)
+const lessons = ref([]);
+
+// Farb-Palette für Tasks
+const taskColors = [
+    '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
+    '#1abc9c', '#e67e22', '#34495e', '#c0392b', '#16a085'
+];
+
+// Funktion zum Laden der Daten von der API
+const loadCalendarData = async () => {
+    loading.value = true;
+    error.value = null;
+    try {
+        // Lade Tasks
+        const tasksData = await fetchTasks();
+        events.value = tasksData.map((task, index) => {
+            const deadline = task.deadline ? new Date(task.deadline) : new Date();
+            const dateStr = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}`;
+            return {
+                id: task.id,
+                date: dateStr,
+                title: task.title,
+                color: taskColors[index % taskColors.length],
+                description: task.description,
+                status: task.status
+            };
+        });
+
+        // Lade Lesson Slots
+        const lessonsData = await fetchAllLessonSlots();
+        lessons.value = lessonsData.map(lesson => {
+            const startTime = lesson.start_time ? formatTimeFromISO(lesson.start_time) : '08:00';
+            const endTime = lesson.end_time ? formatTimeFromISO(lesson.end_time) : '08:50';
+            return {
+                id: lesson.id,
+                dayOfWeek: lesson.day_of_week || 0,
+                startTime,
+                endTime,
+                subject: lesson.subject_id ? `Fach ${lesson.subject_id}` : 'Unterricht',
+                room: lesson.room?.name || 'Raum',
+                teacher: lesson.teacher?.username || 'Lehrer',
+                color: taskColors[lesson.subject_id % taskColors.length]
+            };
+        }).sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+        console.log('✅ Kalender-Daten geladen:', { tasksCount: events.value.length, lessonsCount: lessons.value.length });
+    } catch (err) {
+        console.error('❌ Fehler beim Laden der Kalender-Daten:', err);
+        error.value = 'Fehler beim Laden der Daten. Versuchen Sie, die Seite zu aktualisieren.';
+    } finally {
+        loading.value = false;
+    }
+};
+
+// Helper: Zeit aus ISO-Format konvertieren
+function formatTimeFromISO(isoTime) {
+    if (!isoTime) return '08:00';
+    try {
+        // If it's a full ISO datetime, extract just the time
+        if (isoTime.includes('T')) {
+            return isoTime.split('T')[1].substring(0, 5);
+        }
+        // If it's just a time string
+        return isoTime.substring(0, 5);
+    } catch {
+        return '08:00';
+    }
+}
 
 const timeSlots = ref([
     '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
     '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00'
 ]);
 
-// 2. KALENDER LOGIK
+// 2. LIFECYCLE - Lade Daten beim Component Mount
+onMounted(() => {
+    loadCalendarData();
+});
 const currentYear = computed(() => currentDate.value.getFullYear());
 const currentMonth = computed(() => currentDate.value.getMonth());
 
@@ -102,6 +164,11 @@ const getLessonsForDay = (dayOfWeek) => {
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
 };
 
+// Tasks für einen bestimmten Tag
+const getTasksForDay = (dateStr) => {
+    return events.value.filter(e => e.date === dateStr);
+};
+
 // Helper Funktionen
 function getWeekStart(date) {
     const d = new Date(date);
@@ -166,6 +233,18 @@ const getLessonStyle = (lesson) => {
 
 <template>
   <div class="page-container">
+    <!-- Error Banner -->
+    <div v-if="error" class="error-banner">
+      ⚠️ {{ error }}
+      <button @click="loadCalendarData" class="retry-btn">Erneut versuchen</button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div v-if="loading" class="loading-indicator">
+      <div class="spinner"></div>
+      <p>Kalender wird geladen...</p>
+    </div>
+
     <div class="header-row">
       <h1 class="page-title">Mein Kalender 🗓️</h1>
       <div class="header-controls">
@@ -189,6 +268,7 @@ const getLessonStyle = (lesson) => {
       </div>
     </div>
 
+    <div v-if="!loading">
     <!-- MONATSANSICHT -->
     <div v-if="viewMode === 'month'" class="calendar-card">
       <div class="cal-header">
@@ -258,6 +338,21 @@ const getLessonStyle = (lesson) => {
             </div>
           </div>
 
+          <!-- Tasks oben als Ganztagesevents -->
+          <div class="tasks-row">
+            <div v-for="day in weekDaysWithDates" :key="'tasks-' + day.dayOfWeek" class="day-tasks">
+              <div 
+                v-for="(task, idx) in getTasksForDay(day.dateStr)"
+                :key="'task-' + idx"
+                class="task-card"
+                :style="{ backgroundColor: task.color }"
+                :title="task.title"
+              >
+                <span class="task-title">{{ task.title }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Grid mit Lessons -->
           <div class="grid-wrapper">
             <div v-for="day in weekDaysWithDates" :key="day.dayOfWeek" class="day-column-grid">
@@ -283,6 +378,7 @@ const getLessonStyle = (lesson) => {
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -290,6 +386,62 @@ const getLessonStyle = (lesson) => {
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* ========== LOADING & ERROR STATES ========== */
+.error-banner {
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: #c00;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.retry-btn {
+  background: #c00;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.retry-btn:hover {
+  background: #a00;
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 12px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f0f0f0;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-indicator p {
+  color: #666;
+  font-weight: 500;
 }
 
 .header-row {
@@ -566,6 +718,55 @@ const getLessonStyle = (lesson) => {
   font-weight: 600;
 }
 
+.tasks-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  border-bottom: 2px solid #e5e7eb;
+  background: #fafafa;
+  min-height: 80px;
+}
+
+.day-tasks {
+  border-right: 1px solid #f0f0f0;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.day-tasks:last-child {
+  border-right: none;
+}
+
+.task-card {
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-card:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: scale(1.02);
+}
+
+.task-title {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 100%;
+}
+
 .grid-wrapper {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -643,6 +844,30 @@ const getLessonStyle = (lesson) => {
 }
 
 /* ========== DARK MODE ========== */
+:global(body.dark-mode) .error-banner {
+  background-color: #3a2020 !important;
+  border-color: #6b3030 !important;
+  color: #ff9999 !important;
+}
+
+:global(body.dark-mode) .retry-btn {
+  background-color: #c93030 !important;
+  border-color: #ff9999 !important;
+}
+
+:global(body.dark-mode) .retry-btn:hover {
+  background-color: #ff4444 !important;
+}
+
+:global(body.dark-mode) .loading-indicator p {
+  color: #ccc !important;
+}
+
+:global(body.dark-mode) .spinner {
+  border-color: #444 !important;
+  border-top-color: #4f46e5 !important;
+}
+
 :global(body.dark-mode) .page-title,
 :global(body.dark-mode) .cal-header h2,
 :global(body.dark-mode) .week-header h2 {
@@ -744,6 +969,27 @@ const getLessonStyle = (lesson) => {
 :global(body.dark-mode) .day-header-cell.is-today .day-name,
 :global(body.dark-mode) .day-header-cell.is-today .day-date {
   color: #3498db !important;
+}
+
+:global(body.dark-mode) .day-header-cell.is-today .day-date {
+  color: #3498db !important;
+}
+
+:global(body.dark-mode) .tasks-row {
+  background-color: #232330 !important;
+  border-bottom: 2px solid #444 !important;
+}
+
+:global(body.dark-mode) .day-tasks {
+  border-right: 1px solid #333 !important;
+}
+
+:global(body.dark-mode) .task-card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+}
+
+:global(body.dark-mode) .task-card:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
 }
 
 :global(body.dark-mode) .grid-cell {
