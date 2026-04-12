@@ -302,9 +302,37 @@ const handleCardClick = (routeName) => {
 /* --- METRICS SECTION --- */
 .metrics-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
   margin-top: 40px;
+}
+
+:global(body.dark-mode) .dashboard-container .page-title {
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .dashboard-container .subtitle {
+  color: #aaaaaa;
+}
+
+:global(body.dark-mode) .dashboard-container .metric-card,
+:global(body.dark-mode) .dashboard-container .placeholder-box {
+  background: #2c2c3e;
+  border: 1px solid #444;
+  box-shadow: none;
+}
+
+:global(body.dark-mode) .dashboard-container .card-info h3 {
+  color: #cccccc;
+}
+
+:global(body.dark-mode) .dashboard-container .card-info .value {
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .dashboard-container .card-info .subtext,
+:global(body.dark-mode) .dashboard-container .placeholder-box p {
+  color: #9aa0b2;
 }
 
 @media (max-width: 768px) {

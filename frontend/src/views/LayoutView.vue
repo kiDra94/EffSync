@@ -455,6 +455,7 @@ hr {
 .content {
   padding: 20px 30px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
 }
 

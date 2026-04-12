@@ -196,3 +196,25 @@ const handleDelete = (messageId) => {
     background-color: #6b7280;
 }
 </style>
+
+<style>
+body.dark-mode .chat-window,
+.app-container.dark-mode .chat-window,
+body.dark-mode .chat-window__messages,
+.app-container.dark-mode .chat-window__messages {
+    background: #1e2232 !important;
+}
+
+body.dark-mode .chat-window__header,
+.app-container.dark-mode .chat-window__header {
+    background: #25283a !important;
+    border-bottom: 1px solid #434963 !important;
+}
+
+body.dark-mode .chat-window__state,
+.app-container.dark-mode .chat-window__state,
+body.dark-mode .chat-window__typing,
+.app-container.dark-mode .chat-window__typing {
+    color: #aeb6c9 !important;
+}
+</style>

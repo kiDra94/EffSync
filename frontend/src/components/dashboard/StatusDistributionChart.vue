@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Pie } from 'vue-chartjs';
 import {
@@ -18,6 +18,10 @@ ChartJS.register(ArcElement, Tooltip, Legend, Colors);
 const chartData = ref(null);
 const loading = ref(true);
 const tasksByStatus = ref(null);
+const chartRenderKey = ref(0);
+let themeObserver;
+
+const isDarkMode = () => document.body.classList.contains('dark-mode');
 
 const statusLabels = {
   TODO: 'Offen',
@@ -91,7 +95,15 @@ const chartOptions = ref({
     }
   },
   plugins: {
+    legend: {
+      labels: {
+        color: isDarkMode() ? '#d1d5db' : '#4b5563'
+      }
+    },
     tooltip: {
+      backgroundColor: isDarkMode() ? '#1f2433' : '#111827',
+      titleColor: '#f9fafb',
+      bodyColor: '#f3f4f6',
       callbacks: {
         label: function (context) {
           return context.label + ': ' + context.parsed;
@@ -106,6 +118,38 @@ const closeModal = () => {
   selectedStatusTasks.value = null;
   selectedStatusName.value = null;
 };
+
+onMounted(() => {
+  themeObserver = new MutationObserver(() => {
+    chartOptions.value = {
+      ...chartOptions.value,
+      plugins: {
+        ...chartOptions.value.plugins,
+        legend: {
+          ...chartOptions.value.plugins?.legend,
+          labels: {
+            ...chartOptions.value.plugins?.legend?.labels,
+            color: isDarkMode() ? '#d1d5db' : '#4b5563'
+          }
+        },
+        tooltip: {
+          ...chartOptions.value.plugins?.tooltip,
+          backgroundColor: isDarkMode() ? '#1f2433' : '#111827'
+        }
+      }
+    };
+    chartRenderKey.value += 1;
+  });
+
+  themeObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+});
+
+onUnmounted(() => {
+  themeObserver?.disconnect();
+});
 </script>
 
 <template>
@@ -116,7 +160,7 @@ const closeModal = () => {
     </div>
     <div v-if="loading" class="loading">Lädt...</div>
     <div v-else-if="chartData" class="chart-wrapper">
-      <Pie :data="chartData" :options="chartOptions" />
+      <Pie :key="chartRenderKey" :data="chartData" :options="chartOptions" />
     </div>
   </div>
 </template>
@@ -155,6 +199,21 @@ const closeModal = () => {
   text-align: center;
   color: #666;
   padding: 40px;
+}
+
+:global(body.dark-mode) .chart-container {
+  background: #2c2c3e;
+  border: 1px solid #444;
+  box-shadow: none;
+}
+
+:global(body.dark-mode) .header-row h3 {
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .subtitle,
+:global(body.dark-mode) .loading {
+  color: #aeb4c2;
 }
 
 /* Modal Styles */

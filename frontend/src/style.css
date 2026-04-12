@@ -55,7 +55,8 @@ body, h1, h2, h3, h4, h5, h6, p, span, div, button, input {
   text-align: left;
 }
 
-label {
+.form-group label,
+.login-card label {
   display: block;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
@@ -63,7 +64,10 @@ label {
   color: #555;
 }
 
-input {
+.login-card input,
+.login-card input[type="text"],
+.login-card input[type="password"],
+.login-card input[type="email"] {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
@@ -72,7 +76,8 @@ input {
   transition: background-color 0.3s, color 0.3s, border 0.3s;
 }
 
-button {
+.login-card button,
+.login-wrapper button {
   width: 100%;
   padding: 12px;
   background-color: #23234c;
@@ -85,7 +90,8 @@ button {
   margin-top: 1rem;
 }
 
-button:hover {
+.login-card button:hover,
+.login-wrapper button:hover {
   background-color: #343458;
 }
 
@@ -228,21 +234,175 @@ body.dark-mode .task-card {
     color: white !important;
     box-shadow: none !important;
     border: 1px solid #444 !important;
-}
+ }
 
-/* Texte IN den Karten */
-body.dark-mode .card-info .value,
-body.dark-mode .placeholder-box h3,
-body.dark-mode .task-title {
+ body.dark-mode .card {
+     background-color: #2c2c3e !important;
+     color: white !important;
+     box-shadow: none !important;
+     border: 1px solid #444 !important;
+ }
+
+  /* Tabellen im Dark Mode */
+  body.dark-mode .document-table,
+  body.dark-mode table {
+    background-color: #2c2c3e !important;
+    color: white !important;
+  }
+
+  body.dark-mode .document-table thead,
+  body.dark-mode table thead {
+    background-color: #1e1e2f !important;
+  }
+
+  body.dark-mode .document-table th,
+  body.dark-mode table th {
+    color: #ffffff !important;
+    border-bottom: 1px solid #444 !important;
+  }
+
+  body.dark-mode .document-table td,
+  body.dark-mode table td {
+    border-bottom: 1px solid #444 !important;
+    color: #ddd !important;
+  }
+
+  body.dark-mode .document-table tbody tr:hover,
+  body.dark-mode table tbody tr:hover {
+    background-color: #343a50 !important;
+  }
+
+  /* Document View Dark Mode */
+  body.dark-mode .document-view,
+  body.dark-mode .document-header,
+  body.dark-mode .document-container {
+    background-color: #1e1e2f !important;
+    color: #ddd !important;
+  }
+
+  body.dark-mode .document-header h1 {
+    color: #ffffff !important;
+  }
+
+  body.dark-mode .document-container {
+    background-color: #2c2c3e !important;
+  }
+
+  body.dark-mode .empty-state {
+    background-color: #2c2c3e !important;
+    color: #ddd !important;
+  }
+
+  body.dark-mode .empty-icon {
+    color: #666 !important;
+  }
+
+  /* Buttons im Dark Mode */
+  body.dark-mode .btn-primary,
+  body.dark-mode .btn-secondary {
+    background-color: #3b3b54 !important;
+    color: white !important;
+    border: 1px solid #555 !important;
+  }
+
+  body.dark-mode .btn-primary:hover,
+  body.dark-mode .btn-secondary:hover {
+    background-color: #4b4b6a !important;
+  }
+
+  body.dark-mode .btn-icon {
+    background-color: transparent !important;
+    border: none !important;
+    color: #ddd !important;
+  }
+
+  /* Badges & Status im Dark Mode */
+  body.dark-mode .badge {
+    background-color: #3b3b54 !important;
+    color: #ddd !important;
+  }
+
+  /* Input Felder im Dark Mode (nicht nur Login) */
+  body.dark-mode input[type="text"],
+  body.dark-mode input[type="file"],
+  body.dark-mode .hidden-input {
+    background-color: #1e1e2f !important;
+    color: white !important;
+    border: 1px solid #555 !important;
+  }
+
+  body.dark-mode input[type="text"]::placeholder,
+  body.dark-mode input[type="file"]::placeholder {
+    color: #888 !important;
+  }
+
+  /* Alert Messages im Dark Mode */
+  body.dark-mode .alert-error {
+    background-color: #3e2c2c !important;
+    color: #ff6b6b !important;
+    border: 1px solid #663333 !important;
+  }
+
+  /* Texte IN den Karten */
+  body.dark-mode .card-info .value,
+  body.dark-mode .placeholder-box h3,
+  body.dark-mode .task-title {
     color: #ffffff !important;
     text-decoration: none !important; /* Sicherstellen! */
-}
+  }
 
-body.dark-mode .card-info h3 {
+  body.dark-mode .card-info h3 {
     color: #cccccc !important;
-}
+  }
 
-body.dark-mode .card-info .subtext,
-body.dark-mode .placeholder-box p {
+  body.dark-mode .card-info .subtext,
+  body.dark-mode .placeholder-box p {
     color: #888888 !important;
-}
+  }
+
+  /* --- Dashboard Chart Components (global fallback) --- */
+  body.dark-mode .metrics-section .chart-container,
+  body.dark-mode .metrics-section .progress-container {
+    background: #2c2c3e !important;
+    border: 1px solid #444 !important;
+    box-shadow: none !important;
+  }
+
+  body.dark-mode .metrics-section .chart-container h3,
+  body.dark-mode .metrics-section .progress-container h3 {
+    color: #ffffff !important;
+  }
+
+  body.dark-mode .metrics-section .chart-container .subtitle,
+  body.dark-mode .metrics-section .chart-container .loading,
+  body.dark-mode .metrics-section .progress-container .loading {
+    color: #b5bdcc !important;
+  }
+
+  body.dark-mode .metrics-section .progress-container .metric-item {
+    background: #34354a !important;
+  }
+
+  body.dark-mode .metrics-section .progress-container .metric-label {
+    color: #c8ceda !important;
+  }
+
+  body.dark-mode .metrics-section .progress-container .progress-bar-container {
+    background: #4a4d62 !important;
+  }
+
+  body.dark-mode .metrics-section .progress-container .metric-value {
+    color: #c0c6d4 !important;
+  }
+
+  body.dark-mode .metrics-section .progress-container .metric-stat-box {
+    background: #2c2c3e !important;
+  }
+
+  body.dark-mode .metrics-section .progress-container .stat-number {
+    color: #ffffff !important;
+  }
+
+  body.dark-mode .metrics-section .progress-container .stat-label {
+    color: #aeb4c2 !important;
+  }

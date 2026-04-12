@@ -178,4 +178,52 @@ const goToTasks = () => {
   color: #666;
   padding: 40px;
 }
+
+:global(body.dark-mode) .progress-container {
+  background: #2c2c3e;
+  border: 1px solid #444;
+  box-shadow: none;
+}
+
+:global(body.dark-mode) .progress-container h3 {
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .metric-item {
+  background: #34354a;
+}
+
+:global(body.dark-mode) .metric-item.clickable:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+:global(body.dark-mode) .metric-label {
+  color: #c8ceda;
+}
+
+:global(body.dark-mode) .progress-bar-container {
+  background: #4a4d62;
+}
+
+:global(body.dark-mode) .metric-value,
+:global(body.dark-mode) .loading {
+  color: #c0c6d4;
+}
+
+:global(body.dark-mode) .metric-item,
+:global(body.dark-mode) .metric-item * {
+  color: inherit;
+}
+
+:global(body.dark-mode) .metric-stat-box {
+  background: #2c2c3e;
+}
+
+:global(body.dark-mode) .stat-number {
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .stat-label {
+  color: #aeb4c2;
+}
 </style>

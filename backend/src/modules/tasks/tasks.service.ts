@@ -179,6 +179,9 @@ export class TasksService {
       parent_task_id,
       priority_id,
       completion_rule,
+      is_locked: _ignoredIsLocked,
+      locked_reason: _ignoredLockedReason,
+      locked_until: _ignoredLockedUntil,
       ...taskData
     } = updateTaskDto;
 

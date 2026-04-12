@@ -159,3 +159,31 @@ const handleDeleteRoom = (event) => {
     color: #ddd;
 }
 </style>
+
+<style>
+body.dark-mode .room-item,
+.app-container.dark-mode .room-item {
+    background: #25283a !important;
+}
+
+body.dark-mode .room-item:hover,
+.app-container.dark-mode .room-item:hover {
+    background: #313752 !important;
+}
+
+body.dark-mode .room-item--active,
+.app-container.dark-mode .room-item--active {
+    background: #312e81 !important;
+    border-left-color: #818cf8 !important;
+}
+
+body.dark-mode .room-item__name,
+.app-container.dark-mode .room-item__name {
+    color: #edf0fa !important;
+}
+
+body.dark-mode .room-item__type,
+.app-container.dark-mode .room-item__type {
+    color: #aeb6c9 !important;
+}
+</style>
