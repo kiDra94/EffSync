@@ -165,19 +165,19 @@ const navigateToResult = (result) => {
 <style>
 /* GLOBALE STYLES (Unverändert) */
 body.dark-mode .header {
-  background-color: #2c2c3e !important;
-  border-bottom: 1px solid #444 !important;
-  color: #ddd !important;
+  background-color: #1e2132 !important;
+  border-bottom: 1px solid #434963 !important;
+  color: #edf0fa !important;
 }
 
 body.dark-mode .header .logo {
-  color: white !important;
+  color: #edf0fa !important;
 }
 
 body.dark-mode .header input[type="search"] {
-  background-color: #1e1e2f !important;
-  border: 1px solid #444 !important;
-  color: white !important;
+  background-color: #31364d !important;
+  border: 1px solid #434963 !important;
+  color: #edf0fa !important;
 }
 </style>
 
@@ -519,4 +519,48 @@ hr {
 :global(body.dark-mode) .search-result-item:hover { background: #3b3b54; }
 :global(body.dark-mode) .result-label { color: #ddd; }
 
+</style>
+
+<style>
+body.dark-mode .dropdown-menu,
+.app-container.dark-mode .dropdown-menu {
+  background-color: #25283a !important;
+  border-color: #434963 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45) !important;
+}
+body.dark-mode .dropdown-header,
+.app-container.dark-mode .dropdown-header {
+  background-color: #1e2132 !important;
+  border-bottom: 1px solid #434963 !important;
+}
+body.dark-mode .dropdown-header strong,
+.app-container.dark-mode .dropdown-header strong {
+  color: #edf0fa !important;
+}
+body.dark-mode .dropdown-header small,
+.app-container.dark-mode .dropdown-header small {
+  color: #b2b9cb !important;
+}
+body.dark-mode .dropdown-item,
+.app-container.dark-mode .dropdown-item {
+  color: #edf0fa !important;
+  background: transparent !important;
+}
+body.dark-mode .dropdown-item:hover,
+.app-container.dark-mode .dropdown-item:hover {
+  background-color: #31364d !important;
+}
+body.dark-mode .dropdown-item.text-danger,
+.app-container.dark-mode .dropdown-item.text-danger {
+  color: #ff7070 !important;
+}
+body.dark-mode .dropdown-item.text-danger:hover,
+.app-container.dark-mode .dropdown-item.text-danger:hover {
+  background-color: #3a1a1a !important;
+}
+body.dark-mode .dropdown-divider,
+.app-container.dark-mode .dropdown-divider {
+  border-color: #434963 !important;
+  opacity: 1 !important;
+}
 </style>

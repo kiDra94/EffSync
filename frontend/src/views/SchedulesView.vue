@@ -559,3 +559,104 @@ onMounted(() => {
   transform: translateY(0);
 }
 </style>
+
+<style>
+body.dark-mode .schedules-view,
+.app-container.dark-mode .schedules-view {
+  color: #edf0fa;
+}
+
+body.dark-mode .page-header h1,
+.app-container.dark-mode .page-header h1 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .search-input,
+.app-container.dark-mode .search-input {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .schedule-card,
+.app-container.dark-mode .schedule-card {
+  background: #25283a !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .schedule-card-header,
+.app-container.dark-mode .schedule-card-header {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .schedule-title h3,
+.app-container.dark-mode .schedule-title h3 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .info-label,
+.app-container.dark-mode .info-label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .info-value,
+.app-container.dark-mode .info-value,
+body.dark-mode .info-row p,
+.app-container.dark-mode .info-row p {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .info-card,
+body.dark-mode .content-card,
+.app-container.dark-mode .info-card,
+.app-container.dark-mode .content-card {
+  background: #25283a !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .info-card h2,
+body.dark-mode .content-card h2,
+body.dark-mode .detail-header h1,
+.app-container.dark-mode .info-card h2,
+.app-container.dark-mode .content-card h2,
+.app-container.dark-mode .detail-header h1 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .info-row label,
+.app-container.dark-mode .info-row label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .detail-header,
+.app-container.dark-mode .detail-header {
+  border-color: #434963 !important;
+}
+
+body.dark-mode .btn-back,
+body.dark-mode .btn-secondary,
+.app-container.dark-mode .btn-back,
+.app-container.dark-mode .btn-secondary {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .btn-icon,
+.app-container.dark-mode .btn-icon {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .btn-icon:hover,
+.app-container.dark-mode .btn-icon:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+body.dark-mode .empty-state,
+.app-container.dark-mode .empty-state,
+body.dark-mode .content-message,
+.app-container.dark-mode .content-message {
+  color: #7a8199 !important;
+}
+</style>

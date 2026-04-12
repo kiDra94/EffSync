@@ -201,3 +201,56 @@ const close = () => {
   background: #e5e7eb;
 }
 </style>
+
+<style>
+body.dark-mode .modal-content,
+.app-container.dark-mode .modal-content {
+  background: #1f2333 !important;
+  border: 1px solid #434963 !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+}
+
+body.dark-mode .modal-header,
+.app-container.dark-mode .modal-header {
+  border-color: #434963 !important;
+}
+
+body.dark-mode .modal-header h2,
+.app-container.dark-mode .modal-header h2 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .close-btn,
+.app-container.dark-mode .close-btn {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .form-group label,
+.app-container.dark-mode .form-group label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form input,
+body.dark-mode .form select,
+.app-container.dark-mode .form-control,
+.app-container.dark-mode .form input,
+.app-container.dark-mode .form select {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .form-actions,
+.app-container.dark-mode .form-actions {
+  background: #262b3f !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .btn-secondary,
+.app-container.dark-mode .btn-secondary {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+</style>
