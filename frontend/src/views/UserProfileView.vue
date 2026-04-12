@@ -18,18 +18,37 @@ const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) 
 
 const STORAGE_KEY_PREFIX = 'effsync_user_profile_';
 
-// Mock user data
-const user = ref({
-  user_id: userId.value || authStore.userId,
-  firstname: authStore.userDetails?.firstname || 'Max',
-  lastname: authStore.userDetails?.lastname || 'Mustermann',
-  username: authStore.userDetails?.username || 'mustermann',
-  email: authStore.userDetails?.email || 'mustermann@schule.at',
-  role: authStore.userRole || 'Lehrer',
-  department: 'Informationstechnologie',
-  created_at: '2024-09-01',
-  last_login: new Date().toISOString().split('T')[0]
-});
+const deriveNameFromUsername = (username) => {
+  if (!username) return { firstname: '', lastname: '' };
+  const localPart = String(username).split('@')[0] || '';
+  const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+  if (!cleaned) return { firstname: '', lastname: '' };
+  const parts = cleaned.split(' ').filter(Boolean);
+  if (parts.length === 1) return { firstname: parts[0], lastname: '' };
+  return {
+    firstname: parts[0],
+    lastname: parts.slice(1).join(' '),
+  };
+};
+
+const getBaseUser = () => {
+  const details = authStore.userDetails || {};
+  const derived = deriveNameFromUsername(details.username || details.email || '');
+
+  return {
+    user_id: userId.value || authStore.userId,
+    firstname: details.firstname || derived.firstname || '',
+    lastname: details.lastname || derived.lastname || '',
+    username: details.username || '',
+    email: details.email || '',
+    role: authStore.userRole || details.role || 'student',
+    department: details.department || '—',
+    created_at: details.created_at || '—',
+    last_login: new Date().toISOString().split('T')[0]
+  };
+};
+
+const user = ref(getBaseUser());
 
 const editMode = ref(false);
 const formData = ref({ ...user.value });
@@ -40,10 +59,20 @@ const loadUserProfile = () => {
   try {
     const storageKey = STORAGE_KEY_PREFIX + userId.value;
     const stored = localStorage.getItem(storageKey);
+    const base = getBaseUser();
+
     if (stored) {
-      user.value = JSON.parse(stored);
-      formData.value = { ...user.value };
+      const storedUser = JSON.parse(stored);
+      // Lokale Präferenzen beibehalten, aber Auth-Daten priorisieren
+      user.value = {
+        ...storedUser,
+        ...base,
+      };
+    } else {
+      user.value = base;
     }
+
+    formData.value = { ...user.value };
   } catch (error) {
     console.error('Fehler beim Laden des Profils:', error);
   }

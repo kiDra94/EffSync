@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { MetricsService } from './metrics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -15,8 +15,8 @@ export class MetricsController {
    */
   @Permissions()
   @Get('status-distribution')
-  async getStatusDistribution() {
-    return this.metricsService.getStatusDistribution();
+  async getStatusDistribution(@Req() req) {
+    return this.metricsService.getStatusDistribution(req.user);
   }
 
   /**
@@ -25,8 +25,8 @@ export class MetricsController {
    */
   @Permissions()
   @Get('task-progress')
-  async getTaskProgress() {
-    return this.metricsService.getTaskProgress();
+  async getTaskProgress(@Req() req) {
+    return this.metricsService.getTaskProgress(req.user);
   }
 
   /**
@@ -35,7 +35,7 @@ export class MetricsController {
    */
   @Permissions()
   @Get('tasks-by-status')
-  async getTasksByStatus() {
-    return this.metricsService.getTasksByStatus();
+  async getTasksByStatus(@Req() req) {
+    return this.metricsService.getTasksByStatus(req.user);
   }
 }
