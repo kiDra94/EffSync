@@ -1,12 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNoteStore } from '@/stores/entities/noteStore';
+import { useTaskStore } from '@/stores/entities/taskStore';
+import { apiClient } from '@/api/httpClient';
+import { fetchAllLessonSlots } from '@/api/lessonSlots';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 
 const router = useRouter();
 const noteStore = useNoteStore();
+const taskStore = useTaskStore();
 
 // Schnelle Notiz
 const quickNote = ref('');
@@ -26,19 +30,6 @@ const addQuickNote = async () => {
     } catch (error) {
       console.error('Fehler beim Speichern der schnellen Notiz:', error);
     }
-  }
-};
-
-// Funktion zum Abrufen der Länge aus localStorage
-const getStorageCount = (key) => {
-  try {
-    const data = localStorage.getItem(`effsync_${key}`);
-    if (!data) return 0;
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed.length : 0;
-  } catch (error) {
-    console.error(`Fehler beim Lesen von effsync_${key}:`, error);
-    return 0;
   }
 };
 
@@ -102,31 +93,55 @@ const metrics = ref([
 
 // Funktion zum Aktualisieren der Metriken
 const updateMetrics = async () => {
-  const counts = {
-    tasks: getStorageCount('tasks'),
-    classes: getStorageCount('classes'),
-    documents: getStorageCount('documents'),
-    notes: noteStore.notes.length,
-    schedules: getStorageCount('schedules'),
-    departments: getStorageCount('departments')
+  // Alle Zählungen parallel via API laden
+  const [classesRes, documentsRes, slotsRes, departmentsRes] = await Promise.allSettled([
+    apiClient.get('/classes'),
+    apiClient.get('/documents'),
+    fetchAllLessonSlots(),
+    apiClient.get('/departments'),
+  ]);
+
+  const openTasks = taskStore.tasks.filter(
+    (t) => t.status !== 'Abgeschlossen' && t.status !== 'Archiviert'
+  ).length;
+
+  const getCount = (result, fallbackKey) => {
+    if (result.status === 'fulfilled') {
+      const data = result.value?.data ?? result.value;
+      return Array.isArray(data) ? data.length : 0;
+    }
+    // Fallback: localStorage-Cache aus dem jeweiligen View
+    try {
+      const cached = localStorage.getItem(`effsync_${fallbackKey}`);
+      if (!cached) return 0;
+      const parsed = JSON.parse(cached);
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch { return 0; }
   };
 
-
-  metrics.value[0].value = String(counts.tasks);
-  metrics.value[1].value = String(counts.classes);
-  metrics.value[2].value = String(counts.documents);
-  metrics.value[3].value = String(counts.notes);
-  metrics.value[4].value = String(counts.schedules);
-  metrics.value[5].value = String(counts.departments);
+  metrics.value[0].value = String(openTasks);
+  metrics.value[1].value = String(getCount(classesRes, 'classes'));
+  metrics.value[2].value = String(getCount(documentsRes, 'documents'));
+  metrics.value[3].value = String(noteStore.notes.length);
+  metrics.value[4].value = String(
+    slotsRes.status === 'fulfilled'
+      ? (Array.isArray(slotsRes.value) ? slotsRes.value.length : 0)
+      : getCount({ status: 'rejected' }, 'schedules')
+  );
+  metrics.value[5].value = String(getCount(departmentsRes, 'departments'));
 };
 
 onMounted(() => {
-  noteStore.getNotes()
-    .catch((error) => console.error('Fehler beim Laden der Notizen:', error))
-    .finally(() => updateMetrics());
+  Promise.all([
+    noteStore.getNotes().catch(() => {}),
+    taskStore.getTasks().catch(() => {}),
+  ]).finally(() => updateMetrics());
 
-  // Storage Events abfangen um Live-Updates zu ermöglichen
   window.addEventListener('storage', updateMetrics);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('storage', updateMetrics);
 });
 
 const handleCardClick = (routeName) => {
