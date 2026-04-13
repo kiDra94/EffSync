@@ -5,6 +5,7 @@ import { useNoteStore } from '@/stores/entities/noteStore';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { apiClient } from '@/api/httpClient';
 import { fetchAllLessonSlots } from '@/api/lessonSlots';
+import { fetchMetrics } from '@/api/metrics';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 
@@ -91,23 +92,30 @@ const metrics = ref([
   }
 ]);
 
+const unwrapArray = (input) => {
+  if (Array.isArray(input)) return input;
+  if (!input || typeof input !== 'object') return [];
+
+  if (Array.isArray(input.data)) return input.data;
+  if (input.data && Array.isArray(input.data.data)) return input.data.data;
+
+  return [];
+};
+
 // Funktion zum Aktualisieren der Metriken
 const updateMetrics = async () => {
   // Alle Zählungen parallel via API laden
-  const [classesRes, documentsRes, slotsRes, departmentsRes] = await Promise.allSettled([
+  const [taskProgressRes, classesRes, documentsRes, slotsRes, departmentsRes] = await Promise.allSettled([
+    fetchMetrics('task-progress'),
     apiClient.get('/classes'),
     apiClient.get('/documents'),
     fetchAllLessonSlots(),
     apiClient.get('/departments'),
   ]);
 
-  const openTasks = taskStore.tasks.filter(
-    (t) => t.status !== 'Abgeschlossen' && t.status !== 'Archiviert'
-  ).length;
-
-  const getCount = (result, fallbackKey) => {
+  const getCount = (result, fallbackKey, directArray = false) => {
     if (result.status === 'fulfilled') {
-      const data = result.value?.data ?? result.value;
+      const data = directArray ? unwrapArray(result.value) : unwrapArray(result.value);
       return Array.isArray(data) ? data.length : 0;
     }
     // Fallback: localStorage-Cache aus dem jeweiligen View
@@ -119,13 +127,21 @@ const updateMetrics = async () => {
     } catch { return 0; }
   };
 
+  const openTasks = taskProgressRes.status === 'fulfilled'
+    ? Math.max(
+        0,
+        Number(taskProgressRes.value?.totalTasks ?? 0)
+          - Number(taskProgressRes.value?.completedTasks ?? 0)
+      )
+    : taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
+
   metrics.value[0].value = String(openTasks);
   metrics.value[1].value = String(getCount(classesRes, 'classes'));
   metrics.value[2].value = String(getCount(documentsRes, 'documents'));
   metrics.value[3].value = String(noteStore.notes.length);
   metrics.value[4].value = String(
     slotsRes.status === 'fulfilled'
-      ? (Array.isArray(slotsRes.value) ? slotsRes.value.length : 0)
+      ? unwrapArray(slotsRes.value).length
       : getCount({ status: 'rejected' }, 'schedules')
   );
   metrics.value[5].value = String(getCount(departmentsRes, 'departments'));
