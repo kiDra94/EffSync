@@ -35,7 +35,7 @@ Die ist normalerweise schon in `frontend/.env` oder `frontend/.env.local` vorhan
 ## Verwendung
 
 1. Backend starten: `npm run start:dev`
-2. Frontend starten: `npm run dev`
+2. Frontend starten: `npm run frontend`
 3. In die Login-Page gehen und "Mit Google anmelden" klicken
 4. Google wird dich zum OAuth-Flow leiten
 5. Nach erfolgreicher Authentifizierung wirst du automatisch zum Dashboard weitergeleitet
