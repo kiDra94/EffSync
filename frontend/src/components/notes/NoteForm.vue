@@ -206,3 +206,57 @@ const close = () => {
   background: #e5e7eb;
 }
 </style>
+
+<style>
+/* ── NoteForm Dark Mode ── */
+body.dark-mode .modal-content {
+  background: #252536 !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+  color: #edf0fa;
+}
+
+body.dark-mode .modal-header {
+  border-bottom-color: #3a3d52 !important;
+}
+
+body.dark-mode .modal-header h2 {
+  color: #edf0fa;
+}
+
+body.dark-mode .close-btn {
+  color: #7a7d96;
+}
+
+body.dark-mode .close-btn:hover {
+  color: #edf0fa;
+}
+
+body.dark-mode .form-group label {
+  color: #c8cde0;
+}
+
+body.dark-mode .form-group input,
+body.dark-mode .form-group textarea,
+body.dark-mode .form-group select {
+  background: #1e1e2f !important;
+  border-color: #3a3d52 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .form-group input:focus,
+body.dark-mode .form-group textarea:focus,
+body.dark-mode .form-group select:focus {
+  border-color: #6c63ff !important;
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2) !important;
+}
+
+body.dark-mode .modal-actions .btn-secondary {
+  background: #2e2e45;
+  border-color: #3a3d52;
+  color: #c8cde0;
+}
+
+body.dark-mode .modal-actions .btn-secondary:hover {
+  background: #3a3d52;
+}
+</style>

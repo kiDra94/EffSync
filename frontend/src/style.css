@@ -203,13 +203,15 @@ body.dark-mode .link-text {
     color: #ffffff !important;
 }
 
-/* Buttons global */
-body.dark-mode button {
+/* Buttons im Auth-Bereich (nicht global überschreiben!) */
+body.dark-mode .login-card button,
+body.dark-mode .login-wrapper button {
     background-color: #3b3b54 !important;
     border: 1px solid #555 !important;
     color: white !important;
 }
-body.dark-mode button:hover {
+body.dark-mode .login-card button:hover,
+body.dark-mode .login-wrapper button:hover {
     background-color: #4b4b6a !important;
 }
 

@@ -1,13 +1,12 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useTaskStore } from '@/stores/entities/taskStore';
-import { createNote, fetchNotes } from '@/api/notes';
+import { useNoteStore } from '@/stores/entities/noteStore';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 
 const router = useRouter();
-const taskStore = useTaskStore();
+const noteStore = useNoteStore();
 
 // Schnelle Notiz
 const quickNote = ref('');
@@ -17,7 +16,7 @@ const addQuickNote = async () => {
   if (noteInput.value.trim()) {
     try {
       const content = noteInput.value.trim();
-      await createNote({
+      await noteStore.addNote({
         title: 'Schnelle Notiz vom Dashboard',
         description: content,
       });
@@ -107,18 +106,12 @@ const updateMetrics = async () => {
     tasks: getStorageCount('tasks'),
     classes: getStorageCount('classes'),
     documents: getStorageCount('documents'),
-    notes: 0,
+    notes: noteStore.notes.length,
     schedules: getStorageCount('schedules'),
     departments: getStorageCount('departments')
   };
 
-  try {
-    const notes = await fetchNotes();
-    counts.notes = Array.isArray(notes) ? notes.length : 0;
-  } catch (error) {
-    console.error('Fehler beim Laden der Notizen-Metrik:', error);
-  }
-  
+
   metrics.value[0].value = String(counts.tasks);
   metrics.value[1].value = String(counts.classes);
   metrics.value[2].value = String(counts.documents);
@@ -128,7 +121,10 @@ const updateMetrics = async () => {
 };
 
 onMounted(() => {
-  updateMetrics();
+  noteStore.getNotes()
+    .catch((error) => console.error('Fehler beim Laden der Notizen:', error))
+    .finally(() => updateMetrics());
+
   // Storage Events abfangen um Live-Updates zu ermöglichen
   window.addEventListener('storage', updateMetrics);
 });
@@ -168,29 +164,29 @@ const handleCardClick = (routeName) => {
       <!-- Stundenplan -->
       <div class="placeholder-box clickable" @click="router.push({name: 'Schedules'})">
         <h3>📅 Heutiger Stundenplan</h3>
-        <p style="margin-bottom: 10px; color: #666;">Deine heutigen Stunden anschauen...</p>
-        <button style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+        <p class="schedule-subtitle">Deine heutigen Stunden anschauen...</p>
+        <button class="schedule-btn">
           Zum Stundenplan →
         </button>
       </div>
-      
+
       <!-- Schnelle Notizen -->
       <div class="placeholder-box">
         <h3>⚡ Schnelle Notiz erfassen</h3>
-        <input 
+        <input
           v-model="noteInput"
-          type="text" 
+          type="text"
           placeholder="Notiz eingeben..."
-          style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px;"
+          class="quick-note-input"
           @keyup.enter="addQuickNote"
         />
-        <button 
+        <button
           @click="addQuickNote"
-          style="background: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; width: 100%;"
+          class="quick-note-btn"
         >
           Speichern in Notizen
         </button>
-        <p v-if="quickNote" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 6px; color: #333;">
+        <p v-if="quickNote" class="quick-note-success">
           ✓ Gespeichert: "{{ quickNote }}"
         </p>
       </div>
@@ -306,6 +302,45 @@ const handleCardClick = (routeName) => {
 .placeholder-box h3 { margin-top: 0; color: #23234c; }
 .placeholder-box p { color: #666; }
 
+.schedule-subtitle {
+  margin-bottom: 10px;
+}
+
+.schedule-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.quick-note-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.quick-note-btn {
+  background: #2ecc71;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.quick-note-success {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  color: #333;
+}
+
 /* --- METRICS SECTION --- */
 .metrics-section {
   display: grid;
@@ -340,6 +375,33 @@ const handleCardClick = (routeName) => {
 :global(body.dark-mode) .dashboard-container .card-info .subtext,
 :global(body.dark-mode) .dashboard-container .placeholder-box p {
   color: #9aa0b2;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-input {
+  background: #1e1e2f;
+  border: 1px solid #4a4d62;
+  color: #edf0fa;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-input::placeholder {
+  color: #9aa0b2;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-btn {
+  background: #1f9d64;
+  border: 1px solid #2abf7b;
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .dashboard-container .schedule-btn {
+  background: #2d6fb3;
+  border: 1px solid #3f84cc;
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-success {
+  background: #2a3147;
+  color: #dbe3f3;
 }
 
 @media (max-width: 768px) {
