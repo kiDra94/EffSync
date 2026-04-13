@@ -301,9 +301,6 @@ export class UsersService {
    * @param roleId - Die Role ID
    */
   async removeRoleFromUser(userId: number, roleId: number) {
-    console.log(`➖ removeRoleFromUser: userId=${userId}, roleId=${roleId}`);
-
-    // Finde die Rolle
     const role = await this.prisma.roles.findUnique({
       where: { role_id: roleId }
     });
@@ -311,9 +308,7 @@ export class UsersService {
     if (!role) {
       throw new NotFoundException(`Role ${roleId} nicht gefunden`);
     }
-    console.log(`  ├─ Role: ${role.name}`);
 
-    // Prüfe: User hat diese Rolle?
     const userRole = await this.prisma.user_roles.findUnique({
       where: {
         user_id_role_id: {
@@ -327,28 +322,19 @@ export class UsersService {
       throw new NotFoundException('User hat diese Rolle nicht');
     }
 
-    // SICHERHEIT: Wenn es eine kritische Rolle ist (Superuser/Admin), muss mindestens 1 andere existieren
     const criticalRoles = ['Superuser', 'Admin'];
     if (role.name && criticalRoles.includes(role.name)) {
-      // Zähle wie viele User diese Rolle NOCH haben (nach diesem einen entfernt)
       const countWithRole = await this.prisma.user_roles.count({
-        where: {
-          role_id: roleId
-        }
+        where: { role_id: roleId }
       });
 
-      console.log(`  ├─ Critical role "${role.name}" - currently ${countWithRole} user(s) have it`);
-
-      // Wenn nur noch 1 hat und das ist dieser User - blocken!
       if (countWithRole <= 1) {
-        console.error(`  └─ ❌ Cannot remove - would leave 0 ${role.name}s`);
         throw new BadRequestException(
           `Kann nicht durchgeführt werden: Es muss mindestens 1 ${role.name} existieren`
         );
       }
     }
 
-    console.log(`  ├─ Checks passed - deleting role`);
     const result = await this.prisma.user_roles.delete({
       where: {
         user_id_role_id: {
@@ -360,7 +346,6 @@ export class UsersService {
         roles: true
       }
     });
-    console.log(`  └─ ✅ Role removed successfully`);
     return result;
   }
 

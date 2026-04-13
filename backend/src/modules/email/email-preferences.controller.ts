@@ -35,7 +35,7 @@ export class EmailPreferencesController {
   @Get()
   async getPreferences(@Req() req: Request) {
     try {
-      const userId = (req.user as any)?.['sub']; // From JWT payload
+      const userId = (req.user as any)?.userId ?? (req.user as any)?.id;
 
       if (!userId) {
         return {
@@ -84,7 +84,7 @@ export class EmailPreferencesController {
     @Body() updateDto: EmailPreferencesDto,
   ) {
     try {
-      const userId = (req.user as any)?.['sub'];
+      const userId = (req.user as any)?.userId ?? (req.user as any)?.id;
 
       if (!userId) {
         return {

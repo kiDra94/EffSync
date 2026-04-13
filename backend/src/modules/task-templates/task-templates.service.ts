@@ -17,7 +17,7 @@ export class TaskTemplatesService {
     });
   }
 
-  async findAll(createdBy: number, includeRelations = true) {
+  async findAll(createdBy?: number, includeRelations = true) {
     return await this.prisma.task_templates.findMany({
       where: createdBy ? { created_by: createdBy} : undefined,
       include: includeRelations ? this.basicInclude() : undefined,

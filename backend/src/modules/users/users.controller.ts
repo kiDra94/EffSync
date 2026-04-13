@@ -47,12 +47,7 @@ export class UsersController {
    */
   @Get("profile")
   getProfile(@Req() req) {
-    console.log('👤 Profile endpoint - returning req.user:', req.user);
-    // req.user enthält bereits: id, userId, username, role (von JwtStrategy)
-    return {
-      ...req.user,
-      // Zusätzliche Felder können hier hinzugefügt werden
-    };
+    return { ...req.user };
   }
 
   /**
@@ -208,10 +203,7 @@ export class UsersController {
     @Param('id') userId: string,
     @Body() dto: { role_id: number }
   ) {
-    console.log(`🔗 POST /users/:id/roles - userId=${userId}, roleId=${dto.role_id}`);
-    const result = await this.usersService.addRoleToUser(+userId, dto.role_id);
-    console.log(`  └─ ✅ Role assigned`);
-    return result;
+    return this.usersService.addRoleToUser(+userId, dto.role_id);
   }
 
   /**
