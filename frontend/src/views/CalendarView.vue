@@ -269,20 +269,16 @@ const calendarDays = computed(() => {
     for (let i = 1; i <= daysInMonth; i++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
-        const dayTasks = taskStore.tasks
-            .filter(task => task.deadline && task.deadline.startsWith(dateStr))
-            .map(task => ({id: task.task_id, title: task.title, color: '#4f46e5', type: 'task' }));
-
         const dayEvents = events.value
             .filter(event => event.date === dateStr)
-            .map(event => ({ ...event, type: 'event' }));
+            .map(event => ({ ...event, type: 'task' }));
         
         days.push({
             day: i,
             fullDate: dateStr,
             isPadding: false,
             isToday: isSameDate(new Date(), year, month, i),
-            events: [...dayTasks, ...dayEvents],
+            events: dayEvents,
         });
     }
 
@@ -545,23 +541,11 @@ const dayLable = computed(() => {
 const currentDayEntries = computed(() => {
     const dateStr = currentDayFormated.value.dateStr;
 
-    const dayTasks = taskStore.tasks
-        .filter(task => task.deadline && task.deadline.startsWith(dateStr))
-        .map(task => ({
-            id: task.task_id,
-            title: task.title,
-            deadline: task.deadline,
-            priority_id: task.priority_id,
-            status: task.status, 
-            type: 'task'
-        }));
-    console.log(dayTasks);
-
     const dayEvents = events.value
         .filter(event => event.date === dateStr)
-        .map(event => ({ ...event, type: 'event' }));
+        .map(event => ({ ...event, type: 'task' }));
 
-    return [...dayTasks, ...dayEvents];
+    return dayEvents;
 });
 
 const openTaskModal = (event) => {
