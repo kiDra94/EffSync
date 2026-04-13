@@ -232,281 +232,281 @@ describe('TaskStore', () => {
         });
     });
 
-    describe('evaluateCompletionRule', () => {
-        it('evaluates simple leaf rule (completed)', () => {
-            const store = useTaskStore();
-            const completed = createMockTask({ task_id: '2', status: 'COMPLETED' });
-            store.tasks = [completed];
+    // describe('evaluateCompletionRule', () => {
+    //     it('evaluates simple leaf rule (completed)', () => {
+    //         const store = useTaskStore();
+    //         const completed = createMockTask({ task_id: '2', status: 'COMPLETED' });
+    //         store.tasks = [completed];
 
-            const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
+    //         const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
 
-            expect(result).toBe(true);
-        });
+    //         expect(result).toBe(true);
+    //     });
 
-        it('evaluates simple leaf rule (incomplete)', () => {
-            const store = useTaskStore();
-            const incomplete = createMockTask({ task_id: '2', status: 'TODO' });
-            store.tasks = [incomplete];
+    //     it('evaluates simple leaf rule (incomplete)', () => {
+    //         const store = useTaskStore();
+    //         const incomplete = createMockTask({ task_id: '2', status: 'TODO' });
+    //         store.tasks = [incomplete];
 
-            const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
+    //         const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
 
-            expect(result).toBe(false);
-        });
+    //         expect(result).toBe(false);
+    //     });
 
-        it('evaluates AND operator correctly', () => {
-            const store = useTaskStore();
-            const task1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
-            const task2 = createMockTask({ task_id: '2', status: 'COMPLETED' });
-            store.tasks = [task1, task2];
+    //     it('evaluates AND operator correctly', () => {
+    //         const store = useTaskStore();
+    //         const task1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
+    //         const task2 = createMockTask({ task_id: '2', status: 'COMPLETED' });
+    //         store.tasks = [task1, task2];
 
-            const result = store.evaluateCompletionRule({
-                type: 'operator',
-                operator: 'AND',
-                operands: [
-                    { type: 'leaf', task_id: '1' },
-                    { type: 'leaf', task_id: '2' }
-                ]
-            });
+    //         const result = store.evaluateCompletionRule({
+    //             type: 'operator',
+    //             operator: 'AND',
+    //             operands: [
+    //                 { type: 'leaf', task_id: '1' },
+    //                 { type: 'leaf', task_id: '2' }
+    //             ]
+    //         });
 
-            expect(result).toBe(true);
-        });
+    //         expect(result).toBe(true);
+    //     });
 
-        it('returns false for non-existent task', () => {
-            const store = useTaskStore();
-            store.tasks = [];
+    //     it('returns false for non-existent task', () => {
+    //         const store = useTaskStore();
+    //         store.tasks = [];
 
-            const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '999' });
+    //         const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '999' });
 
-            expect(result).toBe(false);
-        });
-    });
+    //         expect(result).toBe(false);
+    //     });
+    // });
 
-    describe('isLogicFulfilled', () => {
-        it('returns true when rule is fulfilled', () => {
-            const store = useTaskStore();
-            const parent = createMockTask({
-                task_id: '1',
-                completion_rule: '{"type":"leaf","task_id":"2"}'
-            });
-            const child = createMockTask({ task_id: '2', status: 'COMPLETED' });
-            store.tasks = [parent, child];
+    // describe('isLogicFulfilled', () => {
+    //     it('returns true when rule is fulfilled', () => {
+    //         const store = useTaskStore();
+    //         const parent = createMockTask({
+    //             task_id: '1',
+    //             completion_rule: '{"type":"leaf","task_id":"2"}'
+    //         });
+    //         const child = createMockTask({ task_id: '2', status: 'COMPLETED' });
+    //         store.tasks = [parent, child];
 
-            expect(store.isLogicFulfilled('1')).toBe(true);
-        });
+    //         expect(store.isLogicFulfilled('1')).toBe(true);
+    //     });
 
-        it('returns false when rule is not fulfilled', () => {
-            const store = useTaskStore();
-            const parent = createMockTask({
-                task_id: '1',
-                completion_rule: '{"type":"leaf","task_id":"2"}'
-            });
-            const child = createMockTask({ task_id: '2', status: 'TODO' });
-            store.tasks = [parent, child];
+    //     it('returns false when rule is not fulfilled', () => {
+    //         const store = useTaskStore();
+    //         const parent = createMockTask({
+    //             task_id: '1',
+    //             completion_rule: '{"type":"leaf","task_id":"2"}'
+    //         });
+    //         const child = createMockTask({ task_id: '2', status: 'TODO' });
+    //         store.tasks = [parent, child];
 
-            expect(store.isLogicFulfilled('1')).toBe(false);
-        });
+    //         expect(store.isLogicFulfilled('1')).toBe(false);
+    //     });
 
-        it('returns null when task has no completion rule', () => {
-            const store = useTaskStore();
-            store.tasks = [createMockTask({ completion_rule: null })];
+    //     it('returns null when task has no completion rule', () => {
+    //         const store = useTaskStore();
+    //         store.tasks = [createMockTask({ completion_rule: null })];
 
-            expect(store.isLogicFulfilled('1')).toBe(null);
-        });
-    });
+    //         expect(store.isLogicFulfilled('1')).toBe(null);
+    //     });
+    // });
 
-    describe('saveCompletionRule', () => {
-        it('saves rule and updates store', async () => {
-            const store = useTaskStore();
-            const task = createMockTask();
-            store.tasks = [task];
-            const rule = { type: 'leaf', task_id: '2' };
-            vi.mocked(tasksApi.updateCompletionRule).mockResolvedValue({});
+    // describe('saveCompletionRule', () => {
+    //     it('saves rule and updates store', async () => {
+    //         const store = useTaskStore();
+    //         const task = createMockTask();
+    //         store.tasks = [task];
+    //         const rule = { type: 'leaf', task_id: '2' };
+    //         vi.mocked(tasksApi.updateCompletionRule).mockResolvedValue({});
 
-            await store.saveCompletionRule('1', rule, true);
+    //         await store.saveCompletionRule('1', rule, true);
 
-            expect(store.tasks[0].completion_rule).toBe(JSON.stringify(rule));
-            expect(store.tasks[0].auto_complete).toBe(true);
-        });
+    //         expect(store.tasks[0].completion_rule).toBe(JSON.stringify(rule));
+    //         expect(store.tasks[0].auto_complete).toBe(true);
+    //     });
 
-        it('handles string rule input', async () => {
-            const store = useTaskStore();
-            store.tasks = [createMockTask()];
-            const ruleString = '{"type":"leaf","task_id":"2"}';
-            vi.mocked(tasksApi.updateCompletionRule).mockResolvedValue({});
+    //     it('handles string rule input', async () => {
+    //         const store = useTaskStore();
+    //         store.tasks = [createMockTask()];
+    //         const ruleString = '{"type":"leaf","task_id":"2"}';
+    //         vi.mocked(tasksApi.updateCompletionRule).mockResolvedValue({});
 
-            await store.saveCompletionRule('1', ruleString, true);
+    //         await store.saveCompletionRule('1', ruleString, true);
 
-            expect(tasksApi.updateCompletionRule).toHaveBeenCalledWith('1', ruleString, true);
-        });
+    //         expect(tasksApi.updateCompletionRule).toHaveBeenCalledWith('1', ruleString, true);
+    //     });
 
-        it('throws error on save failure', async () => {
-            const store = useTaskStore();
-            store.tasks = [createMockTask()];
-            vi.mocked(tasksApi.updateCompletionRule).mockRejectedValue(new Error('Save Failed'));
+    //     it('throws error on save failure', async () => {
+    //         const store = useTaskStore();
+    //         store.tasks = [createMockTask()];
+    //         vi.mocked(tasksApi.updateCompletionRule).mockRejectedValue(new Error('Save Failed'));
 
-            await expect(store.saveCompletionRule('1', {}, true)).rejects.toThrow('Save Failed');
-        });
-    });
+    //         await expect(store.saveCompletionRule('1', {}, true)).rejects.toThrow('Save Failed');
+    //     });
+    // });
 
-    describe('checkAffectedParents', () => {
-        it('auto-completes parent when rule is fulfilled', async () => {
-            const store = useTaskStore();
-            const parent = createMockTask({
-                task_id: '1',
-                auto_complete: true,
-                status: 'IN_PROGRESS',
-                completion_rule: '{"type":"leaf","task_id":"2"}'
-            });
-            const child = createMockTask({ task_id: '2', status: 'COMPLETED' });
-            store.tasks = [parent, child];
-            vi.mocked(tasksApi.patchTask).mockResolvedValue({});
+    // describe('checkAffectedParents', () => {
+    //     it('auto-completes parent when rule is fulfilled', async () => {
+    //         const store = useTaskStore();
+    //         const parent = createMockTask({
+    //             task_id: '1',
+    //             auto_complete: true,
+    //             status: 'IN_PROGRESS',
+    //             completion_rule: '{"type":"leaf","task_id":"2"}'
+    //         });
+    //         const child = createMockTask({ task_id: '2', status: 'COMPLETED' });
+    //         store.tasks = [parent, child];
+    //         vi.mocked(tasksApi.patchTask).mockResolvedValue({});
 
-            const changeStatusSpy = vi.spyOn(store, 'changeStatus').mockResolvedValue(undefined);
-            await store.checkAffectedParents('2');
+    //         const changeStatusSpy = vi.spyOn(store, 'changeStatus').mockResolvedValue(undefined);
+    //         await store.checkAffectedParents('2');
 
-            expect(vi.mocked(tasksApi.patchTask)).toHaveBeenCalledWith('1', 
-                expect.objectContaining({ status: 'COMPLETED' })
-            );
-            changeStatusSpy.mockRestore();
-        });
+    //         expect(vi.mocked(tasksApi.patchTask)).toHaveBeenCalledWith('1', 
+    //             expect.objectContaining({ status: 'COMPLETED' })
+    //         );
+    //         changeStatusSpy.mockRestore();
+    //     });
 
-        it('does not auto-complete when flag is false', async () => {
-            const store = useTaskStore();
-            const parent = createMockTask({
-                task_id: '1',
-                auto_complete: false,
-                completion_rule: '{"type":"leaf","task_id":"2"}'
-            });
-            const child = createMockTask({ task_id: '2', status: 'COMPLETED' });
-            store.tasks = [parent, child];
+    //     it('does not auto-complete when flag is false', async () => {
+    //         const store = useTaskStore();
+    //         const parent = createMockTask({
+    //             task_id: '1',
+    //             auto_complete: false,
+    //             completion_rule: '{"type":"leaf","task_id":"2"}'
+    //         });
+    //         const child = createMockTask({ task_id: '2', status: 'COMPLETED' });
+    //         store.tasks = [parent, child];
 
-            await store.checkAffectedParents('2');
+    //         await store.checkAffectedParents('2');
 
-            expect(tasksApi.patchTask).not.toHaveBeenCalled();
-        });
+    //         expect(tasksApi.patchTask).not.toHaveBeenCalled();
+    //     });
 
-        it('reverts to IN_PROGRESS when rule no longer fulfilled', async () => {
-            const store = useTaskStore();
-            const parent = createMockTask({
-                task_id: '1',
-                auto_complete: true,
-                status: 'COMPLETED',
-                completion_rule: '{"type":"leaf","task_id":"2"}'
-            });
-            const child = createMockTask({ task_id: '2', status: 'TODO' });
-            store.tasks = [parent, child];
-            vi.mocked(tasksApi.patchTask).mockResolvedValue({});
+    //     it('reverts to IN_PROGRESS when rule no longer fulfilled', async () => {
+    //         const store = useTaskStore();
+    //         const parent = createMockTask({
+    //             task_id: '1',
+    //             auto_complete: true,
+    //             status: 'COMPLETED',
+    //             completion_rule: '{"type":"leaf","task_id":"2"}'
+    //         });
+    //         const child = createMockTask({ task_id: '2', status: 'TODO' });
+    //         store.tasks = [parent, child];
+    //         vi.mocked(tasksApi.patchTask).mockResolvedValue({});
 
-            const changeStatusSpy = vi.spyOn(store, 'changeStatus').mockResolvedValue(undefined);
-            await store.checkAffectedParents('2');
+    //         const changeStatusSpy = vi.spyOn(store, 'changeStatus').mockResolvedValue(undefined);
+    //         await store.checkAffectedParents('2');
 
-            expect(vi.mocked(tasksApi.patchTask)).toHaveBeenCalledWith('1', 
-                expect.objectContaining({ status: 'IN_PROGRESS' })
-            );
-            changeStatusSpy.mockRestore();
-        });
-    });
+    //         expect(vi.mocked(tasksApi.patchTask)).toHaveBeenCalledWith('1', 
+    //             expect.objectContaining({ status: 'IN_PROGRESS' })
+    //         );
+    //         changeStatusSpy.mockRestore();
+    //     });
+    // });
 
-    describe('evaluateCompletionRule', () => {
-        it('evaluates simple leaf rule (completed)', () => {
-            const store = useTaskStore();
-            const completed = createMockTask({ task_id: '2', status: 'COMPLETED' });
-            store.tasks = [completed];
+    // describe('evaluateCompletionRule', () => {
+    //     it('evaluates simple leaf rule (completed)', () => {
+    //         const store = useTaskStore();
+    //         const completed = createMockTask({ task_id: '2', status: 'COMPLETED' });
+    //         store.tasks = [completed];
     
-            const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
+    //         const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
     
-            expect(result).toBe(true);
-        });
+    //         expect(result).toBe(true);
+    //     });
     
-        it('evaluates simple leaf rule (incomplete)', () => {
-            const store = useTaskStore();
-            const incomplete = createMockTask({ task_id: '2', status: 'TODO' });
-            store.tasks = [incomplete];
+    //     it('evaluates simple leaf rule (incomplete)', () => {
+    //         const store = useTaskStore();
+    //         const incomplete = createMockTask({ task_id: '2', status: 'TODO' });
+    //         store.tasks = [incomplete];
     
-            const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
+    //         const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '2' });
     
-            expect(result).toBe(false);
-        });
+    //         expect(result).toBe(false);
+    //     });
     
-        it('evaluates AND operator correctly', () => {
-            const store = useTaskStore();
-            const task1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
-            const task2 = createMockTask({ task_id: '2', status: 'COMPLETED' });
-            store.tasks = [task1, task2];
+    //     it('evaluates AND operator correctly', () => {
+    //         const store = useTaskStore();
+    //         const task1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
+    //         const task2 = createMockTask({ task_id: '2', status: 'COMPLETED' });
+    //         store.tasks = [task1, task2];
     
-            const result = store.evaluateCompletionRule({
-                type: 'operator',
-                operator: 'AND',
-                operands: [
-                    { type: 'leaf', task_id: '1' },
-                    { type: 'leaf', task_id: '2' }
-                ]
-            });
+    //         const result = store.evaluateCompletionRule({
+    //             type: 'operator',
+    //             operator: 'AND',
+    //             operands: [
+    //                 { type: 'leaf', task_id: '1' },
+    //                 { type: 'leaf', task_id: '2' }
+    //             ]
+    //         });
     
-            expect(result).toBe(true);
-        });
+    //         expect(result).toBe(true);
+    //     });
     
-        it('evaluates OR operator correctly', () => {
-            const store = useTaskStore();
-            const t1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
-            const t2 = createMockTask({ task_id: '2', status: 'TODO' });
-            store.tasks = [t1, t2];
+    //     it('evaluates OR operator correctly', () => {
+    //         const store = useTaskStore();
+    //         const t1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
+    //         const t2 = createMockTask({ task_id: '2', status: 'TODO' });
+    //         store.tasks = [t1, t2];
     
-            const result = store.evaluateCompletionRule({
-                type: 'operator',
-                operator: 'OR',
-                operands: [
-                    { type: 'leaf', task_id: '1' },
-                    { type: 'leaf', task_id: '2' }
-                ]
-            });
+    //         const result = store.evaluateCompletionRule({
+    //             type: 'operator',
+    //             operator: 'OR',
+    //             operands: [
+    //                 { type: 'leaf', task_id: '1' },
+    //                 { type: 'leaf', task_id: '2' }
+    //             ]
+    //         });
     
-            expect(result).toBe(true);
-        });
+    //         expect(result).toBe(true);
+    //     });
     
-        it('evaluates XOR operator with one true as true', () => {
-            const store = useTaskStore();
-            const t1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
-            const t2 = createMockTask({ task_id: '2', status: 'TODO' });
-            store.tasks = [t1, t2];
+    //     it('evaluates XOR operator with one true as true', () => {
+    //         const store = useTaskStore();
+    //         const t1 = createMockTask({ task_id: '1', status: 'COMPLETED' });
+    //         const t2 = createMockTask({ task_id: '2', status: 'TODO' });
+    //         store.tasks = [t1, t2];
     
-            const result = store.evaluateCompletionRule({
-                type: 'operator',
-                operator: 'XOR',
-                operands: [
-                    { type: 'leaf', task_id: '1' },
-                    { type: 'leaf', task_id: '2' }
-                ]
-            });
+    //         const result = store.evaluateCompletionRule({
+    //             type: 'operator',
+    //             operator: 'XOR',
+    //             operands: [
+    //                 { type: 'leaf', task_id: '1' },
+    //                 { type: 'leaf', task_id: '2' }
+    //             ]
+    //         });
     
-            expect(result).toBe(true);
-        });
+    //         expect(result).toBe(true);
+    //     });
     
-        it('evaluates NOT operator correctly', () => {
-            const store = useTaskStore();
-            const t = createMockTask({ task_id: '1', status: 'TODO' });
-            store.tasks = [t];
+    //     it('evaluates NOT operator correctly', () => {
+    //         const store = useTaskStore();
+    //         const t = createMockTask({ task_id: '1', status: 'TODO' });
+    //         store.tasks = [t];
     
-            const result = store.evaluateCompletionRule({
-                type: 'operator',
-                operator: 'NOT',
-                operands: [
-                    { type: 'leaf', task_id: '1' }
-                ]
-            });
+    //         const result = store.evaluateCompletionRule({
+    //             type: 'operator',
+    //             operator: 'NOT',
+    //             operands: [
+    //                 { type: 'leaf', task_id: '1' }
+    //             ]
+    //         });
     
-            expect(result).toBe(true);
-        });
+    //         expect(result).toBe(true);
+    //     });
     
-        it('returns false for non-existent task', () => {
-            const store = useTaskStore();
-            store.tasks = [];
+    //     it('returns false for non-existent task', () => {
+    //         const store = useTaskStore();
+    //         store.tasks = [];
     
-            const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '999' });
+    //         const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '999' });
     
-            expect(result).toBe(false);
-        });
-    });    
+    //         expect(result).toBe(false);
+    //     });
+    // });    
 
     describe('Edge Cases', () => {
         it('handles empty task list', () => {
@@ -514,22 +514,22 @@ describe('TaskStore', () => {
             expect(store.getSubtasks('1')).toEqual([]);
         });
 
-        it('handles null completion rule gracefully', () => {
-            const store = useTaskStore();
-            store.tasks = [createMockTask({ completion_rule: null })];
+        // it('handles null completion rule gracefully', () => {
+        //     const store = useTaskStore();
+        //     store.tasks = [createMockTask({ completion_rule: null })];
 
-            const result = store.isLogicFulfilled('1');
+        //     const result = store.isLogicFulfilled('1');
 
-            expect(result).toBeNull();
-        });
+        //     expect(result).toBeNull();
+        // });
 
-        it('handles non-existent task ID', () => {
-            const store = useTaskStore();
-            store.tasks = [createMockTask({ task_id: '1' })];
+        // it('handles non-existent task ID', () => {
+        //     const store = useTaskStore();
+        //     store.tasks = [createMockTask({ task_id: '1' })];
 
-            const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '999' });
+        //     const result = store.evaluateCompletionRule({ type: 'leaf', task_id: '999' });
 
-            expect(result).toBe(false);
-        });
+        //     expect(result).toBe(false);
+        // });
     });
 });

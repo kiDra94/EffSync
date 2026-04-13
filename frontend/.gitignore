@@ -7,13 +7,23 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build
 dist
 dist-ssr
+
+# Environment
+.env
+.env.development
+.env.production
+.env.*.local
 *.local
+!.env.*.example
+!.env.example
 
 # Editor directories and files
-.vscode
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -32,12 +42,8 @@ cypress/videos/
 cypress/downloads/
 test-results/
 *.log
-
-# Vitest
-vitest.config.js.timestamp-*
-
-# Testing (zusätzlich)
 .vitest-cache/
 playwright-report/
 html-report/
 .eslintcache
+vitest.config.js.timestamp-*

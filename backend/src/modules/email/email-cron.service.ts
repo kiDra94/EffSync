@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from './email.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { TasksService } from '../tasks/tasks.service';
 
 @Injectable()
 export class EmailCronService {
@@ -10,6 +12,8 @@ export class EmailCronService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private notificationsService: NotificationsService,
+    private tasksService: TasksService,
   ) {}
 
   /**
@@ -51,7 +55,7 @@ export class EmailCronService {
 
         if (!assignedUser) continue;
 
-        // Überprüfe ob der Benutzer E-Mail-Benachrichtigungen aktiviert hat
+        // 1️⃣ E-Mail senden
         const userPreferences = await this.prisma.email_preferences.findUnique({
           where: { user_id: assignedUser.user_id },
         });
@@ -73,6 +77,22 @@ export class EmailCronService {
             );
           }
         }
+
+        // 2️⃣ Feature #27: In-App Notification erstellen
+        const daysUntil = Math.ceil(
+          ((task.deadline || new Date()).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+        );
+
+        await this.notificationsService.create({
+          user_id: assignedUser.user_id,
+          type: 'task_deadline',
+          text: `⏰ Aufgabe "${task.title}" ist fällig in ${daysUntil} Tag(en)`,
+          is_read: false,
+        });
+
+        this.logger.log(
+          `📬 In-app notification created for user ${assignedUser.user_id}`,
+        );
       }
 
       this.logger.log('✅ Deadline check completed');
@@ -83,14 +103,16 @@ export class EmailCronService {
 
   /**
    * Stündlich: Prüfe auf überfällige Aufgaben
-   * Versendet Erinnerungen an Benutzer deren Aufgaben überfällig sind
+   * Sperrt überf ällige Aufgaben und sendet Benachrichtigungen
    */
   @Cron(CronExpression.EVERY_HOUR)
   async checkOverdueDeadlines() {
+    this.logger.log('🚨 Checking for overdue deadlines...');
+
     try {
-      // Finde alle Aufgaben die überfällig sind
       const now = new Date();
 
+      // Feature #27: Finde alle überfälligen Tasks die noch nicht gesperrt sind
       const overdueTasks = await this.prisma.tasks.findMany({
         where: {
           deadline: {
@@ -98,6 +120,7 @@ export class EmailCronService {
           },
           status: { not: 'COMPLETED' },
           assigned_to: { not: null },
+          is_locked: false, // ✅ Feature #27: Nur noch nicht gesperrte Tasks
         },
         include: {
           users_tasks_assigned_toTousers: true,
@@ -105,16 +128,25 @@ export class EmailCronService {
       });
 
       if (overdueTasks.length > 0) {
-        this.logger.warn(
-          `⚠️  Found ${overdueTasks.length} overdue tasks`,
-        );
+        this.logger.warn(`⚠️  Found ${overdueTasks.length} overdue tasks`);
 
-        // Sende Erinnerungen für überfällige Aufgaben
         for (const task of overdueTasks) {
           const assignedUser = task.users_tasks_assigned_toTousers;
 
           if (!assignedUser) continue;
 
+          // 1️⃣ Feature #27: Task automatisch sperren
+          await this.prisma.tasks.update({
+            where: { task_id: task.task_id },
+            data: {
+              is_locked: true,
+              locked_reason: 'OVERDUE',
+              locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Tage
+            },
+          });
+          this.logger.warn(`🔒 Locked task ${task.task_id}: ${task.title}`);
+
+          // 2️⃣ E-Mail senden
           const userPreferences = await this.prisma.email_preferences.findUnique({
             where: { user_id: assignedUser.user_id },
           });
@@ -129,11 +161,28 @@ export class EmailCronService {
               task.title || 'Untitled Task',
               task.deadline,
             );
+            this.logger.log(
+              `✉️  Overdue email sent to ${assignedUser.email} for task "${task.title}"`,
+            );
           }
+
+          // 3️⃣ Feature #27: In-App Notification (URGENT)
+          await this.notificationsService.create({
+            user_id: assignedUser.user_id,
+            type: 'task_overdue',
+            text: `🚨 AUFGABE ÜBERFÄLLIG: "${task.title}" wurde automatisch gesperrt!`,
+            is_read: false,
+          });
+
+          this.logger.warn(
+            `📬 Overdue notification created for user ${assignedUser.user_id}`,
+          );
         }
       }
+
+      this.logger.log('✅ Overdue check completed');
     } catch (error) {
-      this.logger.error('Error checking overdue deadlines:', error);
+      this.logger.error('❌ Error checking overdue deadlines:', error);
     }
   }
 

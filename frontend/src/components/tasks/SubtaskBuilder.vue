@@ -167,4 +167,87 @@ const emitUpdate = () => {
 .btn-remove:hover {
     background: #dc2626;
 }
+
+:global(body.dark-mode) .subtask-builder,
+:global(.app-container.dark-mode) .subtask-builder {
+    background: #2c3147 !important;
+    border-color: #4f5672 !important;
+}
+
+:global(body.dark-mode) .builder-header h4,
+:global(.app-container.dark-mode) .builder-header h4,
+:global(body.dark-mode) .empty-state,
+:global(.app-container.dark-mode) .empty-state {
+    color: #edf0fa !important;
+}
+
+:global(body.dark-mode) .subtask-item,
+:global(.app-container.dark-mode) .subtask-item {
+    background: #25283a !important;
+    border: 1px solid #444b66 !important;
+}
+
+:global(body.dark-mode) .subtask-input,
+:global(body.dark-mode) .subtask-priority,
+:global(.app-container.dark-mode) .subtask-input,
+:global(.app-container.dark-mode) .subtask-priority {
+    background: #31364d !important;
+    border-color: #59607d !important;
+    color: #f5f7ff !important;
+}
+
+:global(body.dark-mode) .subtask-input::placeholder,
+:global(.app-container.dark-mode) .subtask-input::placeholder {
+    color: #b2b9cb !important;
+}
+</style>
+
+<style>
+body.dark-mode .subtask-builder,
+.app-container.dark-mode .subtask-builder {
+    background: #262b3f !important;
+    border: 1px solid #59607d !important;
+}
+
+body.dark-mode .subtask-builder .builder-header h4,
+.app-container.dark-mode .subtask-builder .builder-header h4,
+body.dark-mode .subtask-builder .empty-state,
+.app-container.dark-mode .subtask-builder .empty-state {
+    color: #edf0fa !important;
+}
+
+body.dark-mode .subtask-builder .btn-add-subtask,
+.app-container.dark-mode .subtask-builder .btn-add-subtask {
+    background: #48506f !important;
+    color: #f5f7ff !important;
+    border: 1px solid #687092 !important;
+}
+
+body.dark-mode .subtask-builder .subtask-item,
+.app-container.dark-mode .subtask-builder .subtask-item,
+body.dark-mode .subtask-builder .subtask-input-group,
+.app-container.dark-mode .subtask-builder .subtask-input-group {
+    background: #2f344b !important;
+}
+
+body.dark-mode .subtask-builder .subtask-item,
+.app-container.dark-mode .subtask-builder .subtask-item {
+    border: 1px solid #49506b !important;
+}
+
+body.dark-mode .subtask-builder .subtask-input,
+body.dark-mode .subtask-builder .subtask-priority,
+.app-container.dark-mode .subtask-builder .subtask-input,
+.app-container.dark-mode .subtask-builder .subtask-priority {
+    background: #25293c !important;
+    border: 1px solid #59607d !important;
+    color: #f5f7ff !important;
+}
+
+body.dark-mode .subtask-builder .btn-remove,
+.app-container.dark-mode .subtask-builder .btn-remove {
+    background: #545a75 !important;
+    border: 1px solid #69718f !important;
+    color: #ffffff !important;
+}
 </style>

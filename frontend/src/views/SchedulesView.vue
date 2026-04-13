@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import ScheduleForm from '@/components/schedules/ScheduleForm.vue';
 import ScheduleDeleteDialog from '@/components/schedules/ScheduleDeleteDialog.vue';
+import { useAuthStore } from '@/stores/authStore';
 
 const STORAGE_KEY = 'effsync_schedules';
 
@@ -37,6 +38,12 @@ const selectedSchedule = ref(null);
 const activeModal = ref(null);
 const activeView = ref('list');
 const searchQuery = ref('');
+const authStore = useAuthStore();
+
+const canManageSchedules = computed(() => {
+  const role = (authStore.userRole || '').toLowerCase();
+  return ['admin', 'superuser', 'director'].includes(role);
+});
 
 const filteredSchedules = computed(() => {
   if (!searchQuery.value) return schedules.value;
@@ -69,6 +76,7 @@ const saveToStorage = () => {
 };
 
 const openScheduleForm = (schedule = null) => {
+  if (!canManageSchedules.value) return;
   selectedSchedule.value = schedule ? JSON.parse(JSON.stringify(schedule)) : null;
   activeModal.value = 'form';
 };
@@ -79,6 +87,7 @@ const openScheduleDetail = (schedule) => {
 };
 
 const openDeleteDialog = (schedule) => {
+  if (!canManageSchedules.value) return;
   selectedSchedule.value = schedule;
   activeModal.value = 'delete';
 };
@@ -89,6 +98,7 @@ const closeModal = () => {
 };
 
 const saveSchedule = async (scheduleData) => {
+  if (!canManageSchedules.value) return;
   try {
     if (scheduleData.schedule_id) {
       const index = schedules.value.findIndex(s => s.schedule_id === scheduleData.schedule_id);
@@ -110,6 +120,7 @@ const saveSchedule = async (scheduleData) => {
 };
 
 const deleteSchedule = async () => {
+  if (!canManageSchedules.value) return;
   if (selectedSchedule.value) {
     try {
       schedules.value = schedules.value.filter(s => s.schedule_id !== selectedSchedule.value.schedule_id);
@@ -144,7 +155,7 @@ onMounted(() => {
     <div v-if="activeView === 'list'">
       <div class="schedules-header">
         <h1>Stundenpläne</h1>
-        <button @click="openScheduleForm()" class="btn-primary">
+        <button v-if="canManageSchedules" @click="openScheduleForm()" class="btn-primary">
           + Neuer Stundenplan
         </button>
       </div>
@@ -167,8 +178,8 @@ onMounted(() => {
             </div>
             <div class="schedule-actions">
               <button @click="openScheduleDetail(schedule)" class="btn-icon" title="Details anzeigen">👁️</button>
-              <button @click="openScheduleForm(schedule)" class="btn-icon" title="Bearbeiten">✏️</button>
-              <button @click="openDeleteDialog(schedule)" class="btn-icon btn-danger" title="Löschen">🗑️</button>
+              <button v-if="canManageSchedules" @click="openScheduleForm(schedule)" class="btn-icon" title="Bearbeiten">✏️</button>
+              <button v-if="canManageSchedules" @click="openDeleteDialog(schedule)" class="btn-icon btn-danger" title="Löschen">🗑️</button>
             </div>
           </div>
 
@@ -197,7 +208,8 @@ onMounted(() => {
 
       <div v-else class="empty-state">
         <p>Keine Stundenpläne vorhanden.</p>
-        <button @click="openScheduleForm()" class="btn-primary">Ersten Stundenplan erstellen</button>
+        <button v-if="canManageSchedules" @click="openScheduleForm()" class="btn-primary">Ersten Stundenplan erstellen</button>
+        <p v-else>Du hast nur Leserechte für Stundenpläne.</p>
       </div>
     </div>
 
@@ -207,7 +219,7 @@ onMounted(() => {
 
       <div class="detail-header">
         <h1>{{ selectedSchedule.name }}</h1>
-        <div class="detail-actions">
+        <div v-if="canManageSchedules" class="detail-actions">
           <button @click="openScheduleForm(selectedSchedule)" class="btn-secondary">Bearbeiten</button>
           <button @click="openDeleteDialog(selectedSchedule)" class="btn-danger">Löschen</button>
         </div>
@@ -557,5 +569,106 @@ onMounted(() => {
 
 .btn-primary:active {
   transform: translateY(0);
+}
+</style>
+
+<style>
+body.dark-mode .schedules-view,
+.app-container.dark-mode .schedules-view {
+  color: #edf0fa;
+}
+
+body.dark-mode .page-header h1,
+.app-container.dark-mode .page-header h1 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .search-input,
+.app-container.dark-mode .search-input {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .schedule-card,
+.app-container.dark-mode .schedule-card {
+  background: #25283a !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .schedule-card-header,
+.app-container.dark-mode .schedule-card-header {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .schedule-title h3,
+.app-container.dark-mode .schedule-title h3 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .info-label,
+.app-container.dark-mode .info-label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .info-value,
+.app-container.dark-mode .info-value,
+body.dark-mode .info-row p,
+.app-container.dark-mode .info-row p {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .info-card,
+body.dark-mode .content-card,
+.app-container.dark-mode .info-card,
+.app-container.dark-mode .content-card {
+  background: #25283a !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .info-card h2,
+body.dark-mode .content-card h2,
+body.dark-mode .detail-header h1,
+.app-container.dark-mode .info-card h2,
+.app-container.dark-mode .content-card h2,
+.app-container.dark-mode .detail-header h1 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .info-row label,
+.app-container.dark-mode .info-row label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .detail-header,
+.app-container.dark-mode .detail-header {
+  border-color: #434963 !important;
+}
+
+body.dark-mode .btn-back,
+body.dark-mode .btn-secondary,
+.app-container.dark-mode .btn-back,
+.app-container.dark-mode .btn-secondary {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .btn-icon,
+.app-container.dark-mode .btn-icon {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .btn-icon:hover,
+.app-container.dark-mode .btn-icon:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+body.dark-mode .empty-state,
+.app-container.dark-mode .empty-state,
+body.dark-mode .content-message,
+.app-container.dark-mode .content-message {
+  color: #7a8199 !important;
 }
 </style>

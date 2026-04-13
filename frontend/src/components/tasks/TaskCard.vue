@@ -41,6 +41,7 @@
     </div>
 
     <div class="task-right">
+      <button v-if="isTeacher" @click="gradeTask" class="task-btn task-btn-grade" title="Bewertung hinzufügen">📝</button>
       <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
@@ -87,6 +88,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { useAuthStore } from '@/stores/authStore';
 import RuleVisualizer from './RuleVisualizer.vue';
 
 const props = defineProps({
@@ -96,17 +98,22 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggle-status', 'change-status', 'edit-rule']);
+const emit = defineEmits(['edit', 'delete', 'toggle-status', 'change-status', 'edit-rule', 'grade']);
 
 const showSubtasks = ref(false);
 const taskStore = useTaskStore();
+const authStore = useAuthStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
 const allTasks = computed(() => taskStore.tasks);
 
-const logicFulfilled = computed(() => {
-  if (!props.task.completion_rule) return null;
-  return taskStore.isLogicFulfilled(props.task.task_id);
+const isTeacher = computed(() => {
+  const roles = ['teacher', 'admin', 'superuser'];
+  return roles.includes((authStore.userRole || '').toLowerCase());
 });
+
+const logicFulfilled = computed(() =>
+  taskStore.tasks.find(t => t.task_id === props.task.task_id)?.isLogicFulfilled ?? false
+);
 
 const parsedRule = computed(() => {
   if (!props.task.completion_rule) return null;
@@ -142,6 +149,10 @@ const editRule = () => {
     return;
   }
   emit('edit-rule', props.task);
+};
+
+const gradeTask = () => {
+  emit('grade', props.task);
 };
 
 const getStatusColor = (status) => {
@@ -186,7 +197,7 @@ const getPriorityLabel = (priorityId) => {
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return '';
+  if (!dateString) return 'Kein Datum';
   const date = new Date(dateString);
   return date.toLocaleDateString('de-DE', {
     day: '2-digit',

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { useAuthStore } from '@/stores/authStore';
 
 let authStore = null;
 
@@ -8,19 +7,20 @@ export const setAuthStore = (store) => {
 };
 
 export const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-    withCredentials: true, // WICHTIG: Erlaubt dem Browser, Cookies (JWT) automatisch zu senden
+    baseURL: import.meta.env.VITE_API_URL || '/api',
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
-// Request Interceptor
+// Request Interceptor - Token hinzufügen
 apiClient.interceptors.request.use(
     config => {
-        // HINWEIS: Wenn du auf HttpOnly Cookies umsteigst, 
-        // musst du den Authorization-Header hier NICHT mehr manuell setzen!
-        // Der Browser macht das für den Cookie von alleine.
+        // ✅ Token aus localStorage holen und mitsenden
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     error => { return Promise.reject(error) }
@@ -29,21 +29,18 @@ apiClient.interceptors.request.use(
 // Response Interceptor
 apiClient.interceptors.response.use(
     response => response,
-    error => {
-        const authStore = useAuthStore();
-
-        // 1. Sicherheits-Check: Rate Limiting (429)
+    async error => {
+        // 1. Rate Limiting (429)
         if (error.response?.status === 429) {
             console.error('Rate Limit erreicht');
-            // Hier könntest du eine globale Benachrichtigung triggern
             return Promise.reject(new Error('Zu viele Anfragen. Bitte warte kurz.'));
         }
 
-        // 2. Sicherheits-Check: Unauthorized (401)
+        // 2. Unauthorized (401) - Logout
         if (error.response?.status === 401) {
-            authStore.logout(); // Token/Session im Store löschen
-            // Optional: Redirect zum Login
-            // window.location.href = '/login'; 
+            if (authStore) {
+                await authStore.logout();
+            }
         }
 
         return Promise.reject(error);

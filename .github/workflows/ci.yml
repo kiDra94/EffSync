@@ -14,6 +14,8 @@ jobs:
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: http://localhost:3000/api
     defaults:
       run:
         working-directory: ./frontend
