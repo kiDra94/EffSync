@@ -554,7 +554,7 @@ const openTaskModal = (event) => {
   const eventId = event.id ?? event.task_id;
   const task = taskStore.tasks.find(
     (t) => String(t.task_id ?? t.id) === String(eventId)
-  );
+  ) ?? events.value.find((e) => String(e.id) === String(eventId));
 
   if (task) {
     selectedTask.value = task;
@@ -636,8 +636,7 @@ const getTaskStyle = (task, index) => {
     
     const d = new Date(task.deadline);
     const deadlineMins = d.getHours() * 60 + d.getMinutes();
-    const startMins = 0; // 00:00 Uhr
-    console.log(deadlineMins);
+    const startMins = 0;
     let calculatedTop = deadlineMins - startMins - HEADEROFFSET - HEGIHTOFFSET;
     if (calculatedTop < 0) calculatedTop = 0;
     if (calculatedTop > MAXIMALMINS - HEADEROFFSET) calculatedTop = MAXIMALMINS - HEADEROFFSET;

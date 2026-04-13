@@ -32,7 +32,6 @@ export class UsersService {
   }
 
   async findAll() {
-    console.log('📋 UsersService - findAll() called');
     const users = await this.prisma.users.findMany({
       select: {
         user_id: true,
@@ -52,7 +51,6 @@ export class UsersService {
         }
       }
     });
-    console.log(`✅ UsersService - findAll() returned ${users.length} users`);
     return users;
   }
 
@@ -245,9 +243,6 @@ export class UsersService {
    * @param roleId - Die Role ID
    */
   async addRoleToUser(userId: number, roleId: number) {
-    console.log(`➕ addRoleToUser: userId=${userId}, roleId=${roleId}`);
-
-    // Prüfe: User existiert
     const user = await this.prisma.users.findUnique({
       where: { user_id: userId }
     });
@@ -255,9 +250,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User ${userId} nicht gefunden`);
     }
-    console.log(`  ├─ User found: ${user.username}`);
 
-    // Prüfe: Role existiert
     const role = await this.prisma.roles.findUnique({
       where: { role_id: roleId }
     });
@@ -265,9 +258,7 @@ export class UsersService {
     if (!role) {
       throw new NotFoundException(`Role ${roleId} nicht gefunden`);
     }
-    console.log(`  ├─ Role found: ${role.name}`);
 
-    // Prüfe: User hat diese Rolle nicht bereits
     const existing = await this.prisma.user_roles.findUnique({
       where: {
         user_id_role_id: {
@@ -280,10 +271,7 @@ export class UsersService {
     if (existing) {
       throw new BadRequestException('User hat diese Rolle bereits');
     }
-    console.log(`  ├─ No existing role found`);
 
-    // Hinzufügen
-    console.log(`  ├─ Creating user_role...`);
     const result = await this.prisma.user_roles.create({
       data: {
         user_id: userId,
@@ -299,7 +287,6 @@ export class UsersService {
         }
       }
     });
-    console.log(`  └─ ✅ Role added successfully`);
     return result;
   }
 

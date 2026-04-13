@@ -65,7 +65,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
         this.server.to(`user_${userId}`).emit('task:updated', task);
     }
 
-    emitToUsser(userId: number, event: string, data: any) {
+    emitToUser(userId: number, event: string, data: any) {
         this.server.to(`user_${userId}`).emit(event, data);
     }
 

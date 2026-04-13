@@ -21,7 +21,7 @@ export class NotificationsService {
     const notification = await this.prisma.notifications.create({
       data: { ...createNotificationDto },
     });
-    this.websocketGateway.emitToUsser(
+    this.websocketGateway.emitToUser(
       createNotificationDto.user_id,
       'notification:new',
       notification,
