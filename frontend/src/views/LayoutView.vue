@@ -33,6 +33,8 @@ const closeSearch = (e) => {
 };
 
 onMounted(() => {
+  // Sync local toggle state with globally persisted body class
+  isDark.value = document.body.classList.contains('dark-mode');
   window.addEventListener('click', closeDropdown)
 })
 
@@ -457,6 +459,11 @@ hr {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
+}
+
+:global(body.dark-mode) .content,
+.app-container.dark-mode .content {
+  background-color: #1e1e2f !important;
 }
 
 .content.login-mode {

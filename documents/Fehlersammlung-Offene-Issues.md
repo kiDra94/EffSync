@@ -253,84 +253,27 @@
 
 ---
 
-### 10. **Offene Aufgaben Counter im Dashboard falsch**
-- **Problem:** Die "Offene Aufgaben" Kachel im Dashboard zeigt eine falsche Zahl
-- **Aktuell:** Counter ist wahrscheinlich nicht gefiltert nach User oder zählt alles doppelt
-- **Sollte sein:** 
-  - **Schüler**: Nur IHM zugewiesene Tasks mit Status "TODO" oder "IN_PROGRESS"
-  - **Lehrer/Admin**: Tasks, die ER erstellt hat und noch offen sind (optional: + Tasks von seinen Klassen)
+### 12. **Task-Ersteller erscheint nicht automatisch beim Superuser als Mitglied**
+- **Problem:** Wenn ein Benutzer einen Task erstellt, erscheint diese Mitgliedschaft nicht automatisch in der Superuser-Sicht
+- **Aktuell:** Task wird erstellt, aber der Ersteller ist nicht zuverlässig als Member im Membership-Kontext sichtbar
+- **Sollte sein:** Jeder Task-Ersteller wird beim Anlegen automatisch als Mitglied (`task_members`) eingetragen und ist für Superuser in Mitgliederlisten/Details sichtbar
 - **Dateien betroffen:**
-  - `frontend/src/views/DashboardView.vue` - getStorageCount('tasks') ist Static!
-  - `frontend/src/api/metrics.js` - Neuer Endpoint: getOpenTasksCount()
-  - `backend/src/modules/metrics/metrics.service.ts` - getOpenTasksCount() implementieren
+  - `backend/src/modules/tasks/*` - Beim Create-Flow Task-Ersteller als Member hinzufügen
+  - `backend/src/modules/task-members/*` - Member-Abfragen für Superuser prüfen
+  - `frontend/src/views/TaskView.vue` - Mitgliederanzeige aktualisieren
+  - `frontend/src/api/taskMembers.js` - ggf. Datenfluss prüfen
 - **Lösung:**
   ```typescript
-  // Backend: Offene Tasks zählen (User-spezifisch)
-  async getOpenTasksCount(userId: number, userRole: string) {
-    if (userRole === 'student') {
-      // Nur zugewiesene Tasks
-      return this.prisma.tasks.count({
-        where: {
-          assigned_to: userId,
-          status: { in: ['TODO', 'IN_PROGRESS'] }
-        }
-      });
-    } else {
-      // Lehrer: Seine Tasks + seine Klassen
-      return this.prisma.tasks.count({
-        where: {
-          OR: [
-            { created_by: userId, status: { in: ['TODO', 'IN_PROGRESS'] } }
-          ]
-        }
-      });
-    }
-  }
-  
-  // Frontend: Echte API-Call statt localStorage
-  const openTasks = await fetchMetrics('open-tasks-count');
+  // Beim Task-Create automatisch Creator als Member anlegen
+  await prisma.task_members.upsert({
+    where: { task_id_user_id: { task_id: newTask.task_id, user_id: creatorId } },
+    update: {},
+    create: { task_id: newTask.task_id, user_id: creatorId },
+  });
   ```
 
 ---
 
-### 11. **Registrierung - Keine minimalen Rechte für neue User**
-- **Problem:** Neue User, die sich registrieren, bekommen automatisch KEINE Role zugewiesen
-- **Aktuell:** `auth.service.ts` register() Methode erstellt User ohne user_roles Eintrag
-- **Sollte sein:** Jeder neue User bekommt automatisch **Student-Rolle** mit minimalen Rechten zugewiesen
-- **Datei betroffen:**
-  - `backend/src/modules/auth/auth.service.ts` - register() Methode erweitern
-- **Lösung:**
-  ```typescript
-  // In auth.service.ts register() Methode:
-  async register(createUserDto: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    const newUser = await this.prisma.users.create({
-      data: {
-        ...createUserDto,
-        password_hash: hashedPassword,
-      },
-    });
-
-    // Student-Rolle automatisch zuweisen
-    const studentRole = await this.prisma.roles.findFirst({
-      where: { name: 'Student' },
-    });
-
-    if (studentRole) {
-      await this.prisma.user_roles.create({
-        data: {
-          user_id: newUser.user_id,
-          role_id: studentRole.role_id,
-        },
-      });
-    }
-
-    return newUser;
-  }
-  ```
-- **DSGVO-Konform:** ✅ Ja - Admin behält Kontrolle über Role-Management via Admin-Panel, keine automatische Rechtesteigerung
-
----
 
 ## 📋 Zusammenfassung nach Priorität
 
@@ -347,6 +290,7 @@
 | 9 | Stundenplan Admin-Management | 🟠 Hoch | Feature fehlt | 90 Min |
 | 10 | Offene Aufgaben Counter | 🟠 Hoch | Falsche Statistik | 30 Min |
 | 11 | Registrierung - Keine Rollen | 🟠 Hoch | Rechteverwaltung | 20 Min |
+| 12 | Task-Ersteller nicht als Member sichtbar (Superuser) | 🟠 Hoch | Rollen-/Mitgliederinkonsistenz | 20 Min |
 
 ---
 
@@ -365,6 +309,7 @@ Vor Abgabe folgende User-Workflows testen:
 - [ ] **Alle:** Fortschritts-Metriken zeigen richtige Zahlen
 - [ ] **Alle:** Klick auf "Stundenplan" geht zur Kalender-Seite mit Heute
 - [ ] **Alle:** Überfällige Tasks zeigen sich im Status-Diagramm
+- [ ] **Als Superuser:** Jeder Task-Ersteller ist nach Task-Erstellung automatisch als Mitglied sichtbar
 
 ---
 

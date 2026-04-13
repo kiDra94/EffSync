@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { createNote, fetchNotes } from '@/api/notes';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 
@@ -12,21 +13,20 @@ const taskStore = useTaskStore();
 const quickNote = ref('');
 const noteInput = ref('');
 
-const addQuickNote = () => {
+const addQuickNote = async () => {
   if (noteInput.value.trim()) {
-    quickNote.value = noteInput.value;
-    // Speichern in Notes
-    const notes = JSON.parse(localStorage.getItem('effsync_notes') || '[]');
-    const newNote = {
-      id: Date.now(),
-      title: 'Schnelle Notiz vom Dashboard',
-      content: noteInput.value,
-      created_at: new Date().toISOString()
-    };
-    notes.unshift(newNote);
-    localStorage.setItem('effsync_notes', JSON.stringify(notes));
-    noteInput.value = '';
-    window.dispatchEvent(new Event('storage'));
+    try {
+      const content = noteInput.value.trim();
+      await createNote({
+        title: 'Schnelle Notiz vom Dashboard',
+        description: content,
+      });
+      quickNote.value = content;
+      noteInput.value = '';
+      await updateMetrics();
+    } catch (error) {
+      console.error('Fehler beim Speichern der schnellen Notiz:', error);
+    }
   }
 };
 
@@ -102,15 +102,22 @@ const metrics = ref([
 ]);
 
 // Funktion zum Aktualisieren der Metriken
-const updateMetrics = () => {
+const updateMetrics = async () => {
   const counts = {
     tasks: getStorageCount('tasks'),
     classes: getStorageCount('classes'),
     documents: getStorageCount('documents'),
-    notes: getStorageCount('notes'),
+    notes: 0,
     schedules: getStorageCount('schedules'),
     departments: getStorageCount('departments')
   };
+
+  try {
+    const notes = await fetchNotes();
+    counts.notes = Array.isArray(notes) ? notes.length : 0;
+  } catch (error) {
+    console.error('Fehler beim Laden der Notizen-Metrik:', error);
+  }
   
   metrics.value[0].value = String(counts.tasks);
   metrics.value[1].value = String(counts.classes);
