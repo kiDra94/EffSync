@@ -31,6 +31,18 @@ export class UsersService {
     });
   }
 
+  async findAllForChat() {
+    return await this.prisma.users.findMany({
+      select: {
+        user_id: true,
+        firstname: true,
+        lastname: true,
+        username: true,
+      },
+      orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
+    });
+  }
+
   async findAll() {
     const users = await this.prisma.users.findMany({
       select: {
