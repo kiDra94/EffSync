@@ -275,6 +275,44 @@
 ---
 
 
+### 12. **Notes wurden fälschlich als Bewertungs-Kommentare implementiert**
+- **Problem:** Das Feature `notes` wurde irrtümlich als Kommentar-System für Bewertungen verwendet
+- **Aktuell:** Notizen hängen an Kontexten, die nicht vorgesehen sind (z. B. Bewertungs-/Kommentar-Logik)
+- **Sollte sein:**
+  - `notes` sind ausschließlich **Randnotizen**
+  - Kopplung nur an **Subject** oder **User**
+  - Keine Kopplung an andere Domänen (z. B. Bewertung, Task-Kommentare, sonstige Kontext-Objekte)
+  - Alles, was inhaltlich Feedback/Thread/Antwort ist, wird als **Comment** bezeichnet und umgesetzt
+- **Dateien betroffen (voraussichtlich):**
+  - `backend/prisma/schema.prisma` - Relationen für `notes` und `comments` trennen/schärfen
+  - `backend/src/modules/notes/*` - Nur Randnotiz-Usecases erlauben
+  - `backend/src/modules/*comments*/*` - Kommentar-Usecases sauber als `comments` führen
+
+
+- **Lösung (fachlich):**
+  ```typescript
+  // Notes: nur Subject/User-bezogen
+  type Note = {
+    note_id: number;
+    title: string;
+    description: string;
+    created_by: number;
+    subject_id?: number;
+    // KEINE Bewertung-/Kommentar-Felder
+  }
+
+  // Comments: für Diskussion/Feedback in Fachkontexten
+  type Comment = {
+    comment_id: number;
+    text: string;
+    user_id: number;
+    // Kontext-spezifische Verknüpfung (z. B. task_id, grade_id, ...)
+  }
+  ```
+- **Est. Zeit:** 45–90 Min (abhängig von bestehenden Abhängigkeiten)
+
+---
+
 ## 📋 Zusammenfassung nach Priorität
 
 | # | Fehler | Priorität | Auswirkung | Est. Zeit |
@@ -290,7 +328,8 @@
 | 9 | Stundenplan Admin-Management | 🟠 Hoch | Feature fehlt | 90 Min |
 | 10 | Offene Aufgaben Counter | 🟠 Hoch | Falsche Statistik | 30 Min |
 | 11 | Registrierung - Keine Rollen | 🟠 Hoch | Rechteverwaltung | 20 Min |
-| 12 | Task-Ersteller nicht als Member sichtbar (Superuser) | 🟠 Hoch | Rollen-/Mitgliederinkonsistenz | 20 Min |
+| 12 | Notes vs. Comments sauber trennen | 🟠 Hoch | Datenmodell/Domain-Fehler | 45–90 Min |
+| 13 | Task-Ersteller nicht als Member sichtbar (Superuser) | 🟠 Hoch | Rollen-/Mitgliederinkonsistenz | 20 Min |
 
 ---
 
@@ -309,6 +348,7 @@ Vor Abgabe folgende User-Workflows testen:
 - [ ] **Alle:** Fortschritts-Metriken zeigen richtige Zahlen
 - [ ] **Alle:** Klick auf "Stundenplan" geht zur Kalender-Seite mit Heute
 - [ ] **Alle:** Überfällige Tasks zeigen sich im Status-Diagramm
+- [ ] **Alle:** Notes sind nur an User/Subject gekoppelt; alle anderen Rückmeldungen laufen als Comments
 - [ ] **Als Superuser:** Jeder Task-Ersteller ist nach Task-Erstellung automatisch als Mitglied sichtbar
 
 ---

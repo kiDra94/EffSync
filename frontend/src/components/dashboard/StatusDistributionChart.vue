@@ -41,7 +41,7 @@ const statusColors = {
 
 onMounted(async () => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     
     // Load chart data
     const data = await fetchMetrics('status-distribution');
@@ -65,7 +65,7 @@ onMounted(async () => {
     };
 
     // Load tasks by status
-    const response = await fetch('/api/metrics/tasks-by-status', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/metrics/tasks-by-status`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

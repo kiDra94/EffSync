@@ -64,9 +64,26 @@ export class AuthService {
     };
   }
 
+  async generateJwtFromGoogleUser(googleUser: any) {
+    const payload = {
+      sub: googleUser.userId,
+      username: googleUser.username,
+      role: googleUser.role,
+    };
+    return this.jwtService.sign(payload);
+  }
+
   async validateUser(userId: number) {
     return await this.prisma.users.findUnique({
       where: { user_id: userId },
+    });
+  }
+
+  async setNewPassword(userId: number, newPassword: string) {
+    const hashed = await bcrypt.hash(newPassword, 10);
+    return await this.prisma.users.update({
+      where: { user_id: userId },
+      data: { password_hash: hashed },
     });
   }
 }

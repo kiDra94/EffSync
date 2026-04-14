@@ -5,11 +5,33 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class MetricsService {
   constructor(private prisma: PrismaService) {}
 
+  private buildTaskVisibilityFilter(user: any) {
+    const role = String(user?.role || '').toLowerCase();
+    if (role === 'admin' || role === 'superuser') {
+      return {};
+    }
+
+    const userId = Number(user?.userId || user?.id);
+    if (!userId) {
+      return { task_id: -1 };
+    }
+
+    return {
+      OR: [
+        { created_by: userId },
+        { assigned_to: userId },
+        { task_members: { some: { user_id: userId } } },
+      ],
+    };
+  }
+
   /**
    * Statusverteilung: Anzahl Tasks pro Status
    */
-  async getStatusDistribution() {
+  async getStatusDistribution(user: any) {
+    const where = this.buildTaskVisibilityFilter(user);
     const tasks = await this.prisma.tasks.findMany({
+      where,
       select: { status: true },
     });
 
@@ -43,8 +65,10 @@ export class MetricsService {
   /**
    * Fortschrittsmetriken: Completion-Rate
    */
-  async getTaskProgress() {
+  async getTaskProgress(user: any) {
+    const where = this.buildTaskVisibilityFilter(user);
     const tasks = await this.prisma.tasks.findMany({
+      where,
       select: {
         task_id: true,
         status: true,
@@ -90,8 +114,10 @@ export class MetricsService {
   /*
    * Tasks pro Status
    */
-  async getTasksByStatus() {
+  async getTasksByStatus(user: any) {
+    const where = this.buildTaskVisibilityFilter(user);
     const tasks = await this.prisma.tasks.findMany({
+      where,
       select: {
         task_id: true,
         title: true,

@@ -49,7 +49,7 @@ export const addMember = async (roomId, userId) => {
 };
 
 export const fetchAllUsers = async () => {
-    const response = await apiClient.get('/users');
+    const response = await apiClient.get('/users/for-chat');
     const users = response.data?.data ?? response.data;
     return users;
 };
