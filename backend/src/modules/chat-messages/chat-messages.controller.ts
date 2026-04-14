@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -24,8 +25,22 @@ export class ChatMessagesController {
 
   @Post('rooms/:id/messages')
   @Permissions()
-  create(@Body() createChatMessageDto: CreateChatMessageDto) {
-    return this.chatMessagesService.createMsg(createChatMessageDto);
+  create(
+    @Param('id') roomId: string,
+    @Body() body: Partial<CreateChatMessageDto> & { content?: string },
+    @Req() req,
+  ) {
+    const message = body?.message ?? body?.content;
+    if (!message) {
+      throw new BadRequestException('Message is required');
+    }
+
+    return this.chatMessagesService.createMsg({
+      room_id: Number(roomId),
+      user_id: req.user.userId,
+      message,
+      file_path: body?.file_path,
+    });
   }
 
   @Get()
