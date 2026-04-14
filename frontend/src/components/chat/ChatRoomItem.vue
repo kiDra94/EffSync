@@ -53,7 +53,7 @@ const handleDeleteRoom = (event) => {
 </script>
 
 <template>
-    <div class="room-item" :class="{ 'room-item--active': isActive }">
+    <div class="room-item" :class="{ 'room-item--active': isActive }" @click="emit('click')">
         <span class="room-item__icon">{{ roomIcon }}</span>
         <div class="room-item__info">
             <span class="room-item__name">{{ roomName }}</span>
