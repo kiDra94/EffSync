@@ -209,7 +209,7 @@ const saveRule = async ({ rule, autoComplete }) => {
         <p class="header-subtitle">Deine persönlichen Tasks verwalten</p>
       </div>
 
-      <button v-if="!isTeacher" @click="openTaskForm()" class="btn-primary">
+      <button @click="openTaskForm()" class="btn-primary">
         + Neue Aufgabe
       </button>
     </div>
