@@ -121,28 +121,32 @@ async function main() {
         const passwordHash = await bcrypt.hash('password123', 10);
 
         const usersData = [
-            { firstname: 'Max', lastname: 'Mustermann', email: 'admin@htl.at', username: 'adminadmin' }, // ID 1 (Superuser)
-            { firstname: 'Anna', lastname: 'Lehrerin', email: 'anna.lehrerin@htl.at', username: 'alehrerin' }, // ID 2
-            { firstname: 'Peter', lastname: 'Schmidt', email: 'peter.schmidt@htl.at', username: 'pschmidt' }, // ID 3
-            { firstname: 'Maria', lastname: 'Huber', email: 'maria.huber@htl.at', username: 'mhuber' }, // ID 4
-            { firstname: 'Lukas', lastname: 'Wagner', email: 'lukas.wagner@htl.at', username: 'lwagner' }, // ID 5
-            { firstname: 'Julia', lastname: 'Bauer', email: 'julia.bauer@htl.at', username: 'jbauer' }, // ID 6
-            { firstname: 'Felix', lastname: 'Fuchs', email: 'felix.fuchs@student.htl.at', username: 'ffuchs' }, // ID 7 (Student)
-            { firstname: 'Laura', lastname: 'Gruber', email: 'laura.gruber@student.htl.at', username: 'lgruber' }, // ID 8
-            { firstname: 'David', lastname: 'Wolf', email: 'david.wolf@student.htl.at', username: 'dwolf' }, // ID 9
-            { firstname: 'Sarah', lastname: 'Schwaiger', email: 'sarah.schwaiger@student.htl.at', username: 'sschwaiger' }, // ID 10
-            { firstname: 'Tobias', lastname: 'Eder', email: 'tobias.eder@student.htl.at', username: 'teder' }, // ID 11
-            { firstname: 'Lena', lastname: 'Moser', email: 'lena.moser@student.htl.at', username: 'lmoser' }, // ID 12
-            { firstname: 'Simon', lastname: 'Pichler', email: 'simon.pichler@student.htl.at', username: 'spichler' }, // ID 13
-            { firstname: 'Mia', lastname: 'Steiner', email: 'mia.steiner@student.htl.at', username: 'msteiner' }, // ID 14
-            { firstname: 'Paul', lastname: 'Wallner', email: 'paul.wallner@student.htl.at', username: 'pwallner' }, // ID 15
-            { firstname: 'Emma', lastname: 'Auer', email: 'emma.auer@student.htl.at', username: 'eauer' } // ID 16
-        ].map(u => ({ ...u, password_hash: passwordHash }));
+            { firstname: 'Max', lastname: 'Mustermann', email: 'admin@htl.at', username: 'adminadmin', password_hash: passwordHash }, // ID 1 (Superuser)
+            { firstname: 'Anna', lastname: 'Lehrerin', email: 'anna.lehrerin@htl.at', username: 'alehrerin', password_hash: passwordHash }, // ID 2
+            { firstname: 'Peter', lastname: 'Schmidt', email: 'peter.schmidt@htl.at', username: 'pschmidt', password_hash: passwordHash }, // ID 3
+            { firstname: 'Maria', lastname: 'Huber', email: 'maria.huber@htl.at', username: 'mhuber', password_hash: passwordHash }, // ID 4
+            { firstname: 'Lukas', lastname: 'Wagner', email: 'lukas.wagner@htl.at', username: 'lwagner', password_hash: passwordHash }, // ID 5
+            { firstname: 'Julia', lastname: 'Bauer', email: 'julia.bauer@htl.at', username: 'jbauer', password_hash: passwordHash }, // ID 6
+            { firstname: 'Felix', lastname: 'Fuchs', email: 'felix.fuchs@student.htl.at', username: 'ffuchs', password_hash: passwordHash }, // ID 7 (Student)
+            { firstname: 'Laura', lastname: 'Gruber', email: 'laura.gruber@student.htl.at', username: 'lgruber', password_hash: passwordHash }, // ID 8
+            { firstname: 'David', lastname: 'Wolf', email: 'david.wolf@student.htl.at', username: 'dwolf', password_hash: passwordHash }, // ID 9
+            { firstname: 'Sarah', lastname: 'Schwaiger', email: 'sarah.schwaiger@student.htl.at', username: 'sschwaiger', password_hash: passwordHash }, // ID 10
+            { firstname: 'Tobias', lastname: 'Eder', email: 'tobias.eder@student.htl.at', username: 'teder', password_hash: passwordHash }, // ID 11
+            { firstname: 'Lena', lastname: 'Moser', email: 'lena.moser@student.htl.at', username: 'lmoser', password_hash: passwordHash }, // ID 12
+            { firstname: 'Simon', lastname: 'Pichler', email: 'simon.pichler@student.htl.at', username: 'spichler', password_hash: passwordHash }, // ID 13
+            { firstname: 'Mia', lastname: 'Steiner', email: 'mia.steiner@student.htl.at', username: 'msteiner', password_hash: passwordHash }, // ID 14
+            { firstname: 'Paul', lastname: 'Wallner', email: 'paul.wallner@student.htl.at', username: 'pwallner', password_hash: passwordHash }, // ID 15
+            { firstname: 'Emma', lastname: 'Auer', email: 'emma.auer@student.htl.at', username: 'eauer', password_hash: passwordHash }, // ID 16
+            // Google OAuth Test Users (keine password_hash)
+            { firstname: 'Google', lastname: 'Testuser', email: 'test@gmail.com', username: 'test@gmail.com', google_id: '123456789012345678901', password_hash: null }, // ID 17
+            { firstname: 'Max', lastname: 'Mustermann', email: 'max.mustermann@gmail.com', username: 'max.mustermann@gmail.com', google_id: '123456789012345678902', password_hash: null }, // ID 18
+            { firstname: 'Demo', lastname: 'User', email: 'demo.user@gmail.com', username: 'demo.user@gmail.com', google_id: '123456789012345678903', password_hash: null } // ID 19
+        ];
 
         await prisma.users.createMany({ data: usersData });
-        console.log(`✓ ${usersData.length} Einträge in users erstellt`);
+        console.log(`✓ ${usersData.length} Einträge in users erstellt (davon 3 mit Google OAuth)`);
 
-        const emailPreferencesData = Array.from({ length: 16 }).map((_, i) => ({
+        const emailPreferencesData = Array.from({ length: 19 }).map((_, i) => ({
             user_id: i + 1,
             email_on_deadline: true,
             email_on_mention: true,
@@ -164,12 +168,12 @@ async function main() {
         await prisma.teachers.createMany({ data: teachersData });
         console.log(`✓ 5 Einträge in teachers erstellt`);
 
-        const studentsData = Array.from({ length: 10 }).map((_, i) => ({
+        const studentsData = Array.from({ length: 13 }).map((_, i) => ({
             student_id: i + 7,
             class_id: null // Wird nach Erstellung der Klassen geupdated
         }));
         await prisma.students.createMany({ data: studentsData });
-        console.log(`✓ 10 Einträge in students erstellt`);
+        console.log(`✓ 13 Einträge in students erstellt (inkl. Google OAuth User)`);
 
         // --- PHASE 4: Classes, Roles & Permissions ---
         const classesData = [
@@ -188,7 +192,7 @@ async function main() {
         console.log(`✓ 10 Einträge in classes erstellt`);
 
         // Update Students with class_ids (aufteilen auf die ersten 5 Klassen)
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 13; i++) {
             await prisma.students.update({
                 where: { student_id: i + 7 },
                 data: { class_id: (i % 5) + 1 }
@@ -205,10 +209,14 @@ async function main() {
             { user_id: 5, role_id: 3 },
             { user_id: 6, role_id: 3 },
             // User 7-16: Students
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 }))
+            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 })),
+            // User 17-19: Google OAuth Test Users (Students)
+            { user_id: 17, role_id: 2 },  // test@gmail.com -> Student
+            { user_id: 18, role_id: 2 },  // max.mustermann@gmail.com -> Student
+            { user_id: 19, role_id: 2 }   // demo.user@gmail.com -> Student
         ];
         await prisma.user_roles.createMany({ data: userRolesData });
-        console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt`);
+        console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt (inkl. Google OAuth User)`);
 
         // === ERWEITERTE USER-PERMISSIONS MIT VERSCHIEDENEN TESTSZENARIEN ===
         

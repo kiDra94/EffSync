@@ -167,4 +167,23 @@ describe("AuthService", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("generateJwtFromGoogleUser", () => {
+    it("sollte aus Google-Userdaten einen JWT erstellen", async () => {
+      const googleUser = {
+        userId: 20,
+        username: "oauth.user@gmail.com",
+        role: "student",
+      };
+
+      const token = await service.generateJwtFromGoogleUser(googleUser);
+
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        sub: 20,
+        username: "oauth.user@gmail.com",
+        role: "student",
+      });
+      expect(token).toBe("mock.jwt.token");
+    });
+  });
 });

@@ -18,6 +18,11 @@ const routes = [
         component: () => import('@/views/ForgotPasswordView.vue'),
     },
     {
+        path: '/auth-callback',
+        name: 'AuthCallback',
+        component: () => import('@/views/AuthCallbackView.vue'),
+    },
+    {
         path: '/',
         component: () => import('@/views/LayoutView.vue'),
         meta: { requiresAuth: true },

@@ -64,6 +64,15 @@ export class AuthService {
     };
   }
 
+  async generateJwtFromGoogleUser(googleUser: any) {
+    const payload = {
+      sub: googleUser.userId,
+      username: googleUser.username,
+      role: googleUser.role,
+    };
+    return this.jwtService.sign(payload);
+  }
+
   async validateUser(userId: number) {
     return await this.prisma.users.findUnique({
       where: { user_id: userId },

@@ -39,6 +39,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: payload.sub,
       userId: payload.sub,
       username: payload.username,
+      email: user.email,
+      firstname: user.firstname,
+      lastname: user.lastname,
       role: payload.role || primaryRole, // Nutze JWT-Rolle oder DB-Rolle
     };
     
