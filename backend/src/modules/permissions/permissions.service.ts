@@ -61,61 +61,69 @@ export class PermissionsService {
     permissionName: string,
     requiredFlag: PermissionFlag = PermissionFlag.READ
   ): Promise<boolean> {
-    // 1. Prüfe DIREKTE Permissions
-    const userPermission = await this.prisma.user_permissions.findFirst({
-      where: {
-        user_id: userId,
-        permissions: { name: permissionName }
-      },
-      include: { permissions: true }
-    });
+    // Unterstütze Alias-Namen wie delete_task <-> delete_tasks
+    const permissionNames = Array.from(new Set([
+      permissionName,
+      permissionName.endsWith('s') ? permissionName.slice(0, -1) : `${permissionName}s`,
+    ])).filter(Boolean);
 
-    if (userPermission) {
-      const now = new Date();
-      const isTimeValid =
-        (!userPermission.valid_from || now >= userPermission.valid_from) &&
-        (!userPermission.valid_to || now <= userPermission.valid_to);
+    for (const name of permissionNames) {
+      // 1. Prüfe DIREKTE Permissions
+      const userPermission = await this.prisma.user_permissions.findFirst({
+        where: {
+          user_id: userId,
+          permissions: { name }
+        },
+        include: { permissions: true }
+      });
 
-      if (isTimeValid) {
-        // Prüfe Flags (wie Unix: bitweises AND)
-        const hasFlagBits =
-          (userPermission.permissions.flags & requiredFlag) === requiredFlag;
-        if (hasFlagBits) {
-          return true;
-        }
-      }
-    }
+      if (userPermission) {
+        const now = new Date();
+        const isTimeValid =
+          (!userPermission.valid_from || now >= userPermission.valid_from) &&
+          (!userPermission.valid_to || now <= userPermission.valid_to);
 
-    // 2. Prüfe Permissions über ROLLEN
-    const rolePermission = await this.prisma.user_roles.findFirst({
-      where: {
-        user_id: userId,
-        roles: {
-          roles_permissions: {
-            some: {
-              permissions: { name: permissionName }
-            }
+        if (isTimeValid) {
+          // Prüfe Flags (wie Unix: bitweises AND)
+          const hasFlagBits =
+            (userPermission.permissions.flags & requiredFlag) === requiredFlag;
+          if (hasFlagBits) {
+            return true;
           }
         }
-      },
-      include: {
-        roles: {
-          include: {
+      }
+
+      // 2. Prüfe Permissions über ROLLEN
+      const rolePermission = await this.prisma.user_roles.findFirst({
+        where: {
+          user_id: userId,
+          roles: {
             roles_permissions: {
-              where: {
-                permissions: { name: permissionName }
-              },
-              include: { permissions: true }
+              some: {
+                permissions: { name }
+              }
+            }
+          }
+        },
+        include: {
+          roles: {
+            include: {
+              roles_permissions: {
+                where: {
+                  permissions: { name }
+                },
+                include: { permissions: true }
+              }
             }
           }
         }
-      }
-    });
+      });
 
-    if (rolePermission && rolePermission.roles.roles_permissions.length > 0) {
-      const permission = rolePermission.roles.roles_permissions[0].permissions;
-      const hasFlagBits = (permission.flags & requiredFlag) === requiredFlag;
-      return hasFlagBits;
+      if (rolePermission && rolePermission.roles.roles_permissions.length > 0) {
+        const permission = rolePermission.roles.roles_permissions[0].permissions;
+        const hasFlagBits = (permission.flags & requiredFlag) === requiredFlag;
+        if (hasFlagBits) return true;
+      }
     }
 
     return false;

@@ -170,10 +170,16 @@ const handleGradeSaved = () => {
 };
 
 const deleteTask = async () => {
-  if (selectedTask.value) {
+  if (!selectedTask.value) return;
+
+  try {
     const taskId = selectedTask.value.task_id || selectedTask.value.id;
     await taskStore.removeTask(taskId);
     closeModal();
+  } catch (error) {
+    console.error('❌ Fehler beim Löschen des Tasks:', error);
+    const errorMessage = error?.response?.data?.message || error?.response?.statusText || error?.message || 'Unbekannter Fehler';
+    alert(`Fehler beim Löschen: ${errorMessage}`);
   }
 };
 
@@ -189,10 +195,16 @@ const handleStatusChange = async (task, newStatus) => {
 };
 
 const saveRule = async ({ rule, autoComplete }) => {
-  if (selectedTask.value) {
+  if (!selectedTask.value) return;
+
+  try {
     const taskId = selectedTask.value.task_id || selectedTask.value.id;
     await taskStore.saveCompletionRule(taskId, rule, autoComplete);
     closeModal();
+  } catch (error) {
+    console.error('❌ Fehler beim Speichern der Verknüpfungslogik:', error);
+    const errorMessage = error?.response?.data?.message || error?.response?.statusText || error?.message || 'Unbekannter Fehler';
+    alert(`Fehler beim Speichern der Verknüpfungslogik: ${errorMessage}`);
   }
 };
 </script>
@@ -201,7 +213,7 @@ const saveRule = async ({ rule, autoComplete }) => {
   <div class="task-view">
     <div class="task-header">
       <div v-if="isTeacher" class="header-content">
-        <h1>📝 Tasks zur Bewertung</h1>
+        <h1>📝 Taskliste</h1>
         <p class="header-subtitle">Schüler-Submitals überprüfen und bewerten</p>
       </div>
       <div v-else class="header-content">

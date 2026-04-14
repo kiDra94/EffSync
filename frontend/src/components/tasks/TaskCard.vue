@@ -112,7 +112,7 @@ const isTeacher = computed(() => {
 });
 
 const logicFulfilled = computed(() =>
-  taskStore.tasks.find(t => t.task_id === props.task.task_id)?.isLogicFulfilled ?? false
+  taskStore.isLogicFulfilled(props.task.task_id) ?? false
 );
 
 const parsedRule = computed(() => {

@@ -49,16 +49,23 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('No user ID found in request');
     }
 
-    for (const permissionName of requiredPermissions) {
-      const hasPermission = await this.permissionsService.hasPermission(
+    for (const permissionExpression of requiredPermissions) {
+      // Unterstützt Aliase via "perm_a|perm_b" (OR innerhalb eines Eintrags)
+      // Mehrere @Permissions-Einträge bleiben weiterhin AND-verknüpft.
+      const alternatives = permissionExpression
+        .split('|')
+        .map((p) => p.trim())
+        .filter(Boolean);
+
+      const hasPermission = await this.permissionsService.hasAnyPermission(
         userId,
-        permissionName,
+        alternatives.length > 0 ? alternatives : [permissionExpression],
         PermissionFlag.READ,
       );
 
       if (!hasPermission) {
         throw new ForbiddenException(
-          `Missing permission: ${permissionName}`,
+          `Missing permission: ${permissionExpression}`,
         );
       }
     }
