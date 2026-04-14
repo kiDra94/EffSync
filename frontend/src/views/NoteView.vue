@@ -311,3 +311,65 @@ onMounted(async () => {
   transform: translateY(0);
 }
 </style>
+
+<style>
+/* ── NoteView Dark Mode ── */
+body.dark-mode .note-view .note-header {
+  border-bottom-color: #3a3d52 !important;
+}
+
+body.dark-mode .note-view .note-header h1 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .note-view .search-input {
+  background: #1e1e2f !important;
+  border-color: #3a3d52 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .note-view .search-input::placeholder {
+  color: #7a7d96 !important;
+}
+
+body.dark-mode .note-view .filter-select {
+  background: #1e1e2f !important;
+  border-color: #3a3d52 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .note-view .note-card {
+  background: #252536 !important;
+  border-color: #3a3d52 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-mode .note-view .note-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-mode .note-view .note-card-header {
+  background: #1e1e2f !important;
+  border-bottom-color: #3a3d52 !important;
+}
+
+body.dark-mode .note-view .note-card-header h3 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .note-view .btn-icon:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.dark-mode .note-view .description {
+  color: #b0b5cc !important;
+}
+
+body.dark-mode .note-view .note-meta {
+  color: #6b6f85 !important;
+}
+
+body.dark-mode .note-view .empty-state {
+  color: #7a7d96 !important;
+}
+</style>

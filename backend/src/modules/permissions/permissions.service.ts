@@ -61,8 +61,6 @@ export class PermissionsService {
     permissionName: string,
     requiredFlag: PermissionFlag = PermissionFlag.READ
   ): Promise<boolean> {
-    console.log(`    📋 hasPermission check: userId=${userId}, permission="${permissionName}"`);
-
     // 1. Prüfe DIREKTE Permissions
     const userPermission = await this.prisma.user_permissions.findFirst({
       where: {
@@ -73,8 +71,6 @@ export class PermissionsService {
     });
 
     if (userPermission) {
-      console.log(`      ├─ Found direct permission`);
-      // Prüfe Zeitfenster
       const now = new Date();
       const isTimeValid =
         (!userPermission.valid_from || now >= userPermission.valid_from) &&
@@ -85,7 +81,6 @@ export class PermissionsService {
         const hasFlagBits =
           (userPermission.permissions.flags & requiredFlag) === requiredFlag;
         if (hasFlagBits) {
-          console.log(`      └─ ✅ Direct permission valid`);
           return true;
         }
       }
@@ -119,15 +114,10 @@ export class PermissionsService {
 
     if (rolePermission && rolePermission.roles.roles_permissions.length > 0) {
       const permission = rolePermission.roles.roles_permissions[0].permissions;
-      console.log(`      ├─ Found role-based permission from role: ${rolePermission.roles.name}`);
-      // Rollen haben keine Zeitlimits, daher direkt Flags prüfen
-      const hasFlagBits =
-        (permission.flags & requiredFlag) === requiredFlag;
-      console.log(`      └─ ✅ Role permission valid`);
+      const hasFlagBits = (permission.flags & requiredFlag) === requiredFlag;
       return hasFlagBits;
     }
 
-    console.log(`      └─ ❌ No permission found`);
     return false;
   }
 

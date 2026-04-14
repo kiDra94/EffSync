@@ -16,6 +16,7 @@ const showResults = ref(false);
 // Dark Mode Logic
 watch(isDark, (val) => {
   document.body.classList.toggle("dark-mode", val);
+  localStorage.setItem('theme', val ? 'dark' : 'light');
 });
 
 // Click Outside Logic: Schließt das Menü, wenn man woanders klickt
@@ -33,6 +34,15 @@ const closeSearch = (e) => {
 };
 
 onMounted(() => {
+  // Restore theme preference reliably across reloads/views
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    isDark.value = savedTheme === 'dark';
+  } else {
+    isDark.value = document.body.classList.contains('dark-mode');
+  }
+  document.body.classList.toggle('dark-mode', isDark.value);
+
   window.addEventListener('click', closeDropdown)
 })
 
@@ -457,6 +467,11 @@ hr {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
+}
+
+:global(body.dark-mode) .content,
+.app-container.dark-mode .content {
+  background-color: #1e1e2f !important;
 }
 
 .content.login-mode {

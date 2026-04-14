@@ -27,7 +27,7 @@ export class TaskCommentsController {
     @Body() createTaskCommentDto: CreateTaskCommentDto,
     @Req() req: any,
   ) {
-    const userId = (req.user as any)?.user_id;
+    const userId = req.user?.userId ?? req.user?.id;
     return await this.taskCommentsService.create({
       ...createTaskCommentDto,
       user_id: userId,

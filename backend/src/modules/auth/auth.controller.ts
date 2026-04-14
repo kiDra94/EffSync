@@ -44,8 +44,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get("profile")
   async getProfile(@Req() req) {
-    console.log('🔐 Profile Request - req.user:', req.user);
-    // req.user hat bereits die Rolle von JwtStrategy
     return req.user;
   }
 }

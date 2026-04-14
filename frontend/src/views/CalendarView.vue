@@ -269,20 +269,16 @@ const calendarDays = computed(() => {
     for (let i = 1; i <= daysInMonth; i++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
-        const dayTasks = taskStore.tasks
-            .filter(task => task.deadline && task.deadline.startsWith(dateStr))
-            .map(task => ({id: task.task_id, title: task.title, color: '#4f46e5', type: 'task' }));
-
         const dayEvents = events.value
             .filter(event => event.date === dateStr)
-            .map(event => ({ ...event, type: 'event' }));
+            .map(event => ({ ...event, type: 'task' }));
         
         days.push({
             day: i,
             fullDate: dateStr,
             isPadding: false,
             isToday: isSameDate(new Date(), year, month, i),
-            events: [...dayTasks, ...dayEvents],
+            events: dayEvents,
         });
     }
 
@@ -545,23 +541,11 @@ const dayLable = computed(() => {
 const currentDayEntries = computed(() => {
     const dateStr = currentDayFormated.value.dateStr;
 
-    const dayTasks = taskStore.tasks
-        .filter(task => task.deadline && task.deadline.startsWith(dateStr))
-        .map(task => ({
-            id: task.task_id,
-            title: task.title,
-            deadline: task.deadline,
-            priority_id: task.priority_id,
-            status: task.status, 
-            type: 'task'
-        }));
-    console.log(dayTasks);
-
     const dayEvents = events.value
         .filter(event => event.date === dateStr)
-        .map(event => ({ ...event, type: 'event' }));
+        .map(event => ({ ...event, type: 'task' }));
 
-    return [...dayTasks, ...dayEvents];
+    return dayEvents;
 });
 
 const openTaskModal = (event) => {
@@ -570,7 +554,7 @@ const openTaskModal = (event) => {
   const eventId = event.id ?? event.task_id;
   const task = taskStore.tasks.find(
     (t) => String(t.task_id ?? t.id) === String(eventId)
-  );
+  ) ?? events.value.find((e) => String(e.id) === String(eventId));
 
   if (task) {
     selectedTask.value = task;
@@ -652,8 +636,7 @@ const getTaskStyle = (task, index) => {
     
     const d = new Date(task.deadline);
     const deadlineMins = d.getHours() * 60 + d.getMinutes();
-    const startMins = 0; // 00:00 Uhr
-    console.log(deadlineMins);
+    const startMins = 0;
     let calculatedTop = deadlineMins - startMins - HEADEROFFSET - HEGIHTOFFSET;
     if (calculatedTop < 0) calculatedTop = 0;
     if (calculatedTop > MAXIMALMINS - HEADEROFFSET) calculatedTop = MAXIMALMINS - HEADEROFFSET;

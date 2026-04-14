@@ -15,8 +15,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    console.log('🔑 JWT Payload:', payload);
-    
     const user = await this.prisma.users.findUnique({
       where: { user_id: payload.sub },
       include: {
@@ -45,7 +43,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role || primaryRole, // Nutze JWT-Rolle oder DB-Rolle
     };
     
-    console.log('✅ Validated User:', result);
     return result;
   }
 }
