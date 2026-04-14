@@ -18,7 +18,7 @@
         <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
           <input v-model="formData.title" id="title" type="text" placeholder="z.B. API-Struktur implementieren"
-            @blur="validateTitle" @input="errors.title = ''" :disabled="isTaskLocked" />
+            @blur="validateTitle(formData.title, props.task?.task_id)" @input="errors.title = ''" :disabled="isTaskLocked" />
           <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
         </div>
 
@@ -28,7 +28,7 @@
             <span v-if="formData.priority_id >= 3" class="required-star">*</span>
           </label>
           <textarea v-model="formData.description" id="description" rows="3"
-            placeholder="Detaillierte Beschreibung der Aufgabe" @blur="validateDescription"
+            placeholder="Detaillierte Beschreibung der Aufgabe" @blur="validateDescription(formData.description, formData.priority_id)"
             @input="errors.description = ''" :disabled="isTaskLocked"></textarea>
           <span v-if="errors.description" class="error-message">{{ errors.description }}</span>
           <span v-if="formData.priority_id >= 3" class="info-message">
@@ -48,15 +48,15 @@
 
         <div class="form-group" :class="{ 'has-error': errors.deadline }">
           <label for="deadline">Deadline *</label>
-          <input type="datetime-local" v-model="formData.deadline" id="deadline" @blur="validateDeadline"
-            @change="validateDeadline" :disabled="isTaskLocked" />
+          <input type="datetime-local" v-model="formData.deadline" id="deadline" @blur="validateDeadline(formData.deadline)"
+            @change="validateDeadline(formData.deadline)" :disabled="isTaskLocked" />
           <span v-if="errors.deadline" class="error-message">{{ errors.deadline }}</span>
           <span v-if="warnings.deadline" class="warning-message">{{ warnings.deadline }}</span>
         </div>
 
         <div class="form-group" :class="{ 'has-error': errors.status }">
           <label for="status">Status *</label>
-          <select v-model="formData.status" id="status" @change="validateStatusProgress" :disabled="isTaskLocked">
+          <select v-model="formData.status" id="status" @change="validateStatusProgress(formData.status, formData.progress)" :disabled="isTaskLocked">
             <option value="TODO">Zu erledigen</option>
             <option value="IN_PROGRESS">In Bearbeitung</option>
             <option value="IN_REVIEW">In Review</option>
@@ -70,9 +70,9 @@
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
             <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
-              class="progress-slider" @input="validateStatusProgress" :disabled="isTaskLocked" />
+              class="progress-slider" @input="validateStatusProgress(formData.status, formData.progress)" :disabled="isTaskLocked" />
             <input type="number" v-model.number="formData.progress" min="0" max="100" class="progress-number"
-              @blur="validateStatusProgress" @input="validateStatusProgress" :disabled="isTaskLocked" />
+              @blur="validateStatusProgress(formData.status, formData.progress)" @input="validateStatusProgress(formData.status, formData.progress)" :disabled="isTaskLocked" />
             <span class="progress-label">%</span>
           </div>
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
@@ -149,22 +149,16 @@ const lockedReason = computed(() => {
 function formatForInput(isoString) {
   if (!isoString) return '';
   // Konvertiere ISO-String zu datetime-local Format (YYYY-MM-DDTHH:mm)
-  // datetime-local inputs arbeiten immer in lokaler Zeit
+  // ohne lokale Zeitzonenverschiebung
   const date = new Date(isoString);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return date.toISOString().slice(0, 16);
 }
 
 function formatForSubmit(datetimeLocal) {
   if (!datetimeLocal) return null;
   // Konvertiere datetime-local Format zu ISO-String mit Timezone
-  // datetime-local Format ist YYYY-MM-DDTHH:mm
-  const date = new Date(datetimeLocal);
-  // Stelle sicher, dass wir UTC Zeit senden
+  // datetime-local Format ist YYYY-MM-DDTHH:mm und wird als UTC interpretiert
+  const date = new Date(`${datetimeLocal}:00.000Z`);
   return date.toISOString();
 }
 

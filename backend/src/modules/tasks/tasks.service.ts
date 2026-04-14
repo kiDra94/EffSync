@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -7,6 +7,7 @@ import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
 import { Prisma } from "@prisma/client";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { TaskActivityLogService } from "../task-activity-log/task-activity-log.service";
+import { PermissionFlag, PermissionsService } from "../permissions/permissions.service";
 
 
 @Injectable()
@@ -15,6 +16,7 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
     private readonly activityLogService: TaskActivityLogService,
+    private readonly permissionsService: PermissionsService,
   ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
@@ -246,8 +248,73 @@ export class TasksService {
     return updated;
   }
 
-  async remove(taskId: number) {
+  async remove(taskId: number, requesterId?: number) {
     const task = await this.findOne(taskId, false);
+
+    // Ersteller darf eigenen Task immer löschen.
+    // Alle anderen benötigen delete_task(s)-Permission.
+    if (requesterId && task.created_by !== requesterId) {
+      const now = new Date();
+      const READ_FLAG = 4;
+      const permissionNames = ['delete_tasks', 'delete_task'];
+
+      const directPermission = await this.prisma.user_permissions.findFirst({
+        where: {
+          user_id: requesterId,
+          permissions: { name: { in: permissionNames } },
+        },
+        include: { permissions: true },
+      });
+
+      let canDelete = false;
+
+      if (directPermission) {
+        const isTimeValid =
+          (!directPermission.valid_from || now >= directPermission.valid_from) &&
+          (!directPermission.valid_to || now <= directPermission.valid_to);
+
+        canDelete =
+          isTimeValid &&
+          (directPermission.permissions.flags & READ_FLAG) === READ_FLAG;
+      }
+
+      if (!canDelete) {
+        const rolePermission = await this.prisma.user_roles.findFirst({
+          where: {
+            user_id: requesterId,
+            roles: {
+              roles_permissions: {
+                some: {
+                  permissions: { name: { in: permissionNames } },
+                },
+              },
+            },
+          },
+          include: {
+            roles: {
+              include: {
+                roles_permissions: {
+                  where: {
+                    permissions: { name: { in: permissionNames } },
+                  },
+                  include: { permissions: true },
+                },
+              },
+            },
+          },
+        });
+
+        if (rolePermission?.roles?.roles_permissions?.length) {
+          canDelete = rolePermission.roles.roles_permissions.some((rp) =>
+            (rp.permissions.flags & READ_FLAG) === READ_FLAG,
+          );
+        }
+      }
+
+      if (!canDelete) {
+        throw new ForbiddenException('Missing permission: delete_tasks');
+      }
+    }
 
     const subtasksCount = await this.prisma.tasks.count({
       where: { parent_task_id: taskId },
@@ -259,21 +326,26 @@ export class TasksService {
       );
     }
 
-    await this.prisma.tasks.delete({
-      where: { task_id: taskId },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      // FK NoAction auf mehreren Relationen -> abhängige Daten zuerst bereinigen
+      await tx.task_activity_log.deleteMany({ where: { task_id: taskId } });
+      await tx.task_comments.deleteMany({ where: { task_id: taskId } });
+      await tx.task_documents.deleteMany({ where: { task_id: taskId } });
 
-    // Log activity
-    try {
-      if (task.created_by) {
-        await this.activityLogService.create({
-          task_id: task.task_id,
-          action: `Task deleted: "${task.title}"`,
-        }, task.created_by, false);
-      }
-    } catch (error) {
-      console.error('Failed to log task deletion activity:', error);
-    }
+      // Referenzen lösen, statt Fremddaten hart zu löschen
+      await tx.notes.updateMany({
+        where: { task_id: taskId },
+        data: { task_id: null },
+      });
+      await tx.chat_rooms.updateMany({
+        where: { task_id: taskId },
+        data: { task_id: null },
+      });
+
+      await tx.tasks.delete({
+        where: { task_id: taskId },
+      });
+    });
 
     return {
       message: 'Task deleted successfully',
