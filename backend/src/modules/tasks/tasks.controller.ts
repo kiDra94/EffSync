@@ -48,19 +48,19 @@ export class TasksController {
   }
 
   @Patch(":id")
-  @Permissions("edit_tasks")
+  @Permissions("edit_tasks|edit_task")
   update(@Param("id") id: string, @Body() updateTaskDto: UpdateTaskDto) {
     return this.tasksService.update(+id, updateTaskDto);
   }
 
   @Delete(":id")
-  @Permissions("delete_tasks")
-  remove(@Param("id") id: string) {
-    return this.tasksService.remove(+id);
+  remove(@Param("id") id: string, @Req() req) {
+    const requesterId = req?.user?.userId ?? req?.user?.id;
+    return this.tasksService.remove(+id, requesterId);
   }
 
   @Post(":id/subtasks")
-  @Permissions("create_tasks")
+  @Permissions("create_tasks|create_task")
   createSubTask(@Param("id") id: string, @Body() createTaskDto: CreateTaskDto, @Req() req) {
     return this.tasksService.createSubTask(+id, createTaskDto, req.user.userId);
   }
