@@ -76,6 +76,15 @@ export class UsersController {
   }
 
   /**
+   * GET /users/for-chat
+   * Holt alle User mit minimalen Infos für den Chat (nur JWT erforderlich).
+   */
+  @Get('for-chat')
+  findAllForChat() {
+    return this.usersService.findAllForChat();
+  }
+
+  /**
    * GET /users
    * Holt alle Benutzer.
    * 
