@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
 import { useNoteStore } from '@/stores/entities/noteStore';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { apiClient } from '@/api/httpClient';
@@ -10,6 +11,7 @@ import StatusDistributionChart from '@/components/dashboard/StatusDistributionCh
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const noteStore = useNoteStore();
 const taskStore = useTaskStore();
 
@@ -127,6 +129,12 @@ const updateMetrics = async () => {
     } catch { return 0; }
   };
 
+  const currentUserId = Number(authStore.userId ?? localStorage.getItem('userId'));
+  const documentsData = documentsRes.status === 'fulfilled' ? unwrapArray(documentsRes.value) : [];
+  const ownDocumentsCount = Number.isFinite(currentUserId)
+    ? documentsData.filter((doc) => Number(doc?.added_by) === currentUserId).length
+    : documentsData.length;
+
   const openTasks = taskProgressRes.status === 'fulfilled'
     ? Math.max(
         0,
@@ -137,7 +145,11 @@ const updateMetrics = async () => {
 
   metrics.value[0].value = String(openTasks);
   metrics.value[1].value = String(getCount(classesRes, 'classes'));
-  metrics.value[2].value = String(getCount(documentsRes, 'documents'));
+  metrics.value[2].value = String(
+    documentsRes.status === 'fulfilled'
+      ? ownDocumentsCount
+      : getCount({ status: 'rejected' }, 'documents')
+  );
   metrics.value[3].value = String(noteStore.notes.length);
   metrics.value[4].value = String(
     slotsRes.status === 'fulfilled'
