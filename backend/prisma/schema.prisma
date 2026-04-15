@@ -96,12 +96,18 @@ model documents {
   document_id     Int               @id @default(autoincrement())
   name            String?           @db.VarChar
   file_path       String?           @db.VarChar
+  file_blob       Bytes?
   file_size       Int?
   mime_type       String?           @db.VarChar
   added_by        Int?
+  grade           String?           @db.VarChar
+  feedback        String?
+  graded_by       Int?
+  graded_at       DateTime?         @db.Timestamp(6)
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   updated_at      DateTime?         @db.Timestamp(6)
   document_shares document_shares[]
+  graded_by_user  users?            @relation("documents_graded_by", fields: [graded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   users           users?            @relation(fields: [added_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   note_documents  note_documents[]
   task_documents  task_documents[]
@@ -391,6 +397,7 @@ model users {
   chat_room_users                        chat_room_users[]
   document_shares                        document_shares[]
   documents                              documents[]
+  graded_documents                       documents[]         @relation("documents_graded_by")
   notes                                  notes[]
   notes_users                            notes_users[]
   notifications                          notifications[]

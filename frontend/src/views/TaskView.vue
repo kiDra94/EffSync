@@ -10,6 +10,7 @@ import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
 import TaskFilters from '@/components/tasks/TaskFilters.vue';
 import RuleBuilder from '@/components/tasks/RuleBuilder.vue';
 import GradeModal from '@/components/tasks/GradeModal.vue';
+import { taskMembersApi } from '@/api/taskMembers';
 
 const route = useRoute();
 const taskStore = useTaskStore();
@@ -95,13 +96,27 @@ const closeModal = () => {
 const saveTask = async (task) => {
   try {
     console.log('💾 [TaskView] Speichere Task:', task);
-    const taskId = task.task_id || task.id;
+    const { member_user_ids, ...taskPayload } = task;
+    const pendingMemberIds = Array.isArray(member_user_ids)
+      ? [...new Set(member_user_ids.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))]
+      : [];
+
+    const taskId = taskPayload.task_id || taskPayload.id;
     if (taskId) {
       console.log('✏️ Editiere Task:', taskId);
-      await taskStore.editTask(taskId, task);
+      await taskStore.editTask(taskId, taskPayload);
     } else {
       console.log('✨ Erstelle neuen Task');
-      await taskStore.addTask(task);
+      const createdTask = await taskStore.addTask(taskPayload);
+      const createdTaskId = createdTask?.task_id || createdTask?.id;
+
+      if (createdTaskId && pendingMemberIds.length > 0) {
+        await Promise.allSettled(
+          pendingMemberIds.map((userId) =>
+            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+          ),
+        );
+      }
     }
     console.log('✅ Task erfolgreich gespeichert!');
     closeModal();
@@ -117,14 +132,29 @@ const saveTask = async (task) => {
 const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
   try {
     console.log('💾 [TaskView] Speichere Task mit Subtasks:', { taskData, subtasks });
-    const taskId = taskData.task_id || taskData.id;
+    const { member_user_ids, ...taskPayload } = taskData;
+    const pendingMemberIds = Array.isArray(member_user_ids)
+      ? [...new Set(member_user_ids.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))]
+      : [];
+
+    const taskId = taskPayload.task_id || taskPayload.id;
     if (taskId) {
       console.log('✏️ Editiere Task mit Subtasks:', taskId);
-      await taskStore.editTaskWithSubtasks(taskId, taskData, subtasks);
+      await taskStore.editTaskWithSubtasks(taskId, taskPayload, subtasks);
       closeModal();
     } else {
       console.log('✨ Erstelle neuen Task mit Subtasks');
-      const result = await taskStore.createTaskWithSubtasks(taskData, subtasks);
+      const result = await taskStore.createTaskWithSubtasks(taskPayload, subtasks);
+
+      const createdTaskId = result?.parentTask?.task_id || result?.parentTask?.id;
+      if (createdTaskId && pendingMemberIds.length > 0) {
+        await Promise.allSettled(
+          pendingMemberIds.map((userId) =>
+            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+          ),
+        );
+      }
+
       closeModal();
 
       if (subtasks.length > 0) {

@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentsService } from './documents.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 describe('DocumentsService', () => {
   let service: DocumentsService;
 
   const mockPrismaService = {
+    $transaction: jest.fn(async (callback) => callback(mockPrismaService)),
     documents: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -15,6 +17,16 @@ describe('DocumentsService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    user_roles: {
+      findMany: jest.fn(),
+    },
+    task_documents: {
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    note_documents: {
+      deleteMany: jest.fn(),
+    },
     document_shares: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -22,18 +34,29 @@ describe('DocumentsService', () => {
       findFirst: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      deleteMany: jest.fn(),
       count: jest.fn(),
     },
   };
 
+  const mockNotificationsService = {
+    create: jest.fn(),
+  };
+
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DocumentsService,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile();
@@ -43,5 +66,201 @@ describe('DocumentsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('notifies teachers when a student uploads a document', async () => {
+    const file = {
+      originalname: 'abgabe.pdf',
+      buffer: Buffer.from('pdf data'),
+      size: 8,
+      mimetype: 'application/pdf',
+    } as Express.Multer.File;
+
+    mockPrismaService.documents.create.mockResolvedValue({ document_id: 12 });
+    mockPrismaService.documents.findUnique.mockResolvedValue({
+      document_id: 12,
+      name: 'abgabe.pdf',
+      file_path: null,
+      file_size: 8,
+      mime_type: 'application/pdf',
+      added_by: 15,
+      created_at: new Date().toISOString(),
+      users: {
+        user_id: 15,
+        firstname: 'Max',
+        lastname: 'Schüler',
+        username: 'max',
+        students: { student_id: 15 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      graded_by_user: null,
+      task_documents: [],
+    });
+    mockPrismaService.user_roles.findMany.mockResolvedValue([
+      { user_id: 2 },
+      { user_id: 3 },
+    ]);
+
+    await service.create(file, 15, 'application/pdf', 'student');
+
+    expect(mockNotificationsService.create).toHaveBeenCalledTimes(2);
+    expect(mockNotificationsService.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        user_id: 2,
+        type: 'document_uploaded',
+      }),
+    );
+    expect(mockNotificationsService.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        user_id: 3,
+        type: 'document_uploaded',
+      }),
+    );
+  });
+
+  it('allows a student to rename their own document', async () => {
+    mockPrismaService.documents.findUnique.mockResolvedValue({
+      document_id: 7,
+      name: 'alt.pdf',
+      added_by: 15,
+      users: {
+        user_id: 15,
+        firstname: 'Max',
+        lastname: 'Mustermann',
+        username: 'max',
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      graded_by_user: null,
+    });
+    mockPrismaService.documents.update.mockResolvedValue({ document_id: 7 });
+
+    const result = await service.update(7, { name: 'neu.pdf' }, 15, 'student');
+
+    expect(mockPrismaService.documents.update).toHaveBeenCalledWith({
+      where: { document_id: 7 },
+      data: { name: 'neu.pdf' },
+    });
+    expect(result.permissions.can_edit).toBe(true);
+  });
+
+  it('sends a notification when a teacher grades a student document', async () => {
+    mockPrismaService.documents.findUnique
+      .mockResolvedValueOnce({
+        document_id: 9,
+        name: 'abgabe.pdf',
+        added_by: 21,
+        users: {
+          user_id: 21,
+          firstname: 'Lisa',
+          lastname: 'Schüler',
+          username: 'lisa',
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: null,
+      })
+      .mockResolvedValueOnce({
+        document_id: 9,
+        name: 'abgabe.pdf',
+        added_by: 21,
+        grade: '1',
+        feedback: 'Sehr gut',
+        users: {
+          user_id: 21,
+          firstname: 'Lisa',
+          lastname: 'Schüler',
+          username: 'lisa',
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: {
+          user_id: 4,
+          firstname: 'Anna',
+          lastname: 'Lehrer',
+          username: 'anna',
+        },
+      });
+    mockPrismaService.documents.update.mockResolvedValue({ document_id: 9 });
+
+    const result = await service.grade(9, { grade: '1', feedback: 'Sehr gut' }, 4, 'teacher');
+
+    expect(mockPrismaService.documents.update).toHaveBeenCalled();
+    expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: 21,
+        type: 'document_graded',
+      }),
+    );
+    expect(result.permissions.can_grade).toBe(true);
+  });
+
+  it('allows a student to delete own linked document without FK errors', async () => {
+    mockPrismaService.documents.findUnique.mockResolvedValue({
+      document_id: 11,
+      name: 'abgabe.pdf',
+      file_path: null,
+      added_by: 15,
+      users: {
+        user_id: 15,
+        firstname: 'Max',
+        lastname: 'Schüler',
+        username: 'max',
+        students: { student_id: 15 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      graded_by_user: null,
+      task_documents: [{ task_id: 77 }],
+    });
+
+    const result = await service.remove('11', 15, 'student');
+
+    expect(mockPrismaService.document_shares.deleteMany).toHaveBeenCalledWith({
+      where: { document_id: 11 },
+    });
+    expect(mockPrismaService.note_documents.deleteMany).toHaveBeenCalledWith({
+      where: { document_id: 11 },
+    });
+    expect(mockPrismaService.task_documents.deleteMany).toHaveBeenCalledWith({
+      where: { document_id: 11 },
+    });
+    expect(mockPrismaService.documents.delete).toHaveBeenCalledWith({
+      where: { document_id: 11 },
+    });
+    expect(result).toEqual({
+      message: 'Dokument erfolgreich gelöscht',
+      document_id: 11,
+    });
+  });
+
+  it('returns a valid binary stream for blob downloads', async () => {
+    const sampleBytes = Uint8Array.from([0x25, 0x50, 0x44, 0x46]); // %PDF
+
+    mockPrismaService.documents.findUnique.mockResolvedValue({
+      document_id: 42,
+      name: 'probe.pdf',
+      mime_type: 'application/pdf',
+      file_blob: sampleBytes,
+      added_by: 21,
+      users: {
+        user_id: 21,
+        firstname: 'Lisa',
+        lastname: 'Schüler',
+        username: 'lisa',
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      graded_by_user: null,
+      task_documents: [],
+    });
+
+    const payload = await service.getDownloadPayload(42, 4, 'teacher');
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of payload.stream as any) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    expect(payload.fileName).toBe('probe.pdf');
+    expect(payload.mimeType).toBe('application/pdf');
+    expect(Buffer.concat(chunks)).toEqual(Buffer.from(sampleBytes));
   });
 });

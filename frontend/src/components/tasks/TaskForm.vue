@@ -80,6 +80,28 @@
 
         <SubtaskBuilder v-model="subtasks" />
 
+        <div v-if="!task" class="form-group">
+          <label for="creation-members">Zusätzliche Mitglieder (optional)</label>
+          <select
+            id="creation-members"
+            v-model="creationMembers"
+            class="member-multiselect"
+            multiple
+            :disabled="isTaskLocked || isLoadingUsers"
+          >
+            <option
+              v-for="user in selectableUsers"
+              :key="user.user_id"
+              :value="user.user_id"
+            >
+              {{ user.firstname }} {{ user.lastname }} ({{ user.email }})
+            </option>
+          </select>
+          <span class="info-message">
+            Ausgewählte Benutzer werden direkt nach dem Erstellen als Mitglieder hinzugefügt.
+          </span>
+        </div>
+
         <!-- Task Members Section (nur wenn Task bereits existiert) -->
         <TaskMembersList
           v-if="task?.task_id"
@@ -107,12 +129,13 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
 import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
 import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { usersApi } from '@/api/usersService';
 
 const props = defineProps({
   task: {
@@ -182,6 +205,27 @@ const subtasks = ref(
 );
 
 const showSummary = ref(false);
+const creationMembers = ref([]);
+const selectableUsers = ref([]);
+const isLoadingUsers = ref(false);
+
+onMounted(async () => {
+  if (props.task?.task_id) {
+    return;
+  }
+
+  try {
+    isLoadingUsers.value = true;
+    const response = await usersApi.getAll();
+    const users = response?.data?.data ?? response?.data ?? [];
+    selectableUsers.value = Array.isArray(users) ? users : [];
+  } catch (error) {
+    console.error('Fehler beim Laden der Benutzer für Task-Mitglieder:', error);
+    selectableUsers.value = [];
+  } finally {
+    isLoadingUsers.value = false;
+  }
+});
 
 const applyTemplate = (template) => {
   if (template.default_title) { formData.title = template.default_title; }
@@ -213,6 +257,10 @@ const submitTask = () => {
     progress: formData.progress ?? 0,
     ...(props.task?.task_id && { task_id: props.task.task_id })
   };
+
+  if (!props.task?.task_id && creationMembers.value.length > 0) {
+    taskData.member_user_ids = creationMembers.value.map((id) => Number(id));
+  }
 
   console.log('📤 Task-Daten zum Speichern (final):', taskData);
   console.log('📤 Subtasks:', subtasks.value);
@@ -348,6 +396,10 @@ const handleMembersUpdated = (members) => {
   font-size: 1rem;
   transition: border-color 0.2s;
   font-family: inherit;
+}
+
+.member-multiselect {
+  min-height: 130px;
 }
 
 .form-group textarea {
