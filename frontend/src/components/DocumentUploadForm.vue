@@ -11,7 +11,7 @@
         ref="fileInput" 
         @change="handleFileChange" 
         class="hidden-input"
-        accept=".pdf,.jpg,.jpeg,.png,.zip,.doc,.docx,.odt,.md,.tex"
+        accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.doc,.docx,.odt,.rtf,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.ods,.odp"
       />
 
       <div 
@@ -22,7 +22,7 @@
         <div v-if="!selectedFile" class="drop-zone-prompt">
           <span class="upload-icon">📁</span>
           <p>Klicke hier, um eine Datei auszuwählen</p>
-          <span class="file-types">'pdf', 'jpg', 'jpeg', 'png', 'zip', 'doc', 'docx', 'odt', 'md', 'tex'</span>
+          <span class="file-types">pdf, jpg, jpeg, png, gif, bmp, webp, doc, docx, odt, rtf, txt, csv, xls, xlsx, ppt, pptx, ods, odp</span>
         </div>
         
         <div v-else class="selected-file-info">
@@ -69,44 +69,26 @@ const errorMessage = ref('');
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
 const ALLOWED_TYPES = [
   'application/pdf', 
+  'image/jpg',
   'image/jpeg', 
   'image/png', 
-  'application/zip', 
-  'application/x-zip-compressed', // Wichtig für Windows-Uploads
-  'application/msword',                                           // .doc
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-  'application/vnd.oasis.opendocument.text',                      // .odt
-  'text/markdown',                                                // .md
-  'application/x-tex'                                             // .tex
+  'image/gif',
+  'image/bmp',
+  'image/webp',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.oasis.opendocument.text',
+  'application/rtf',
+  'text/rtf',
+  'text/plain',
+  'text/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.oasis.opendocument.spreadsheet',
+  'application/vnd.oasis.opendocument.presentation',
 ];
-
-const handleUpload = async (file) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  
-
-  formData.append('userId', '1'); 
-
-  try {
-    const response = await fetch('http://localhost:3000/documents/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      alert('Upload erfolgreich!');
-      clearSelection(); // Formular zurücksetzen
-      emit('close');    // Fenster schließen
-    } else {
-      const errorData = await response.json();
-      alert('Fehler: ' + (errorData.message || 'Server-Fehler'));
-    }
-  } catch (error) {
-    console.error('Fehler beim Upload:', error);
-    alert('Verbindung zum Server fehlgeschlagen.');
-  }
-};
 
 const triggerFileInput = () => {
   fileInput.value.click();
@@ -117,10 +99,14 @@ const handleFileChange = (event) => {
   if (!file) return;
 
   const extension = file.name.split('.').pop().toLowerCase();
-  const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'zip', 'doc', 'docx', 'odt', 'md', 'tex'];
+  const allowedExtensions = [
+    'pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
+    'doc', 'docx', 'odt', 'rtf', 'txt', 'csv',
+    'xls', 'xlsx', 'ppt', 'pptx', 'ods', 'odp',
+  ];
 
   if (!ALLOWED_TYPES.includes(file.type) && !allowedExtensions.includes(extension)) {
-    errorMessage.value = "Ungültiger Dateityp.";
+    errorMessage.value = "Erlaubte Formate: PDF, JPG/JPEG, PNG, GIF, BMP, WEBP, DOC/DOCX, ODT, RTF, TXT, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.";
     selectedFile.value = null;
     return;
   }
@@ -141,19 +127,14 @@ const clearSelection = () => {
 
 const submitUpload = async () => { 
   if (selectedFile.value && !errorMessage.value) {
-
     emit('upload', selectedFile.value); 
-    
-    await handleUpload(selectedFile.value);
   }
 };
 
 const getFileIcon = (type) => {
   if (type === 'application/pdf') return '📄';
   if (type.startsWith('image/')) return '🖼️';
-  if (type.includes('zip')) return '📦';
-  if (type.includes('word') || type.includes('officedocument') || type.includes('opendocument')) return '📝';
-  if (type.includes('markdown') || type.includes('tex')) return '✍️';
+  if (type.includes('officedocument')) return '📝';
   return '📁';
 };
 

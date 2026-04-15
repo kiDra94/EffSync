@@ -183,7 +183,9 @@ export const useTaskStore = defineStore('task', () => {
     async function addTask(task) {
         try {
             const newTask = await createTask(task);
-            tasks.value.push(newTask.data || newTask);
+            const created = newTask.data || newTask;
+            tasks.value.push(created);
+            return created;
         } catch (error) {
             console.error('Fehler beim Hinzufügen eines Tasks:', error);
             throw error;
