@@ -42,6 +42,14 @@
 
     <div class="task-right">
       <button v-if="isTeacher" @click="gradeTask" class="task-btn task-btn-grade" title="Bewertung hinzufügen">📝</button>
+      <button
+        v-if="isStudent"
+        @click="openUploadForTask"
+        class="task-btn"
+        title="Dokument zu diesem Task hochladen"
+      >
+        📎
+      </button>
       <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
@@ -87,6 +95,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
 import RuleVisualizer from './RuleVisualizer.vue';
@@ -101,6 +110,7 @@ const props = defineProps({
 const emit = defineEmits(['edit', 'delete', 'toggle-status', 'change-status', 'edit-rule', 'grade']);
 
 const showSubtasks = ref(false);
+const router = useRouter();
 const taskStore = useTaskStore();
 const authStore = useAuthStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
@@ -110,6 +120,8 @@ const isTeacher = computed(() => {
   const roles = ['teacher', 'admin', 'superuser'];
   return roles.includes((authStore.userRole || '').toLowerCase());
 });
+
+const isStudent = computed(() => (authStore.userRole || '').toLowerCase() === 'student');
 
 const logicFulfilled = computed(() =>
   taskStore.isLogicFulfilled(props.task.task_id) ?? false
@@ -153,6 +165,16 @@ const editRule = () => {
 
 const gradeTask = () => {
   emit('grade', props.task);
+};
+
+const openUploadForTask = () => {
+  const taskId = props.task?.task_id;
+  if (!taskId) return;
+
+  router.push({
+    name: 'DocumentList',
+    query: { taskId: String(taskId) },
+  });
 };
 
 const getStatusColor = (status) => {
