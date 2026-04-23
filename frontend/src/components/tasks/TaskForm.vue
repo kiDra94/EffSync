@@ -1,19 +1,24 @@
 <template>
-  <div class="modal-overlay" @click.self="close">
-    <div class="modal-content">
+  <div class="modal-overlay task-form-overlay" @click.self="close">
+    <div class="modal-content task-form-modal">
       <div class="modal-header">
         <h2>{{ task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}</h2>
         <button @click="close" class="close-btn" aria-label="Schließen">×</button>
       </div>
 
-      <form @submit.prevent="submitTask" class="task-form" novalidate>
+      <!-- Feature #27: Display lock warning -->
+      <div v-if="isTaskLocked" class="lock-warning">
+        🔒 <strong>Aufgabe gesperrt:</strong> {{ lockedReason }}
+      </div>
+
+      <form @submit.prevent="submitTask" class="task-form" novalidate :class="{ 'is-locked': isTaskLocked }">
 
         <TaskTemplateSelector v-if="!task" @templateSelected="applyTemplate" />
 
         <div class="form-group" :class="{ 'has-error': errors.title }">
           <label for="title">Titel *</label>
           <input v-model="formData.title" id="title" type="text" placeholder="z.B. API-Struktur implementieren"
-            @blur="validateTitle" @input="errors.title = ''" />
+            @blur="validateTitle(formData.title, props.task?.task_id)" @input="errors.title = ''" :disabled="isTaskLocked" />
           <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
         </div>
 
@@ -23,8 +28,8 @@
             <span v-if="formData.priority_id >= 3" class="required-star">*</span>
           </label>
           <textarea v-model="formData.description" id="description" rows="3"
-            placeholder="Detaillierte Beschreibung der Aufgabe" @blur="validateDescription"
-            @input="errors.description = ''"></textarea>
+            placeholder="Detaillierte Beschreibung der Aufgabe" @blur="validateDescription(formData.description, formData.priority_id)"
+            @input="errors.description = ''" :disabled="isTaskLocked"></textarea>
           <span v-if="errors.description" class="error-message">{{ errors.description }}</span>
           <span v-if="formData.priority_id >= 3" class="info-message">
             ℹ️ Wichtige Aufgaben benötigen eine Beschreibung
@@ -33,7 +38,7 @@
 
         <div class="form-group">
           <label for="priority_id">Priorität *</label>
-          <select v-model.number="formData.priority_id" id="priority_id" @change="validateDescription">
+          <select v-model.number="formData.priority_id" id="priority_id" @change="validateDescription" :disabled="isTaskLocked">
             <option :value="1">Niedrig</option>
             <option :value="2">Mittel</option>
             <option :value="3">Hoch</option>
@@ -43,15 +48,15 @@
 
         <div class="form-group" :class="{ 'has-error': errors.deadline }">
           <label for="deadline">Deadline *</label>
-          <input type="datetime-local" v-model="formData.deadline" id="deadline" @blur="validateDeadline"
-            @change="validateDeadline" />
+          <input type="datetime-local" v-model="formData.deadline" id="deadline" @blur="validateDeadline(formData.deadline)"
+            @change="validateDeadline(formData.deadline)" :disabled="isTaskLocked" />
           <span v-if="errors.deadline" class="error-message">{{ errors.deadline }}</span>
           <span v-if="warnings.deadline" class="warning-message">{{ warnings.deadline }}</span>
         </div>
 
         <div class="form-group" :class="{ 'has-error': errors.status }">
           <label for="status">Status *</label>
-          <select v-model="formData.status" id="status" @change="validateStatusProgress">
+          <select v-model="formData.status" id="status" @change="validateStatusProgress(formData.status, formData.progress)" :disabled="isTaskLocked">
             <option value="TODO">Zu erledigen</option>
             <option value="IN_PROGRESS">In Bearbeitung</option>
             <option value="IN_REVIEW">In Review</option>
@@ -65,9 +70,9 @@
           <label for="progress">Fortschritt (%)</label>
           <div class="progress-input-group">
             <input type="range" v-model.number="formData.progress" id="progress" min="0" max="100"
-              class="progress-slider" @input="validateStatusProgress" />
+              class="progress-slider" @input="validateStatusProgress(formData.status, formData.progress)" :disabled="isTaskLocked" />
             <input type="number" v-model.number="formData.progress" min="0" max="100" class="progress-number"
-              @blur="validateStatusProgress" @input="validateStatusProgress" />
+              @blur="validateStatusProgress(formData.status, formData.progress)" @input="validateStatusProgress(formData.status, formData.progress)" :disabled="isTaskLocked" />
             <span class="progress-label">%</span>
           </div>
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
@@ -75,12 +80,43 @@
 
         <SubtaskBuilder v-model="subtasks" />
 
+        <div v-if="!task" class="form-group">
+          <label for="creation-members">Zusätzliche Mitglieder (optional)</label>
+          <select
+            id="creation-members"
+            v-model="creationMembers"
+            class="member-multiselect"
+            multiple
+            :disabled="isTaskLocked || isLoadingUsers"
+          >
+            <option
+              v-for="user in selectableUsers"
+              :key="user.user_id"
+              :value="user.user_id"
+            >
+              {{ user.firstname }} {{ user.lastname }} ({{ user.email }})
+            </option>
+          </select>
+          <span class="info-message">
+            Ausgewählte Benutzer werden direkt nach dem Erstellen als Mitglieder hinzugefügt.
+          </span>
+        </div>
+
+        <!-- Task Members Section (nur wenn Task bereits existiert) -->
+        <TaskMembersList
+          v-if="task?.task_id"
+          :taskId="task.task_id"
+          :creatorId="task.created_by"
+          :assignedToId="task.assigned_to"
+          @members-updated="handleMembersUpdated"
+        />
+
         <div v-if="showSummary && hasErrors" class="error-summary">
           ⚠️ Bitte korrigiere die markierten Fehler
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn-primary">
+          <button type="submit" class="btn-primary" :disabled="isTaskLocked">
             {{ task ? 'Speichern' : 'Erstellen' }}
           </button>
           <button type="button" @click="close" class="btn-secondary">
@@ -93,11 +129,13 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
 import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
+import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { usersApi } from '@/api/usersService';
 
 const props = defineProps({
   task: {
@@ -120,9 +158,31 @@ const {
   validateAll
 } = useTaskValidation(props.existingTasks)
 
+/**
+ * Feature #27: Überprüfe ob Task blockiert ist
+ */
+const isTaskLocked = computed(() => props.task?.is_locked);
+const lockedReason = computed(() => {
+  if (!props.task?.locked_reason) return 'System';
+  if (props.task.locked_reason === 'OVERDUE') return 'Überfällig - automatisch gesperrt';
+  if (props.task.locked_reason === 'MANUAL') return 'Manuell gesperrt';
+  return props.task.locked_reason;
+});
+
 function formatForInput(isoString) {
   if (!isoString) return '';
-  return isoString.slice(0, 16);
+  // Konvertiere ISO-String zu datetime-local Format (YYYY-MM-DDTHH:mm)
+  // ohne lokale Zeitzonenverschiebung
+  const date = new Date(isoString);
+  return date.toISOString().slice(0, 16);
+}
+
+function formatForSubmit(datetimeLocal) {
+  if (!datetimeLocal) return null;
+  // Konvertiere datetime-local Format zu ISO-String mit Timezone
+  // datetime-local Format ist YYYY-MM-DDTHH:mm und wird als UTC interpretiert
+  const date = new Date(`${datetimeLocal}:00.000Z`);
+  return date.toISOString();
 }
 
 const formData = reactive({
@@ -145,6 +205,27 @@ const subtasks = ref(
 );
 
 const showSummary = ref(false);
+const creationMembers = ref([]);
+const selectableUsers = ref([]);
+const isLoadingUsers = ref(false);
+
+onMounted(async () => {
+  if (props.task?.task_id) {
+    return;
+  }
+
+  try {
+    isLoadingUsers.value = true;
+    const response = await usersApi.getAll();
+    const users = response?.data?.data ?? response?.data ?? [];
+    selectableUsers.value = Array.isArray(users) ? users : [];
+  } catch (error) {
+    console.error('Fehler beim Laden der Benutzer für Task-Mitglieder:', error);
+    selectableUsers.value = [];
+  } finally {
+    isLoadingUsers.value = false;
+  }
+});
 
 const applyTemplate = (template) => {
   if (template.default_title) { formData.title = template.default_title; }
@@ -160,15 +241,35 @@ const applyTemplate = (template) => {
 const submitTask = () => {
   showSummary.value = true;
 
-  if (!validateAll(formData, props.task?.task_id)) { return; }
+  console.log('📝 submitTask: Validierung wird gestartet...');
+  if (!validateAll(formData, props.task?.task_id)) { 
+    console.error('❌ Validierung fehlgeschlagen:', errors);
+    return; 
+  }
+
+  console.log('✓ Validierung erfolgreich');
   const taskData = {
-    ...formData,
+    title: formData.title,
+    description: formData.description || '',
+    deadline: formData.deadline ? formatForSubmit(formData.deadline) : null,
+    priority_id: formData.priority_id || 2,
+    status: formData.status || 'TODO',
+    progress: formData.progress ?? 0,
     ...(props.task?.task_id && { task_id: props.task.task_id })
   };
 
+  if (!props.task?.task_id && creationMembers.value.length > 0) {
+    taskData.member_user_ids = creationMembers.value.map((id) => Number(id));
+  }
+
+  console.log('📤 Task-Daten zum Speichern (final):', taskData);
+  console.log('📤 Subtasks:', subtasks.value);
+
   if (subtasks.value.length > 0) {
+    console.log('💾 Speichere Task MIT Subtasks...');
     emit('save-with-subtasks', { taskData, subtasks: subtasks.value });
   } else {
+    console.log('💾 Speichere Task ohne Subtasks...');
     emit('save', taskData);
   }
 
@@ -177,6 +278,12 @@ const submitTask = () => {
 
 const close = () => {
   emit('close');
+};
+
+const handleMembersUpdated = (members) => {
+  // Optional: Handle members update if needed
+  // For now, just log it
+  console.log('Members updated:', members);
 };
 </script>
 
@@ -289,6 +396,10 @@ const close = () => {
   font-size: 1rem;
   transition: border-color 0.2s;
   font-family: inherit;
+}
+
+.member-multiselect {
+  min-height: 130px;
 }
 
 .form-group textarea {
@@ -411,5 +522,235 @@ const close = () => {
   border-radius: 8px;
   margin-bottom: 16px;
   font-weight: 600;
+}
+
+/* Feature #27: Task Lock Styling */
+.lock-warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+  border-left: 4px solid #d97706;
+  padding: 12px 16px;
+  margin: 0 20px 16px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #92400e;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-form.is-locked {
+  opacity: 0.85;
+  background-color: #fafaf9;
+}
+
+.task-form.is-locked input:disabled,
+.task-form.is-locked textarea:disabled,
+.task-form.is-locked select:disabled {
+  background-color: #f5f5f4;
+  color: #78716c;
+  cursor: not-allowed;
+  border-color: #e7e5e4;
+}
+
+.task-form.is-locked button[type="submit"]:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.task-form.is-locked button[type="submit"]:disabled:hover {
+  background-color: #d1d5db;
+}
+
+:global(body.dark-mode) .modal-content,
+:global(.app-container.dark-mode) .modal-content {
+  background: #1f2333 !important;
+  color: #edf0fa !important;
+  border: 1px solid #434963 !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+:global(body.dark-mode) .modal-header,
+:global(.app-container.dark-mode) .modal-header {
+  background: #1f2333 !important;
+  border-bottom: 1px solid #434963 !important;
+}
+
+:global(body.dark-mode) .modal-header h2,
+:global(.app-container.dark-mode) .modal-header h2,
+:global(body.dark-mode) .form-group label,
+:global(.app-container.dark-mode) .form-group label,
+:global(body.dark-mode) .progress-label,
+:global(.app-container.dark-mode) .progress-label {
+  color: #edf0fa !important;
+}
+
+:global(body.dark-mode) .close-btn,
+:global(.app-container.dark-mode) .close-btn {
+  background: #3c415b !important;
+  border-radius: 6px !important;
+  color: #cfd5e6 !important;
+}
+
+:global(body.dark-mode) .close-btn:hover,
+:global(.app-container.dark-mode) .close-btn:hover {
+  background: #4a5070 !important;
+  color: #ffffff !important;
+}
+
+:global(body.dark-mode) .form-group input,
+:global(body.dark-mode) .form-group select,
+:global(body.dark-mode) .form-group textarea,
+:global(.app-container.dark-mode) .form-group input,
+:global(.app-container.dark-mode) .form-group select,
+:global(.app-container.dark-mode) .form-group textarea {
+  background: #31364d !important;
+  border-color: #59607d !important;
+  color: #f5f7ff !important;
+}
+
+:global(body.dark-mode) .form-group input::placeholder,
+:global(body.dark-mode) .form-group textarea::placeholder,
+:global(.app-container.dark-mode) .form-group input::placeholder,
+:global(.app-container.dark-mode) .form-group textarea::placeholder {
+  color: #b2b9cb !important;
+}
+
+:global(body.dark-mode) .form-group input:disabled,
+:global(body.dark-mode) .form-group select:disabled,
+:global(body.dark-mode) .form-group textarea:disabled,
+:global(.app-container.dark-mode) .form-group input:disabled,
+:global(.app-container.dark-mode) .form-group select:disabled,
+:global(.app-container.dark-mode) .form-group textarea:disabled {
+  background: #2b3044 !important;
+  color: #c7cede !important;
+  border-color: #474d66 !important;
+}
+
+:global(body.dark-mode) .btn-secondary,
+:global(.app-container.dark-mode) .btn-secondary {
+  background: #39405a !important;
+  color: #edf0fa !important;
+}
+
+:global(body.dark-mode) .btn-secondary:hover,
+:global(.app-container.dark-mode) .btn-secondary:hover {
+  background: #48506f !important;
+}
+
+:global(body.dark-mode) .error-summary,
+:global(.app-container.dark-mode) .error-summary {
+  background: #482b2f !important;
+  color: #ffb4b4 !important;
+}
+
+:global(body.dark-mode) .info-message,
+:global(.app-container.dark-mode) .info-message {
+  color: #93b7ff !important;
+}
+
+:global(body.dark-mode) .warning-message,
+:global(.app-container.dark-mode) .warning-message {
+  color: #f5c56f !important;
+}
+
+:global(body.dark-mode) .task-form.is-locked,
+:global(.app-container.dark-mode) .task-form.is-locked {
+  background-color: #1f2333 !important;
+}
+
+:global(body.dark-mode) .task-form,
+:global(.app-container.dark-mode) .task-form {
+  background: #1f2333 !important;
+}
+
+:global(body.dark-mode) .subtask-builder,
+:global(.app-container.dark-mode) .subtask-builder,
+:global(body.dark-mode) .subtask-item,
+:global(.app-container.dark-mode) .subtask-item {
+  background: #2a2f45 !important;
+}
+
+:global(body.dark-mode) .task-form.is-locked button[type="submit"]:disabled,
+:global(.app-container.dark-mode) .task-form.is-locked button[type="submit"]:disabled {
+  background-color: #59607d !important;
+  color: #d7dced !important;
+}
+
+:global(body.dark-mode) .lock-warning,
+:global(.app-container.dark-mode) .lock-warning {
+  background: linear-gradient(135deg, #6d4b00 0%, #9f6f00 100%) !important;
+  color: #fff3c4 !important;
+  border-left-color: #ffd166 !important;
+}
+</style>
+
+<style>
+body.dark-mode .task-form-overlay .task-form-modal,
+.app-container.dark-mode .task-form-overlay .task-form-modal {
+  background: #1f2333 !important;
+  border: 1px solid #434963 !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55) !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .task-form-overlay .modal-header,
+.app-container.dark-mode .task-form-overlay .modal-header,
+body.dark-mode .task-form-overlay .task-form,
+.app-container.dark-mode .task-form-overlay .task-form {
+  background: #1f2333 !important;
+}
+
+body.dark-mode .task-form-overlay .modal-header,
+.app-container.dark-mode .task-form-overlay .modal-header {
+  border-bottom: 1px solid #434963 !important;
+}
+
+body.dark-mode .task-form-overlay .modal-header h2,
+.app-container.dark-mode .task-form-overlay .modal-header h2,
+body.dark-mode .task-form-overlay .form-group label,
+.app-container.dark-mode .task-form-overlay .form-group label,
+body.dark-mode .task-form-overlay .progress-label,
+.app-container.dark-mode .task-form-overlay .progress-label {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .task-form-overlay .close-btn,
+.app-container.dark-mode .task-form-overlay .close-btn {
+  background: #3c415b !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .task-form-overlay .close-btn:hover,
+.app-container.dark-mode .task-form-overlay .close-btn:hover {
+  background: #4a5070 !important;
+}
+
+body.dark-mode .task-form-overlay .form-group input,
+body.dark-mode .task-form-overlay .form-group select,
+body.dark-mode .task-form-overlay .form-group textarea,
+.app-container.dark-mode .task-form-overlay .form-group input,
+.app-container.dark-mode .task-form-overlay .form-group select,
+.app-container.dark-mode .task-form-overlay .form-group textarea {
+  background: #31364d !important;
+  border: 1px solid #59607d !important;
+  color: #f5f7ff !important;
+}
+
+body.dark-mode .task-form-overlay .subtask-builder,
+body.dark-mode .task-form-overlay .task-members-section,
+.app-container.dark-mode .task-form-overlay .subtask-builder,
+.app-container.dark-mode .task-form-overlay .task-members-section {
+  background: #262b3f !important;
+  border: 1px solid #59607d !important;
 }
 </style>

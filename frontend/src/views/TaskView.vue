@@ -1,14 +1,26 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useTaskFilters } from '@/composables/useTaskFilters';
 import TaskList from '@/components/tasks/TaskList.vue';
 import TaskForm from '@/components/tasks/TaskForm.vue';
 import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
 import TaskFilters from '@/components/tasks/TaskFilters.vue';
 import RuleBuilder from '@/components/tasks/RuleBuilder.vue';
+import GradeModal from '@/components/tasks/GradeModal.vue';
+import { taskMembersApi } from '@/api/taskMembers';
 
+const route = useRoute();
 const taskStore = useTaskStore();
+const authStore = useAuthStore();
+
+// Bestimme ob User ein Lehrer ist
+const isTeacher = computed(() => {
+  const roles = ['teacher', 'admin', 'superuser'];
+  return roles.includes((authStore.userRole || '').toLowerCase());
+});
 
 const activeModal = ref(null);
 const selectedTask = ref(null);
@@ -36,7 +48,22 @@ const subtasksForRuleBuilder = computed(() => {
 
 onMounted(async () => {
   await taskStore.getTasks();
+  applyStatusFilter();
 });
+
+// Watcher für URL-Änderungen
+watch(() => route.query.status, () => {
+  applyStatusFilter();
+});
+
+const applyStatusFilter = () => {
+  const statusParam = route.query.status;
+  if (statusParam) {
+    filterStatus.value = statusParam;
+  } else {
+    filterStatus.value = 'all';
+  }
+};
 
 const openTaskForm = (task = null) => {
   selectedTask.value = task;
@@ -54,6 +81,11 @@ const openRuleBuilder = (task) => {
   showRulePrompt.value = false;
 };
 
+const openGradeModal = (task) => {
+  selectedTask.value = task;
+  activeModal.value = 'grade';
+};
+
 const closeModal = () => {
   activeModal.value = null;
   selectedTask.value = null;
@@ -62,28 +94,81 @@ const closeModal = () => {
 };
 
 const saveTask = async (task) => {
-  const taskId = task.task_id || task.id;
-  if (taskId) {
-    await taskStore.editTask(taskId, task);
-  } else {
-    await taskStore.addTask(task);
+  try {
+    console.log('💾 [TaskView] Speichere Task:', task);
+    const { member_user_ids, ...taskPayload } = task;
+    const pendingMemberIds = Array.isArray(member_user_ids)
+      ? [...new Set(member_user_ids.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))]
+      : [];
+
+    const taskId = taskPayload.task_id || taskPayload.id;
+    if (taskId) {
+      console.log('✏️ Editiere Task:', taskId);
+      await taskStore.editTask(taskId, taskPayload);
+    } else {
+      console.log('✨ Erstelle neuen Task');
+      const createdTask = await taskStore.addTask(taskPayload);
+      const createdTaskId = createdTask?.task_id || createdTask?.id;
+
+      if (createdTaskId && pendingMemberIds.length > 0) {
+        await Promise.allSettled(
+          pendingMemberIds.map((userId) =>
+            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+          ),
+        );
+      }
+    }
+    console.log('✅ Task erfolgreich gespeichert!');
+    closeModal();
+  } catch (error) {
+    console.error('❌ Fehler beim Speichern des Tasks:', error);
+    const errorMessage = error?.response?.data?.message || error?.response?.statusText || error?.message || 'Unbekannter Fehler';
+    const errorDetails = error?.response?.data;
+    console.error('📋 Backend-Fehler Details:', errorDetails);
+    alert(`Fehler beim Speichern: ${errorMessage}`);
   }
-  closeModal();
 };
 
 const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
-  const taskId = taskData.task_id || taskData.id;
-  if (taskId) {
-    await taskStore.editTaskWithSubtasks(taskId, taskData, subtasks);
-    closeModal();
-  } else {
-    const result = await taskStore.createTaskWithSubtasks(taskData, subtasks);
-    closeModal();
+  try {
+    console.log('💾 [TaskView] Speichere Task mit Subtasks:', { taskData, subtasks });
+    const { member_user_ids, ...taskPayload } = taskData;
+    const pendingMemberIds = Array.isArray(member_user_ids)
+      ? [...new Set(member_user_ids.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))]
+      : [];
 
-    if (subtasks.length > 0) {
-      newlyCreatedTask.value = result.parentTask;
-      showRulePrompt.value = true;
+    const taskId = taskPayload.task_id || taskPayload.id;
+    if (taskId) {
+      console.log('✏️ Editiere Task mit Subtasks:', taskId);
+      await taskStore.editTaskWithSubtasks(taskId, taskPayload, subtasks);
+      closeModal();
+    } else {
+      console.log('✨ Erstelle neuen Task mit Subtasks');
+      const result = await taskStore.createTaskWithSubtasks(taskPayload, subtasks);
+
+      const createdTaskId = result?.parentTask?.task_id || result?.parentTask?.id;
+      if (createdTaskId && pendingMemberIds.length > 0) {
+        await Promise.allSettled(
+          pendingMemberIds.map((userId) =>
+            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+          ),
+        );
+      }
+
+      closeModal();
+
+      if (subtasks.length > 0) {
+        newlyCreatedTask.value = result.parentTask;
+        showRulePrompt.value = true;
+      }
     }
+    console.log('✅ Task mit Subtasks erfolgreich gespeichert!');
+  } catch (error) {
+    console.error('❌ Fehler beim Speichern des Tasks mit Subtasks:', error);
+    const errorMessage = error?.response?.data?.message || error?.response?.statusText || error?.message || 'Unbekannter Fehler';
+    const errorDetails = error?.response?.data;
+    console.error('📋 Backend-Fehler Details:', errorDetails);
+    alert(`Fehler beim Speichern: ${errorMessage}`);
   }
 };
 
@@ -109,11 +194,22 @@ const handleRulePromptNo = () => {
   newlyCreatedTask.value = null;
 };
 
+const handleGradeSaved = () => {
+  // Optionally refresh tasks or show notification
+  console.log('Bewertung gespeichert');
+};
+
 const deleteTask = async () => {
-  if (selectedTask.value) {
+  if (!selectedTask.value) return;
+
+  try {
     const taskId = selectedTask.value.task_id || selectedTask.value.id;
     await taskStore.removeTask(taskId);
     closeModal();
+  } catch (error) {
+    console.error('❌ Fehler beim Löschen des Tasks:', error);
+    const errorMessage = error?.response?.data?.message || error?.response?.statusText || error?.message || 'Unbekannter Fehler';
+    alert(`Fehler beim Löschen: ${errorMessage}`);
   }
 };
 
@@ -129,10 +225,16 @@ const handleStatusChange = async (task, newStatus) => {
 };
 
 const saveRule = async ({ rule, autoComplete }) => {
-  if (selectedTask.value) {
+  if (!selectedTask.value) return;
+
+  try {
     const taskId = selectedTask.value.task_id || selectedTask.value.id;
     await taskStore.saveCompletionRule(taskId, rule, autoComplete);
     closeModal();
+  } catch (error) {
+    console.error('❌ Fehler beim Speichern der Verknüpfungslogik:', error);
+    const errorMessage = error?.response?.data?.message || error?.response?.statusText || error?.message || 'Unbekannter Fehler';
+    alert(`Fehler beim Speichern der Verknüpfungslogik: ${errorMessage}`);
   }
 };
 </script>
@@ -140,7 +242,15 @@ const saveRule = async ({ rule, autoComplete }) => {
 <template>
   <div class="task-view">
     <div class="task-header">
-      <h1>Meine Aufgaben</h1>
+      <div v-if="isTeacher" class="header-content">
+        <h1>📝 Taskliste</h1>
+        <p class="header-subtitle">Schüler-Submitals überprüfen und bewerten</p>
+      </div>
+      <div v-else class="header-content">
+        <h1>📋 Meine Aufgaben</h1>
+        <p class="header-subtitle">Deine persönlichen Tasks verwalten</p>
+      </div>
+
       <button @click="openTaskForm()" class="btn-primary">
         + Neue Aufgabe
       </button>
@@ -149,7 +259,7 @@ const saveRule = async ({ rule, autoComplete }) => {
     <TaskFilters v-model:searchQuery="searchQuery" v-model:filterStatus="filterStatus" v-model:sortBy="sortBy" />
 
     <TaskList :tasks="filteredAndSortedTasks" @edit="openTaskForm" @delete="openDeleteDialog"
-      @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" @edit-rule="openRuleBuilder" />
+      @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" @edit-rule="openRuleBuilder" @grade="openGradeModal" />
 
     <TaskForm v-if="activeModal === 'form'" :task="selectedTask" @save="saveTask"
       @save-with-subtasks="saveTaskWithSubtasks" @close="closeModal" />
@@ -163,6 +273,8 @@ const saveRule = async ({ rule, autoComplete }) => {
           @close="closeModal" />
       </div>
     </div>
+
+    <GradeModal v-if="activeModal === 'grade'" :task="selectedTask" @close="closeModal" @saved="handleGradeSaved" />
 
     <div v-if="showRulePrompt" class="modal-overlay" @click.self="handleRulePromptNo">
       <div class="prompt-modal">

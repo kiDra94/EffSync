@@ -51,6 +51,11 @@ const handleLogin = async () => {
     isLoading.value = false
   }
 }
+
+const handleGoogleLogin = () => {
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+  window.location.href = `${backendUrl}/auth/google`
+}
 </script>
 
 <template>
@@ -70,7 +75,8 @@ const handleLogin = async () => {
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label>Benutzername</label>
-          <input type="text" v-model="credentials.username" required minlength="8" maxlength="32"
+
+          <input type="text" v-model="credentials.username" required minlength="3" maxlength="32"
             placeholder="Benutzername" />
         </div>
 
@@ -85,6 +91,15 @@ const handleLogin = async () => {
         <button type="submit" :disabled="isLoading">
           {{ isLoading ? '...' : 'Login' }}
         </button>
+
+        <div class="divider-line">
+          <span>oder</span>
+        </div>
+
+        <button type="button" @click="handleGoogleLogin" class="btn-google">
+          🔒 Mit Google anmelden
+        </button>
+
         <div class="login-footer">
           <router-link :to="{ name: 'ForgotPassword' }" class="link-text">Passwort vergessen? </router-link>
           <span class="divider">|</span>
@@ -174,6 +189,56 @@ button:hover {
   color: #e74c3c;
   margin-bottom: 1rem;
   font-size: 0.9rem;
+}
+
+.divider-line {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  color: #999;
+}
+
+.divider-line::before,
+.divider-line::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: #ddd;
+}
+
+.btn-google {
+  background-color: #ffffff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin-bottom: 1rem;
+}
+
+.btn-google:hover {
+  background-color: #f9f9f9;
+  border-color: #ccc;
+}
+
+/* Dark Mode für Google Button */
+:global(body.dark-mode) .btn-google {
+  background-color: #31364d;
+  color: #edf0fa;
+  border-color: #434963;
+}
+
+:global(body.dark-mode) .btn-google:hover {
+  background-color: #3a4060;
+  border-color: #555;
+}
+
+:global(body.dark-mode) .divider-line {
+  color: #7a8199;
+}
+
+:global(body.dark-mode) .divider-line::before,
+:global(body.dark-mode) .divider-line::after {
+  background-color: #434963;
 }
 
 /* Switch Styles */

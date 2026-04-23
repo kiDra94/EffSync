@@ -9,6 +9,143 @@ export const useTaskStore = defineStore('task', () => {
     const tasks = ref([]);
     const { socket_on, socket_off } = useSocket();
 
+    function buildSubtaskPayload(subtask, parentTaskId, parentTaskData = {}) {
+        return {
+            ...subtask,
+            parent_task_id: parentTaskId,
+            deadline: subtask.deadline || parentTaskData.deadline,
+            description: subtask.description ?? parentTaskData.description ?? '',
+            status: subtask.status || parentTaskData.status || 'TODO',
+            progress: subtask.progress ?? 0,
+            priority_id: subtask.priority_id || parentTaskData.priority_id || 2,
+        };
+    }
+
+    function parseCompletionRule(rule) {
+        if (!rule) return null;
+        if (typeof rule === 'string') {
+            try {
+                return JSON.parse(rule);
+            } catch (error) {
+                console.error('Fehler beim Parsen der completion_rule:', error);
+                return null;
+            }
+        }
+        return rule;
+    }
+
+    function normalizeCompletionRule(rule) {
+        const parsedRule = parseCompletionRule(rule);
+        if (!parsedRule) return null;
+
+        const normalizeNode = (node) => {
+            if (!node || typeof node !== 'object') return node;
+
+            if (node.type === 'leaf') {
+                return {
+                    type: 'leaf',
+                    task_id: node.task_id != null ? String(node.task_id) : node.task_id,
+                };
+            }
+
+            if (node.type === 'operator') {
+                return {
+                    type: 'operator',
+                    operator: node.operator,
+                    operands: Array.isArray(node.operands)
+                        ? node.operands.map((operand) => normalizeNode(operand))
+                        : [],
+                };
+            }
+
+            return node;
+        };
+
+        return normalizeNode(parsedRule);
+    }
+
+    function evaluateCompletionRule(rule) {
+        const parsedRule = parseCompletionRule(rule);
+        if (!parsedRule) return false;
+
+        if (parsedRule.type === 'leaf') {
+            const task = tasks.value.find(t => String(t.task_id) === String(parsedRule.task_id));
+            return task?.status === 'COMPLETED';
+        }
+
+        if (parsedRule.type === 'operator') {
+            const operands = Array.isArray(parsedRule.operands) ? parsedRule.operands : [];
+            const results = operands.map(operand => evaluateCompletionRule(operand));
+
+            switch (parsedRule.operator) {
+                case 'AND':
+                    return results.length > 0 && results.every(Boolean);
+                case 'OR':
+                    return results.some(Boolean);
+                case 'XOR':
+                    return results.filter(Boolean).length === 1;
+                case 'NOT':
+                    return results.length > 0 ? !results[0] : true;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
+    function isLogicFulfilled(taskId) {
+        const task = tasks.value.find(t => String(t.task_id) === String(taskId));
+        if (!task?.completion_rule) return null;
+        return evaluateCompletionRule(task.completion_rule);
+    }
+
+    async function updateTaskStatusSilently(taskId, newStatus) {
+        const index = tasks.value.findIndex(t => String(t.task_id) === String(taskId));
+        if (index === -1) return;
+
+        const updates = { status: newStatus };
+        if (newStatus === 'COMPLETED') {
+            updates.progress = 100;
+        } else if (tasks.value[index].progress === 100) {
+            updates.progress = 0;
+        }
+
+        tasks.value[index] = {
+            ...tasks.value[index],
+            ...updates,
+        };
+
+        await patchTask(taskId, updates);
+    }
+
+    async function checkAffectedParents(changedTaskId, visited = new Set()) {
+        const normalizedChangedId = String(changedTaskId);
+        if (visited.has(normalizedChangedId)) return;
+        visited.add(normalizedChangedId);
+
+        const affectedParents = tasks.value.filter(task => {
+            const rule = parseCompletionRule(task.completion_rule);
+            if (!task.auto_complete || !rule) return false;
+
+            const serializedRule = JSON.stringify(rule);
+            return serializedRule.includes(`"task_id":"${normalizedChangedId}"`)
+                || serializedRule.includes(`"task_id":${normalizedChangedId}`);
+        });
+
+        for (const parent of affectedParents) {
+            const fulfilled = isLogicFulfilled(parent.task_id);
+
+            if (fulfilled && parent.status !== 'COMPLETED') {
+                await updateTaskStatusSilently(parent.task_id, 'COMPLETED');
+                await checkAffectedParents(parent.task_id, visited);
+            } else if (fulfilled === false && parent.status === 'COMPLETED') {
+                await updateTaskStatusSilently(parent.task_id, 'IN_PROGRESS');
+                await checkAffectedParents(parent.task_id, visited);
+            }
+        }
+    }
+
     function initSocketListeners() {
         //if(!socket.value) return;
         socket_off('task:updated');
@@ -46,7 +183,9 @@ export const useTaskStore = defineStore('task', () => {
     async function addTask(task) {
         try {
             const newTask = await createTask(task);
-            tasks.value.push(newTask.data || newTask);
+            const created = newTask.data || newTask;
+            tasks.value.push(created);
+            return created;
         } catch (error) {
             console.error('Fehler beim Hinzufügen eines Tasks:', error);
             throw error;
@@ -55,21 +194,39 @@ export const useTaskStore = defineStore('task', () => {
 
     async function editTask(task_id, task) {
         try {
+            console.log('🔧 [taskStore] editTask aufgerufen mit task_id:', task_id, 'task:', task);
             const updatedTask = await updateTask(task_id, task);
+            console.log('✅ [taskStore] Task aktualisiert vom Backend:', updatedTask);
             const index = tasks.value.findIndex((i) => i.task_id === task_id);
             if (index !== -1) {
                 tasks.value[index] = updatedTask.data || updatedTask;
             }
         } catch (error) {
-            console.error('Fehler beim Bearbeiten eines Tasks:', error);
+            console.error('❌ [taskStore] Fehler beim Bearbeiten eines Tasks:', error);
+            console.error('📋 Backend-Status:', error?.response?.status);
+            console.error('📋 Backend-Fehler:', error?.response?.data);
             throw error;
         }
     }
 
     async function removeTask(task_id) {
         try {
+            const normalizedTaskId = String(task_id);
+
+            // Erst alle direkten Subtasks rekursiv löschen,
+            // da das Backend Parent-Tasks mit Subtasks blockiert.
+            const directSubtasks = tasks.value.filter(
+                (task) => String(task.parent_task_id) === normalizedTaskId
+            );
+
+            for (const subtask of directSubtasks) {
+                await removeTask(subtask.task_id);
+            }
+
             await deleteTask(task_id);
-            tasks.value = tasks.value.filter((task) => task.task_id !== task_id);
+            tasks.value = tasks.value.filter(
+                (task) => String(task.task_id) !== normalizedTaskId
+            );
         } catch (error) {
             console.error('Fehler beim Löschen eines Tasks:', error);
             throw error;
@@ -92,6 +249,7 @@ export const useTaskStore = defineStore('task', () => {
                 tasks.value[index].progress = updates.progress || tasks.value[index].progress;
             }
             await patchTask(task_id, updates);
+            await checkAffectedParents(task_id);
         } catch (error) {
             console.error('Fehler beim Statuswechsel:', error);
             throw error;
@@ -102,12 +260,12 @@ export const useTaskStore = defineStore('task', () => {
         if (isSaving) return;
         isSaving = true;
         try {
-            // const ruleJson = typeof rule === 'object' ? JSON.stringify(rule) : rule;
-            await updateCompletionRule(taskId, rule, autoComplete);
+            const normalizedRule = normalizeCompletionRule(rule);
+            await updateCompletionRule(taskId, normalizedRule, autoComplete);
 
             const index = tasks.value.findIndex(t => t.task_id === taskId);
             if (index !== -1) {
-                tasks.value[index].completion_rule = rule;
+                tasks.value[index].completion_rule = normalizedRule;
                 tasks.value[index].auto_complete = autoComplete;
             }
         } catch (error) {
@@ -127,10 +285,7 @@ export const useTaskStore = defineStore('task', () => {
             const createdSubtasks = [];
             for (const subtask of subtasks) {
                 if (subtask.title && subtask.title.trim()) {
-                    const subtaskData = {
-                        ...subtask,
-                        parent_task_id: createdParent.task_id
-                    };
+                    const subtaskData = buildSubtaskPayload(subtask, createdParent.task_id, taskData);
                     const newSubtask = await createTask(subtaskData);
                     const createdSub = newSubtask.data || newSubtask;
                     tasks.value.push(createdSub);
@@ -170,10 +325,7 @@ export const useTaskStore = defineStore('task', () => {
                     updatedSubtasks.push(subtask);
                 } else if (subtask.title && subtask.title.trim()) {
                     // Neuen Subtask erstellen
-                    const subtaskData = {
-                        ...subtask,
-                        parent_task_id: task_id
-                    };
+                    const subtaskData = buildSubtaskPayload(subtask, task_id, taskData);
                     const newSubtask = await createTask(subtaskData);
                     const createdSub = newSubtask.data || newSubtask;
                     tasks.value.push(createdSub);
@@ -200,6 +352,9 @@ export const useTaskStore = defineStore('task', () => {
         changeStatus,
         removeTask,
         getSubtasks,
+        evaluateCompletionRule,
+        isLogicFulfilled,
+        checkAffectedParents,
         saveCompletionRule,
         createTaskWithSubtasks,
         editTaskWithSubtasks,

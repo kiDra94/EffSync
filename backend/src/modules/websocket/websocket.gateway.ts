@@ -65,7 +65,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
         this.server.to(`user_${userId}`).emit('task:updated', task);
     }
 
-    emitToUsser(userId: number, event: string, data: any) {
+    emitToUser(userId: number, event: string, data: any) {
         this.server.to(`user_${userId}`).emit(event, data);
     }
 
@@ -212,6 +212,36 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
                 .emit('chat:typing', { userId, username });
         } catch (err) {
             this.logger.error(`chat:typing failed: ${err.message}`);
+        }
+    }
+
+    /**
+     * Feature #27: Emit task locked event to user
+     * Called when a task is locked due to deadline
+     */
+    emitTaskLocked(userId: number, taskId: number, reason: string) {
+        try {
+            this.server.to(`user_${userId}`).emit('task:locked', {
+                taskId,
+                reason,
+                timestamp: new Date(),
+            });
+            this.logger.log(`📡 Task locked event sent to user ${userId}: task ${taskId} - reason: ${reason}`);
+        } catch (err) {
+            this.logger.error(`task:locked emit failed: ${err.message}`);
+        }
+    }
+
+    /**
+     * Feature #27: Broadcast notification to user
+     * Called when a new notification is created
+     */
+    emitNotification(userId: number, notification: any) {
+        try {
+            this.server.to(`user_${userId}`).emit('notification:new', notification);
+            this.logger.log(`📡 Notification sent to user ${userId}: ${notification.type}`);
+        } catch (err) {
+            this.logger.error(`notification:new emit failed: ${err.message}`);
         }
     }
 }

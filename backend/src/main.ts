@@ -45,7 +45,10 @@ async function bootstrap() {
     .setTitle("EffSync API")
     .setDescription("School Management & Task System - AP 4.6")
     .setVersion("1.0")
-    .addBearerAuth()
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'bearer'
+    )
     .addTag("auth", "Authentication & Authorization")
     .addTag("users", "User Management")
     .addTag("tasks", "Task Management")

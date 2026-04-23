@@ -24,5 +24,9 @@ export const authApi = {
 
   forgotPassword(email) {
     return apiClient.post('/auth/forgot-password', { email })
+  },
+
+  setNewPassword(password) {
+    return apiClient.post('/auth/set-new-password', { password })
   }
 }

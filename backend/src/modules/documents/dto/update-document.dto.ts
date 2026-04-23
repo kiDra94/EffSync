@@ -1,5 +1,8 @@
-import { PartialType } from "@nestjs/mapped-types";
-import { CreateDocumentDto } from "./create-document.dto";
+import { IsNotEmpty, IsString, MaxLength } from "class-validator";
 
-// PartialType sorgt dafür, dass alle Felder aus CreateDocumentDto optional werden
-export class UpdateDocumentDto extends PartialType(CreateDocumentDto) {}
+export class UpdateDocumentDto {
+	@IsString()
+	@IsNotEmpty()
+	@MaxLength(255)
+	name: string;
+}

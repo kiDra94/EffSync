@@ -119,3 +119,27 @@ const getTypingUsers = (roomId) => {
     background: #1e1e2f;
 }
 </style>
+
+<style>
+body.dark-mode .chat-view,
+.app-container.dark-mode .chat-view {
+    background: #1e2232 !important;
+}
+
+body.dark-mode .chat-sidebar,
+.app-container.dark-mode .chat-sidebar {
+    background: #25283a !important;
+    border-right: 1px solid #434963 !important;
+}
+
+body.dark-mode .chat-main,
+.app-container.dark-mode .chat-main {
+    background: #1e2232 !important;
+}
+
+body.dark-mode .chat-placeholder,
+.app-container.dark-mode .chat-placeholder {
+    color: #aeb6c9 !important;
+    background: #1e2232 !important;
+}
+</style>

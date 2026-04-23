@@ -29,7 +29,7 @@ export const createRoom = async (roomData) => {
 };
 
 export const sendMessageRest = async (roomId, content) => {
-    const response = await apiClient.post(MESSAGES_ENDPOINT(roomId), { content });
+    const response = await apiClient.post(MESSAGES_ENDPOINT(roomId), { message: content });
     return normalizeEntity(response.data, MSG_ID_KEY);
 };
 
@@ -49,7 +49,7 @@ export const addMember = async (roomId, userId) => {
 };
 
 export const fetchAllUsers = async () => {
-    const response = await apiClient.get('/users');
+    const response = await apiClient.get('/users/for-chat');
     const users = response.data?.data ?? response.data;
     return users;
 };

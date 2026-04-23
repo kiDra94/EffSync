@@ -36,6 +36,7 @@ import { RolesPermissionsModule } from "./modules/roles-permissions/roles-permis
 import { StudentsModule } from "./modules/students/students.module";
 import { TaskActivityLogModule } from "./modules/task-activity-log/task-activity-log.module";
 import { TaskDocumentsModule } from "./modules/task-documents/task-documents.module";
+import { TaskMembersModule } from "./modules/task-members/task-members.module";
 import { TaskTemplatesModule } from "./modules/task-templates/task-templates.module";
 import { TeachersModule } from "./modules/teachers/teachers.module";
 import { UserPermissionsModule } from "./modules/user-permissions/user-permissions.module";
@@ -43,6 +44,7 @@ import { UserRolesModule } from "./modules/user-roles/user-roles.module";
 import { APP_GUARD } from "@nestjs/core";
 import { SubjectsModule } from './modules/subjects/subjects.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -92,12 +94,14 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     StudentsModule,
     TaskActivityLogModule,
     TaskDocumentsModule,
+    TaskMembersModule,
     TaskTemplatesModule,
     TeachersModule,
     UserPermissionsModule,
     UserRolesModule,
     SubjectsModule,
     WebsocketModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [

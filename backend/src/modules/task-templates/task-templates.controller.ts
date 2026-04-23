@@ -4,10 +4,12 @@ import { CreateTaskTemplateDto } from './dto/create-task-template.dto';
 import { UpdateTaskTemplateDto } from './dto/update-task-template.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('task-templates')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('task-templates')
 export class TaskTemplatesController {
   constructor(private readonly taskTemplatesService: TaskTemplatesService) {}
@@ -15,6 +17,7 @@ export class TaskTemplatesController {
   @Post()
   @ApiOperation({ summary: 'Create a task template' })
   @ApiResponse({ status: 201, description: 'Template created successfully' })
+  @Permissions()
   create(@Body() createDto: CreateTaskTemplateDto, @Req() req) {
     return this.taskTemplatesService.create(createDto, req.user.userId);
   }
@@ -23,6 +26,7 @@ export class TaskTemplatesController {
   @ApiOperation({ summary: 'Get all templates (optional filter by creator)' })
   @ApiQuery({ name: 'created_by', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Templates retrieved successfully' })
+  @Permissions()
   findAll(@Query('created_by') createdBy: number) {
     return this.taskTemplatesService.findAll(createdBy);
   }
@@ -31,6 +35,7 @@ export class TaskTemplatesController {
   @ApiOperation({ summary: 'Get template by ID' })
   @ApiResponse({ status: 200, description: 'Template retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Template not found' })
+  @Permissions()
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.taskTemplatesService.findOne(id);
   }
@@ -39,6 +44,7 @@ export class TaskTemplatesController {
   @ApiOperation({ summary: 'Update template' })
   @ApiResponse({ status: 200, description: 'Template updated successfully' })
   @ApiResponse({ status: 404, description: 'Template not found' })
+  @Permissions()
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateTaskTemplateDto,
@@ -51,6 +57,7 @@ export class TaskTemplatesController {
   @ApiResponse({ status: 200, description: 'Template deleted successfully' })
   @ApiResponse({ status: 400, description: 'Template has associated tasks' })
   @ApiResponse({ status: 404, description: 'Template not found' })
+  @Permissions()
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.taskTemplatesService.remove(id);
   }

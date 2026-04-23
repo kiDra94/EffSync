@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import ClassForm from '@/components/classes/ClassForm.vue';
 import ClassDeleteDialog from '@/components/classes/ClassDeleteDialog.vue';
+import { useAuthStore } from '@/stores/authStore';
 
 const STORAGE_KEY = 'effsync_classes';
 
@@ -16,6 +17,12 @@ const classes = ref([]);
 const selectedClass = ref(null);
 const activeModal = ref(null);
 const searchQuery = ref('');
+const authStore = useAuthStore();
+
+const canManageClasses = computed(() => {
+  const role = (authStore.userRole || '').toLowerCase();
+  return ['admin', 'superuser', 'director'].includes(role);
+});
 
 const filteredClasses = computed(() => {
   if (!searchQuery.value) return classes.value;
@@ -49,6 +56,7 @@ const saveToStorage = () => {
 };
 
 const openClassForm = (classObj = null) => {
+  if (!canManageClasses.value) return;
   selectedClass.value = classObj ? JSON.parse(JSON.stringify(classObj)) : null;
   activeModal.value = 'form';
 };
@@ -58,6 +66,7 @@ const openClassDetail = (classObj) => {
 };
 
 const openDeleteDialog = (classObj) => {
+  if (!canManageClasses.value) return;
   selectedClass.value = classObj;
   activeModal.value = 'delete';
 };
@@ -68,6 +77,7 @@ const closeModal = () => {
 };
 
 const saveClass = async (classData) => {
+  if (!canManageClasses.value) return;
   try {
     if (classData.class_id) {
       const index = classes.value.findIndex(c => c.class_id === classData.class_id);
@@ -86,6 +96,7 @@ const saveClass = async (classData) => {
 };
 
 const deleteClass = async () => {
+  if (!canManageClasses.value) return;
   if (selectedClass.value) {
     try {
       classes.value = classes.value.filter(c => c.class_id !== selectedClass.value.class_id);
@@ -106,7 +117,7 @@ onMounted(() => {
   <div class="class-view">
     <div class="class-header">
       <h1>Klassen</h1>
-      <button @click="openClassForm()" class="btn-primary">
+      <button v-if="canManageClasses" @click="openClassForm()" class="btn-primary">
         + Neue Klasse
       </button>
     </div>
@@ -126,8 +137,8 @@ onMounted(() => {
           <h3>{{ cls.name }}</h3>
           <div class="card-actions">
             <button @click="openClassDetail(cls)" class="btn-icon" title="Details anzeigen">👁️</button>
-            <button @click="openClassForm(cls)" class="btn-icon" title="Bearbeiten">✏️</button>
-            <button @click="openDeleteDialog(cls)" class="btn-icon btn-danger" title="Löschen">🗑️</button>
+            <button v-if="canManageClasses" @click="openClassForm(cls)" class="btn-icon" title="Bearbeiten">✏️</button>
+            <button v-if="canManageClasses" @click="openDeleteDialog(cls)" class="btn-icon btn-danger" title="Löschen">🗑️</button>
           </div>
         </div>
         <div class="card-body">
@@ -139,7 +150,8 @@ onMounted(() => {
 
     <div v-else class="empty-state">
       <p>Noch keine Klassen vorhanden.</p>
-      <button @click="openClassForm()" class="btn-primary">Erste Klasse erstellen</button>
+      <button v-if="canManageClasses" @click="openClassForm()" class="btn-primary">Erste Klasse erstellen</button>
+      <p v-else>Du hast nur Leserechte für Klassen.</p>
     </div>
 
     <ClassForm v-if="activeModal === 'form'" :class-obj="selectedClass" @save="saveClass" @close="closeModal" />

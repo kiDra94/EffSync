@@ -18,6 +18,16 @@ const routes = [
         component: () => import('@/views/ForgotPasswordView.vue'),
     },
     {
+        path: '/reset-password',
+        name: 'ResetPassword',
+        component: () => import('@/views/ResetPasswordView.vue'),
+    },
+    {
+        path: '/auth-callback',
+        name: 'AuthCallback',
+        component: () => import('@/views/AuthCallbackView.vue'),
+    },
+    {
         path: '/',
         component: () => import('@/views/LayoutView.vue'),
         meta: { requiresAuth: true },
@@ -71,7 +81,6 @@ const routes = [
                 path: 'classes',
                 name: 'ClassList',
                 component: () => import('@/views/ClassListView.vue'),
-                meta: { roles: ['admin', 'teacher',] },
             },
             {
                 path: 'classes/:id',
@@ -83,12 +92,28 @@ const routes = [
                 path: 'departments',
                 name: 'DepartmentList',
                 component: () => import('@/views/DepartmentView.vue'),
-                meta: { roles: ['admin'] },
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                path: 'admin/users',
+                name: 'AdminUsers',
+                component: () => import('@/views/AdminView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                path: 'permissions',
+                name: 'PermissionsDetail',
+                component: () => import('@/views/PermissionsDetailView.vue'),
             },
             {
                 path: 'chat',
                 name: 'Chat',
                 component: () => import('@/views/ChatView.vue'),
+            },
+            {
+                path: 'settings',
+                name: 'Settings',
+                component: () => import('@/views/SettingsView.vue'),
             },
         ]
     },
@@ -138,9 +163,13 @@ router.beforeEach(async (to) => {
     // 4. Rollen-Check (erst NACHDEM User geladen wurde)
     if (hasToken && to.meta.roles) {
         // Jetzt ist userRole sicher verfügbar
+        console.log('🔐 Router Guard - Route requires roles:', to.meta.roles)
+        console.log('🔐 Router Guard - User role:', authStore.userRole)
+        console.log('🔐 Router Guard - Has required role:', to.meta.roles.includes(authStore.userRole))
+        
         if (!to.meta.roles.includes(authStore.userRole)) {
             // Optional: Redirect zu einer "Unauthorized" Seite oder zurück zum Dashboard
-            console.warn('Zugriff verweigert: Fehlende Rolle')
+            console.warn('⚠️ Zugriff verweigert: Fehlende Rolle', authStore.userRole, 'benötigt:', to.meta.roles)
             return { name: 'Dashboard' }
         }
     }

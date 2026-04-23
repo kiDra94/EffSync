@@ -11,8 +11,8 @@ export class CreateUserDto {
   email: string;
 
   @IsString()
-  @MinLength(8, {
-    message: "Das Passwort muss mindestens 8 Zeichen lang sein.",
+  @MinLength(7, {
+    message: "Das Passwort muss mindestens 7 Zeichen lang sein.",
   })
   @MaxLength(32, { message: "Das Passwort soll maximal 32 Zeichen lang sein." })
   password: string;
@@ -28,8 +28,8 @@ export class CreateUserDto {
   lastname: string;
 
   @IsString()
-  @MinLength(8, {
-    message: "Der Username muss mindestens 8 Zeichen lang sein.",
+  @MinLength(7, {
+    message: "Der Username muss mindestens 7 Zeichen lang sein.",
   })
   @MaxLength(32, { message: "Der Username soll maximal 32 Zeichen lang sein." })
   username: string;

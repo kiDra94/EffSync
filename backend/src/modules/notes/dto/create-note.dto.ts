@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString, IsOptional } from "class-validator";
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateNoteDto {
   @IsString()
@@ -6,12 +6,8 @@ export class CreateNoteDto {
   title: string;
 
   @IsString()
-  @IsOptional()
-  description?: string;
-
-  @IsInt()
   @IsNotEmpty()
-  created_by: number;
+  description: string;
 
   @IsInt()
   @IsOptional()
@@ -20,4 +16,13 @@ export class CreateNoteDto {
   @IsInt()
   @IsOptional()
   priority_id?: number;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(["low", "medium", "high"])
+  priority?: "low" | "medium" | "high";
+
+  @IsInt()
+  @IsOptional()
+  task_id?: number;
 }

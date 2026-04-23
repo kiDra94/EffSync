@@ -16,6 +16,7 @@ const showResults = ref(false);
 // Dark Mode Logic
 watch(isDark, (val) => {
   document.body.classList.toggle("dark-mode", val);
+  localStorage.setItem('theme', val ? 'dark' : 'light');
 });
 
 // Click Outside Logic: Schließt das Menü, wenn man woanders klickt
@@ -33,6 +34,15 @@ const closeSearch = (e) => {
 };
 
 onMounted(() => {
+  // Restore theme preference reliably across reloads/views
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    isDark.value = savedTheme === 'dark';
+  } else {
+    isDark.value = document.body.classList.contains('dark-mode');
+  }
+  document.body.classList.toggle('dark-mode', isDark.value);
+
   window.addEventListener('click', closeDropdown)
 })
 
@@ -88,6 +98,8 @@ const navigateToResult = (result) => {
       <router-link :to="{ name: 'TemplateLists' }" title="Vorlagen">📄</router-link>
       <router-link :to="{ name: 'NoteLists' }" title="Notizen">📝</router-link>
       <router-link :to="{ name: 'Chat' }" title="Chat">💬</router-link>
+      <!-- DEBUG: isAdmin={{ authStore.isAdmin }}, userRole={{ authStore.userRole }} -->
+      <router-link v-if="authStore.isAdmin" :to="{ name: 'AdminUsers' }" title="Admin">⚙️</router-link>
     </div>
 
     <div class="main-wrapper">
@@ -133,7 +145,7 @@ const navigateToResult = (result) => {
                   👤 Mein Profil
                 </router-link>
 
-                <a href="#" class="dropdown-item">⚙️ Einstellungen</a>
+                <router-link :to="{name: 'Settings'}" class="dropdown-item" @click="showDropdown = false">⚙️ Einstellungen</router-link>
 
                 <hr>
 
@@ -163,19 +175,19 @@ const navigateToResult = (result) => {
 <style>
 /* GLOBALE STYLES (Unverändert) */
 body.dark-mode .header {
-  background-color: #2c2c3e !important;
-  border-bottom: 1px solid #444 !important;
-  color: #ddd !important;
+  background-color: #1e2132 !important;
+  border-bottom: 1px solid #434963 !important;
+  color: #edf0fa !important;
 }
 
 body.dark-mode .header .logo {
-  color: white !important;
+  color: #edf0fa !important;
 }
 
 body.dark-mode .header input[type="search"] {
-  background-color: #1e1e2f !important;
-  border: 1px solid #444 !important;
-  color: white !important;
+  background-color: #31364d !important;
+  border: 1px solid #434963 !important;
+  color: #edf0fa !important;
 }
 </style>
 
@@ -453,7 +465,13 @@ hr {
 .content {
   padding: 20px 30px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+}
+
+:global(body.dark-mode) .content,
+.app-container.dark-mode .content {
+  background-color: #1e1e2f !important;
 }
 
 .content.login-mode {
@@ -516,4 +534,48 @@ hr {
 :global(body.dark-mode) .search-result-item:hover { background: #3b3b54; }
 :global(body.dark-mode) .result-label { color: #ddd; }
 
+</style>
+
+<style>
+body.dark-mode .dropdown-menu,
+.app-container.dark-mode .dropdown-menu {
+  background-color: #25283a !important;
+  border-color: #434963 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45) !important;
+}
+body.dark-mode .dropdown-header,
+.app-container.dark-mode .dropdown-header {
+  background-color: #1e2132 !important;
+  border-bottom: 1px solid #434963 !important;
+}
+body.dark-mode .dropdown-header strong,
+.app-container.dark-mode .dropdown-header strong {
+  color: #edf0fa !important;
+}
+body.dark-mode .dropdown-header small,
+.app-container.dark-mode .dropdown-header small {
+  color: #b2b9cb !important;
+}
+body.dark-mode .dropdown-item,
+.app-container.dark-mode .dropdown-item {
+  color: #edf0fa !important;
+  background: transparent !important;
+}
+body.dark-mode .dropdown-item:hover,
+.app-container.dark-mode .dropdown-item:hover {
+  background-color: #31364d !important;
+}
+body.dark-mode .dropdown-item.text-danger,
+.app-container.dark-mode .dropdown-item.text-danger {
+  color: #ff7070 !important;
+}
+body.dark-mode .dropdown-item.text-danger:hover,
+.app-container.dark-mode .dropdown-item.text-danger:hover {
+  background-color: #3a1a1a !important;
+}
+body.dark-mode .dropdown-divider,
+.app-container.dark-mode .dropdown-divider {
+  border-color: #434963 !important;
+  opacity: 1 !important;
+}
 </style>

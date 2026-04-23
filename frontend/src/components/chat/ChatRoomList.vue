@@ -157,3 +157,32 @@ const onCreated = (room) => {
 :global(body.dark-mode) .room-list__dropdown button { color: #ddd; }
 :global(body.dark-mode) .room-list__dropdown button:hover { background: #3b3b54; }
 </style>
+
+<style>
+body.dark-mode .room-list,
+.app-container.dark-mode .room-list {
+    background: #25283a !important;
+}
+
+body.dark-mode .room-list__header,
+.app-container.dark-mode .room-list__header {
+    border-bottom: 1px solid #434963 !important;
+}
+
+body.dark-mode .room-list__header h2,
+.app-container.dark-mode .room-list__header h2,
+body.dark-mode .room-list__state,
+.app-container.dark-mode .room-list__state {
+    color: #dfe4f1 !important;
+}
+
+body.dark-mode .room-list__add-btn,
+.app-container.dark-mode .room-list__add-btn {
+    color: #9aa8ff !important;
+}
+
+body.dark-mode .room-list__add-btn:hover,
+.app-container.dark-mode .room-list__add-btn:hover {
+    background: #3b4060 !important;
+}
+</style>

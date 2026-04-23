@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -6,6 +6,8 @@ import { QueryTasksDto } from "./dto/query-tasks.dto";
 import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
 import { Prisma } from "@prisma/client";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { TaskActivityLogService } from "../task-activity-log/task-activity-log.service";
+import { PermissionFlag, PermissionsService } from "../permissions/permissions.service";
 
 
 @Injectable()
@@ -13,6 +15,8 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
+    private readonly activityLogService: TaskActivityLogService,
+    private readonly permissionsService: PermissionsService,
   ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
@@ -50,10 +54,21 @@ export class TasksService {
       },
       include: this.basicInclude(),
     });
+
+    // Log activity
+    try {
+      await this.activityLogService.create({
+        task_id: task.task_id,
+        action: `Task created: "${task.title}"`,
+      }, userId, false);
+    } catch (error) {
+      console.error('Failed to log task creation activity:', error);
+    }
+
     return task;
   }
 
-  async findAll(queryDto: QueryTasksDto) {
+  async findAll(queryDto: QueryTasksDto, userId?: number) {
     const {
       status,
       priority_id,
@@ -84,6 +99,29 @@ export class TasksService {
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    // **SICHERHEIT**: Filtere Tasks nach User-Berechtigung
+    if (userId) {
+      // Überprüfe ob der User ein Teacher/Admin ist
+      const userRoles = await this.prisma.user_roles.findMany({
+        where: { user_id: userId },
+        include: { roles: true },
+      });
+
+      const isTeacher = userRoles.some(ur => 
+        ur.roles.name === 'Teacher' || ur.roles.name === 'Admin' || ur.roles.name === 'Superuser'
+      );
+
+      // Wenn NICHT Teacher → Nur eigene Tasks zeigen
+      if (!isTeacher) {
+        where.OR = [
+          { created_by: userId },                    // User hat Task erstellt
+          { assigned_to: userId },                   // Task ist User zugeordnet
+          { task_members: { some: { user_id: userId } } }, // User ist Mitglied
+        ];
+      }
+      // Wenn Teacher → Zeige ALLE Tasks zum Bewerten
     }
 
     const skip = (page - 1) * limit;
@@ -143,6 +181,9 @@ export class TasksService {
       parent_task_id,
       priority_id,
       completion_rule,
+      is_locked: _ignoredIsLocked,
+      locked_reason: _ignoredLockedReason,
+      locked_until: _ignoredLockedUntil,
       ...taskData
     } = updateTaskDto;
 
@@ -188,6 +229,18 @@ export class TasksService {
       include: this.basicInclude(),
     });
 
+    // Log activity
+    try {
+      if (updated.created_by) {
+        await this.activityLogService.create({
+          task_id: updated.task_id,
+          action: `Task updated: "${updated.title}"`,
+        }, updated.created_by, false);
+      }
+    } catch (error) {
+      console.error('Failed to log task update activity:', error);
+    }
+
     if (updated.parent_task_id) {
       await this.checkAndAutoComplete(updated.task_id);
     }
@@ -195,8 +248,73 @@ export class TasksService {
     return updated;
   }
 
-  async remove(taskId: number) {
+  async remove(taskId: number, requesterId?: number) {
     const task = await this.findOne(taskId, false);
+
+    // Ersteller darf eigenen Task immer löschen.
+    // Alle anderen benötigen delete_task(s)-Permission.
+    if (requesterId && task.created_by !== requesterId) {
+      const now = new Date();
+      const READ_FLAG = 4;
+      const permissionNames = ['delete_tasks', 'delete_task'];
+
+      const directPermission = await this.prisma.user_permissions.findFirst({
+        where: {
+          user_id: requesterId,
+          permissions: { name: { in: permissionNames } },
+        },
+        include: { permissions: true },
+      });
+
+      let canDelete = false;
+
+      if (directPermission) {
+        const isTimeValid =
+          (!directPermission.valid_from || now >= directPermission.valid_from) &&
+          (!directPermission.valid_to || now <= directPermission.valid_to);
+
+        canDelete =
+          isTimeValid &&
+          (directPermission.permissions.flags & READ_FLAG) === READ_FLAG;
+      }
+
+      if (!canDelete) {
+        const rolePermission = await this.prisma.user_roles.findFirst({
+          where: {
+            user_id: requesterId,
+            roles: {
+              roles_permissions: {
+                some: {
+                  permissions: { name: { in: permissionNames } },
+                },
+              },
+            },
+          },
+          include: {
+            roles: {
+              include: {
+                roles_permissions: {
+                  where: {
+                    permissions: { name: { in: permissionNames } },
+                  },
+                  include: { permissions: true },
+                },
+              },
+            },
+          },
+        });
+
+        if (rolePermission?.roles?.roles_permissions?.length) {
+          canDelete = rolePermission.roles.roles_permissions.some((rp) =>
+            (rp.permissions.flags & READ_FLAG) === READ_FLAG,
+          );
+        }
+      }
+
+      if (!canDelete) {
+        throw new ForbiddenException('Missing permission: delete_tasks');
+      }
+    }
 
     const subtasksCount = await this.prisma.tasks.count({
       where: { parent_task_id: taskId },
@@ -208,8 +326,25 @@ export class TasksService {
       );
     }
 
-    await this.prisma.tasks.delete({
-      where: { task_id: taskId },
+    await this.prisma.$transaction(async (tx) => {
+      // FK NoAction auf mehreren Relationen -> abhängige Daten zuerst bereinigen
+      await tx.task_activity_log.deleteMany({ where: { task_id: taskId } });
+      await tx.task_comments.deleteMany({ where: { task_id: taskId } });
+      await tx.task_documents.deleteMany({ where: { task_id: taskId } });
+
+      // Referenzen lösen, statt Fremddaten hart zu löschen
+      await tx.notes.updateMany({
+        where: { task_id: taskId },
+        data: { task_id: null },
+      });
+      await tx.chat_rooms.updateMany({
+        where: { task_id: taskId },
+        data: { task_id: null },
+      });
+
+      await tx.tasks.delete({
+        where: { task_id: taskId },
+      });
     });
 
     return {
@@ -414,5 +549,94 @@ export class TasksService {
       this.ruleContainsTask(task.completion_rule as ConditionNode, String(childTaskId))
     );
   }
+  /**
+   * Feature #27: Sperrt eine Aufgabe automatisch wenn sie überfällig ist
+   */
+  async lockOverdueTask(taskId: number, reason: string = 'OVERDUE'): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
 
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: true,
+        locked_reason: reason,
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
+      }
+    });
+
+    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    if (task.assigned_to) {
+      this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
+    }
+  }
+
+  /**
+   * Feature #27: Manuelles Sperren einer Aufgabe (Creator/Admin only)
+   */
+  async lockTask(taskId: number, reason: string = 'MANUAL', userId: number): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+    if (task.created_by !== userId) {
+      throw new BadRequestException('Only task creator can lock this task');
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: true,
+        locked_reason: reason,
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
+      }
+    });
+
+    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    if (task.assigned_to) {
+      this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
+    }
+  }
+
+  /**
+   * Feature #27: Entsperrt eine Aufgabe (Creator/Admin only)
+   */
+  async unlockTask(taskId: number, userId: number): Promise<void> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
+    if (task.created_by !== userId) {
+      throw new BadRequestException('Only task creator can unlock this task');
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        is_locked: false,
+        locked_reason: null,
+        locked_until: null
+      }
+    });
+  }
+
+  /**
+   * Prüfe ob Task bearbeitet werden darf
+   */
+  async canEditTask(taskId: number, userId: number): Promise<boolean> {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId }
+    });
+
+    if (!task) return false;
+    if (task.is_locked) return false; // Gesperrt = keine Änderungen
+    if (task.created_by !== userId) return false; // Nur Creator darf ändern
+
+    return true;
+  }
 }

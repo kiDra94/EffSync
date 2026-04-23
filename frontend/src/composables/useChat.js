@@ -48,6 +48,7 @@ export const useChat = () => {
         socket_on('room:new', async ({ roomId }) => {
             await chatStore.getRooms();
             socket_emit('join:room', roomId);
+            await chatStore.selectRoom(roomId);
         });
 
         socket_off('delete:room');
