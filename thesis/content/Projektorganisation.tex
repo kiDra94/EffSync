@@ -3,7 +3,104 @@
 \section{Projektsitzungen}
 \section{Entscheidungen}
 \section{Kommunikation}
+\section{Digitaler Workflow und Aufgabenverwaltung}
 
+Um eine praxisnahe Projektabwicklung sicherzustellen, wurde entschieden, GitHub sowohl für die Versionsverwaltung, als auch ein zentrales Werkzeug für das Projektmanagement einzusetzen. Besonders hilfreich waren dabei Issus und Milestones, welche die Planung, Priorisierung und Nachverfolgung von Entscheidung wesentlich erleichtert haben, da sie eine transparente Zusammenarbeit und eine kontinuierliche Aktualisierung des Projektstatus ermöglichten.
 
+\subsection{Git-Hub Strategie und Workflow}
+Um eine konsistente Arbeitsmethodik beizubehalten wurde eine klare, hierarchische Benennungskonvention, welche sich an Projektphasen und Themenstellungen orientiert sowie eine feste Branching-\cite{git_branching_workflow_chacon2014progit} und Merging-Strategie festgelegt.
+Die Strategie kann sich in 4 Punkte unterteilen:
+\begin{itemize}
+    \item Haupt-Branches
+    \item Feature-Branches
+    \item Spezial-Branches
+    \item Naming Convention für Commits
+    \item Pull-request und Merge Strategie
+\end{itemize}
+\subsubsection{Haupt-Branches}
+Diese Branches (\textit{main} und \textit{development}) bilden die Basis unsere Applikation. Sie bleiben dauerhaft bestehen und Bug-frei, damit gewährleistet wird das in jedem Moment eine lauffähige Version der Software vorhanden ist. 
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{0.25\textwidth}|p{0.65\textwidth}|}
+\hline
+\textbf{Branch Name} & \textbf{Zweck} \\
+\hline
+\texttt{main} &
+Enthält immer den \textbf{stabilen, abgenommenen Code}
+(entspricht dem aktuellen Stand nach einer Phase oder dem
+finalen Abgabestand). Merges erfolgen nur von
+\texttt{development}-Branch. \\
+\hline
+\texttt{development} &
+Der Hauptentwicklungs-Branch. Er repräsentiert den
+\textbf{aktuellen Stand der integrierten Arbeit} und ist
+die Basis für alle neuen Features. Alle Feature-Branches
+werden hier hinein gemergt. \\
+\hline
+\end{tabular}
+\caption{Branch-Übersicht}
+\label{tab:branches}
+\end{table}
 
+\subsubsection{Feature-Branches}
+Dies ist der wichtigste Branch-Typ. Für jedes Arbeitspaket welches durch ein Issue repräsentiert wird, erstellt jeder Entwickler einen neuen Branch, welcher sich aus dem \testbf{development-branch} abzweigt, sobald diese Angefangen wird. Zur Gewährleistung einer durchgehende konsistente und nachvollziehbare Struktur wird für die Benennung eine eindeutige Namenskonvention (Naming Convention) angewendet. 
+Die Strukturierung folgt einem standardisierten Schema:
+\texttt{feature-\textlangle thema\textrangle-\textlangle beschreibung\textrangle}
 
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{0.18\textwidth}|p{0.28\textwidth}|p{0.44\textwidth}|}
+\hline
+\textbf{Teil} & \textbf{Beispiel} & \textbf{Erklärung} \\
+\hline
+\texttt{\textbf{feature}} &
+\texttt{feature-} &
+Standard-Präfix für neue Funktionen. \\
+\hline
+\texttt{\textbf{issue number}} &
+\texttt{X-} &
+Die automatisch generierte Nummer des GitHub Issues, auf das sich dieser Branch bezieht. \\
+\hline
+\texttt{\textbf{thema}} &
+\texttt{frontend-} oder \texttt{backend-} oder \texttt{user-} &
+Bezieht sich auf Ihre Haupt-Themenstellung (z.\,B.\ Frontendentwicklung, Backendentwicklung, Userverwaltung). \\
+\hline
+\texttt{\textbf{beschreibung}} &
+\texttt{calendar-view} oder \texttt{2fa-implementation} &
+Eine kurze, prägnante Beschreibung der spezifischen Aufgabe.\\
+\hline
+\end{tabular}
+\caption{Aufbau des Branch-Namensschemas}
+\label{tab:branch-schema}
+\end{table}
+\subsubsection{Spezial-Branches}
+Für Sonderfälle existieren situationsabhängige Branches, die außerhalb des 
+regulären Entwicklungsprozesses bei Bedarf angelegt werden.
+Die Strukturierung folgt einem standardisierten Schema:
+\texttt{fix/hotfix-\textlangle beschreibung\textrangle}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{|p{0.20\textwidth}|p{0.34\textwidth}|p{0.38\textwidth}|}
+\hline
+\textbf{Branch Name} & \textbf{Zweck} & \textbf{Beispiel} \\
+\hline
+\texttt{fix-} &
+Für schnelle Fehlerbehebungen auf dem \texttt{development}-branch. &
+\texttt{fix-frontend-} \texttt{test-fails-in-} \texttt{Github-CI/CD} \\
+\hline
+\texttt{hotfix-} &
+Für \textbf{kritische Fehlerbehebungen} direkt auf dem \texttt{main}-branch,
+die sofort ausgerollt werden müssen. &
+\texttt{hotfix-login-bug-prod} \\
+\hline
+\end{tabular}
+\caption{Spezial-Branches Übersicht}
+\label{tab:spezial-branches}
+\end{table}
+\subsubsection{Naming Convention für Commits}
+Die Commit-Messegas folgen einer standardisierten Struktur, \texttt{\#issue-number-\textlangle beschreibung\textrangle}., um Änderungen inhaltlich zu kategorisieren und die Historie übersichtlich zu halten.
+Durch das hinzufügen der \textbf{issue-number} jeder \textbf{Commit-Massage} erkennt GitHub die Referenzen automatisch als klickbare Verlinkung\cite{github_autolinked_references} zum entsprechenden Issue, wodurch jede Änderung direkt dem jeweiligen Arbeitspakte zugeordnet werden kann.
+\subsubsection{Pull-Request- und Merge-Strategie}
+Um Konflikte beim Mergen von Pull Requests zu minimieren, wurde vor dem finalen Push die aktuelle \textbf{development-branch} zuerst lokal in die \textbf{feature-branch} gemergt\cite{git_branching_merging_chacon2014progit}. Dadurch konnten potenzielle Konflikte frühzeitig lokal gelöst werden, sodass der anschließende Merge in GitHub reibungslos erfolgte.
+\subsection{TODO GitHub\&SCRUM}
