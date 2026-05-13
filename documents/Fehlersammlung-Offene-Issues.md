@@ -469,3 +469,17 @@ ________________________________________________________________________________
 ## 📝 Notizen
 
 _<Freitext für Entscheidungen, offene Fragen, Links zu Commits/PRs>_
+
+## Man kann in der Suche keinen Chat suchen 
+
+## Tasks die aabgegeben werden sind nicht als erledigt eingetragen oder zur bewertung freigegeben beim Lehrer 
+
+## notification (rote zahlö neben dem Profil erscheint nicht mehr)
+
+
+## wo sieht schüler seine Bewertung / Note 
+## schüler darf nach bewertung task nicht überarbeiten außer lehrer fügt neues Datum ein 
+
+## Marktstudien quellen welche sachen soind derzeit in verwendung und haben probleme und was macht useres in welchen punkten besser 
+
+
