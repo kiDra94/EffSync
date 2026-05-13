@@ -1,0 +1,42 @@
+\chapter{Strategie für Datenmanagement und Datenschutz}
+
+\section{Strategie zur Speicherung des Chatverlaufs}
+
+Das relationale Datenmodell von EffSync speichert Chatverläufe in der Entität \texttt{chat\_messages}[cite: 1]. Diese Nachrichten sind über die Fremdschlüsselspalte \texttt{room\_id} an spezifische \texttt{chat\_rooms} gebunden[cite: 3, 6]. Um die vielseitigen Anwendungsfälle des Systems für Schulen und Firmen abzubilden, können diese Chaträume optional direkt an Aufgaben (\texttt{task\_id}) [cite: 12] oder ganze Klassen (\texttt{class\_id}) [cite: 11] gekoppelt werden. Die dynamische Mitgliedschaft in diesen Räumen wird über die Zwischen-Tabelle \texttt{chat\_room\_users} (inklusive des Beitrittszeitpunkts \texttt{joined\_at}) abgebildet[cite: 5].
+
+\textbf{PostgreSQL} eignet sich für diese Architektur hervorragend: Es gewährleistet durch \textbf{ACID-Transaktionen} eine konsistente Reihenfolge der Nachrichten und unterstützt effiziente relationale Abfragen, wie etwa das Laden eines kompletten Chatverlaufs für einen spezifischen Task.
+
+Auf logischer Ebene wird der Zugriff durch eine strikte, mitgliedschaftsbasierte Kontrolle geschützt. Das entscheidende Kriterium für Lese- und Schreibrechte ist ausschließlich die aktive Zuordnung eines Nutzers zum jeweiligen \texttt{chat\_room}, welche über die Entität \texttt{chat\_room\_users} validiert wird[cite: 5]. Dies verhindert unbefugten Zugriff durch nicht beteiligte Systemnutzer auf sensible Projekt- oder Klassenchats und wird den hohen Sicherheitsanforderungen der Zielgruppen gerecht. Lediglich weitreichende administrative Aktionen, wie das Löschen eines \texttt{chat\_rooms}, erfordern zusätzliche Überprüfungen: Dies kann nur durch dessen Ersteller (\texttt{created\_by}) [cite: 13] oder einen Benutzer erfolgen, der über die entsprechenden Berechtigungen in der Tabelle \texttt{permissions} verfügt[cite: 50].
+
+\section{Retention-Policy (Löschfristen und DSGVO-konformes Löschkonzept)}
+
+Für das Taskmanagement-System EffSync wird eine differenzierte, kontextbasierte Retention-Policy implementiert, die den Grundsatz der Speicherbegrenzung gemäß Art. 5 Abs. 1 lit. e DSGVO\footnote{Europäische Union: Verordnung (EU) 2016/679 (Datenschutz-Grundverordnung), Art. 5 Abs. 1 lit. e. \url{https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32016R0679\#d1e1800-1-1}, abgerufen am 21.03.2026.} mit der notwendigen Dokumentation von Arbeitsprozessen in Einklang bringt. Dabei wird strikt zwischen informellen Kommunikationskanälen und aufgabenbezogenen Projekt-Chats unterschieden:
+
+\subsection{Allgemeine und inaktive Chats (Löschung nach sechs Monaten)}
+Für Chats ohne direkte Aufgabenbindung, wie etwa allgemeine Räume oder direkte private Nachrichten [cite: 8], gilt eine Löschfrist von sechs Monaten ab der letzten Aktivität, welche über das Feld \texttt{updated\_at} in der Tabelle \texttt{chat\_rooms} identifiziert wird[cite: 10].
+
+\begin{itemize}
+    \item \textbf{Begründung}: Sobald ein informeller Chat über ein halbes Jahr inaktiv ist, ist der ursprüngliche Zweck der Kommunikation entfallen. Die Frist von sechs Monaten deckt sich zudem mit gängigen juristischen Rahmenbedingungen, wie den Klagefristen nach dem österreichischen Gleichbehandlungsgesetz (GlBG)\footnote{Republik Österreich: Bundesgesetz über die Gleichbehandlung (Gleichbehandlungsgesetz – GlBG). \url{https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20003395}, abgerufen am 21.03.2026.}, wonach im Anschluss kein legitimer Grund zur weiteren Aufbewahrung dieser Daten besteht.
+    \item \textbf{Rechtsgrundlage:} Art. 5 Abs. 1 lit. e DSGVO (Speicherbegrenzung)\footnote{Europäische Union: Datenschutz-Grundverordnung (DSGVO), Art. 5. \url{https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32016R0679\#d1e1800-1-1}, abgerufen am 21.03.2026.}.
+\end{itemize}
+
+\subsection{Aufgabenbezogene Chats (Löschung vierundzwanzig Monate nach Projektabschluss)}
+Für Chaträume, die explizit an eine Aufgabe (\texttt{task\_id}) gebunden sind [cite: 12], greift die Löschfrist erst nach zwei Jahren, nachdem der zugehörige Task in der Tabelle \texttt{tasks} den Status \textbf{\texttt{COMPLETED}} erreicht hat[cite: 73, 111]. Der Startzeitpunkt für die Frist ist hierbei der Abschluss der Aufgabe, nicht das Erstellungsdatum der einzelnen Nachricht (\texttt{created\_at})[cite: 2].
+
+\begin{itemize}
+    \item \textbf{Begründung}: Bei der Erledigung von Aufgaben dient der Chat der essenziellen Dokumentation des Arbeitsergebnisses. Ein Puffer von vierundzwanzig Monaten nach Projektabschluss ist notwendig, um bei Rückfragen oder Gewährleistungsthemen den Projektverlauf lückenlos nachvollziehen zu können.
+    \item \textbf{Rechtsgrundlage:} Berechtigtes Interesse des Unternehmens oder der Bildungseinrichtung an der Qualitätssicherung gem. Art. 6 Abs. 1 lit. f DSGVO\footnote{Europäische Union: Datenschutz-Grundverordnung (DSGVO), Art. 6. \url{https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32016R0679\#d1e1888-1-1}, abgerufen am 21.03.2026.}.
+\end{itemize}
+
+\subsection{Technische Umsetzung und Architekturvorteil}
+Die meisten marktüblichen Standard-Tools, wie Slack\footnote{Slack Technologies: Customize message retention in Slack. \url{https://slack.com/intl/de-de/help/articles/203457187-Datenaufbewahrung-in-Slack-anpassen}, abgerufen am 21.03.2026.} oder MS Teams\footnote{Microsoft: Manage retention policies for Microsoft Teams. \url{https://learn.microsoft.com/de-de/microsoftteams/retention-policies}, abgerufen am 21.03.2026.}, bieten oftmals nur pauschale Löschintervalle pro Kanal an. EffSync löst dieses Problem durch seine tiefe Integration nativ: Ein automatisierter Hintergrunddienst prüft periodisch den Status der Entität \texttt{tasks}[cite: 73]. Sobald eine Aufgabe abgeschlossen ist, beginnt der Timer für den verknüpften \texttt{chat\_rooms}[cite: 12].
+
+\textit{Organisatorischer Hinweis für den Produktiveinsatz:} Für die firmenorientierte Zielgruppe von EffSync ist vorgesehen, dass diese automatisierten Fristen transparent in einer Betriebsvereinbarung oder den Datenschutzhinweisen verankert werden.
+
+\section{DSGVO-Konzept und Umgang mit Betroffenenrechten}
+
+Gemäß dem Grundsatz der Datenminimierung gem. Art. 5 Abs. 1 lit. c DSGVO\footnote{Europäische Union: Datenschutz-Grundverordnung (DSGVO), Art. 5. \url{https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32016R0679\#d1e1800-1-1}, abgerufen am 21.03.2026.} priorisiert EffSync die Speicherung absoluter Kernmetadaten. In der Entität \texttt{chat\_messages} werden ausschließlich die Nachricht, der Autor (\texttt{user\_id}), die Raumzuordnung (\texttt{room\_id}) sowie der Zeitstempel (\texttt{created\_at}) erfasst[cite: 1, 2].
+
+Im Falle einer Account-Löschung (Recht auf Löschung gem. Art. 17 DSGVO\footnote{Europäische Union: Datenschutz-Grundverordnung (DSGVO), Art. 17. \url{https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32016R0679\#d1e2606-1-1}, abgerufen am 21.03.2026.}) verfolgt EffSync den Ansatz der Anonymisierung statt des harten Löschens. Diese Architekturentscheidung ist essenziell, um die Aufbewahrungsfristen für aufgabenbezogene Chats zu unterstützen: Würden Nachrichten eines ausscheidenden Nutzers restlos entfernt, entstünden in Projekt-Chats inhaltliche Lücken, welche die Nachvollziehbarkeit von Arbeitsprozessen zunichtemachen würden.
+
+Da die \texttt{user\_id} in der Datenbankarchitektur ein Pflichtfeld ist[cite: 4], werden die Nachrichten systemintern einem designierten \textbf{"`Ghost-User"'}-Account (mit der \texttt{user\_id 0}) zugewiesen. Technisch ist zu beachten, dass PostgreSQL bei automatisch inkrementierenden Primärschlüsseln standardmäßig bei 1 zu zählen beginnt[cite: 95]. Um referenzielle Integritätsfehler zu vermeiden, muss dieser System-Nutzer mit der ID 0 daher bei der Initialisierung der Datenbank manuell angelegt werden. Dieser Kompromiss erhält die benötigte Kollaborationshistorie für das Team, während die personenbezogenen Daten des gelöschten Nutzers unwiderruflich und DSGVO-konform anonymisiert werden.
