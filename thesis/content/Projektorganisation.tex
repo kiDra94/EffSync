@@ -75,7 +75,7 @@ Eine kurze, prägnante Beschreibung der spezifischen Aufgabe.\\
 \end{table}
 \subsubsection{Spezial-Branches}
 Für Sonderfälle existieren situationsabhängige Branches, die außerhalb des 
-regulären Entwicklungsprozesses bei Bedarf angelegt werden.
+regulären Entwicklungsprozesses bei Bedarf angelegt werden.\newline
 Die Benennung orientiert sich an folgendem Schema:
 \texttt{fix/hotfix-\textlangle beschreibung\textrangle}
 \begin{table}[h]
@@ -92,21 +92,21 @@ Für schnelle Fehlerbehebungen auf dem \texttt{development}-branch. &
 \texttt{hotfix-} &
 Für \textbf{kritische Fehlerbehebungen} direkt auf dem \texttt{main}-branch,
 die sofort ausgerollt werden müssen. &
-\texttt{hotfix-login-bug-prod} \\
+\texttt{hotfix-login-bug-prod}. \\
 \hline
 \end{tabular}
 \caption{Spezial-Branches Übersicht}
 \label{tab:spezial-branches}
 \end{table}
 \subsubsection{Naming Convention für Commits}
-Die Commit-Messegas folgen einer standardisierten Struktur, \texttt{\#issue-number-\textlangle beschreibung\textrangle}., um Änderungen inhaltlich zu kategorisieren und die Historie übersichtlich zu halten.
+Damit Änderungen inhaltlich kategorisierbar sind und die Historie übersichtlich bleibt, sind die Commit-Messages nach folgenden Schema zu schreiben: \texttt{\#issue-number: \textlangle beschreibung\textrangle}.\newline
 Durch das hinzufügen der \textbf{issue-number} jeder \textbf{Commit-Massage} erkennt GitHub die Referenzen automatisch als klickbare Verlinkung\cite{github_autolinked_references} zum entsprechenden Issue, wodurch jede Änderung direkt dem jeweiligen Arbeitspakte zugeordnet werden kann.
 \subsubsection{Pull-Request- und Merge-Strategie}
 Um Konflikte beim Mergen von Pull Requests zu minimieren, wurde vor dem finalen Push die aktuelle \textbf{development-branch} zuerst lokal in die \textbf{feature-branch} gemergt\cite{git_branching_merging_chacon2014progit}. Dadurch konnten potenzielle Konflikte frühzeitig lokal gelöst werden, sodass der anschließende Merge in GitHub reibungslos erfolgte.
 \subsection{Digitaler Workflow mit GitHub und SCRUM}
-Im Rahmen des Projekts kommen sowohl klassische als auch agile Projektmanagement-Methoden zum Einsatz. Neben dem Wasserfallmodell wird auf Vorgabe des Abteilungsvorstands die agile Methode SCRUM benutzt.
-SCRUM bietet in der Softwareentwicklung mehrere wesentliche Vorteile\cite{scrum_entscheidungen}: die featurebasierte Entwicklung, die kontinuierliche Anpassung an sich ändernde Anforderungen sowie die Gewährleistung, dass zu jedem Zeitpunkt eine lauffähige Version der Software bzw. potenziell lieferbares Produkt vorhanden ist.
-Die Rolle des Product Owners wird dem Betreuer übertragen, da dieser im Falle von Terminproblemen darüber entscheidet, ob ein Feature angepasst oder gegebenenfalls weggelassen wird. Darüber hinaus obliegt ihm die Abnahme und das Review der einzelnen SCRUM-Sprints. Die Sprint-Dauer ist einheitlich auf vier Wochen festgelegt. Die Rolle des SCRUM-Masters wird aufgrund der geringen Teamgröße von beiden Teammitgliedern ausgeübt.
+Im Rahmen des Projekts kommen sowohl klassische als auch agile Projektmanagement-Methoden zum Einsatz. Neben dem Wasserfallmodell wird auf Vorgabe des Abteilungsvorstands die agile Methode SCRUM benutzt.\newline
+SCRUM bietet in der Softwareentwicklung mehrere wesentliche Vorteile\cite{scrum_entscheidungen}: die featurebasierte Entwicklung, die kontinuierliche Anpassung an sich ändernde Anforderungen sowie die Gewährleistung, dass zu jedem Zeitpunkt eine lauffähige Version der Software bzw. potenziell lieferbares Produkt vorhanden ist.\newline
+Die Rolle des Product Owners wird dem Betreuer übertragen, da dieser im Falle von Terminproblemen darüber entscheidet, ob ein Feature angepasst oder gegebenenfalls weggelassen wird. Darüber hinaus obliegt ihm die Abnahme und das Review der einzelnen SCRUM-Sprints. Die Sprint-Dauer ist einheitlich auf vier Wochen festgelegt.Die Rolle des SCRUM-Masters wird aufgrund der geringen Teamgröße von beiden Teammitgliedern ausgeübt.\newline
 Die Abbildung der SCRUM-Sprints erfolgt in GitHub über Milestones. Jeder Milestone\cite{codetree2017sprintplanning} umfasst die spezifischen Issues des jeweiligen Sprints. GitHub übernimmt das Fortschrittstracking der Sprints automatisch\cite{github2026milestones} durch eine prozentuale Berechnung des Status. Das Sprint-Ende wird durch die Due-Date-Funktion definiert und als Sprint-Backlog dient die Kommentarfunktion des Milestones. Alle Arbeitspakete existieren als Issues mit detaillierter Beschreibung. Diese sind fest einer Person und dem entsprechenden Milestone zugewiesen\cite{github2026associatingmilestones}.
 \subsubsection{Automatisierung und Qualitätssicherung (CI/CD)}
 Um sicherzustellen dass, die Funktionalität nach dem implementieren von neue Features gewährleistet ist, wird eine Continuous Integration and Continuous Deployment (CI/CD) Pipeline\cite{cogent2025devsecopsCICD} mit GitHub Actions\cite{github2026actionsquickstart} implementiert.
