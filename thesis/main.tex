@@ -21,6 +21,8 @@
 \usepackage{seqsplit}                       % tabelle api
 \hyphenation{De-zi-mal-tren-nung}			% Silbentrennung
 \hyphenpenalty=9750							% Weniger Silbentrennung
+\usepackage[backend=bibtex, style=numeric, url=true]{biblatex}
+\addbibresource{quellen.bib}
 
 \renewcommand*\chapterheadstartvskip{\vspace*{0.8\topskip}}		% Weniger Platz über Chapter Überschrift
 
@@ -41,9 +43,8 @@
     \include{content/Einleitung}
     \include{content/Ziel}
     \include{content/Projektplanung}
-    \include{content/Projektorganisation}
+\include{content/Projektorganisation}
     \include{content/Randbedingungen}
-    \include{content/Datenschutz}
     \include{content/ApiEndpoints}
     \include{content/Abgabe}
     \include{content/Unterschriften}
@@ -51,6 +52,5 @@
     
 
 % \end{singlespace}
-\bibliographystyle{plain}
-\bibliography{quellen.bib}
+\printbibliography
 \end{document}
