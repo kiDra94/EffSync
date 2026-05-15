@@ -108,3 +108,15 @@ Im Rahmen des Projekts kommen sowohl klassische als auch agile Projektmanagement
 SCRUM bietet in der Softwareentwicklung mehrere wesentliche Vorteile\cite{scrum_entscheidungen}: die featurebasierte Entwicklung, die kontinuierliche Anpassung an sich ändernde Anforderungen sowie die Gewährleistung, dass zu jedem Zeitpunkt eine lauffähige Version der Software bzw. potenziell lieferbares Produkt vorhanden ist.
 Die Rolle des Product Owners wird dem Betreuer übertragen, da dieser im Falle von Terminproblemen darüber entscheidet, ob ein Feature angepasst oder gegebenenfalls weggelassen wird. Darüber hinaus obliegt ihm die Abnahme und das Review der einzelnen SCRUM-Sprints. Die Sprint-Dauer ist einheitlich auf vier Wochen festgelegt. Die Rolle des SCRUM-Masters wird aufgrund der geringen Teamgröße von beiden Teammitgliedern ausgeübt.
 Die Abbildung der SCRUM-Sprints erfolgt in GitHub über Milestones. Jeder Milestone\cite{codetree2017sprintplanning} umfasst die spezifischen Issues des jeweiligen Sprints. GitHub übernimmt das Fortschrittstracking der Sprints automatisch\cite{github2026milestones} durch eine prozentuale Berechnung des Status. Das Sprint-Ende wird durch die Due-Date-Funktion definiert und als Sprint-Backlog dient die Kommentarfunktion des Milestones. Alle Arbeitspakete existieren als Issues mit detaillierter Beschreibung. Diese sind fest einer Person und dem entsprechenden Milestone zugewiesen\cite{github2026associatingmilestones}.
+\subsubsection{Automatisierung und Qualitätssicherung (CI/CD)}
+Um sicherzustellen dass, die Funktionalität nach dem implementieren von neue Features gewährleistet ist, wird eine Continuous Integration and Continuous Deployment (CI/CD) Pipeline\cite{cogent2025devsecopsCICD} mit GitHub Actions\cite{github2026actionsquickstart} implementiert.
+Da das Projekt auf den Ressourcen von GitHub aufbaut, muss die Pipeline-Strategie aufgrund der plattformspezifischen Ressourcenlimits\cite{github2026actionslimits} optimiert werden.
+Um die zur Verfügung stehenden Freiminuten effektiv zu nutzen, wird die Pipeline so konfiguriert, dass automatisierte Tests und Builds ausschließlich beim Mergen und Pushen in die \textbf{development-branch} und \textbf{main-branch} ausgeführt werden. Auf die Überprüfung der einzelnen Feature-Branches wird bewusst verzichtet.\newline
+Im genutzten GitHub Free Plan\cite{github2026plans} ist es technisch nicht möglich, eine Branch-Protection-Regel in vollen Umfang zu nutzen\cite{github2026protectedbranches}. Dadurch ist es theoretisch möglich, eine Merge durchzuführen, bevor die automatisierten Test der Pipeline vollständig abgeschlossen sind. Deshalb muss vor jedem Merge abgewartet werden bis die Pipeline die Test abgeschlossen hat. Hierfür wird bei jedem Pull-Request automatisch eine vorgefertigter Markdown-Text in GitHub durch die Actions gerendert, damit die Entwickler auf diese Problem aufmerksam gemacht werden.
+\newline
+NOTIZ -- BILD EVENTUELL LÖSCHEN!!!
+\begin{figure}[htbp]
+    \includegraphics[width=1\textwidth]{content/bilder/pull_request_template.png} 
+    \caption{Pull Request Template}
+    \label{fig:mein-bild}
+\end{figure}
