@@ -3,6 +3,8 @@ import { TaskCommentsService } from './task-comments.service';
 import { TaskCommentsController } from './task-comments.controller';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
 describe('TaskCommentsController', () => {
   let controller: TaskCommentsController;
@@ -34,7 +36,12 @@ describe('TaskCommentsController', () => {
           useValue: mockEmailService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TaskCommentsController>(TaskCommentsController);
   });

@@ -1,6 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ClassesController } from "./classes.controller";
 import { ClassesService } from "./classes.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
 describe("ClassesController", () => {
   let controller: ClassesController;
@@ -8,8 +10,13 @@ describe("ClassesController", () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ClassesController],
-      providers: [ClassesService],
-    }).compile();
+      providers: [{ provide: ClassesService, useValue: {} }],
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ClassesController>(ClassesController);
   });

@@ -1,6 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { RoomsController } from "./room.controller";
 import { RoomsService } from "./room.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
 describe("RoomsController", () => {
   let controller: RoomsController;
@@ -14,7 +16,12 @@ describe("RoomsController", () => {
           useValue: {},
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<RoomsController>(RoomsController);
   });

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RolePermissionsService } from '../roles/role-permissions.service';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -25,6 +26,10 @@ describe('UsersService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: RolePermissionsService,
+          useValue: {},
         },
       ],
     }).compile();

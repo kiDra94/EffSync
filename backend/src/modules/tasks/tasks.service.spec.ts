@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TasksService } from './tasks.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { TaskActivityLogService } from '../task-activity-log/task-activity-log.service';
+import { PermissionsService } from '../permissions/permissions.service';
 
 describe('TasksService', () => {
   let service: TasksService;
@@ -25,6 +27,8 @@ describe('TasksService', () => {
         TasksService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: WebsocketGateway, useValue: {} },
+        { provide: TaskActivityLogService, useValue: { create: jest.fn() } },
+        { provide: PermissionsService, useValue: { hasPermission: jest.fn(), hasAnyPermission: jest.fn() } },
       ],
     }).compile();
 

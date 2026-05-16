@@ -1,19 +1,37 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ChatRoomsController } from "./chat-rooms.controller";
 import { ChatRoomsService } from "./chat-rooms.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
 describe("ChatRoomsController", () => {
   let controller: ChatRoomsController;
+
+  const mockChatRoomsService = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    joinRoom: jest.fn(),
+    leaveRoom: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatRoomsController],
       providers: [
-              ChatRoomsService,
-              { provide: PrismaService, useValue: {} },
-            ],
-    }).compile();
+        {
+          provide: ChatRoomsService,
+          useValue: mockChatRoomsService,
+        },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ChatRoomsController>(ChatRoomsController);
   });
