@@ -476,7 +476,7 @@ _<Freitext für Entscheidungen, offene Fragen, Links zu Commits/PRs>_
 
 ## notification (rote zahlö neben dem Profil erscheint nicht mehr)
 
-## Student bekommt nicht automatisch die Student permissions hinein (es muss bei jeder Rolle die Permission beigefügt sein -> Standardgemäß soll Schüler folgende permissions haben a) b) c) ... und teacher hat a) b) c) +  admin standard a) b) c) und superadmin hat halt alles 
+
 
 ## wo sieht schüler seine Bewertung / Note 
 ## schüler darf nach bewertung task nicht überarbeiten außer lehrer fügt neues Datum ein 

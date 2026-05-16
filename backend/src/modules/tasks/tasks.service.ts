@@ -248,6 +248,54 @@ export class TasksService {
     return updated;
   }
 
+  /**
+   * Aktualisiert das Deadline eines Tasks und entsperrt ihn automatisch
+   * wenn der Task nach einer Bewertung gesperrt war.
+   * 
+   * Diese Methode wird von Lehrern verwendet um einen Task nach Bewertung
+   * neu freizugeben indem sie ein neues Deadline-Datum setzen.
+   * 
+   * @param taskId - Die Task ID
+   * @param newDeadline - Das neue Deadline-Datum
+   * @returns Der aktualisierte Task mit entsperrt Status
+   */
+  async updateDeadlineAndUnlockIfNeeded(taskId: number, newDeadline: Date) {
+    const task = await this.findOne(taskId, false);
+
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${taskId} not found`);
+    }
+
+    const updated = await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        deadline: new Date(newDeadline),
+        // Entsperre den Task automatisch wenn er nach Bewertung gesperrt war
+        is_locked: false,
+        locked_reason: null,
+        locked_until: null,
+        updated_at: new Date(),
+      },
+      include: this.basicInclude(),
+    });
+
+    console.log(`✓ Task ${taskId} Deadline aktualisiert auf ${newDeadline} und entsperrt`);
+
+    // Log activity
+    try {
+      if (task.created_by) {
+        await this.activityLogService.create({
+          task_id: updated.task_id,
+          action: `Task deadline updated to ${newDeadline.toISOString().split('T')[0]} and unlocked`,
+        }, task.created_by, false);
+      }
+    } catch (error) {
+      console.error('Failed to log task deadline update activity:', error);
+    }
+
+    return updated;
+  }
+
   async remove(taskId: number, requesterId?: number) {
     const task = await this.findOne(taskId, false);
 

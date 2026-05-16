@@ -36,6 +36,9 @@
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
         </span>
+        <span v-if="task.is_locked" class="lock-badge" :title="task.locked_reason || 'Task ist gesperrt'">
+          🔒 Gesperrt
+        </span>
       </div>
       <h3 class="task-title">{{ task.title }}</h3>
     </div>
@@ -325,10 +328,19 @@ const formatDate = (dateString) => {
 }
 
 .date-badge,
-.progress-badge {
+.progress-badge,
+.lock-badge {
   font-size: 0.75rem;
   white-space: nowrap;
   color: #6b7280;
+}
+
+.lock-badge {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
 .task-title {

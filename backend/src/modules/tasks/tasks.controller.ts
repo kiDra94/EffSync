@@ -53,6 +53,23 @@ export class TasksController {
     return this.tasksService.update(+id, updateTaskDto);
   }
 
+  /**
+   * PATCH /tasks/:id/deadline-unlock
+   * Aktualisiert das Deadline und entsperrt einen Task nach Bewertung
+   * Nur Lehrer dürfen diese Aktion nutzen
+   */
+  @Patch(":id/deadline-unlock")
+  @Permissions("edit_tasks|edit_task")
+  updateDeadlineAndUnlock(
+    @Param("id") id: string,
+    @Body() body: { deadline: string | Date },
+  ) {
+    if (!body.deadline) {
+      throw new Error("deadline erforderlich im Body");
+    }
+    return this.tasksService.updateDeadlineAndUnlockIfNeeded(+id, new Date(body.deadline));
+  }
+
   @Delete(":id")
   remove(@Param("id") id: string, @Req() req) {
     const requesterId = req?.user?.userId ?? req?.user?.id;

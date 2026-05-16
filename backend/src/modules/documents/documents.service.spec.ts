@@ -22,7 +22,11 @@ describe('DocumentsService', () => {
     },
     task_documents: {
       create: jest.fn(),
+      findMany: jest.fn(),
       deleteMany: jest.fn(),
+    },
+    tasks: {
+      update: jest.fn(),
     },
     note_documents: {
       deleteMany: jest.fn(),
@@ -146,6 +150,8 @@ describe('DocumentsService', () => {
   });
 
   it('sends a notification when a teacher grades a student document', async () => {
+    mockPrismaService.task_documents.findMany.mockResolvedValue([]);
+
     mockPrismaService.documents.findUnique
       .mockResolvedValueOnce({
         document_id: 9,
@@ -195,6 +201,7 @@ describe('DocumentsService', () => {
   });
 
   it('allows a student to delete own linked document without FK errors', async () => {
+    mockPrismaService.documents.findUnique.mockReset();
     mockPrismaService.documents.findUnique.mockResolvedValue({
       document_id: 11,
       name: 'abgabe.pdf',
@@ -262,5 +269,61 @@ describe('DocumentsService', () => {
     expect(payload.fileName).toBe('probe.pdf');
     expect(payload.mimeType).toBe('application/pdf');
     expect(Buffer.concat(chunks)).toEqual(Buffer.from(sampleBytes));
+  });
+
+  it('rejects upload when detected file content does not match extension', async () => {
+    const fakePng = {
+      originalname: 'bild.png',
+      buffer: Buffer.from('%PDF-1.4 test content', 'utf8'),
+      size: 24,
+      mimetype: 'image/png',
+    } as Express.Multer.File;
+
+    await expect(
+      service.create(fakePng, 15, 'image/png', 'student'),
+    ).rejects.toThrow('Dateiinhalt passt nicht zur Endung (.png)');
+
+    expect(mockPrismaService.documents.create).not.toHaveBeenCalled();
+  });
+
+  it('sanitizes uploaded file names before persisting', async () => {
+    const file = {
+      originalname: '../../boese<script>.pdf',
+      buffer: Buffer.from('pdf data'),
+      size: 8,
+      mimetype: 'application/pdf',
+    } as Express.Multer.File;
+
+    mockPrismaService.documents.create.mockResolvedValue({ document_id: 99 });
+    mockPrismaService.documents.findUnique.mockResolvedValue({
+      document_id: 99,
+      name: 'boese_script_.pdf',
+      file_path: null,
+      file_size: 8,
+      mime_type: 'application/pdf',
+      added_by: 15,
+      created_at: new Date().toISOString(),
+      users: {
+        user_id: 15,
+        firstname: 'Max',
+        lastname: 'Schüler',
+        username: 'max',
+        students: { student_id: 15 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      graded_by_user: null,
+      task_documents: [],
+    });
+    mockPrismaService.user_roles.findMany.mockResolvedValue([]);
+
+    await service.create(file, 15, 'application/pdf', 'student');
+
+    expect(mockPrismaService.documents.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'boese_script_.pdf',
+        }),
+      }),
+    );
   });
 });

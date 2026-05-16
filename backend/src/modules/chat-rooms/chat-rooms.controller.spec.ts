@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ChatRoomsController } from "./chat-rooms.controller";
 import { ChatRoomsService } from "./chat-rooms.service";
-import { PrismaService } from "src/prisma/prisma.service";
+import { PrismaService } from "../../prisma/prisma.service";
 
 describe("ChatRoomsController", () => {
   let controller: ChatRoomsController;

@@ -11,7 +11,7 @@
         ref="fileInput" 
         @change="handleFileChange" 
         class="hidden-input"
-        accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.doc,.docx,.odt,.rtf,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.ods,.odp"
+        accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.doc,.docx,.odt,.rtf,.txt,.md,.csv,.xls,.xlsx,.ppt,.pptx,.ods,.odp"
       />
 
       <div 
@@ -22,7 +22,7 @@
         <div v-if="!selectedFile" class="drop-zone-prompt">
           <span class="upload-icon">📁</span>
           <p>Klicke hier, um eine Datei auszuwählen</p>
-          <span class="file-types">pdf, jpg, jpeg, png, gif, bmp, webp, doc, docx, odt, rtf, txt, csv, xls, xlsx, ppt, pptx, ods, odp</span>
+          <span class="file-types">pdf, jpg, jpeg, png, gif, bmp, webp, doc, docx, odt, rtf, txt, md, csv, xls, xlsx, ppt, pptx, ods, odp</span>
         </div>
         
         <div v-else class="selected-file-info">
@@ -81,6 +81,7 @@ const ALLOWED_TYPES = [
   'application/rtf',
   'text/rtf',
   'text/plain',
+  'text/markdown',
   'text/csv',
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -101,12 +102,12 @@ const handleFileChange = (event) => {
   const extension = file.name.split('.').pop().toLowerCase();
   const allowedExtensions = [
     'pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
-    'doc', 'docx', 'odt', 'rtf', 'txt', 'csv',
+    'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'csv',
     'xls', 'xlsx', 'ppt', 'pptx', 'ods', 'odp',
   ];
 
   if (!ALLOWED_TYPES.includes(file.type) && !allowedExtensions.includes(extension)) {
-    errorMessage.value = "Erlaubte Formate: PDF, JPG/JPEG, PNG, GIF, BMP, WEBP, DOC/DOCX, ODT, RTF, TXT, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.";
+    errorMessage.value = "Erlaubte Formate: PDF, JPG/JPEG, PNG, GIF, BMP, WEBP, DOC/DOCX, ODT, RTF, TXT, MD, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.";
     selectedFile.value = null;
     return;
   }

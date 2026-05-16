@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { createReadStream, existsSync } from "fs";
 import { unlink } from "fs/promises";
-import { basename, isAbsolute, relative, resolve } from "path";
+import { basename, extname, isAbsolute, relative, resolve } from "path";
 import { Readable } from "stream";
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -50,9 +50,132 @@ export class DocumentsService {
     task_documents: {
       select: {
         task_id: true,
+        tasks: {
+          select: {
+            task_id: true,
+            created_by: true,
+          },
+        },
       },
     },
   } as const;
+
+  private readonly allowedExtensions = new Set([
+    ".pdf",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".bmp",
+    ".webp",
+    ".doc",
+    ".docx",
+    ".odt",
+    ".rtf",
+    ".txt",
+    ".md",
+    ".csv",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".ods",
+    ".odp",
+  ]);
+
+  private readonly expectedMimeByExtension: Record<string, string[]> = {
+    ".pdf": ["application/pdf"],
+    ".jpg": ["image/jpeg"],
+    ".jpeg": ["image/jpeg"],
+    ".png": ["image/png"],
+    ".gif": ["image/gif"],
+    ".bmp": ["image/bmp"],
+    ".webp": ["image/webp"],
+    ".doc": ["application/msword"],
+    ".docx": [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ],
+    ".odt": ["application/vnd.oasis.opendocument.text"],
+    ".rtf": ["application/rtf", "text/rtf"],
+    ".txt": ["text/plain"],
+    ".md": ["text/markdown", "text/plain"],
+    ".csv": ["text/csv", "application/csv"],
+    ".xls": ["application/vnd.ms-excel"],
+    ".xlsx": [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ],
+    ".ppt": ["application/vnd.ms-powerpoint"],
+    ".pptx": [
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ],
+    ".ods": ["application/vnd.oasis.opendocument.spreadsheet"],
+    ".odp": ["application/vnd.oasis.opendocument.presentation"],
+  };
+
+  private detectMimeFromMagicBytes(buffer: Buffer | Uint8Array) {
+    const bytes = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+    if (bytes.length < 4) return null;
+
+    // PDF: 25 50 44 46 -> "%PDF"
+    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+      return "application/pdf";
+    }
+
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (
+      bytes.length >= 8 &&
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47 &&
+      bytes[4] === 0x0d &&
+      bytes[5] === 0x0a &&
+      bytes[6] === 0x1a &&
+      bytes[7] === 0x0a
+    ) {
+      return "image/png";
+    }
+
+    // JPEG: FF D8 FF
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return "image/jpeg";
+    }
+
+    // GIF: GIF87a / GIF89a
+    if (
+      bytes.length >= 6 &&
+      bytes[0] === 0x47 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x38 &&
+      (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+      bytes[5] === 0x61
+    ) {
+      return "image/gif";
+    }
+
+    // WEBP: RIFF....WEBP
+    if (
+      bytes.length >= 12 &&
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46 &&
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50
+    ) {
+      return "image/webp";
+    }
+
+    // BMP: 42 4D
+    if (bytes[0] === 0x42 && bytes[1] === 0x4d) {
+      return "image/bmp";
+    }
+
+    return null;
+  }
 
   private normalizeRole(role?: string) {
     const normalized = (role || "")
@@ -172,11 +295,43 @@ export class DocumentsService {
   }
 
   private canEditDocument(document: any, userId: number, role?: string) {
-    return this.isPrivileged(role) || this.canStudentManageOwnDocument(document, userId, role);
+    // Priviligierte (Admin/Superuser) können alles bearbeiten
+    if (this.isPrivileged(role)) {
+      return true;
+    }
+    
+    // Lehrer können Dokumente von ihren Tasks bearbeiten
+    if (this.isTeacher(role)) {
+      const linkedTasks = document.task_documents || [];
+      // Prüf ob Lehrer den Task erstellt hat, der dieses Dokument verknüpft hat
+      return linkedTasks.some((td: any) => Number(td.tasks?.created_by) === Number(userId));
+    }
+    
+    // Schüler können nur eigene UNBEWERTETE Dokumente bearbeiten
+    return this.canStudentManageOwnDocument(document, userId, role) && !document.graded_at;
   }
 
   private canDeleteDocument(document: any, userId: number, role?: string) {
-    return this.isPrivileged(role) || this.canStudentManageOwnDocument(document, userId, role);
+    // Priviligierte (Admin/Superuser) können alles löschen
+    if (this.isPrivileged(role)) {
+      return true;
+    }
+
+    // Schüler können nur ihre eigenen UNBEWERTETEN Dokumente löschen
+    if (this.canStudentManageOwnDocument(document, userId, role)) {
+      // Wenn das Dokument bewertet wurde, darf Schüler es NICHT löschen
+      if (document.graded_at) {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  private canResubmitTask(document: any, userId: number, role?: string) {
+    // Nur Lehrer darf dem Schüler neues Upload erlauben
+    return this.isTeacher(role) && this.documentBelongsToStudent(document);
   }
 
   private canGradeDocument(document: any, userId: number, role?: string) {
@@ -222,6 +377,7 @@ export class DocumentsService {
         can_edit: this.canEditDocument(document, userId, role),
         can_delete: this.canDeleteDocument(document, userId, role),
         can_grade: this.canGradeDocument(document, userId, role),
+        can_resubmit: this.canResubmitTask(document, userId, role),
       },
     };
   }
@@ -314,6 +470,29 @@ export class DocumentsService {
       throw new BadRequestException("Dateiinhalt fehlt oder ist leer");
     }
 
+    const originalName = file.originalname || "upload.bin";
+    const extension = extname(originalName).toLowerCase();
+    if (!this.allowedExtensions.has(extension)) {
+      throw new BadRequestException("Dateiformat nicht erlaubt");
+    }
+
+    const detectedMime = this.detectMimeFromMagicBytes(file.buffer);
+    const expectedMimes = this.expectedMimeByExtension[extension] || [];
+
+    if (
+      detectedMime &&
+      expectedMimes.length > 0 &&
+      !expectedMimes.includes(detectedMime.toLowerCase())
+    ) {
+      throw new BadRequestException(
+        `Dateiinhalt passt nicht zur Endung (${extension})`,
+      );
+    }
+
+    const safeFileName = this.sanitizeFileName(originalName);
+    const persistedMimeType =
+      detectedMime || mimeType || "application/octet-stream";
+
     const normalizedTaskId = taskId ? Number(taskId) : undefined;
     if (normalizedTaskId) {
       await this.canUserLinkToTask(normalizedTaskId, userId, role);
@@ -322,11 +501,11 @@ export class DocumentsService {
     const created = await this.prisma.$transaction(async (tx) => {
       const createdDocument = await tx.documents.create({
         data: {
-          name: file.originalname,
+          name: safeFileName,
           file_blob: new Uint8Array(file.buffer),
           file_path: null,
           file_size: file.size,
-          mime_type: mimeType,
+          mime_type: persistedMimeType,
           added_by: userId,
         },
       });
@@ -347,13 +526,24 @@ export class DocumentsService {
 
     if (this.isStudent(role)) {
       await this.notifyTeachersAboutStudentUpload(
-        document.name || file.originalname,
+        document.name || safeFileName,
         userId,
         normalizedTaskId,
       );
     }
 
     return this.mapDocumentForUi(document, userId, role);
+  }
+
+  private sanitizeFileName(fileName: string) {
+    const baseName = basename(fileName || "upload.bin").trim();
+    const safeName = baseName
+      .replace(/[\x00-\x1F\x7F]/g, "")
+      .replace(/[^a-zA-Z0-9._\- ]+/g, "_")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return safeName || "upload.bin";
   }
 
   async findAll(userId: number, role?: string) {
@@ -401,7 +591,7 @@ export class DocumentsService {
 
     if (!this.canEditDocument(document, userId, role)) {
       throw new ForbiddenException(
-        "Nur Schüler dürfen ihre eigenen Dokumente bearbeiten",
+        "Sie dürfen dieses Dokument nicht bearbeiten",
       );
     }
 
@@ -453,6 +643,24 @@ export class DocumentsService {
       },
     });
 
+    // Automatisch alle verknüpften Tasks sperren nach Bewertung
+    const linkedTasks = await this.prisma.task_documents.findMany({
+      where: { document_id: id },
+      select: { task_id: true },
+    });
+
+    for (const { task_id } of linkedTasks) {
+      await this.prisma.tasks.update({
+        where: { task_id },
+        data: {
+          is_locked: true,
+          locked_reason: `Task wurde bewertet. Schüler darf nicht weiter bearbeiten bis Lehrer neues Datum setzt.`,
+          locked_until: null,
+        },
+      });
+      console.log(`✓ Task ${task_id} wurde nach Bewertung gesperrt`);
+    }
+
     if (document.added_by && Number(document.added_by) !== Number(graderId)) {
       const documentTitle = document.name || `Dokument #${document.document_id}`;
       const gradeSuffix = grade ? ` Note: ${grade}.` : "";
@@ -466,6 +674,55 @@ export class DocumentsService {
 
     const completeDocument = await this.getDocumentById(updated.document_id);
     return this.mapDocumentForUi(completeDocument, graderId, role);
+  }
+
+  /**
+   * Holt alle Bewertungen (graded documents) des aktuellen Schülers
+   * @param studentId - Die Student User ID
+   * @returns Array von bewerteten Dokumenten mit Noten und Feedback
+   */
+  async getMyGrades(studentId: number) {
+    const grades = await this.prisma.documents.findMany({
+      where: {
+        added_by: studentId,
+        graded_at: { not: null }, // Nur bewertete Dokumente
+      },
+      include: {
+        graded_by_user: {
+          select: {
+            user_id: true,
+            firstname: true,
+            lastname: true,
+          },
+        },
+        task_documents: {
+          select: {
+            task_id: true,
+            tasks: {
+              select: {
+                task_id: true,
+                title: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { graded_at: 'desc' },
+    });
+
+    return grades.map(doc => ({
+      document_id: doc.document_id,
+      name: doc.name,
+      file_size: doc.file_size,
+      mime_type: doc.mime_type,
+      grade: doc.grade,
+      feedback: doc.feedback,
+      graded_by: doc.graded_by_user,
+      graded_at: doc.graded_at,
+      task_title: doc.task_documents[0]?.tasks?.title || null,
+      task_id: doc.task_documents[0]?.task_id || null,
+    }));
   }
 
   async getDownloadPayload(id: number, userId: number, role?: string) {
@@ -537,6 +794,163 @@ export class DocumentsService {
 
     return {
       message: "Dokument erfolgreich gelöscht",
+      document_id: documentId,
+    };
+  }
+
+  /**
+   * Holt alle Dokumente, die zu einem Task verknüpft sind
+   * Nur Lehrer des Tasks oder Admin darf das
+   */
+  async getDocumentsByTask(taskId: number, userId: number, role?: string) {
+    // Berechtigungsprüfung: Teacher/Admin oder Student der hochgeladen hat
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException("Task nicht gefunden");
+    }
+
+    // Nur Teacher/Admin oder der Student selbst darf Documents sehen
+    const isTeacher = this.isTeacher(role);
+    const isPrivileged = this.isPrivileged(role);
+    const isTaskCreator = task.created_by === userId;
+
+    if (!isTeacher && !isPrivileged && !isTaskCreator) {
+      throw new ForbiddenException(
+        "Keine Berechtigung zum Einsehen dieser Task-Dokumente",
+      );
+    }
+
+    // Hol alle Dokumente für diesen Task
+    const documents = await this.prisma.documents.findMany({
+      where: {
+        task_documents: {
+          some: {
+            task_id: taskId,
+          },
+        },
+      },
+      include: {
+        users: {
+          select: {
+            user_id: true,
+            firstname: true,
+            lastname: true,
+            username: true,
+          },
+        },
+        graded_by_user: {
+          select: {
+            user_id: true,
+            firstname: true,
+            lastname: true,
+          },
+        },
+        task_documents: {
+          select: {
+            task_id: true,
+          },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    // Map mit Permissions und Task-Kontext
+    return documents.map(doc => ({
+      document_id: doc.document_id,
+      name: doc.name,
+      file_size: doc.file_size,
+      mime_type: doc.mime_type,
+      added_by: doc.added_by,
+      uploader: doc.users?.[0] || null,
+      created_at: doc.created_at,
+      updated_at: doc.updated_at,
+      grade: doc.grade,
+      feedback: doc.feedback,
+      graded_by: doc.graded_by_user,
+      graded_at: doc.graded_at,
+      task_id: taskId,
+      permissions: {
+        can_download: true, // Teacher/Admin darf immer downloaden
+        can_grade: isTeacher || isPrivileged,
+        can_delete: isPrivileged, // Nur Admin darf löschen
+        can_edit: isTeacher || isPrivileged,
+      },
+    }));
+  }
+
+  /**
+   * Erlaubt Schüler erneut hochzuladen - entsperrt linked Task
+   * Nur für Lehrer nach Bewertung
+   */
+  async allowResubmit(
+    documentId: number,
+    newDeadline?: Date,
+    teacherId?: number,
+    role?: string,
+  ) {
+    // Berechtigungsprüfung: Nur Teacher/Admin
+    if (!this.isTeacher(role)) {
+      throw new ForbiddenException(
+        "Nur Lehrer dürfen Wiedereinreichung erlauben",
+      );
+    }
+
+    const document = await this.getDocumentById(documentId);
+    if (!document) {
+      throw new NotFoundException("Dokument nicht gefunden");
+    }
+
+    // Nur bewertete Arbeiten können freigegeben werden
+    if (!document.graded_at) {
+      throw new BadRequestException(
+        "Nur bewertete Dokumente können für Wiedereinreichung freigegeben werden",
+      );
+    }
+
+    // Finde den verknüpften Task
+    const taskDoc = await this.prisma.task_documents.findFirst({
+      where: { document_id: documentId },
+      include: { tasks: true },
+    });
+
+    if (!taskDoc) {
+      throw new NotFoundException(
+        "Kein Task zu diesem Dokument verknüpft",
+      );
+    }
+
+    const task = taskDoc.tasks;
+
+    // Entsperre den Task
+    await this.prisma.tasks.update({
+      where: { task_id: task.task_id },
+      data: {
+        is_locked: false,
+        locked_reason: null,
+        locked_until: newDeadline || undefined,
+        deadline: newDeadline || task.deadline, // Set new deadline if provided
+      },
+    });
+
+    // Benachrichtige den Schüler
+    const studentId = document.added_by;
+    if (studentId) {
+      await this.notificationsService.create({
+        user_id: studentId,
+        type: 'RESUBMIT_ALLOWED',
+        text: `Wiedereinreichung erlaubt für Task: ${task.title}. Neuer Abgabetermin: ${newDeadline ? newDeadline.toLocaleDateString('de-AT') : 'unverändert'}`,
+      });
+    }
+
+    // Lösche grading-Status nicht – Schüler darf neu hochladen
+    return {
+      message: "Wiedereinreichung freigegeben - Student kann nun neu hochladen",
+      task_id: task.task_id,
+      task_title: task.title,
+      new_deadline: newDeadline,
       document_id: documentId,
     };
   }

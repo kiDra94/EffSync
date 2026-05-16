@@ -11,7 +11,7 @@
           ref="fileInput"
           type="file"
           class="hidden-input"
-          accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.doc,.docx,.odt,.rtf,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.ods,.odp"
+          accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.doc,.docx,.odt,.rtf,.txt,.md,.csv,.xls,.xlsx,.ppt,.pptx,.ods,.odp"
           @change="handleFileUpload"
         />
         <button class="btn-primary" :disabled="isUploading" @click="triggerFileInput">
@@ -37,7 +37,7 @@
     <div class="upload-hint card">
       <strong>Upload-Regeln:</strong>
       Maximal 25 MB pro Datei. Erlaubte Formate: PDF, JPG/JPEG, PNG, GIF, BMP, WEBP,
-      DOC/DOCX, ODT, RTF, TXT, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.
+      DOC/DOCX, ODT, RTF, TXT, MD, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.
     </div>
 
     <div v-if="canUpload" class="upload-context card">
@@ -77,77 +77,94 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="doc in documents" :key="doc.document_id">
-              <td>
-                <div v-if="editingDocumentId === doc.document_id" class="rename-editor">
-                  <input
-                    v-model.trim="renameDrafts[doc.document_id]"
-                    class="rename-input"
-                    maxlength="255"
-                    @keyup.enter="saveRename(doc)"
-                  />
-                  <div class="rename-actions">
-                    <button class="btn-inline btn-save" @click="saveRename(doc)">Speichern</button>
-                    <button class="btn-inline" @click="cancelRename">Abbrechen</button>
+            <template v-for="doc in documents" :key="doc.document_id">
+              <tr>
+                <td>
+                  <div v-if="editingDocumentId === doc.document_id" class="rename-editor">
+                    <input
+                      v-model.trim="renameDrafts[doc.document_id]"
+                      class="rename-input"
+                      maxlength="255"
+                      @keyup.enter="saveRename(doc)"
+                    />
+                    <div class="rename-actions">
+                      <button class="btn-inline btn-save" @click="saveRename(doc)">Speichern</button>
+                      <button class="btn-inline" @click="cancelRename">Abbrechen</button>
+                    </div>
                   </div>
-                </div>
-                <div v-else class="file-cell">
-                  <span class="file-name">{{ doc.name }}</span>
-                  <span class="file-date">{{ formatDate(doc.created_at) }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="badge">{{ getSimpleType(doc.mime_type) }}</span>
-              </td>
-              <td class="text-muted">{{ formatBytes(doc.file_size) }}</td>
-              <td>
-                <div class="uploader-cell">
-                  <span>{{ getUploaderLabel(doc) }}</span>
-                  <small class="text-muted">{{ getUploaderRole(doc) }}</small>
-                </div>
-              </td>
-              <td>
-                <div class="grade-cell">
-                  <span
-                    class="grade-badge"
-                    :class="{ graded: doc.grade || doc.feedback, pending: !doc.grade && !doc.feedback }"
+                  <div v-else class="file-cell">
+                    <span class="file-name">{{ doc.name }}</span>
+                    <span class="file-date">{{ formatDate(doc.created_at) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge">{{ getSimpleType(doc.mime_type) }}</span>
+                </td>
+                <td class="text-muted">{{ formatBytes(doc.file_size) }}</td>
+                <td>
+                  <div class="uploader-cell">
+                    <span>{{ getUploaderLabel(doc) }}</span>
+                    <small class="text-muted">{{ getUploaderRole(doc) }}</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="grade-cell">
+                    <span
+                      class="grade-badge"
+                      :class="{ graded: doc.grade || doc.feedback, pending: !doc.grade && !doc.feedback }"
+                    >
+                      {{ getGradeSummary(doc) }}
+                    </span>
+                  </div>
+                </td>
+                <td class="text-right actions-cell">
+                  <button class="btn-icon" title="Öffnen" @click="openDocument(doc)">
+                    👁️
+                  </button>
+                  <button class="btn-icon" title="Herunterladen" @click="downloadDocument(doc)">⬇️</button>
+                  <button
+                    v-if="doc.permissions?.can_edit"
+                    class="btn-icon"
+                    title="Umbenennen"
+                    @click="startRename(doc)"
                   >
-                    {{ getGradeSummary(doc) }}
-                  </span>
-                  <small v-if="doc.feedback" class="feedback-preview">{{ doc.feedback }}</small>
-                </div>
-              </td>
-              <td class="text-right actions-cell">
-                <button class="btn-icon" title="Öffnen" @click="openDocument(doc)">
-                  👁️
-                </button>
-                <button class="btn-icon" title="Herunterladen" @click="downloadDocument(doc)">⬇️</button>
-                <button
-                  v-if="doc.permissions?.can_edit"
-                  class="btn-icon"
-                  title="Umbenennen"
-                  @click="startRename(doc)"
-                >
-                  ✏️
-                </button>
-                <button
-                  v-if="doc.permissions?.can_grade"
-                  class="btn-icon"
-                  title="Bewerten"
-                  @click="openGradeDialog(doc)"
-                >
-                  📝
-                </button>
-                <button
-                  v-if="doc.permissions?.can_delete"
-                  class="btn-icon btn-danger"
-                  title="Löschen"
-                  @click="deleteOwnDocument(doc)"
-                >
-                  🗑️
-                </button>
-              </td>
-            </tr>
+                    ✏️
+                  </button>
+                  <button
+                    v-if="doc.permissions?.can_grade"
+                    class="btn-icon"
+                    title="Bewerten"
+                    @click="openGradeDialog(doc)"
+                  >
+                    📝
+                  </button>
+                  <button
+                    v-if="doc.permissions?.can_delete"
+                    class="btn-icon btn-danger"
+                    title="Löschen"
+                    @click="deleteOwnDocument(doc)"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+              <!-- Bewertungs-Notiz Row -->
+              <tr v-if="doc.grade || doc.feedback" class="grade-detail-row">
+                <td colspan="6">
+                  <div class="grade-detail-card">
+                    <div class="grade-detail-header">
+                      <span class="grade-label">📝 Bewertung:</span>
+                      <span class="grade-value">{{ doc.grade || '—' }}</span>
+                      <span class="grade-teacher">von {{ doc.graded_by_user?.firstname }} {{ doc.graded_by_user?.lastname }}</span>
+                      <span class="grade-date">{{ formatDate(doc.graded_at) }}</span>
+                    </div>
+                    <div v-if="doc.feedback" class="grade-feedback">
+                      <p>{{ doc.feedback }}</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -244,7 +261,7 @@ const gradeForm = reactive({
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [
   'pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
-  'doc', 'docx', 'odt', 'rtf', 'txt', 'csv',
+  'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'csv',
   'xls', 'xlsx', 'ppt', 'pptx', 'ods', 'odp',
 ];
 const PREVIEWABLE_MIME_PREFIXES = ['image/', 'text/'];
@@ -367,7 +384,7 @@ const validateFile = (file) => {
   const isAllowedExtension = extension && ALLOWED_EXTENSIONS.includes(extension);
 
   if (!isAllowedExtension) {
-    return 'Erlaubte Formate: PDF, JPG/JPEG, PNG, GIF, BMP, WEBP, DOC/DOCX, ODT, RTF, TXT, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.';
+    return 'Erlaubte Formate: PDF, JPG/JPEG, PNG, GIF, BMP, WEBP, DOC/DOCX, ODT, RTF, TXT, MD, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.';
   }
 
   return '';
@@ -782,6 +799,114 @@ const downloadDocument = async (document) => {
 .grade-badge.pending {
   background: #fef3c7;
   color: #92400e;
+}
+
+/* Grade Detail Row Styles */
+.grade-detail-row {
+  background: #f9fafb;
+  border-top: 2px solid #e5e7eb;
+}
+
+.grade-detail-row td {
+  padding: 16px !important;
+}
+
+.grade-detail-card {
+  background: white;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.grade-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.grade-label {
+  font-weight: 700;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.grade-value {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.grade-teacher {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.grade-date {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.grade-feedback {
+  background: #f0f9ff;
+  border-left: 3px solid #0284c7;
+  padding: 12px;
+  border-radius: 4px;
+  line-height: 1.6;
+  color: #1f2937;
+}
+
+.grade-feedback p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+@media (prefers-color-scheme: dark) {
+  .grade-detail-row {
+    background: #111827;
+    border-top-color: #374151;
+  }
+
+  .grade-detail-card {
+    background: #1f2937;
+    border-left-color: #60a5fa;
+  }
+
+  .grade-label,
+  .grade-feedback {
+    color: #f3f4f6;
+  }
+
+  .grade-teacher,
+  .grade-date {
+    color: #9ca3af;
+  }
+
+  .grade-feedback {
+    background: #0f172a;
+    color: #e5e7eb;
+    border-left-color: #0284c7;
+  }
+}
+
+@media (max-width: 768px) {
+  .grade-detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grade-value,
+  .grade-teacher,
+  .grade-date {
+    display: block;
+    width: 100%;
+  }
 }
 
 .actions-cell {
