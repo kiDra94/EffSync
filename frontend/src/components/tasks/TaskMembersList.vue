@@ -28,28 +28,36 @@
             <p class="member-email">{{ member.email }}</p>
             <div class="member-badges">
               <span
-                v-if="isCreator(member.user_id)"
+                v-if="member.role === 'creator'"
                 class="badge badge-creator"
                 title="Task-Creator"
               >
                 👑 Creator
               </span>
               <span
-                v-if="isAssignedTo(member.user_id)"
+                v-if="member.role === 'assigned'"
                 class="badge badge-assigned"
                 title="Zugewiesen"
               >
                 ✓ Assigned
+              </span>
+              <span
+                v-if="member.role === 'member'"
+                class="badge badge-member"
+                title="Task-Member"
+              >
+                👤 Member
               </span>
             </div>
           </div>
 
           <!-- Remove Button (nur wenn canEditTask und nicht Creator/Assigned-to) -->
           <button
-            v-if="canEditTask && !isCreator(member.user_id) && !isAssignedTo(member.user_id)"
-            @click="openRemoveDialog(member)"
+            v-if="canEditTask && member.role === 'member'"
+            @click.stop.prevent="openRemoveDialog(member)"
             class="btn-remove"
             title="Mitglied entfernen"
+            type="button"
           >
             ✕
           </button>
@@ -81,9 +89,10 @@
           </option>
         </select>
         <button
-          @click="addMember"
+          @click.stop.prevent="addMember"
           :disabled="!selectedUserId || isAddingMember"
           class="btn-add"
+          type="button"
         >
           {{ isAddingMember ? "Wird hinzugefügt..." : "+ Hinzufügen" }}
         </button>
@@ -91,19 +100,27 @@
     </div>
 
     <!-- Remove Confirmation Modal -->
-    <div v-if="showRemoveDialog" class="modal-overlay" @click="closeRemoveDialog">
+    <div v-if="showRemoveDialog" class="modal-overlay" @click="handleOverlayClick">
       <div class="modal-content" @click.stop>
         <h3>Mitglied entfernen</h3>
         <p>
           Sind Sie sicher, dass Sie
-          <strong>{{ memberToRemove.firstname }} {{ memberToRemove.lastname }}</strong>
+          <strong>{{ memberToRemove?.firstname }} {{ memberToRemove?.lastname }}</strong>
           von dieser Task entfernen möchten?
         </p>
         <div class="modal-actions">
-          <button @click="confirmRemove" class="btn-confirm btn-danger">
+          <button 
+            @click="handleConfirmRemove" 
+            class="btn-confirm btn-danger"
+            type="button"
+          >
             Entfernen
           </button>
-          <button @click="closeRemoveDialog" class="btn-cancel">
+          <button 
+            @click="handleCancelRemove" 
+            class="btn-cancel"
+            type="button"
+          >
             Abbrechen
           </button>
         </div>
@@ -158,11 +175,18 @@ const errorMessage = ref('');
 
 // Computed Properties
 const allMembers = computed(() => {
-  // Kombiniere user_permissions mit Creater und Assigned-to
-  return members.value.map((m) => ({
-    user_id: m.user_id,
-    ...m.users
-  }));
+  return members.value.map((m) => {
+    const userData = m.user || m.users || {};
+    return {
+      user_id: userData.user_id || m.user_id,
+      firstname: userData.firstname || 'Unknown',
+      lastname: userData.lastname || 'User',
+      email: userData.email || '',
+      profile_picture: userData.profile_picture || null,
+      role: m.role || 'member',
+      joined_at: m.joined_at,
+    };
+  }).filter(m => m.user_id);
 });
 
 const availableUsers = computed(() => {
@@ -172,9 +196,6 @@ const availableUsers = computed(() => {
 });
 
 // Methods
-const isCreator = (userId) => userId === props.creatorId;
-const isAssignedTo = (userId) => userId === props.assignedToId;
-
 const getInitials = (firstname, lastname) => {
   return `${(firstname || 'U')[0]}${(lastname || 'S')[0]}`.toUpperCase();
 };
@@ -221,11 +242,7 @@ const addMember = async () => {
       user_id: selectedUserId.value
     });
 
-    showSuccess(
-      `Mitglied hinzugefügt!`
-    );
-
-    // Neuladen
+    showSuccess('Mitglied hinzugefügt!');
     await loadMembers();
     selectedUserId.value = null;
   } catch (error) {
@@ -243,31 +260,64 @@ const openRemoveDialog = (member) => {
   showRemoveDialog.value = true;
 };
 
+const handleOverlayClick = (event) => {
+  // Nur schließen wenn direkt auf dem Overlay-Hintergrund geklickt wurde
+  if (event.target === event.currentTarget) {
+    closeRemoveDialog();
+  }
+};
+
+const handleConfirmRemove = async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  await confirmRemove();
+};
+
+const handleCancelRemove = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  closeRemoveDialog();
+};
+
 const closeRemoveDialog = () => {
   showRemoveDialog.value = false;
   memberToRemove.value = null;
 };
 
 const confirmRemove = async () => {
-  if (!memberToRemove.value) return;
+  if (!memberToRemove.value) {
+    console.error('❌ Kein Mitglied zum Löschen ausgewählt');
+    return;
+  }
+
+  console.log(`🗑️ Versuche Mitglied ${memberToRemove.value.user_id} zu löschen...`);
 
   try {
-    await taskMembersApi.removeTaskMember(
+    console.log(`📡 API-Anfrage: DELETE /api/tasks/${props.taskId}/members/${memberToRemove.value.user_id}`);
+    
+    const response = await taskMembersApi.removeTaskMember(
       props.taskId,
       memberToRemove.value.user_id
     );
 
-    showSuccess(
-      `${memberToRemove.value.firstname} entfernt!`
-    );
+    console.log('✅ Mitglied erfolgreich gelöscht:', response);
+    showSuccess(`${memberToRemove.value.firstname} entfernt!`);
 
-    // Neuladen
+    console.log('🔄 Lade Mitglieder neu...');
     await loadMembers();
+    
+    // Modal schließen
     closeRemoveDialog();
+    console.log('✓ Dialog geschlossen');
   } catch (error) {
-    console.error('Fehler beim Entfernen des Mitglieds:', error);
+    console.error('❌ Fehler beim Entfernen des Mitglieds:', error);
+    console.error('❌ Response:', error.response?.data);
+    console.error('❌ Status:', error.response?.status);
+    
     showError(
-      error.response?.data?.message || 'Mitglied konnte nicht entfernt werden'
+      error.response?.data?.message || 
+      error.response?.data?.error ||
+      'Mitglied konnte nicht entfernt werden'
     );
   }
 };
@@ -328,16 +378,17 @@ watch(() => props.taskId, () => {
 }
 
 .members-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .member-card {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 48px 1fr 32px;
+  align-items: center;
   gap: 12px;
-  padding: 16px;
+  padding: 12px;
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
@@ -371,18 +422,23 @@ watch(() => props.taskId, () => {
 .member-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
 }
 
 .member-name {
-  margin: 0 0 4px 0;
-  font-weight: 500;
+  margin: 0;
+  font-weight: 600;
   color: #333;
+  font-size: 0.95rem;
 }
 
 .member-email {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  color: #999;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -392,6 +448,7 @@ watch(() => props.taskId, () => {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .badge {
@@ -413,6 +470,11 @@ watch(() => props.taskId, () => {
   color: #0284c7;
 }
 
+.badge-member {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
 .btn-remove {
   flex-shrink: 0;
   width: 32px;
@@ -430,56 +492,6 @@ watch(() => props.taskId, () => {
 .btn-remove:hover {
   background: #fca5a5;
   color: white;
-}
-
-:global(body.dark-mode) .task-members-section,
-:global(.app-container.dark-mode) .task-members-section {
-  background: #2a2f45 !important;
-  border-color: #4f5672 !important;
-}
-
-:global(body.dark-mode) .section-title,
-:global(body.dark-mode) .loading-spinner,
-:global(body.dark-mode) .empty-state,
-:global(body.dark-mode) .add-member-section h4,
-:global(.app-container.dark-mode) .section-title,
-:global(.app-container.dark-mode) .loading-spinner,
-:global(.app-container.dark-mode) .empty-state,
-:global(.app-container.dark-mode) .add-member-section h4 {
-  color: #edf0fa !important;
-}
-
-:global(body.dark-mode) .member-card,
-:global(.app-container.dark-mode) .member-card {
-  background: #25283a !important;
-  border-color: #444b66 !important;
-}
-
-:global(body.dark-mode) .member-name,
-:global(.app-container.dark-mode) .member-name {
-  color: #f5f7ff !important;
-}
-
-:global(body.dark-mode) .member-email,
-:global(.app-container.dark-mode) .member-email {
-  color: #b2b9cb !important;
-}
-
-:global(body.dark-mode) .empty-state,
-:global(body.dark-mode) .add-member-section,
-:global(.app-container.dark-mode) .empty-state,
-:global(.app-container.dark-mode) .add-member-section {
-  background: #25283a !important;
-  border-color: #4f5672 !important;
-}
-
-:global(body.dark-mode) .member-select,
-:global(.app-container.dark-mode) .member-select,
-:global(body.dark-mode) .btn-add,
-:global(.app-container.dark-mode) .btn-add {
-  background: #31364d !important;
-  border-color: #59607d !important;
-  color: #f5f7ff !important;
 }
 
 .empty-state {
@@ -560,6 +572,7 @@ watch(() => props.taskId, () => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  cursor: pointer;
 }
 
 .modal-content {
@@ -569,6 +582,7 @@ watch(() => props.taskId, () => {
   max-width: 400px;
   width: 90%;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  cursor: default;
 }
 
 .modal-content h3 {
@@ -653,7 +667,7 @@ watch(() => props.taskId, () => {
 
 @keyframes slideIn {
   from {
-    transform: translateX(400px);
+    transform: translateX(100%);
     opacity: 0;
   }
   to {
@@ -661,64 +675,54 @@ watch(() => props.taskId, () => {
     opacity: 1;
   }
 }
-</style>
 
-<style>
-body.dark-mode .task-members-section,
-.app-container.dark-mode .task-members-section {
+:global(body.dark-mode) .task-members-section,
+:global(.app-container.dark-mode) .task-members-section {
   background: #2a2f45 !important;
-  border: 1px solid #4f5672 !important;
+  border-color: #4f5672 !important;
 }
 
-body.dark-mode .task-members-section .section-title,
-.app-container.dark-mode .task-members-section .section-title,
-body.dark-mode .task-members-section .loading-spinner,
-.app-container.dark-mode .task-members-section .loading-spinner,
-body.dark-mode .task-members-section .empty-state,
-.app-container.dark-mode .task-members-section .empty-state,
-body.dark-mode .task-members-section .add-member-section h4,
-.app-container.dark-mode .task-members-section .add-member-section h4 {
+:global(body.dark-mode) .section-title,
+:global(body.dark-mode) .loading-spinner,
+:global(body.dark-mode) .empty-state,
+:global(body.dark-mode) .add-member-section h4,
+:global(.app-container.dark-mode) .section-title,
+:global(.app-container.dark-mode) .loading-spinner,
+:global(.app-container.dark-mode) .empty-state,
+:global(.app-container.dark-mode) .add-member-section h4 {
   color: #edf0fa !important;
 }
 
-body.dark-mode .task-members-section .member-card,
-.app-container.dark-mode .task-members-section .member-card,
-body.dark-mode .task-members-section .empty-state,
-.app-container.dark-mode .task-members-section .empty-state,
-body.dark-mode .task-members-section .add-member-section,
-.app-container.dark-mode .task-members-section .add-member-section {
+:global(body.dark-mode) .member-card,
+:global(.app-container.dark-mode) .member-card {
   background: #25283a !important;
   border-color: #444b66 !important;
 }
 
-body.dark-mode .task-members-section .member-name,
-.app-container.dark-mode .task-members-section .member-name {
+:global(body.dark-mode) .member-name,
+:global(.app-container.dark-mode) .member-name {
   color: #f5f7ff !important;
 }
 
-body.dark-mode .task-members-section .member-email,
-.app-container.dark-mode .task-members-section .member-email {
+:global(body.dark-mode) .member-email,
+:global(.app-container.dark-mode) .member-email {
   color: #b2b9cb !important;
 }
 
-body.dark-mode .task-members-section .member-select,
-.app-container.dark-mode .task-members-section .member-select,
-body.dark-mode .task-members-section .btn-add,
-.app-container.dark-mode .task-members-section .btn-add {
+:global(body.dark-mode) .empty-state,
+:global(body.dark-mode) .add-member-section,
+:global(.app-container.dark-mode) .empty-state,
+:global(.app-container.dark-mode) .add-member-section {
+  background: #25283a !important;
+  border-color: #4f5672 !important;
+}
+
+:global(body.dark-mode) .member-select,
+:global(.app-container.dark-mode) .member-select,
+:global(body.dark-mode) .btn-add,
+:global(.app-container.dark-mode) .btn-add {
   background: #31364d !important;
-  border: 1px solid #59607d !important;
+  border-color: #59607d !important;
   color: #f5f7ff !important;
-}
-
-body.dark-mode .task-members-section .members-container,
-.app-container.dark-mode .task-members-section .members-container,
-body.dark-mode .task-members-section .members-list,
-.app-container.dark-mode .task-members-section .members-list {
-  background: transparent !important;
-}
-
-body.dark-mode .task-members-section .add-member-form,
-.app-container.dark-mode .task-members-section .add-member-form {
-  background: transparent !important;
 }
 </style>

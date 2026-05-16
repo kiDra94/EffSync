@@ -84,3 +84,10 @@ export const updateCompletionRule = async (task_id, completionRule, autoComplete
     });
     return normalizeEntity(response.data, ID_KEY);
 };
+
+export const updateDeadlineAndUnlock = async (task_id, newDeadline) => {
+    const response = await apiClient.patch(`${ENDPOINT}/${task_id}/deadline-unlock`, {
+        deadline: newDeadline
+    });
+    return normalizeEntity(response.data, ID_KEY);
+};

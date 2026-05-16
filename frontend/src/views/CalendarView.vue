@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { fetchTasks, patchTask } from '@/api/tasks';
 import { fetchAllLessonSlots } from '@/api/lessonSlots';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { useAuthStore } from '@/stores/authStore';
 import TaskForm from '@/components/tasks/TaskForm.vue';
 
 // 1. STATE
@@ -14,6 +15,7 @@ const viewMode = ref('month');
 const loading = ref(false);
 const error = ref(null);
 const taskStore = useTaskStore();
+const authStore = useAuthStore();
 const selectedTask = ref(null);
 const isModalOpen = ref(false);
 const weekTimetableRef = ref(null);
@@ -379,8 +381,13 @@ const onDropOnDate = async (targetDateStr) => {
       throw new Error('Ungültige Task-ID beim Verschieben');
     }
 
-    if (matchedTask?.is_locked) {
-      throw new Error('Task ist gesperrt und kann nicht verschoben werden');
+    // Nur blockieren wenn Task gesperrt ist UND der Benutzer nicht der Creator ist
+    // Feature #27: Prüfe STUDENT_SUBMISSION_LOCKED statt globalem is_locked
+    const isCreator = matchedTask?.created_by === authStore.userId;
+    const isStudentSubmissionLocked = matchedTask?.is_student_submission_locked;
+    
+    if (isStudentSubmissionLocked && !isCreator) {
+      throw new Error('Deine Eingabe wurde bewertet - du darfst den Task nicht mehr verschieben bis der Lehrer ein neues Datum setzt');
     }
 
     const sourceDeadline = matchedTask?.deadline

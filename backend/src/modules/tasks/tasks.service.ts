@@ -137,8 +137,27 @@ export class TasksService {
       this.prisma.tasks.count({ where }),
     ]);
 
+    const recalculatedTasks = await Promise.all(
+      tasks.map(async (task) => {
+        const changedToCompleted = await this.recalculateTaskCompletionFromGrades(
+          task.task_id,
+          task,
+        );
+
+        if (changedToCompleted) {
+          return {
+            ...task,
+            status: 'COMPLETED',
+            progress: 100,
+          };
+        }
+
+        return task;
+      }),
+    );
+
     return {
-      data: tasks,
+      data: recalculatedTasks,
       meta: {
         total,
         page,
@@ -149,7 +168,7 @@ export class TasksService {
   }
 
   async findOne(taskId: number, includeRelations = true) {
-    const task = await this.prisma.tasks.findUnique({
+    let task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
       include: includeRelations ? this.basicInclude() : undefined,
     });
@@ -157,7 +176,67 @@ export class TasksService {
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found!`)
     }
+
+    const changedToCompleted = await this.recalculateTaskCompletionFromGrades(
+      taskId,
+      task,
+    );
+
+    if (changedToCompleted) {
+      const refreshedTask = await this.prisma.tasks.findUnique({
+        where: { task_id: taskId },
+        include: includeRelations ? this.basicInclude() : undefined,
+      });
+
+      if (refreshedTask) {
+        task = refreshedTask;
+      }
+    }
+
     return task;
+  }
+
+  /**
+   * Feature #27: Hole einen Task pro Schüler mit Info ob sein Dokument bewertet wurde
+   * Wenn ein Schüler sein Dokument eingereicht hat und es wurde bewertet,
+   * zeige den Task als für DIESEN Schüler gesperrt (nicht global)
+   */
+  async findOneForStudent(taskId: number, userId: number, includeRelations = true) {
+    const task = await this.findOne(taskId, includeRelations);
+
+    // Prüfe: Hat dieser Schüler Dokumente zu diesem Task eingereicht?
+    const submissions = await this.prisma.documents.findMany({
+      where: {
+        task_documents: {
+          some: { task_id: taskId }
+        },
+        added_by: userId, // Von DIESEM Schüler
+      },
+      select: {
+        document_id: true,
+        graded_at: true,
+        grade: true,
+        feedback: true,
+      }
+    });
+
+    // Wenn mindestens ein Dokument bewertet wurde, sperr den Task FÜR DIESEN SCHÜLER
+    const hasGradedSubmission = submissions.some((doc) => doc.graded_at !== null);
+
+    return {
+      ...task,
+      student_submission_status: {
+        has_submitted: submissions.length > 0,
+        has_graded_submission: hasGradedSubmission,
+        submission_count: submissions.length,
+        latest_grade: submissions
+          .filter((doc) => doc.graded_at)
+          .map((doc) => doc.grade)
+          .pop() || null,
+      },
+      // Überschreibe is_locked für Frontend: Nur wenn DAS SCHÜLER-DOKUMENT bewertet wurde
+      is_student_submission_locked: hasGradedSubmission,
+    };
   }
 
   async findeOneWithSubtasks(taskId: number, includeRelations = true) {
@@ -176,7 +255,23 @@ export class TasksService {
     return this.buildTree(allTasks, taskId);
   }
 
-  async update(taskId: number, updateTaskDto: UpdateTaskDto) {
+  async update(taskId: number, updateTaskDto: UpdateTaskDto, userId?: number) {
+    // First check if task is locked
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${taskId} not found`);
+    }
+
+    // If task is locked, only allow the creator to edit it
+    if (task.is_locked && userId && task.created_by !== userId) {
+      throw new BadRequestException(
+        'Task ist gesperrt und kann nicht bearbeitet werden. Nur der Task-Ersteller kann einen gesperrten Task ändern.'
+      );
+    }
+
     const {
       parent_task_id,
       priority_id,
@@ -494,6 +589,130 @@ export class TasksService {
         this.notifyTaskUpdate(parent, updated);
       }
     }
+  }
+
+  /**
+   * Rückwirkende Vervollständigung:
+   * Wenn alle studentischen Teilnehmer eines Tasks mindestens eine bewertete
+   * Abgabe zu diesem Task haben, wird der Task auf COMPLETED gesetzt.
+   *
+   * @returns true, wenn Status in diesem Lauf auf COMPLETED geändert wurde.
+   */
+  private async recalculateTaskCompletionFromGrades(taskId: number, taskSnapshot?: any): Promise<boolean> {
+    const task = taskSnapshot ?? await this.prisma.tasks.findUnique({
+      where: { task_id: taskId },
+      select: {
+        task_id: true,
+        status: true,
+        created_by: true,
+        assigned_to: true,
+      },
+    });
+
+    if (!task || task.status === 'COMPLETED') {
+      return false;
+    }
+
+    const participantIds = new Set<number>();
+
+    if (task.created_by) participantIds.add(Number(task.created_by));
+    if (task.assigned_to) participantIds.add(Number(task.assigned_to));
+
+    const explicitMembers = await this.prisma.task_members.findMany({
+      where: { task_id: taskId },
+      select: { user_id: true },
+    });
+
+    for (const member of explicitMembers) {
+      if (member.user_id) {
+        participantIds.add(Number(member.user_id));
+      }
+    }
+
+    if (participantIds.size === 0) {
+      return false;
+    }
+
+    const participantUsers = await this.prisma.users.findMany({
+      where: {
+        user_id: {
+          in: Array.from(participantIds),
+        },
+      },
+      select: {
+        user_id: true,
+        students: {
+          select: {
+            student_id: true,
+          },
+        },
+        user_roles: {
+          select: {
+            roles: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const studentParticipantIds = participantUsers
+      .filter((user) => {
+        const hasStudentProfile = Boolean(user.students?.student_id);
+        const hasStudentRole = Array.isArray(user.user_roles)
+          ? user.user_roles.some(
+              (entry) => entry.roles?.name?.toLowerCase?.() === 'student',
+            )
+          : false;
+        return hasStudentProfile || hasStudentRole;
+      })
+      .map((user) => Number(user.user_id));
+
+    if (studentParticipantIds.length === 0) {
+      return false;
+    }
+
+    const gradedSubmissions = await this.prisma.documents.findMany({
+      where: {
+        added_by: { in: studentParticipantIds },
+        graded_at: { not: null },
+        task_documents: {
+          some: {
+            task_id: taskId,
+          },
+        },
+      },
+      select: {
+        added_by: true,
+      },
+    });
+
+    const gradedStudentIds = new Set(
+      gradedSubmissions
+        .map((document) => Number(document.added_by))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    );
+
+    const allParticipantsGraded = studentParticipantIds.every((id) =>
+      gradedStudentIds.has(Number(id)),
+    );
+
+    if (!allParticipantsGraded) {
+      return false;
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        status: 'COMPLETED',
+        progress: 100,
+        updated_at: new Date(),
+      },
+    });
+
+    return true;
   }
 
   private notifyTaskUpdate(parent: any, updated: any) {

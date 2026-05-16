@@ -18,10 +18,24 @@ describe('TasksService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    task_members: {
+      findMany: jest.fn(),
+    },
+    users: {
+      findMany: jest.fn(),
+    },
+    documents: {
+      findMany: jest.fn(),
+    },
+    user_roles: {
+      findMany: jest.fn(),
+    },
   };
 
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
@@ -37,5 +51,99 @@ describe('TasksService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('recalculates and returns COMPLETED task in findOne', async () => {
+    mockPrismaService.tasks.findUnique
+      .mockResolvedValueOnce({
+        task_id: 10,
+        title: 'Task A',
+        status: 'IN_PROGRESS',
+        progress: 40,
+        created_by: 21,
+        assigned_to: 22,
+      })
+      .mockResolvedValueOnce({
+        task_id: 10,
+        title: 'Task A',
+        status: 'COMPLETED',
+        progress: 100,
+        created_by: 21,
+        assigned_to: 22,
+      });
+
+    mockPrismaService.task_members.findMany.mockResolvedValue([]);
+    mockPrismaService.users.findMany.mockResolvedValue([
+      {
+        user_id: 21,
+        students: { student_id: 21 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      {
+        user_id: 22,
+        students: { student_id: 22 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+    ]);
+    mockPrismaService.documents.findMany.mockResolvedValue([
+      { added_by: 21 },
+      { added_by: 22 },
+    ]);
+    mockPrismaService.tasks.update.mockResolvedValue({ task_id: 10, status: 'COMPLETED' });
+
+    const result = await service.findOne(10, false);
+
+    expect(mockPrismaService.tasks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { task_id: 10 },
+        data: expect.objectContaining({
+          status: 'COMPLETED',
+          progress: 100,
+        }),
+      }),
+    );
+    expect(result.status).toBe('COMPLETED');
+  });
+
+  it('recalculates task statuses in findAll response', async () => {
+    mockPrismaService.user_roles.findMany.mockResolvedValue([
+      { roles: { name: 'Teacher' } },
+    ]);
+
+    mockPrismaService.tasks.findMany.mockResolvedValue([
+      {
+        task_id: 11,
+        title: 'Task B',
+        status: 'IN_PROGRESS',
+        progress: 20,
+        created_by: 31,
+        assigned_to: 32,
+      },
+    ]);
+    mockPrismaService.tasks.count.mockResolvedValue(1);
+
+    mockPrismaService.task_members.findMany.mockResolvedValue([]);
+    mockPrismaService.users.findMany.mockResolvedValue([
+      {
+        user_id: 31,
+        students: { student_id: 31 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      {
+        user_id: 32,
+        students: { student_id: 32 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+    ]);
+    mockPrismaService.documents.findMany.mockResolvedValue([
+      { added_by: 31 },
+      { added_by: 32 },
+    ]);
+    mockPrismaService.tasks.update.mockResolvedValue({ task_id: 11, status: 'COMPLETED' });
+
+    const result = await service.findAll({}, 123);
+
+    expect(result.data[0].status).toBe('COMPLETED');
+    expect(result.data[0].progress).toBe(100);
   });
 });

@@ -36,7 +36,10 @@
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
         </span>
-        <span v-if="task.is_locked" class="lock-badge" :title="task.locked_reason || 'Task ist gesperrt'">
+        <span v-if="task.is_student_submission_locked" class="lock-badge" :title="'Deine Eingabe wurde bewertet'">
+          🔒 Bewertet
+        </span>
+        <span v-else-if="task.is_locked" class="lock-badge" :title="task.locked_reason || 'Task ist gesperrt'">
           🔒 Gesperrt
         </span>
       </div>

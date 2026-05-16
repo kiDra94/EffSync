@@ -342,6 +342,126 @@ export class DocumentsService {
     );
   }
 
+  private async completeTaskIfAllParticipantsGraded(taskId: number) {
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId },
+      select: {
+        task_id: true,
+        status: true,
+        created_by: true,
+        assigned_to: true,
+      },
+    });
+
+    if (!task) {
+      return;
+    }
+
+    const participantIds = new Set<number>();
+
+    if (task.created_by) {
+      participantIds.add(Number(task.created_by));
+    }
+
+    if (task.assigned_to) {
+      participantIds.add(Number(task.assigned_to));
+    }
+
+    const explicitMembers = await this.prisma.task_members.findMany({
+      where: { task_id: taskId },
+      select: { user_id: true },
+    });
+
+    for (const member of explicitMembers) {
+      if (member.user_id) {
+        participantIds.add(Number(member.user_id));
+      }
+    }
+
+    if (participantIds.size === 0) {
+      return;
+    }
+
+    const participantUsers = await this.prisma.users.findMany({
+      where: {
+        user_id: {
+          in: Array.from(participantIds),
+        },
+      },
+      select: {
+        user_id: true,
+        students: {
+          select: {
+            student_id: true,
+          },
+        },
+        user_roles: {
+          select: {
+            roles: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const studentParticipantIds = participantUsers
+      .filter((user) => {
+        const hasStudentProfile = Boolean(user.students?.student_id);
+        const hasStudentRole = Array.isArray(user.user_roles)
+          ? user.user_roles.some(
+              (entry) => entry.roles?.name?.toLowerCase?.() === 'student',
+            )
+          : false;
+        return hasStudentProfile || hasStudentRole;
+      })
+      .map((user) => Number(user.user_id));
+
+    if (studentParticipantIds.length === 0) {
+      return;
+    }
+
+    const gradedSubmissions = await this.prisma.documents.findMany({
+      where: {
+        added_by: { in: studentParticipantIds },
+        graded_at: { not: null },
+        task_documents: {
+          some: {
+            task_id: taskId,
+          },
+        },
+      },
+      select: {
+        added_by: true,
+      },
+    });
+
+    const gradedStudentIds = new Set(
+      gradedSubmissions
+        .map((document) => Number(document.added_by))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    );
+
+    const allParticipantsGraded = studentParticipantIds.every((id) =>
+      gradedStudentIds.has(Number(id)),
+    );
+
+    if (!allParticipantsGraded || task.status === 'COMPLETED') {
+      return;
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        status: 'COMPLETED',
+        progress: 100,
+        updated_at: new Date(),
+      },
+    });
+  }
+
   private mapPerson(person: any) {
     if (!person) return null;
 
@@ -643,22 +763,22 @@ export class DocumentsService {
       },
     });
 
-    // Automatisch alle verknüpften Tasks sperren nach Bewertung
-    const linkedTasks = await this.prisma.task_documents.findMany({
-      where: { document_id: id },
-      select: { task_id: true },
-    });
+    // ℹ️ HINWEIS: Task wird NICHT mehr global gesperrt
+    // Stattdessen: Schüler prüft ob SEIN Dokument bewertet wurde
+    // Die Sperrlogik ist jetzt pro-Schüler im Frontend
 
-    for (const { task_id } of linkedTasks) {
-      await this.prisma.tasks.update({
-        where: { task_id },
-        data: {
-          is_locked: true,
-          locked_reason: `Task wurde bewertet. Schüler darf nicht weiter bearbeiten bis Lehrer neues Datum setzt.`,
-          locked_until: null,
-        },
-      });
-      console.log(`✓ Task ${task_id} wurde nach Bewertung gesperrt`);
+    const linkedTaskIds = Array.isArray(document.task_documents)
+      ? Array.from(
+          new Set(
+            document.task_documents
+              .map((entry) => Number(entry.task_id))
+              .filter((taskId) => Number.isFinite(taskId) && taskId > 0),
+          ),
+        )
+      : [];
+
+    for (const taskId of linkedTaskIds) {
+      await this.completeTaskIfAllParticipantsGraded(taskId);
     }
 
     if (document.added_by && Number(document.added_by) !== Number(graderId)) {
