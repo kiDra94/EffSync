@@ -30,7 +30,10 @@ const sanitizeTaskPayload = (payload) => {
 };
 
 export const fetchTasks = async () => {
-    const response = await apiClient.get(ENDPOINT);
+
+    const response = await apiClient.get(ENDPOINT, {
+        params: { includeRelations: true },
+    });
 	const tasks = response.data?.data ?? response.data;
     return normalizeEntities(tasks, ID_KEY);
 };

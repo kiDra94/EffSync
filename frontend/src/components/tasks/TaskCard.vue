@@ -61,7 +61,7 @@
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
     </div>
 
-    <div v-if="subtasks.length > 0" class="subtasks-section">
+    <div v-if="subtasks.length > 0 && canViewTaskStructure" class="subtasks-section">
 
       <button @click="showSubtasks = !showSubtasks" class="toggle-subtasks-btn">
         {{ showSubtasks ? '▼ Subtasks ausblenden' : '▶ Subtasks anzeigen' }} ({{ subtasks.length }})
@@ -128,6 +128,17 @@ const isTeacher = computed(() => {
 });
 
 const isStudent = computed(() => (authStore.userRole || '').toLowerCase() === 'student');
+const canManageTaskStructure = computed(() => {
+  return isTeacher.value || String(props.task?.created_by) === String(authStore.userId);
+});
+const isTaskAssignedToUser = computed(() => String(props.task?.assigned_to) === String(authStore.userId));
+const isTaskMember = computed(() => {
+  const members = Array.isArray(props.task?.task_members) ? props.task.task_members : [];
+  return members.some((member) => String(member?.user_id) === String(authStore.userId));
+});
+const canViewTaskStructure = computed(() => {
+  return isTeacher.value || canManageTaskStructure.value || isTaskAssignedToUser.value || isTaskMember.value;
+});
 
 const logicFulfilled = computed(() =>
   taskStore.isLogicFulfilled(props.task.task_id) ?? false

@@ -111,7 +111,7 @@
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
         </div>
 
-        <SubtaskBuilder v-model="subtasks" />
+        <SubtaskBuilder v-if="canManageTaskStructure" v-model="subtasks" />
 
         <div v-if="!task" class="form-group">
           <label for="creation-members">Zusätzliche Mitglieder (optional)</label>
@@ -158,7 +158,7 @@
 
         <!-- Task Members Section (nur wenn Task bereits existiert) -->
         <TaskMembersList
-          v-if="task?.task_id"
+          v-if="task?.task_id && canManageTaskStructure"
           :taskId="task.task_id"
           :creatorId="task.created_by"
           :assignedToId="task.assigned_to"
@@ -229,6 +229,14 @@ const isTaskLocked = computed(() => {
 });
 
 const isTaskCreator = computed(() => props.task?.created_by === authStore.userId);
+const isTeacher = computed(() => ['teacher', 'admin', 'superuser'].includes((authStore.userRole || '').toLowerCase()));
+const canManageTaskStructure = computed(() => {
+  if (!props.task?.task_id) {
+    return isTeacher.value;
+  }
+
+  return isTeacher.value || isTaskCreator.value;
+});
 const canUnlockTask = computed(() => isTaskLocked.value && isTaskCreator.value);
 
 const lockedReason = computed(() => {

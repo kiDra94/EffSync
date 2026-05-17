@@ -148,8 +148,48 @@ export class TasksService {
       this.prisma.tasks.count({ where }),
     ]);
 
+    const isTeacher = await (async () => {
+      if (!userId) return true;
+      const userRoles = await this.prisma.user_roles.findMany({
+        where: { user_id: userId },
+        include: { roles: true },
+      });
+
+      return userRoles.some(ur =>
+        ur.roles.name === 'Teacher' || ur.roles.name === 'Admin' || ur.roles.name === 'Superuser'
+      );
+    })();
+
+    const collectDescendants = async (parentIds: number[], visited = new Set<number>()): Promise<any[]> => {
+      const uniqueParentIds = parentIds.filter((id) => Number.isFinite(id) && !visited.has(id));
+      if (uniqueParentIds.length === 0) return [];
+
+      uniqueParentIds.forEach((id) => visited.add(id));
+
+      const children = await this.prisma.tasks.findMany({
+        where: { parent_task_id: { in: uniqueParentIds } },
+        include: includeRelations ? this.basicInclude() : undefined,
+        orderBy: { [sortBy]: sortOrder },
+      });
+
+      const childIds = children.map((child) => Number(child.task_id)).filter((id) => Number.isFinite(id));
+      const deeperChildren = await collectDescendants(childIds, visited);
+
+      return [...children, ...deeperChildren];
+    };
+
+    let visibleTasks = tasks;
+    if (userId && !isTeacher) {
+      const descendants = await collectDescendants(tasks.map((task) => Number(task.task_id)));
+      const merged = new Map<number, any>();
+      for (const task of [...tasks, ...descendants]) {
+        merged.set(Number(task.task_id), task);
+      }
+      visibleTasks = Array.from(merged.values());
+    }
+
     const recalculatedTasks = await Promise.all(
-      tasks.map(async (task) => {
+      visibleTasks.map(async (task) => {
         const changedToCompleted = await this.recalculateTaskCompletionFromGrades(
           task.task_id,
           task,
@@ -170,10 +210,10 @@ export class TasksService {
     return {
       data: recalculatedTasks,
       meta: {
-        total,
+        total: userId && !isTeacher ? recalculatedTasks.length : total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((userId && !isTeacher ? recalculatedTasks.length : total) / limit),
       },
     };
   }
@@ -334,6 +374,10 @@ export class TasksService {
       },
       include: this.basicInclude(),
     });
+
+    if (task.status !== 'COMPLETED' && updated.status === 'COMPLETED') {
+      await this.completeDescendantSubtasks(updated.task_id);
+    }
 
     // Log activity
     try {
@@ -591,6 +635,7 @@ export class TasksService {
           where: { task_id: parent.task_id },
           data: { status: 'COMPLETED', progress: 100 }
         });
+        await this.completeDescendantSubtasks(parent.task_id);
         this.notifyTaskUpdate(parent, updated);
       } else if (!isFulfilled && parent.status === 'COMPLETED') {
         const updated = await this.prisma.tasks.update({
@@ -723,7 +768,54 @@ export class TasksService {
       },
     });
 
+    await this.completeDescendantSubtasks(taskId);
+
     return true;
+  }
+
+  private async completeDescendantSubtasks(parentTaskId: number): Promise<void> {
+    const pendingParents: number[] = [parentTaskId];
+    const descendantIds: number[] = [];
+
+    while (pendingParents.length > 0) {
+      const currentParentIds = pendingParents.splice(0, 100);
+
+      const children = await this.prisma.tasks.findMany({
+        where: { parent_task_id: { in: currentParentIds } },
+        select: { task_id: true },
+      });
+
+      if (!children.length) {
+        continue;
+      }
+
+      const childIds = children
+        .map((child) => Number(child.task_id))
+        .filter((id) => Number.isFinite(id) && id > 0);
+
+      if (!childIds.length) {
+        continue;
+      }
+
+      descendantIds.push(...childIds);
+      pendingParents.push(...childIds);
+    }
+
+    if (!descendantIds.length) {
+      return;
+    }
+
+    await this.prisma.tasks.updateMany({
+      where: {
+        task_id: { in: descendantIds },
+        status: { not: 'COMPLETED' },
+      },
+      data: {
+        status: 'COMPLETED',
+        progress: 100,
+        updated_at: new Date(),
+      },
+    });
   }
 
   private notifyTaskUpdate(parent: any, updated: any) {
@@ -755,6 +847,11 @@ export class TasksService {
       },
       priorities: true,
       tasks: true, // parent task
+      task_members: {
+        select: {
+          user_id: true,
+        },
+      },
     };
   }
 

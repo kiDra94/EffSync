@@ -15,6 +15,7 @@ describe('TasksService', () => {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
       count: jest.fn(),
     },
@@ -145,5 +146,45 @@ describe('TasksService', () => {
 
     expect(result.data[0].status).toBe('COMPLETED');
     expect(result.data[0].progress).toBe(100);
+  });
+
+  it('completes all descendant subtasks when task is completed via update', async () => {
+    mockPrismaService.tasks.findUnique.mockResolvedValue({
+      task_id: 1,
+      status: 'IN_PROGRESS',
+      is_locked: false,
+      created_by: 99,
+    });
+
+    mockPrismaService.tasks.update.mockResolvedValue({
+      task_id: 1,
+      title: 'Parent Task',
+      status: 'COMPLETED',
+      created_by: 99,
+      parent_task_id: null,
+    });
+
+    mockPrismaService.tasks.findMany
+      .mockResolvedValueOnce([{ task_id: 2 }, { task_id: 3 }])
+      .mockResolvedValueOnce([{ task_id: 4 }])
+      .mockResolvedValueOnce([]);
+
+    mockPrismaService.tasks.updateMany.mockResolvedValue({ count: 3 });
+
+    const result = await service.update(1, { status: 'COMPLETED' }, 99);
+
+    expect(result.status).toBe('COMPLETED');
+    expect(mockPrismaService.tasks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          task_id: { in: [2, 3, 4] },
+          status: { not: 'COMPLETED' },
+        }),
+        data: expect.objectContaining({
+          status: 'COMPLETED',
+          progress: 100,
+        }),
+      }),
+    );
   });
 });
