@@ -50,8 +50,7 @@ describe('NotesService', () => {
   });
 
   describe('create', () => {
-    it('should create a note with task_id and creator from JWT userId', async () => {
-      prisma.tasks.findUnique.mockResolvedValue({ task_id: 5, title: 'Task A' });
+    it('should create a subject-bound note without task_id', async () => {
       prisma.subjects.findUnique.mockResolvedValue({ subject_id: 3, name: 'Math' });
       prisma.priorities.findFirst.mockResolvedValue({ priority_id: 2, name: 'Normal' });
       prisma.notes.create.mockResolvedValue({
@@ -59,13 +58,12 @@ describe('NotesService', () => {
         title: 'Sticky',
         description: 'Body',
         created_by: 7,
-        task_id: 5,
         subject_id: 3,
         priorities: { priority_id: 2, name: 'Normal' },
       });
 
       const result = await service.create(
-        { title: 'Sticky', description: 'Body', task_id: 5, subject_id: 3, priority: 'medium' },
+        { title: 'Sticky', description: 'Body', subject_id: 3, priority: 'medium' },
         7,
       );
 
@@ -74,7 +72,6 @@ describe('NotesService', () => {
           data: expect.objectContaining({
             title: 'Sticky',
             description: 'Body',
-            task_id: 5,
             subject_id: 3,
             created_by: 7,
             priority_id: 2,
@@ -84,11 +81,11 @@ describe('NotesService', () => {
       expect(result).toEqual(expect.objectContaining({ note_id: 11, priority: 'medium' }));
     });
 
-    it('should throw NotFoundException when task does not exist', async () => {
-      prisma.tasks.findUnique.mockResolvedValue(null);
+    it('should throw NotFoundException when subject does not exist', async () => {
+      prisma.subjects.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.create({ title: 'Sticky', description: 'Body', task_id: 999 }, 1),
+        service.create({ title: 'Sticky', description: 'Body', subject_id: 999 }, 1),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -140,15 +137,15 @@ describe('NotesService', () => {
         title: 'Updated',
         description: 'Updated Desc',
         created_by: 5,
-        task_id: 7,
+        subject_id: 2,
         priorities: { name: 'Wichtig' },
       });
-      prisma.tasks.findUnique.mockResolvedValue({ task_id: 7 });
+      prisma.subjects.findUnique.mockResolvedValue({ subject_id: 2 });
 
       const updated = await service.update(
         1,
         5,
-        { title: 'Updated', description: 'Updated Desc', task_id: 7, priority: 'high' },
+        { title: 'Updated', description: 'Updated Desc', subject_id: 2, priority: 'high' },
       );
 
       expect(prisma.notes.update).toHaveBeenCalled();

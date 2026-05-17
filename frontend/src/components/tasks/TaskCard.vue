@@ -36,6 +36,12 @@
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
         </span>
+        <span v-if="task.is_student_submission_locked" class="lock-badge" :title="'Deine Eingabe wurde bewertet'">
+          🔒 Bewertet
+        </span>
+        <span v-else-if="task.is_locked" class="lock-badge" :title="task.locked_reason || 'Task ist gesperrt'">
+          🔒 Gesperrt
+        </span>
       </div>
       <h3 class="task-title">{{ task.title }}</h3>
     </div>
@@ -55,7 +61,7 @@
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
     </div>
 
-    <div v-if="subtasks.length > 0" class="subtasks-section">
+    <div v-if="subtasks.length > 0 && canViewTaskStructure" class="subtasks-section">
 
       <button @click="showSubtasks = !showSubtasks" class="toggle-subtasks-btn">
         {{ showSubtasks ? '▼ Subtasks ausblenden' : '▶ Subtasks anzeigen' }} ({{ subtasks.length }})
@@ -122,6 +128,17 @@ const isTeacher = computed(() => {
 });
 
 const isStudent = computed(() => (authStore.userRole || '').toLowerCase() === 'student');
+const canManageTaskStructure = computed(() => {
+  return isTeacher.value || String(props.task?.created_by) === String(authStore.userId);
+});
+const isTaskAssignedToUser = computed(() => String(props.task?.assigned_to) === String(authStore.userId));
+const isTaskMember = computed(() => {
+  const members = Array.isArray(props.task?.task_members) ? props.task.task_members : [];
+  return members.some((member) => String(member?.user_id) === String(authStore.userId));
+});
+const canViewTaskStructure = computed(() => {
+  return isTeacher.value || canManageTaskStructure.value || isTaskAssignedToUser.value || isTaskMember.value;
+});
 
 const logicFulfilled = computed(() =>
   taskStore.isLogicFulfilled(props.task.task_id) ?? false
@@ -325,10 +342,19 @@ const formatDate = (dateString) => {
 }
 
 .date-badge,
-.progress-badge {
+.progress-badge,
+.lock-badge {
   font-size: 0.75rem;
   white-space: nowrap;
   color: #6b7280;
+}
+
+.lock-badge {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
 .task-title {

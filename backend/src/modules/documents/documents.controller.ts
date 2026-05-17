@@ -28,6 +28,7 @@ import { Permissions } from "../auth/decorators/permissions.decorator";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { GradeDocumentDto } from "./dto/grade-document.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
+import { Throttle } from "@nestjs/throttler";
 
 const ALLOWED_UPLOAD_EXTENSIONS = [
   ".pdf",
@@ -42,6 +43,7 @@ const ALLOWED_UPLOAD_EXTENSIONS = [
   ".odt",
   ".rtf",
   ".txt",
+  ".md",
   ".csv",
   ".xls",
   ".xlsx",
@@ -57,6 +59,7 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post("upload")
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
@@ -66,7 +69,7 @@ export class DocumentsController {
         if (!ALLOWED_UPLOAD_EXTENSIONS.includes(extension)) {
           callback(
             new BadRequestException(
-              "Erlaubte Formate: PDF, JPG, JPEG, PNG, GIF, BMP, WEBP, DOC, DOCX, ODT, RTF, TXT, CSV, XLS, XLSX, PPT, PPTX, ODS, ODP.",
+              "Erlaubte Formate: PDF, JPG, JPEG, PNG, GIF, BMP, WEBP, DOC, DOCX, ODT, RTF, TXT, MD, CSV, XLS, XLSX, PPT, PPTX, ODS, ODP.",
             ),
             false,
           );
@@ -102,6 +105,34 @@ export class DocumentsController {
   @Permissions()
   findAll(@Req() req) {
     return this.documentsService.findAll(req.user.userId, req.user.role);
+  }
+
+  /**
+   * GET /documents/my-grades
+   * Holt alle Bewertungen des aktuellen Schülers
+   */
+  @Get("my-grades")
+  @Permissions()
+  async getMyGrades(@Req() req) {
+    return this.documentsService.getMyGrades(req.user.userId);
+  }
+
+  /**
+   * GET /documents/by-task/:taskId
+   * Holt alle Dokumente, die zu einem Task verknüpft sind
+   * Nur für Lehrer/Admin des Tasks oder Hochlader des Dokuments
+   */
+  @Get("by-task/:taskId")
+  @Permissions()
+  async getDocumentsByTask(
+    @Param("taskId", ParseIntPipe) taskId: number,
+    @Req() req,
+  ) {
+    return this.documentsService.getDocumentsByTask(
+      taskId,
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   @Get(":id/download")
@@ -157,6 +188,26 @@ export class DocumentsController {
     return this.documentsService.grade(
       id,
       gradeDocumentDto,
+      req.user.userId,
+      req.user.role,
+    );
+  }
+
+  /**
+   * PATCH /documents/:id/allow-resubmit
+   * Erlaubt Schüler erneut hochzuladen - entsperrt den Task
+   * Nur Lehrer darf das tun
+   */
+  @Patch(":id/allow-resubmit")
+  @Permissions()
+  allowResubmit(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() body: { new_deadline?: string },
+    @Req() req,
+  ) {
+    return this.documentsService.allowResubmit(
+      id,
+      body.new_deadline ? new Date(body.new_deadline) : undefined,
       req.user.userId,
       req.user.role,
     );

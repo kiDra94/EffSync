@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, forwardRef } from "@nestjs/common";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
@@ -7,6 +7,7 @@ import { WebsocketGateway } from "../websocket/websocket.gateway";
 export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => WebsocketGateway))
     private readonly websocketGateway: WebsocketGateway,
   ) {}
 

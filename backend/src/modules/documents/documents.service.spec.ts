@@ -22,7 +22,19 @@ describe('DocumentsService', () => {
     },
     task_documents: {
       create: jest.fn(),
+      findMany: jest.fn(),
       deleteMany: jest.fn(),
+    },
+    tasks: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    task_members: {
+      findMany: jest.fn(),
+    },
+    users: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
     },
     note_documents: {
       deleteMany: jest.fn(),
@@ -146,6 +158,11 @@ describe('DocumentsService', () => {
   });
 
   it('sends a notification when a teacher grades a student document', async () => {
+    mockPrismaService.task_documents.findMany.mockResolvedValue([]);
+    mockPrismaService.tasks.findUnique.mockResolvedValue(null);
+    mockPrismaService.task_members.findMany.mockResolvedValue([]);
+    mockPrismaService.users.findMany.mockResolvedValue([]);
+
     mockPrismaService.documents.findUnique
       .mockResolvedValueOnce({
         document_id: 9,
@@ -194,7 +211,229 @@ describe('DocumentsService', () => {
     expect(result.permissions.can_grade).toBe(true);
   });
 
+  it('marks task as COMPLETED when all student participants are graded', async () => {
+    mockPrismaService.documents.findUnique
+      .mockResolvedValueOnce({
+        document_id: 19,
+        name: 'abgabe-2.pdf',
+        added_by: 22,
+        users: {
+          user_id: 22,
+          firstname: 'Tom',
+          lastname: 'Schüler',
+          username: 'tom',
+          students: { student_id: 22 },
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: null,
+        task_documents: [{ task_id: 77, tasks: { task_id: 77, created_by: 4 } }],
+      })
+      .mockResolvedValueOnce({
+        document_id: 19,
+        name: 'abgabe-2.pdf',
+        added_by: 22,
+        grade: '2',
+        feedback: 'Passt',
+        users: {
+          user_id: 22,
+          firstname: 'Tom',
+          lastname: 'Schüler',
+          username: 'tom',
+          students: { student_id: 22 },
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: {
+          user_id: 4,
+          firstname: 'Anna',
+          lastname: 'Lehrer',
+          username: 'anna',
+        },
+        task_documents: [{ task_id: 77, tasks: { task_id: 77, created_by: 4 } }],
+      });
+
+    mockPrismaService.documents.update.mockResolvedValue({ document_id: 19 });
+    mockPrismaService.tasks.findUnique.mockResolvedValue({
+      task_id: 77,
+      status: 'IN_PROGRESS',
+      assigned_to: 21,
+    });
+    mockPrismaService.task_members.findMany.mockResolvedValue([{ user_id: 22 }]);
+    mockPrismaService.users.findMany.mockResolvedValue([
+      {
+        user_id: 21,
+        students: { student_id: 21 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      {
+        user_id: 22,
+        students: { student_id: 22 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+    ]);
+    mockPrismaService.documents.findMany.mockResolvedValue([
+      { added_by: 21 },
+      { added_by: 22 },
+    ]);
+
+    await service.grade(19, { grade: '2', feedback: 'Passt' }, 4, 'teacher');
+
+    expect(mockPrismaService.tasks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { task_id: 77 },
+        data: expect.objectContaining({
+          status: 'COMPLETED',
+          progress: 100,
+        }),
+      }),
+    );
+  });
+
+  it('does not mark task as COMPLETED when at least one participant is not graded', async () => {
+    mockPrismaService.documents.findUnique
+      .mockResolvedValueOnce({
+        document_id: 20,
+        name: 'abgabe-1.pdf',
+        added_by: 21,
+        users: {
+          user_id: 21,
+          firstname: 'Lisa',
+          lastname: 'Schüler',
+          username: 'lisa',
+          students: { student_id: 21 },
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: null,
+        task_documents: [{ task_id: 88, tasks: { task_id: 88, created_by: 4 } }],
+      })
+      .mockResolvedValueOnce({
+        document_id: 20,
+        name: 'abgabe-1.pdf',
+        added_by: 21,
+        grade: '3',
+        feedback: 'ok',
+        users: {
+          user_id: 21,
+          firstname: 'Lisa',
+          lastname: 'Schüler',
+          username: 'lisa',
+          students: { student_id: 21 },
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: {
+          user_id: 4,
+          firstname: 'Anna',
+          lastname: 'Lehrer',
+          username: 'anna',
+        },
+        task_documents: [{ task_id: 88, tasks: { task_id: 88, created_by: 4 } }],
+      });
+
+    mockPrismaService.documents.update.mockResolvedValue({ document_id: 20 });
+    mockPrismaService.tasks.findUnique.mockResolvedValue({
+      task_id: 88,
+      status: 'IN_PROGRESS',
+      assigned_to: 21,
+    });
+    mockPrismaService.task_members.findMany.mockResolvedValue([{ user_id: 22 }]);
+    mockPrismaService.users.findMany.mockResolvedValue([
+      {
+        user_id: 21,
+        students: { student_id: 21 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      {
+        user_id: 22,
+        students: { student_id: 22 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+    ]);
+    mockPrismaService.documents.findMany.mockResolvedValue([{ added_by: 21 }]);
+
+    await service.grade(20, { grade: '3', feedback: 'ok' }, 4, 'teacher');
+
+    expect(mockPrismaService.tasks.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { task_id: 88 },
+        data: expect.objectContaining({ status: 'COMPLETED' }),
+      }),
+    );
+  });
+
+  it('does not complete task if student creator has no graded submission yet', async () => {
+    mockPrismaService.documents.findUnique
+      .mockResolvedValueOnce({
+        document_id: 30,
+        name: 'abgabe-assigned.pdf',
+        added_by: 22,
+        users: {
+          user_id: 22,
+          firstname: 'Tom',
+          lastname: 'Schüler',
+          username: 'tom',
+          students: { student_id: 22 },
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: null,
+        task_documents: [{ task_id: 99, tasks: { task_id: 99, created_by: 21 } }],
+      })
+      .mockResolvedValueOnce({
+        document_id: 30,
+        name: 'abgabe-assigned.pdf',
+        added_by: 22,
+        grade: '2',
+        feedback: 'gut',
+        users: {
+          user_id: 22,
+          firstname: 'Tom',
+          lastname: 'Schüler',
+          username: 'tom',
+          students: { student_id: 22 },
+          user_roles: [{ roles: { name: 'Student' } }],
+        },
+        graded_by_user: {
+          user_id: 4,
+          firstname: 'Anna',
+          lastname: 'Lehrer',
+          username: 'anna',
+        },
+        task_documents: [{ task_id: 99, tasks: { task_id: 99, created_by: 21 } }],
+      });
+
+    mockPrismaService.documents.update.mockResolvedValue({ document_id: 30 });
+    mockPrismaService.tasks.findUnique.mockResolvedValue({
+      task_id: 99,
+      status: 'IN_PROGRESS',
+      created_by: 21,
+      assigned_to: 22,
+    });
+    mockPrismaService.task_members.findMany.mockResolvedValue([]);
+    mockPrismaService.users.findMany.mockResolvedValue([
+      {
+        user_id: 21,
+        students: { student_id: 21 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      {
+        user_id: 22,
+        students: { student_id: 22 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+    ]);
+    // Nur assigned student ist bewertet, creator (21) noch nicht
+    mockPrismaService.documents.findMany.mockResolvedValue([{ added_by: 22 }]);
+
+    await service.grade(30, { grade: '2', feedback: 'gut' }, 4, 'teacher');
+
+    expect(mockPrismaService.tasks.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { task_id: 99 },
+        data: expect.objectContaining({ status: 'COMPLETED' }),
+      }),
+    );
+  });
+
   it('allows a student to delete own linked document without FK errors', async () => {
+    mockPrismaService.documents.findUnique.mockReset();
     mockPrismaService.documents.findUnique.mockResolvedValue({
       document_id: 11,
       name: 'abgabe.pdf',
@@ -262,5 +501,61 @@ describe('DocumentsService', () => {
     expect(payload.fileName).toBe('probe.pdf');
     expect(payload.mimeType).toBe('application/pdf');
     expect(Buffer.concat(chunks)).toEqual(Buffer.from(sampleBytes));
+  });
+
+  it('rejects upload when detected file content does not match extension', async () => {
+    const fakePng = {
+      originalname: 'bild.png',
+      buffer: Buffer.from('%PDF-1.4 test content', 'utf8'),
+      size: 24,
+      mimetype: 'image/png',
+    } as Express.Multer.File;
+
+    await expect(
+      service.create(fakePng, 15, 'image/png', 'student'),
+    ).rejects.toThrow('Dateiinhalt passt nicht zur Endung (.png)');
+
+    expect(mockPrismaService.documents.create).not.toHaveBeenCalled();
+  });
+
+  it('sanitizes uploaded file names before persisting', async () => {
+    const file = {
+      originalname: '../../boese<script>.pdf',
+      buffer: Buffer.from('pdf data'),
+      size: 8,
+      mimetype: 'application/pdf',
+    } as Express.Multer.File;
+
+    mockPrismaService.documents.create.mockResolvedValue({ document_id: 99 });
+    mockPrismaService.documents.findUnique.mockResolvedValue({
+      document_id: 99,
+      name: 'boese_script_.pdf',
+      file_path: null,
+      file_size: 8,
+      mime_type: 'application/pdf',
+      added_by: 15,
+      created_at: new Date().toISOString(),
+      users: {
+        user_id: 15,
+        firstname: 'Max',
+        lastname: 'Schüler',
+        username: 'max',
+        students: { student_id: 15 },
+        user_roles: [{ roles: { name: 'Student' } }],
+      },
+      graded_by_user: null,
+      task_documents: [],
+    });
+    mockPrismaService.user_roles.findMany.mockResolvedValue([]);
+
+    await service.create(file, 15, 'application/pdf', 'student');
+
+    expect(mockPrismaService.documents.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'boese_script_.pdf',
+        }),
+      }),
+    );
   });
 });

@@ -3,7 +3,7 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { PassportModule } from "@nestjs/passport";
 import { JwtModule, JwtModuleOptions } from "@nestjs/jwt";
-import { PrismaModule } from "src/prisma/prisma.module";
+import { PrismaModule } from "../../prisma/prisma.module";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { RolesGuard } from "./guards/roles.guard";

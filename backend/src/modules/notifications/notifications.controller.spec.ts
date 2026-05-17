@@ -3,6 +3,8 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
@@ -27,7 +29,12 @@ describe('NotificationsController', () => {
               { provide: PrismaService, useValue: mockPrismaService },
               { provide: WebsocketGateway, useValue: {} },
             ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<NotificationsController>(NotificationsController);
   });

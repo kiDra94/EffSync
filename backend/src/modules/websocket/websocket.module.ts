@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { WebsocketGateway } from './websocket.gateway';
 import { JwtModule } from '@nestjs/jwt';
 import { WsJwtGuard } from './ws-jwt.guard';
@@ -13,7 +13,7 @@ import { ChatRoomsModule } from '../chat-rooms/chat-rooms.module';
         signOptions: {expiresIn: process.env.JWT_EXPIRATION || '1h'} as any,
       }),
     }),
-    ChatMessagesModule,
+    forwardRef(() => ChatMessagesModule),
     ChatRoomsModule,
   ],
   providers: [WebsocketGateway, WsJwtGuard],

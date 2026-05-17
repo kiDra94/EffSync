@@ -3,10 +3,14 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { hash, genSalt } from "bcrypt";
 import { PrismaService } from "../../prisma/prisma.service";
+import { RolePermissionsService } from "../roles/role-permissions.service";
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private rolePermissionsService: RolePermissionsService
+  ) { }
 
   async create(createUserDto: CreateUserDto) {
     const saltRound = 10; // standard wert fuer web 2^10 Rounds
@@ -250,6 +254,7 @@ export class UsersService {
 
   /**
    * Weist eine Rolle einem User zu.
+   * Wichtig: Automatisch werden auch alle Standard-Permissions der Rolle hinzugefügt!
    * 
    * @param userId - Die User ID
    * @param roleId - Die Role ID
@@ -284,6 +289,7 @@ export class UsersService {
       throw new BadRequestException('User hat diese Rolle bereits');
     }
 
+    // 1. Rolle zuweisen
     const result = await this.prisma.user_roles.create({
       data: {
         user_id: userId,
@@ -299,6 +305,23 @@ export class UsersService {
         }
       }
     });
+
+    // 2. Automatisch Standard-Permissions der Rolle hinzufügen
+    try {
+      if (role.name) {
+        await this.rolePermissionsService.assignDefaultPermissionsForRole(
+          userId,
+          roleId,
+          role.name
+        );
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Fehler beim Hinzufügen der Standard-Permissions:', errorMessage);
+      // Nicht fehlschlagen, falls Permissions nicht hinzufügbar sind
+      // Die Rolle wurde bereits zugewiesen
+    }
+
     return result;
   }
 

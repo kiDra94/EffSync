@@ -32,7 +32,6 @@ import { NotesUsersModule } from "./modules/notes-users/notes-users.module";
 import { PermissionsModule } from "./modules/permissions/permissions.module";
 import { PrioritiesModule } from "./modules/priorities/priorities.module";
 import { RolesModule } from "./modules/roles/roles.module";
-import { RolesPermissionsModule } from "./modules/roles-permissions/roles-permissions.module";
 import { StudentsModule } from "./modules/students/students.module";
 import { TaskActivityLogModule } from "./modules/task-activity-log/task-activity-log.module";
 import { TaskDocumentsModule } from "./modules/task-documents/task-documents.module";
@@ -90,7 +89,6 @@ import { MetricsModule } from './modules/metrics/metrics.module';
     PrioritiesModule,
     RolesModule,
     RoomsModule,
-    RolesPermissionsModule,
     StudentsModule,
     TaskActivityLogModule,
     TaskDocumentsModule,

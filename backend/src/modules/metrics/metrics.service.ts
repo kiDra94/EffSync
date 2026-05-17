@@ -32,7 +32,7 @@ export class MetricsService {
     const where = this.buildTaskVisibilityFilter(user);
     const tasks = await this.prisma.tasks.findMany({
       where,
-      select: { status: true },
+      select: { status: true, deadline: true },
     });
 
     const distribution = {
@@ -41,22 +41,27 @@ export class MetricsService {
       IN_REVIEW: 0,
       COMPLETED: 0,
       ON_HOLD: 0,
+      OVERDUE: 0,
     };
 
+    const now = new Date();
     tasks.forEach((task) => {
-      if (task.status && task.status in distribution) {
+      if (task.deadline && new Date(task.deadline) < now && task.status !== 'COMPLETED') {
+        distribution.OVERDUE++;
+      } else if (task.status && task.status in distribution) {
         distribution[task.status]++;
       }
     });
 
     return {
-      labels: ['Offen', 'In Bearbeitung', 'In Review', 'Abgeschlossen', 'In Wartestellung'],
+      labels: ['Offen', 'In Bearbeitung', 'In Review', 'Abgeschlossen', 'In Wartestellung', 'Überfällig'],
       data: [
         distribution.TODO,
         distribution.IN_PROGRESS,
         distribution.IN_REVIEW,
         distribution.COMPLETED,
         distribution.ON_HOLD,
+        distribution.OVERDUE,
       ],
       total: tasks.length,
     };
@@ -98,9 +103,12 @@ export class MetricsService {
         t.status !== 'COMPLETED',
     ).length;
 
+    const openCount = tasks.filter((t) => t.status !== 'COMPLETED').length;
+
     return {
       totalTasks: tasks.length,
       completedTasks: completedCount,
+      openTasks: openCount,
       completionRate,
       averageProgress: avgProgress,
       overtasks: overdueCount,

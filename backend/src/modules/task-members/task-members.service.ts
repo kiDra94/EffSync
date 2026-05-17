@@ -153,6 +153,98 @@ export class TaskMembersService {
    * Guard-Checks:
    * - Requester ist Mitglied ODER hat READ-Permission
    */
+  /**
+   * Feature: Holt ALLE Mitglieder einer Task (explizite + implizite)
+   * - Explizite: task_members Tabelle
+   * - Implizite: Task Creator + Assigned-to User
+   */
+  async findByTaskIncludingImplicit(taskId: number) {
+    // Task mit Beziehungen laden
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId },
+      include: {
+        users_tasks_created_byTousers: {
+          select: {
+            user_id: true,
+            firstname: true,
+            lastname: true,
+            email: true,
+            username: true,
+          },
+        },
+        users_tasks_assigned_toTousers: {
+          select: {
+            user_id: true,
+            firstname: true,
+            lastname: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      return [];
+    }
+
+    // Erstelle ein Set für unique User-IDs
+    const memberMap = new Map();
+
+    // 1. Task Creator (implizit)
+    if (task.created_by && task.users_tasks_created_byTousers) {
+      memberMap.set(task.created_by, {
+        task_id: taskId,
+        user_id: task.created_by,
+        joined_at: task.created_at,
+        users: task.users_tasks_created_byTousers,
+        role: 'creator',
+      });
+    }
+
+    // 2. Assigned-to User (implizit)
+    if (task.assigned_to && task.users_tasks_assigned_toTousers) {
+      memberMap.set(task.assigned_to, {
+        task_id: taskId,
+        user_id: task.assigned_to,
+        joined_at: task.created_at,
+        users: task.users_tasks_assigned_toTousers,
+        role: 'assigned',
+      });
+    }
+
+    // 3. Explizite Task Members
+    const explicitMembers = await this.prisma.task_members.findMany({
+      where: { task_id: taskId },
+      include: {
+        users: {
+          select: {
+            user_id: true,
+            firstname: true,
+            lastname: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    for (const member of explicitMembers) {
+      // Überschreibe nicht bereits vorhandene implizite Mitglieder
+      if (!memberMap.has(member.user_id)) {
+        memberMap.set(member.user_id, {
+          task_id: member.task_id,
+          user_id: member.user_id,
+          joined_at: member.joined_at,
+          users: member.users,
+          role: 'member',
+        });
+      }
+    }
+
+    return Array.from(memberMap.values());
+  }
+
   async findByTask(taskId: number) {
     return await this.prisma.task_members.findMany({
       where: { task_id: taskId },

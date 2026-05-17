@@ -43,14 +43,32 @@ export class TasksController {
 
   @Get(":id")
   @Permissions()
-  findOne(@Param("id") id: string) {
-    return this.tasksService.findOne(+id);
+  findOne(@Param("id") id: string, @Req() req) {
+    // Feature #27: Nutze Pro-Schüler-Methode um zu zeigen ob nur dieser Schüler gesperrt ist
+    return this.tasksService.findOneForStudent(+id, req.user.userId);
   }
 
   @Patch(":id")
   @Permissions("edit_tasks|edit_task")
-  update(@Param("id") id: string, @Body() updateTaskDto: UpdateTaskDto) {
-    return this.tasksService.update(+id, updateTaskDto);
+  update(@Param("id") id: string, @Body() updateTaskDto: UpdateTaskDto, @Req() req) {
+    return this.tasksService.update(+id, updateTaskDto, req.user.userId);
+  }
+
+  /**
+   * PATCH /tasks/:id/deadline-unlock
+   * Aktualisiert das Deadline und entsperrt einen Task nach Bewertung
+   * Nur Lehrer dürfen diese Aktion nutzen
+   */
+  @Patch(":id/deadline-unlock")
+  @Permissions("edit_tasks|edit_task")
+  updateDeadlineAndUnlock(
+    @Param("id") id: string,
+    @Body() body: { deadline: string | Date },
+  ) {
+    if (!body.deadline) {
+      throw new Error("deadline erforderlich im Body");
+    }
+    return this.tasksService.updateDeadlineAndUnlockIfNeeded(+id, new Date(body.deadline));
   }
 
   @Delete(":id")

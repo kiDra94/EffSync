@@ -15,3 +15,7 @@ export const markNotificationAsRead = async (notification_id) => {
     return normalizeEntity(response.data, ID_KEY);
 }
 
+export const deleteNotification = async (notification_id) => {
+    await apiClient.delete(`${ENDPOINT}/${notification_id}`);
+}
+

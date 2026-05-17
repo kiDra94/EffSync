@@ -15,6 +15,13 @@ const notificationStore = useNotificationStore();
 
 const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
+const tabs = computed(() => {
+  const baseTabs = ['profile', 'security', 'activity'];
+  if (isOwnProfile.value) {
+    baseTabs.push('notifications');
+  }
+  return baseTabs;
+});
 
 const STORAGE_KEY_PREFIX = 'effsync_user_profile_';
 
@@ -112,6 +119,14 @@ const goBack = () => {
 onMounted(() => {
   loadUserProfile();
   notificationStore.initFromStorage();
+  // Tab aus Query-Parameter setzen (z.B. ?tab=notifications)
+  if (route.query.tab) {
+    if (route.query.tab === 'notifications' && !isOwnProfile.value) {
+      activeTab.value = 'profile';
+    } else {
+      activeTab.value = route.query.tab;
+    }
+  }
 });
 </script>
 
@@ -142,7 +157,7 @@ onMounted(() => {
 
     <div class="tabs">
       <button
-        v-for="tab in ['profile', 'security', 'activity', 'notifications']"
+        v-for="tab in tabs"
         :key="tab"
         :class="{ active: activeTab === tab }"
         @click="activeTab = tab"
@@ -153,6 +168,10 @@ onMounted(() => {
           {{ notificationStore.unreadCount }}
         </span>
       </button>
+    </div>
+
+    <div v-if="!isOwnProfile" class="profile-info-banner" role="note">
+      🔒 Benachrichtigungen sind nur im eigenen Profil sichtbar.
     </div>
 
     <div class="tab-content">
@@ -349,6 +368,16 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.profile-info-banner {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.9rem;
+}
+
 .tab-btn {
   background-color: transparent;
   border: none;
@@ -528,6 +557,12 @@ body.dark-mode .profile-header {
 
 body.dark-mode .tabs {
   border-bottom-color: #444 !important;
+}
+
+body.dark-mode .profile-info-banner {
+  background-color: #252849 !important;
+  border-color: #3f4a8a !important;
+  color: #c7d2fe !important;
 }
 
 body.dark-mode .tab-btn {
