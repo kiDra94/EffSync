@@ -82,7 +82,7 @@ onMounted(async () => {
 });
 
 const goToStatusTasks = (statusIndex) => {
-  const statusKeys = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED', 'ON_HOLD'];
+  const statusKeys = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED', 'ON_HOLD', 'OVERDUE'];
   const statusKey = statusKeys[statusIndex];
   console.log('Navigating to status:', statusKey);
   router.push({ name: 'TaskList', query: { status: statusKey } });

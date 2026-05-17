@@ -34,6 +34,7 @@ describe('DocumentsService', () => {
     },
     users: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
     },
     note_documents: {
       deleteMany: jest.fn(),
