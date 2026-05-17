@@ -136,11 +136,12 @@ const updateMetrics = async () => {
     : documentsData.length;
 
   const openTasks = taskProgressRes.status === 'fulfilled'
-    ? Math.max(
-        0,
-        Number(taskProgressRes.value?.totalTasks ?? 0)
-          - Number(taskProgressRes.value?.completedTasks ?? 0)
-      )
+    ? Number(taskProgressRes.value?.openTasks ?? (
+        Math.max(0,
+          Number(taskProgressRes.value?.totalTasks ?? 0)
+            - Number(taskProgressRes.value?.completedTasks ?? 0)
+        )
+      ))
     : taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
 
   metrics.value[0].value = String(openTasks);
@@ -205,7 +206,7 @@ const handleCardClick = (routeName) => {
 
     <div class="content-section">
       <!-- Stundenplan -->
-      <div class="placeholder-box clickable" @click="router.push({name: 'Schedules'})">
+      <div class="placeholder-box clickable" @click="router.push({name: 'Schedules', query: { today: 'true' }})">
         <h3>📅 Heutiger Stundenplan</h3>
         <p class="schedule-subtitle">Deine heutigen Stunden anschauen...</p>
         <button class="schedule-btn">

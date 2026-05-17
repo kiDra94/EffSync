@@ -65,6 +65,17 @@ export class TasksService {
       console.error('Failed to log task creation activity:', error);
     }
 
+    // Auto-add creator as task member
+    try {
+      await this.prisma.task_members.upsert({
+        where: { task_id_user_id: { task_id: task.task_id, user_id: userId } },
+        update: {},
+        create: { task_id: task.task_id, user_id: userId },
+      });
+    } catch (error) {
+      console.error('Failed to add creator as task member:', error);
+    }
+
     return task;
   }
 

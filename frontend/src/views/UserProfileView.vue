@@ -112,6 +112,10 @@ const goBack = () => {
 onMounted(() => {
   loadUserProfile();
   notificationStore.initFromStorage();
+  // Tab aus Query-Parameter setzen (z.B. ?tab=notifications)
+  if (route.query.tab) {
+    activeTab.value = route.query.tab;
+  }
 });
 </script>
 

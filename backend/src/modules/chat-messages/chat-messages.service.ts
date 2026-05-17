@@ -1,13 +1,18 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, forwardRef } from "@nestjs/common";
 import { CreateChatMessageDto } from "./dto/create-chat-message.dto";
 import { UpdateChatMessageDto } from "./dto/update-chat-message.dto";
 import { PrismaService } from "../../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class ChatMessagesService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @Inject(forwardRef(() => NotificationsService))
+        private readonly notificationsService: NotificationsService,
+    ) { }
     async createMsg(createChatMessageDto: CreateChatMessageDto) {
-        return this.prisma.$transaction(async (trans) => {
+        const message = await this.prisma.$transaction(async (trans) => {
             await this.validateTrans(trans, createChatMessageDto.room_id, createChatMessageDto.user_id);
             return trans.chat_messages.create({
                 data: {
@@ -18,6 +23,33 @@ export class ChatMessagesService {
             })
         });
 
+        // Notifications an alle anderen Room-Mitglieder senden
+        try {
+            const sender = await this.prisma.users.findUnique({
+                where: { user_id: createChatMessageDto.user_id },
+                select: { firstname: true, lastname: true, username: true },
+            });
+            const senderName = sender ? `${sender.firstname} ${sender.lastname}`.trim() || sender.username : 'Jemand';
+
+            const roomMembers = await this.prisma.chat_room_users.findMany({
+                where: { room_id: createChatMessageDto.room_id, left_at: null },
+                select: { user_id: true },
+            });
+
+            for (const member of roomMembers) {
+                if (member.user_id === createChatMessageDto.user_id) continue;
+                await this.notificationsService.create({
+                    user_id: member.user_id,
+                    text: `💬 ${senderName}: ${createChatMessageDto.message.substring(0, 80)}${createChatMessageDto.message.length > 80 ? '...' : ''}`,
+                    type: 'chat_message',
+                    is_read: false,
+                });
+            }
+        } catch (error) {
+            console.error('Failed to send chat notifications:', error);
+        }
+
+        return message;
     }
 
     findAll() {

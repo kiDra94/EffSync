@@ -13,12 +13,20 @@
           ✓ Alle lesen
         </button>
         <button
-          v-if="notificationStore.notifications.length > 0"
-          @click="notificationStore.clearAll()"
+          v-if="selectedIds.length > 0"
+          @click="deleteSelected"
           class="btn-secondary text-danger"
-          title="Alle löschen"
+          title="Ausgewählte löschen"
         >
-          🗑️ Löschen
+          🗑️ Ausgewählte löschen ({{ selectedIds.length }})
+        </button>
+        <button
+          v-if="notificationStore.notifications.length > 0 && selectedIds.length === 0"
+          @click="toggleSelectAll"
+          class="btn-secondary"
+          title="Alle auswählen"
+        >
+          {{ allSelected ? '☑ Alle abwählen' : '☐ Alle auswählen' }}
         </button>
       </div>
     </div>
@@ -47,29 +55,34 @@
 
       <div
         v-for="notification in filteredNotifications"
-        :key="notification.id"
+        :key="notification.notification_id || notification.id"
         class="notification-row"
-        :class="{ unread: !notification.read }"
-        @click="handleNotificationClick(notification)"
+        :class="{ unread: !notification.is_read && !notification.read, selected: selectedIds.includes(notification.notification_id || notification.id) }"
       >
-        <div class="notification-row-icon">{{ getIcon(notification.type) }}</div>
+        <input
+          type="checkbox"
+          class="notification-checkbox"
+          :checked="selectedIds.includes(notification.notification_id || notification.id)"
+          @change.stop="toggleSelect(notification.notification_id || notification.id)"
+        />
 
-        <div class="notification-row-content">
-          <h4 class="notification-row-title">{{ notification.title }}</h4>
-          <p class="notification-row-message">{{ notification.message }}</p>
-          <span class="notification-row-time">{{ formatTime(notification.timestamp) }}</span>
+        <div class="notification-row-icon" @click="handleNotificationClick(notification)">{{ getIcon(notification.type) }}</div>
+
+        <div class="notification-row-content" @click="handleNotificationClick(notification)">
+          <p class="notification-row-message">{{ notification.text || notification.message }}</p>
+          <span class="notification-row-time">{{ formatTime(notification.created_at || notification.timestamp) }}</span>
         </div>
 
-        <div class="notification-row-status">
-          <span v-if="!notification.read" class="status-badge">Neu</span>
+        <div class="notification-row-status" @click="handleNotificationClick(notification)">
+          <span v-if="!notification.is_read && !notification.read" class="status-badge">Neu</span>
         </div>
 
         <button
           class="notification-row-close"
-          @click.stop="notificationStore.removeNotification(notification.id)"
+          @click.stop="notificationStore.deleteNotification(notification.notification_id || notification.id)"
           title="Löschen"
         >
-          ✕
+          🗑️
         </button>
       </div>
     </div>
@@ -79,12 +92,14 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 const router = useRouter();
-
+const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 const activeFilter = ref('all');
+const selectedIds = ref([]);
 
 // Filter Tabs
 const tabs = [
@@ -129,23 +144,63 @@ const filteredNotifications = computed(() => {
 // Anzahl pro Typ
 const getCountByType = (type) => {
   if (type === 'all') return notificationStore.notifications.length;
-  return notificationStore.getByType(type).length;
+  return notificationStore.notifications.filter(n => n.type === type).length;
 };
 
-// Benachrichtigung klicken
-const handleNotificationClick = (notification) => {
-  notificationStore.markAsRead(notification.id);
-  
-  // Navigation basierend auf Typ
-  if (notification.relatedType === 'task' && notification.relatedId) {
-    router.push({ name: 'TaskList', query: { taskId: notification.relatedId } });
-  } else if (notification.relatedType === 'document' && notification.relatedId) {
-    router.push({ name: 'DocumentList', query: { docId: notification.relatedId } });
-  } else if (notification.relatedType === 'note' && notification.relatedId) {
-    router.push({ name: 'NoteLists', query: { noteId: notification.relatedId } });
-  } else if (notification.relatedType === 'class' && notification.relatedId) {
-    router.push({ name: 'ClassDetail', params: { id: notification.relatedId } });
+// Benachrichtigung klicken → als gelesen markieren + passend navigieren
+const handleNotificationClick = async (notification) => {
+  const notificationId = notification.notification_id || notification.id;
+  await notificationStore.markAsRead(notificationId);
+
+  const type = (notification.type || '').toLowerCase();
+
+  if (type.includes('chat')) {
+    router.push({ name: 'Chat' });
+    return;
   }
+
+  if (type.includes('document') || type.includes('resubmit')) {
+    router.push({ name: 'DocumentList' });
+    return;
+  }
+
+  if (type.includes('task')) {
+    router.push({ name: 'TaskList' });
+    return;
+  }
+
+  router.push({
+    name: 'UserProfile',
+    params: { id: authStore.userId || 1 },
+    query: { tab: 'notifications' },
+  });
+};
+
+// Checkbox togglen
+const toggleSelect = (id) => {
+  const idx = selectedIds.value.indexOf(id);
+  if (idx === -1) selectedIds.value.push(id);
+  else selectedIds.value.splice(idx, 1);
+};
+
+// Alle auswählen / abwählen
+const allSelected = computed(() => {
+  return filteredNotifications.value.length > 0 &&
+    filteredNotifications.value.every(n => selectedIds.value.includes(n.notification_id || n.id));
+});
+
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    selectedIds.value = [];
+  } else {
+    selectedIds.value = filteredNotifications.value.map(n => n.notification_id || n.id);
+  }
+};
+
+// Ausgewählte löschen
+const deleteSelected = async () => {
+  await notificationStore.deleteNotifications([...selectedIds.value]);
+  selectedIds.value = [];
 };
 </script>
 
@@ -265,6 +320,15 @@ const handleNotificationClick = (notification) => {
 }
 
 /* Notification Row */
+.notification-checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  cursor: pointer;
+  accent-color: #4f46e5;
+}
+
 .notification-row {
   display: flex;
   gap: 12px;
@@ -272,9 +336,20 @@ const handleNotificationClick = (notification) => {
   border: 1px solid #f0f0f0;
   border-radius: 8px;
   margin-bottom: 10px;
-  cursor: pointer;
+  cursor: default;
   transition: all 0.2s;
   align-items: flex-start;
+}
+
+.notification-row .notification-row-icon,
+.notification-row .notification-row-content,
+.notification-row .notification-row-status {
+  cursor: pointer;
+}
+
+.notification-row.selected {
+  background: #ede9fe;
+  border-color: #7c3aed;
 }
 
 .notification-row:hover {

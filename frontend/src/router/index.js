@@ -81,12 +81,14 @@ const routes = [
                 path: 'classes',
                 name: 'ClassList',
                 component: () => import('@/views/ClassListView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
             },
             {
                 path: 'classes/:id',
                 name: 'ClassDetail',
                 component: () => import('@/views/ClassDetail.vue'),
                 props: true,
+                meta: { roles: ['admin', 'superuser'] },
             },
             {
                 path: 'departments',

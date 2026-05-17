@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import ScheduleForm from '@/components/schedules/ScheduleForm.vue';
 import ScheduleDeleteDialog from '@/components/schedules/ScheduleDeleteDialog.vue';
 import { useAuthStore } from '@/stores/authStore';
@@ -39,6 +40,7 @@ const activeModal = ref(null);
 const activeView = ref('list');
 const searchQuery = ref('');
 const authStore = useAuthStore();
+const route = useRoute();
 
 const canManageSchedules = computed(() => {
   const role = (authStore.userRole || '').toLowerCase();
@@ -146,6 +148,11 @@ const goBackToList = () => {
 
 onMounted(() => {
   loadFromStorage();
+  // Auto-open today's active schedule if navigated with ?today=true
+  if (route.query.today === 'true') {
+    const active = schedules.value.find(s => isActive(s));
+    if (active) openScheduleDetail(active);
+  }
 });
 </script>
 

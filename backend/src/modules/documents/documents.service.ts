@@ -670,7 +670,13 @@ export class DocumentsService {
     const where = this.canUserReadAllDocuments(role)
       ? undefined
       : this.isStudent(role)
-        ? { added_by: userId }
+        ? {
+            OR: [
+              { added_by: userId },
+              { document_shares: { some: { user_id: userId } } },
+              { task_documents: { some: { tasks: { OR: [{ assigned_to: userId }, { created_by: userId }, { task_members: { some: { user_id: userId } } }] } } } },
+            ],
+          }
       : {
           OR: [
             { added_by: userId },

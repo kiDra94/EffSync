@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { io } from 'socket.io-client';
-import { fetchAllNotifications, markNotificationAsRead } from '@/api/notification';
+import { fetchAllNotifications, markNotificationAsRead, deleteNotification as apiDeleteNotification } from '@/api/notification';
 
 let notificationSocket = null;
 
@@ -73,6 +73,47 @@ export const useNotificationStore = defineStore('notification', () => {
     async function markAllAsRead() {
         const unread = unreadNotifications.value;
         await Promise.all(unread.map(n => markAsRead(n.notification_id || n.id)));
+    }
+
+    // Remove single notification locally (mark as read)
+    async function removeNotification(notificationId) {
+        await markAsRead(notificationId);
+        notifications.value = notifications.value.filter(
+            n => (n.notification_id || n.id) !== notificationId
+        );
+    }
+
+    // Permanently delete a notification via API
+    async function deleteNotification(notificationId) {
+        try {
+            await apiDeleteNotification(notificationId);
+            notifications.value = notifications.value.filter(
+                n => (n.notification_id || n.id) !== notificationId
+            );
+        } catch (error) {
+            console.error('Fehler beim Löschen der Benachrichtigung:', error);
+        }
+    }
+
+    // Delete multiple notifications at once
+    async function deleteNotifications(ids) {
+        await Promise.all(ids.map(id => deleteNotification(id)));
+    }
+
+    // Clear all notifications (mark all as read + remove from local list)
+    async function clearAll() {
+        await markAllAsRead();
+        notifications.value = [];
+    }
+
+    // Init from storage (kept for backwards compat, real data loads via fetchNotifications)
+    function initFromStorage() {
+        // No-op: data is fetched from API via fetchNotifications()
+    }
+
+    // Get notifications by type
+    function getByType(type) {
+        return notifications.value.filter(n => n.type === type);
     }
 
     // Feature #27: Toast Notifications für Deadlines/Overdue
@@ -150,6 +191,12 @@ export const useNotificationStore = defineStore('notification', () => {
         fetchNotifications,
         markAsRead,
         markAllAsRead,                // Feature #27
+        removeNotification,
+        clearAll,
+        deleteNotification,
+        deleteNotifications,
+        initFromStorage,
+        getByType,
         addToast,                     // Feature #27
         removeToast,                  // Feature #27
         initSocketListeners,
