@@ -37,7 +37,7 @@ const defaultSchedules = [
 const schedules = ref([]);
 const selectedSchedule = ref(null);
 const activeModal = ref(null);
-const activeView = ref('list');
+const activeView = ref('week'); // Schüler: 'week', Admin: 'list'
 const searchQuery = ref('');
 const authStore = useAuthStore();
 const route = useRoute();
@@ -46,6 +46,18 @@ const canManageSchedules = computed(() => {
   const role = (authStore.userRole || '').toLowerCase();
   return ['admin', 'superuser', 'director'].includes(role);
 });
+
+// Limitiere View-Mode für Schüler
+const allowedViewModes = computed(() => {
+  return canManageSchedules.value ? ['list', 'week', 'day', 'month'] : ['week', 'day'];
+});
+
+// Stelle sicher dass activeView erlaubt ist
+const ensureValidViewMode = () => {
+  if (!allowedViewModes.value.includes(activeView.value)) {
+    activeView.value = canManageSchedules.value ? 'list' : 'week';
+  }
+};
 
 const filteredSchedules = computed(() => {
   if (!searchQuery.value) return schedules.value;
@@ -148,6 +160,7 @@ const goBackToList = () => {
 
 onMounted(() => {
   loadFromStorage();
+  ensureValidViewMode();  // Validiere View-Mode für Schüler
   // Auto-open today's active schedule if navigated with ?today=true
   if (route.query.today === 'true') {
     const active = schedules.value.find(s => isActive(s));

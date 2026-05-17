@@ -3,11 +3,11 @@ import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString } from "class-validator";
 export class CreateNoteDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+    title!: string;
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+    description!: string;
 
   @IsInt()
   @IsOptional()
@@ -22,7 +22,4 @@ export class CreateNoteDto {
   @IsIn(["low", "medium", "high"])
   priority?: "low" | "medium" | "high";
 
-  @IsInt()
-  @IsOptional()
-  task_id?: number;
 }

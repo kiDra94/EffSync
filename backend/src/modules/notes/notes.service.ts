@@ -17,14 +17,6 @@ export class NotesService {
       };
     };
 
-    if (createNoteDto.task_id) {
-      const task = await this.prisma.tasks.findUnique({
-        where: { task_id: createNoteDto.task_id }
-      });
-      if (!task) {
-        throw new NotFoundException(`Task with ID ${createNoteDto.task_id} not found!`);
-      };
-    };
 
     const { priority, ...rest } = createNoteDto;
     const resolvedPriorityId = await this.resolvePriorityId(priority, rest.priority_id);
@@ -87,14 +79,6 @@ export class NotesService {
       }
     }
 
-    if (updateNoteDto.task_id) {
-      const task = await this.prisma.tasks.findUnique({
-        where: { task_id: updateNoteDto.task_id },
-      });
-      if (!task) {
-        throw new NotFoundException(`Task with ID ${updateNoteDto.task_id} not found!`);
-      }
-    }
 
     const { priority, ...rest } = updateNoteDto;
     const resolvedPriorityId = await this.resolvePriorityId(priority, rest.priority_id);
