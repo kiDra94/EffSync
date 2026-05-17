@@ -39,6 +39,11 @@ export class DocumentsService {
         },
       },
     },
+    document_shares: {
+      select: {
+        user_id: true,
+      },
+    },
     graded_by_user: {
       select: {
         user_id: true,
@@ -205,6 +210,79 @@ export class DocumentsService {
 
   private canUserReadAllDocuments(role?: string) {
     return this.isTeacher(role);
+  }
+
+  private async canUserReadAllDocumentsContext(userId: number, role?: string) {
+    const isStudentContext = await this.isStudentContext(userId, role);
+    if (isStudentContext) {
+      return false;
+    }
+
+    if (this.isTeacher(role)) {
+      return true;
+    }
+
+    const user = await this.prisma.users.findUnique({
+      where: { user_id: userId },
+      select: {
+        user_roles: {
+          select: {
+            roles: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const roleNames = Array.isArray(user?.user_roles)
+      ? user.user_roles
+          .map((entry) => entry.roles?.name?.toLowerCase?.())
+          .filter((value): value is string => Boolean(value))
+      : [];
+
+    return roleNames.some((name) => ["teacher", "admin", "superuser"].includes(name));
+  }
+
+  private async isStudentContext(userId: number, role?: string) {
+    if (this.isStudent(role)) {
+      return true;
+    }
+
+    const user = await this.prisma.users.findUnique({
+      where: { user_id: userId },
+      select: {
+        students: {
+          select: {
+            student_id: true,
+          },
+        },
+        user_roles: {
+          select: {
+            roles: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return false;
+    }
+
+    const hasStudentProfile = Boolean(user.students?.student_id);
+    const hasStudentRole = Array.isArray(user.user_roles)
+      ? user.user_roles.some(
+          (entry) => entry.roles?.name?.toLowerCase?.() === "student",
+        )
+      : false;
+
+    return hasStudentProfile || hasStudentRole;
   }
 
   private async getTeacherNotificationRecipients(excludeUserId?: number) {
@@ -477,7 +555,7 @@ export class DocumentsService {
   }
 
   private mapDocumentForUi(document: any, userId: number, role?: string) {
-    const { file_blob, ...safeDocument } = document;
+    const { file_blob, document_shares, ...safeDocument } = document;
     const uploader = this.mapPerson(document.users);
     const grader = this.mapPerson(document.graded_by_user);
     const linkedTaskIds = Array.isArray(document.task_documents)
@@ -502,6 +580,23 @@ export class DocumentsService {
     };
   }
 
+  private isExplicitlySharedWithUser(document: any, userId: number) {
+    if (!Array.isArray(document?.document_shares)) {
+      return false;
+    }
+
+    return document.document_shares.some(
+      (share: any) => Number(share?.user_id) === Number(userId),
+    );
+  }
+
+  private shouldStudentSeeDocument(document: any, userId: number) {
+    return (
+      Number(document?.added_by) === Number(userId) ||
+      this.isExplicitlySharedWithUser(document, userId)
+    );
+  }
+
   private async getDocumentById(documentId: number) {
     const document = await this.prisma.documents.findUnique({
       where: { document_id: documentId },
@@ -516,7 +611,10 @@ export class DocumentsService {
   }
 
   private async canUserAccessDocument(documentId: number, userId: number, role?: string) {
-    if (this.canUserReadAllDocuments(role)) return true;
+    const canReadAllDocuments = await this.canUserReadAllDocumentsContext(userId, role);
+    if (canReadAllDocuments) return true;
+
+    const isStudentContext = await this.isStudentContext(userId, role);
 
     const document = await this.prisma.documents.findUnique({
       where: { document_id: documentId },
@@ -527,8 +625,18 @@ export class DocumentsService {
       return false;
     }
 
-    if (this.isStudent(role)) {
-      return Number(document.added_by) === Number(userId);
+    if (isStudentContext) {
+      const count = await this.prisma.documents.count({
+        where: {
+          document_id: documentId,
+          OR: [
+            { added_by: userId },
+            { document_shares: { some: { user_id: userId } } },
+          ],
+        },
+      });
+
+      return count > 0;
     }
 
     const count = await this.prisma.documents.count({
@@ -667,14 +775,16 @@ export class DocumentsService {
   }
 
   async findAll(userId: number, role?: string) {
-    const where = this.canUserReadAllDocuments(role)
+    const isStudentContext = await this.isStudentContext(userId, role);
+    const canReadAllDocuments = await this.canUserReadAllDocumentsContext(userId, role);
+
+    const where = canReadAllDocuments && !isStudentContext
       ? undefined
-      : this.isStudent(role)
+      : isStudentContext
         ? {
             OR: [
               { added_by: userId },
               { document_shares: { some: { user_id: userId } } },
-              { task_documents: { some: { tasks: { OR: [{ assigned_to: userId }, { created_by: userId }, { task_members: { some: { user_id: userId } } }] } } } },
             ],
           }
       : {
@@ -692,7 +802,11 @@ export class DocumentsService {
       orderBy: { created_at: "desc" },
     });
 
-    return documents.map((document) => this.mapDocumentForUi(document, userId, role));
+    const visibleDocuments = isStudentContext
+      ? documents.filter((document) => this.shouldStudentSeeDocument(document, userId))
+      : documents;
+
+    return visibleDocuments.map((document) => this.mapDocumentForUi(document, userId, role));
   }
 
   async findOne(id: string, userId: number, role?: string) {
