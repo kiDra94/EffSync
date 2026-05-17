@@ -375,8 +375,22 @@ export class TasksService {
       include: this.basicInclude(),
     });
 
-    if (task.status !== 'COMPLETED' && updated.status === 'COMPLETED') {
-      await this.completeDescendantSubtasks(updated.task_id);
+    // Wenn Task auf COMPLETED gesetzt wird, müssen auch alle Subtasks abgeschlossen werden
+    if (updateTaskDto.status === 'COMPLETED') {
+      const descendantIds = await this.getAllDescendantIds(taskId);
+      if (descendantIds.length > 0) {
+        await this.prisma.tasks.updateMany({
+          where: {
+            task_id: { in: descendantIds },
+            status: { not: 'COMPLETED' },
+          },
+          data: {
+            status: 'COMPLETED',
+            progress: 100,
+            updated_at: new Date(),
+          },
+        });
+      }
     }
 
     // Log activity
@@ -635,7 +649,6 @@ export class TasksService {
           where: { task_id: parent.task_id },
           data: { status: 'COMPLETED', progress: 100 }
         });
-        await this.completeDescendantSubtasks(parent.task_id);
         this.notifyTaskUpdate(parent, updated);
       } else if (!isFulfilled && parent.status === 'COMPLETED') {
         const updated = await this.prisma.tasks.update({
@@ -768,54 +781,7 @@ export class TasksService {
       },
     });
 
-    await this.completeDescendantSubtasks(taskId);
-
     return true;
-  }
-
-  private async completeDescendantSubtasks(parentTaskId: number): Promise<void> {
-    const pendingParents: number[] = [parentTaskId];
-    const descendantIds: number[] = [];
-
-    while (pendingParents.length > 0) {
-      const currentParentIds = pendingParents.splice(0, 100);
-
-      const children = await this.prisma.tasks.findMany({
-        where: { parent_task_id: { in: currentParentIds } },
-        select: { task_id: true },
-      });
-
-      if (!children.length) {
-        continue;
-      }
-
-      const childIds = children
-        .map((child) => Number(child.task_id))
-        .filter((id) => Number.isFinite(id) && id > 0);
-
-      if (!childIds.length) {
-        continue;
-      }
-
-      descendantIds.push(...childIds);
-      pendingParents.push(...childIds);
-    }
-
-    if (!descendantIds.length) {
-      return;
-    }
-
-    await this.prisma.tasks.updateMany({
-      where: {
-        task_id: { in: descendantIds },
-        status: { not: 'COMPLETED' },
-      },
-      data: {
-        status: 'COMPLETED',
-        progress: 100,
-        updated_at: new Date(),
-      },
-    });
   }
 
   private notifyTaskUpdate(parent: any, updated: any) {
@@ -825,6 +791,25 @@ export class TasksService {
     if (parent.created_by && parent.created_by !== parent.assigned_to) {
       this.websocketGateway.emitTaskUpdated(parent.created_by, updated);
     }
+  }
+
+  private async getAllDescendantIds(parentTaskId: number, visited = new Set<number>()): Promise<number[]> {
+    if (visited.has(parentTaskId)) return [];
+    visited.add(parentTaskId);
+
+    const children = await this.prisma.tasks.findMany({
+      where: { parent_task_id: parentTaskId },
+      select: { task_id: true },
+    });
+
+    let allDescendants: number[] = children.map((child) => Number(child.task_id));
+
+    for (const child of children) {
+      const deeperDescendants = await this.getAllDescendantIds(Number(child.task_id), visited);
+      allDescendants = allDescendants.concat(deeperDescendants);
+    }
+
+    return allDescendants;
   }
 
   private basicInclude() {
