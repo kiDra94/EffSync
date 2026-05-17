@@ -72,7 +72,21 @@ export const useNotificationStore = defineStore('notification', () => {
     // Feature #27: Mark all as read
     async function markAllAsRead() {
         const unread = unreadNotifications.value;
-        await Promise.all(unread.map(n => markAsRead(n.notification_id || n.id)));
+
+        // Optimistisch lokal auf gelesen setzen, damit der Zähler sofort auf 0 springt
+        notifications.value = notifications.value.map((notification) => ({
+            ...notification,
+            is_read: true,
+            read: true,
+        }));
+
+        try {
+            await Promise.all(unread.map(n => markAsRead(n.notification_id || n.id)));
+        } catch (error) {
+            console.error('Fehler beim Markieren aller Benachrichtigungen als gelesen:', error);
+            // Im Fehlerfall neu laden, damit der lokale Zustand wieder zur DB passt
+            await fetchNotifications();
+        }
     }
 
     // Remove single notification locally (mark as read)

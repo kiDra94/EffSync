@@ -45,6 +45,10 @@ const calendarColors = [
     '#1abc9c', '#e67e22', '#34495e', '#c0392b', '#16a085'
 ];
 
+  const isCompletedTask = (task) => String(task?.status || '').toUpperCase() === 'COMPLETED';
+
+  const activeStoreTasks = computed(() => taskStore.tasks.filter((task) => !isCompletedTask(task)));
+
 // Funktion zum Laden der Daten von der API
 const loadCalendarData = async () => {
     loading.value = true;
@@ -52,7 +56,9 @@ const loadCalendarData = async () => {
     try {
         // Lade Tasks
         const tasksData = await fetchTasks();
-        events.value = tasksData.map((task, index) => {
+        events.value = tasksData
+          .filter((task) => !isCompletedTask(task))
+          .map((task, index) => {
             const deadline = task.deadline ? new Date(task.deadline) : new Date();
             const dateStr = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}`;
             return {
@@ -63,7 +69,7 @@ const loadCalendarData = async () => {
                 description: task.description,
                 status: task.status
             };
-        });
+            });
 
         // Lade Lesson Slots
         const lessonsData = await fetchAllLessonSlots();
@@ -205,8 +211,8 @@ const yearMonths = computed(() => {
     };
   });
 
-  const sourceTasks = taskStore.tasks.length > 0
-    ? taskStore.tasks
+  const sourceTasks = activeStoreTasks.value.length > 0
+    ? activeStoreTasks.value
     : events.value.map(event => ({
       task_id: event.id,
       deadline: event.date,
@@ -315,7 +321,7 @@ const getLessonsForDay = (dayOfWeek) => {
 
 // Tasks für einen bestimmten Tag
 const getTasksForDay = (dateStr) => {
-  return taskStore.tasks
+  return activeStoreTasks.value
     .filter(task => task.deadline && String(task.deadline).startsWith(dateStr))
     .map(task => ({
       id: task.task_id ?? task.id,
