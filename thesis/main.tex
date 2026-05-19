@@ -5,7 +5,6 @@
 \usepackage[utf8]{inputenc}					% Zeichensatz für Umlaute
 \usepackage[ngerman]{babel}                 % Zeichensatz für \flqq \frqq
 % \usepackage[T1]{fontenc}                   % Schriftart
-\usepackage{svg}                            % SVG Bilder
 \usepackage{graphicx}				        % Bilder Packet
 \usepackage{float}                          % Bilder positionieren
 \usepackage{tikz}                           % Zeichnen
@@ -21,8 +20,13 @@
 \usepackage{seqsplit}                       % tabelle api
 \hyphenation{De-zi-mal-tren-nung}			% Silbentrennung
 \hyphenpenalty=9750							% Weniger Silbentrennung
-\usepackage[backend=bibtex, style=numeric, url=true, sorting=none]{biblatex}
+\usepackage[backend=biber, style=numeric, url=true, sorting=none]{biblatex}
 \addbibresource{quellen.bib}
+\usepackage[acronym, toc]{glossaries}
+\makeglossaries
+\loadglsentries{content/acronyms}
+\usepackage{tabularx}
+\usepackage{amssymb}
 
 \renewcommand*\chapterheadstartvskip{\vspace*{0.8\topskip}}		% Weniger Platz über Chapter Überschrift
 
@@ -38,19 +42,22 @@
     \include{content/Titel}
     \tableofcontents
     \newpage
-
     \pagenumbering{arabic}
-    \include{content/Einleitung}
-    \include{content/Ziel}
-    \include{content/Projektplanung}
-\include{content/Projektorganisation}
-    \include{content/Randbedingungen}
-    \include{content/ApiEndpoints}
-    \include{content/Abgabe}
-    \include{content/Unterschriften}
+    
+    \include{content/01_Einleitung}
+    \include{content/02_AusgangslageUndZielsetzung}
+    \include{content/03_ProjektmanagmentUndArbeitsweise}
+    \include{content/04_DigitalerWorkflowMitGitHub}
+    \include{content/05_ProjektbeschreibungUndAnforderungen}
+    \include{content/06_TechnologienUndSystemarchitektur}
+    \include{content/07_ImplementierungDerKernfunktionen}
+    \include{content/08_TestingUndQualitätssicherung}
+    \include{content/09_ErgebnisseUndAusblicke}
+    \include{content/10_Fazit}
     \include{content/Anhang}
     
 
 % \end{singlespace}
+\printglossaries
 \printbibliography
 \end{document}
