@@ -27,6 +27,8 @@
 \loadglsentries{content/acronyms}
 \usepackage{tabularx}
 \usepackage{amssymb}
+\let\orgautoref\autoref
+\renewcommand{\autoref}[1]{(\orgautoref{#1})}
 
 \renewcommand*\chapterheadstartvskip{\vspace*{0.8\topskip}}		% Weniger Platz über Chapter Überschrift
 
