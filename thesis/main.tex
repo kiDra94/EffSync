@@ -10,6 +10,7 @@
 \usepackage{tikz}                           % Zeichnen
 \usepackage{svg}                            % SVG Bilder
 \usepackage{url}							% URL im Literaturverzeichnis
+\usepackage{scrhack}                         % Fix deprecated \float@addtolist warning with KOMA-Script
 \usepackage[hidelinks]{hyperref}            % Links im Dokument
 \usepackage{booktabs}                       % Tabellen Linien
 \usepackage{color}                          % Text Farben
@@ -20,6 +21,7 @@
 \usepackage{seqsplit}                       % tabelle api
 \hyphenation{De-zi-mal-tren-nung}			% Silbentrennung
 \hyphenpenalty=9750							% Weniger Silbentrennung
+\usepackage{csquotes}
 \usepackage[backend=biber, style=numeric, url=true, sorting=none]{biblatex}
 \addbibresource{quellen.bib}
 \usepackage[acronym, toc]{glossaries}
