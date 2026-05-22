@@ -1,7 +1,15 @@
 \chapter{Technologien und Systemarchitektur}
+\label{ch:systemarchitektur}
+In diesem Kapitel wird die technische Basis und die grundlegende Softwarearchitektur von \textit{EffSync} vorgestellt. Bevor im darauffolgenden Kapitel auf die konkrete Implementierung der spezifischen Use-Cases eingegangen wird, wird zunächst das strukturelle Fundament des Systems erläutert.
 
-\section{Technologiy Stack}
+Bevor die Eigenschaften der verwendeten Architektur beschrieben werden, ist zunächst der Begriff der Software-Architektur zu klären. Nach Bass, Clements und Kazman beschreibt Software-Architektur die Struktur oder die Strukturen eines Softwaresystems, bestehend aus dessen Elementen, deren extern sichtbaren Eigenschaften sowie den Beziehungen zwischen diesen Elementen \cite{bass2012software}. Damit umfasst Software-Architektur nicht nur die Zerlegung eines Systems in einzelne Bestandteile, sondern auch die grundlegenden Entwurfsentscheidungen, welche dessen Wartbarkeit, Erweiterbarkeit und Skalierbarkeit maßgeblich beeinflussen \cite{bass2012software}.
+
+Das System ist bewusst in ein getrenntes Frontend als Client und ein Backend als Server gegliedert. Diese Trennung erhöht die Flexibilität der Architektur, da beide Teile unabhängig entwickelt, gewartet und skaliert werden können.
+\section{Technologie Stack} TODO: NOCH CITATE ZUR VUE VITE NODE UND PRISMA EINFUGEN!!!
+Die Technologien von \textit{EffSync} sind aufgrund der Aufteilung zwischen Frontend und Backend entschieden worden. Für die Benutzeroberfläche wird \textit{Vue.js} eingesetzt, da die Expertise bei diesem JavaScript Framework gegeben ist und die Entwicklung von komponentenbasierten Webanwendungen unterstützt wird. Die Bild- und Entwicklungsumgebung wird druch \textit{Vite} ergänzt. Im Backend kommt \textit{Node.js} als JavaScript-Runtime zum Einsatz. Auf deren Basis wird die serverseitige Logik und die REST-API implementiert. Für den Datenbankzugriff wird \textit{Prisma ORM} verwendet. Dieses übernimmt die Modellierung und Migration der Datenstrukturen. Durch diese Kombination wird eine moderne, wartbare und klar strukturierte Systemarchitektur erreicht.
+\label{ch:technologie_stack}
 \section{Frontend-Architektur und Komponenten-Setup}
 \section{Backend-Architektur und Schichtenmodell}
+\label{sec:backend_architektur}
 \section{Datenbankdesign}
 \section{API und Sicherheitskonzepte}
