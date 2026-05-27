@@ -36,7 +36,9 @@
 
 \usepackage{pdflscape}
 \usepackage{env}
-
+\usepackage{minted}
+\input{minted_setup}
+\input{autor_setup}
 
 \begin{document}
 % \begin{singlespace}
@@ -59,6 +61,23 @@
     \include{content/09_ErgebnisseUndAusblicke}
     \include{content/10_Fazit}
     \include{content/Anhang}
+
+    % ---> NEU: Hier wird die Autoren-Tabelle ausgegeben
+    \chapter*{Übersicht der Autorinnen und Autoren}
+    \addcontentsline{toc}{chapter}{Übersicht der Autorinnen und Autoren}
+
+    \begin{longtable}{p{2cm} p{8cm} p{4cm}}
+    \textbf{Kapitel} & \textbf{Titel} & \textbf{Autor*in} \\
+    \hline
+    \hline
+    \endfirsthead
+    \textbf{Kapitel} & \textbf{Titel} & \textbf{Autor*in} \\
+    \hline
+    \endhead
+    % Inhalt wird aus dem Speicher geladen:
+    \authorlist
+    \end{longtable}
+    % <---
     
 
 % \end{singlespace}
