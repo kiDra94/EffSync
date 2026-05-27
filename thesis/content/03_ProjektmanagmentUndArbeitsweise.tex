@@ -43,7 +43,6 @@ Semester Ende.
         \bottomrule
     \end{tabular*}
     \\ [1em]
-    
     \Meilenstein{MS A}\label{Ms:Bsp01}
         Beschrieb\\
         Datum: 15.01.2024\\
@@ -61,13 +60,26 @@ Semester Ende.
     \Arbeitspaket{Arbeitspaket 2}
         Inhalt, Ergebins, Meilenstein\\
 \section{Risiken und Randbedingungen}
-\section{Datenschutz und \texorpdfstring{\gls{DSGVO}}{DSGVO}}
+\authorsection{Datenschutz und \texorpdfstring{\gls{DSGVO}}{DSGVO}}{Dražen Plavšić}
 
-Gemäß dem Grundsatz der Datenminimierung gem. [Art.~5 Abs.~1 lit.~c]{\cite{dsgvo2016} priorisiert EffSync die Speicherung absoluter Kernmetadaten. Bei der Erstellung von Benutzerprofilen, Tasks und vor allem bei der Echtzeit-Kommunikation werden nur Daten abgespeichert, welche für die Funktionalität  erforderlich sind. So wird beispielsweise im Live-Chat\autoref{sec:live_chat} bewusst auf die Protokollierung von IP-Adressen oder Lese-Zeitstempeln pro Nutzer verzichtet, um dessen Privatsphäre zu schützen und Profiling auszuschließen.
+Gemäß dem Grundsatz der Datenminimierung \cite[Art.~5 Abs.~1 lit.~c]{dsgvo2016} priorisiert EffSync die Speicherung absoluter Kernmetadaten. Bei der Erstellung von Benutzerprofilen, Tasks und vor allem bei der Echtzeit-Kommunikation werden nur Daten abgespeichert, welche für die Funktionalität erforderlich sind. So wird beispielsweise im Live-Chat (siehe Abschnitt~\ref{sec:live_chat}) bewusst auf die Protokollierung von IP-Adressen oder Lese-Zeitstempeln pro Nutzer verzichtet, um dessen Privatsphäre zu schützen und Profiling auszuschließen.
 
-Im Falle einer Account-Löschung (Recht auf Löschung bzw. Vergessenwerden gem. [Art.~17]\cite{dsgvo2016}) verfolgt EffSync den Ansatz der Anonymisierung statt des harten Löschens. Diese Architekturentscheidung ist wichtig, um die definierten Aufbewahrungsfristen für aufgabenbezogene Chats und Tasks zu unterstützen. Würden Nachrichten eines ausscheidenden Nutzers restlos aus der Datenbank entfernt werden, entstünden in geteilten Projekt-Chats inhaltliche Lücken. Dies würde den Lesefluss zerstören und die wichtige Nachvollziehbarkeit von Arbeitsprozessen für rechtliche Zwecke (z.\,B. Gewährleistungsdokumentation)\cite{dsgvo2016} verhindern.
+Im Falle einer Account-Löschung (Recht auf Löschung bzw. Vergessenwerden, \cite[Art.~17]{dsgvo2016}) verfolgt EffSync den Ansatz der Anonymisierung statt des harten Löschens. Diese Architekturentscheidung ist wichtig, um die definierten Aufbewahrungsfristen für aufgabenbezogene Chats und Tasks zu unterstützen. Würden Nachrichten eines ausscheidenden Nutzers restlos aus der Datenbank entfernt werden, entstünden in geteilten Projekt-Chats inhaltliche Lücken. Dies würde den Lesefluss zerstören und die wichtige Nachvollziehbarkeit von Arbeitsprozessen für rechtliche Zwecke (z.\,B. Gewährleistungsdokumentation) verhindern.
 
-Stattdessen werden die Nachrichten vom realen Nutzer entkoppelt. Da die \texttt{user\_id} in der aktuellen Datenbankarchitektur ein Pflichtfeld ist, um referenzielle Integrität zu gewährleisten, werden die Nachrichten systemintern einem designierten \textbf{Ghost-User}-Account (z.\,B. Ghost-User mit \texttt{user\_id 0}) zugewiesen. 
+Stattdessen werden die Nachrichten vom realen Nutzer entkoppelt. Da die \texttt{user\_id} in der aktuellen Datenbankarchitektur ein Pflichtfeld ist, um referenzielle Integrität zu gewährleisten, werden die Nachrichten systemintern einem anonymisierten, designierten \textbf{Ghost-User}-Account zugewiesen. Dieser Kompromiss erhält die zwingend benötigte Kollaborationshistorie für das verbleibende Team und das Unternehmen, während die personenbezogenen Daten des gelöschten Nutzers unwiderruflich und \gls{DSGVO}-konform anonymisiert werden. Die exakte Implementierung dieses Mechanismus im Datenbankschema wird in Abschnitt~\ref{sec:live_chat} detailliert behandelt.
 
-NOCH abklären ob ich das in kapitel 7 verschieben soll!!!
-Technisch ist hierbei zu beachten, dass \texttt{PostgreSQL} bei automatisch inkrementierenden Primärschlüsseln (\texttt{autoincrement}) standardmäßig bei 1 zu zählen beginnt. Um referenzielle Integritätsfehler zu vermeiden, muss dieser designierte System-Nutzer mit der \textbf{\texttt{user\_id 0}} daher bei der Initialisierung der Datenbank (z.\,B. via Seed-Script) einmalig manuell angelegt werden. Dieser Kompromiss erhält die zwingend benötigte Kollaborationshistorie für das verbleibende Team und das Unternehmen, während die personenbezogenen Daten des gelöschten Nutzers unwiderruflich und \gls{DSGVO}-konform anonymisiert werden.
+\subsection{Evaluierung alternativer Anonymisierungsstrategien}
+\label{sec:live_chat_alternativen}
+\todo{eventuell in 09 oder 10 verschieben}
+Während die Zuweisung auf einen zentralen Ghost-User eine praktische und im Sinne der Terminologie der \gls{ENISA} irreversible Anonymisierungslösung darstellt \cite[S.~9--10]{enisa2019pseudonymisation}, wurde im Rahmen der Architekturplanung auch eine alternative Methode evaluiert: die sogenannte \textit{In-Place-Anonymisierung}. 
+
+Bei diesem Ansatz wird der eigentliche Datenbankeintrag des ausscheidenden Nutzers nicht physisch gelöscht (Hard Delete). Der Datensatz, und damit der originale Primärschlüssel (\texttt{user\_id}), bleibt erhalten. Stattdessen werden sämtliche personenbezogenen Felder (wie Vorname, Nachname oder Avatar) durch generische Platzhalter oder \texttt{NULL}-Werte überschrieben. 
+
+Um Datenbank-Restriktionen wie \texttt{UNIQUE}-Constraints (z.\,B. bei der E-Mail-Adresse) nicht zu verletzen, werden diese identifizierenden Felder durch einen kryptografischen Hash (beispielsweise SHA-256) ersetzt. Hierbei ist jedoch kritisch anzumerken, dass der Einsatz einfacher Hash-Funktionen laut der \gls{ENISA} anfällig für Dictionary Attacks ist. Dementsprechend gilt ein ungesalzenes Hashing (\textit{Plain Hashing}) datenschutzrechtlich lediglich als Pseudonymisierung und explizit nicht als Anonymisierung \cite[S.~22, 33]{enisa2019pseudonymisation}.
+
+Dieser Ansatz bietet dennoch folgenden signifikanten Vorteil:
+\begin{itemize}
+    \item \textbf{Erhalt der Kommunikationsdynamik:} In der Historie bleibt eindeutig nachvollziehbar, ob aufeinanderfolgende Nachrichten von derselben gelöschten Person oder von unterschiedlichen ehemaligen Nutzern stammen (z.\,B. \glqq{}Ehemaliger Nutzer 1\grqq{} vs. \glqq{}Ehemaliger Nutzer 2\grqq{}). Bei einem zentralen Ghost-User verschmelzen hingegen alle gelöschten Identitäten zu einer einzigen.
+\end{itemize}
+
+Obwohl die In-Place-Methode die Kollaborationshistorie präziser abbildet, muss berücksichtigt werden, dass das Behalten des originalen Primärschlüssels die Gefahr einer Reidentifizierung (durch Zusatzinformationen) birgt und somit den Vorgaben von Art. 17 DSGVO widersprechen könnte. Da es laut \gls{ENISA} keine universelle Standardlösung für derartige Datenbankkonflikte gibt müssen Datenschutzmaßnahmen stets auf einem risikobasierten Ansatz beruhen\cite[S.~42]{enisa2019pseudonymisation}.
