@@ -16,7 +16,7 @@ Für die Implementierung der Benutzeroberfläche wird \textit{Vue.js} eingesetzt
 
 Für den Datenbankzugriff wird \textit{Prisma ORM}\cite{prisma_orm} verwendet. Dieses übernimmt die Modellierung und Migration der Datenstrukturen.
 
-Durch diese Kombination wird eine moderne, wartbare und klar strukturierte Systemarchitektur erreicht, bei der die einzelnen Schichten klar voneinander, wie in Abbildung \ref{fig:cleint_server_communication}, getrennt sind.
+Durch diese Kombination wird eine moderne, wartbare und klar strukturierte Systemarchitektur erreicht, bei der die einzelnen Schichten klar voneinander, wie in Abbildung \ref{fig:cleint_server_communication}, getrennt sind.\todo{eventuell nach unten schieben, jetzt wird bei deen unteren subsections auf hier oben verwisen}
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.8\textwidth]{content/bilder/client_server_communication}
@@ -26,10 +26,52 @@ Durch diese Kombination wird eine moderne, wartbare und klar strukturierte Syste
 
 \authorsection{Frontend-Architektur und Komponenten-Setup}{Dražen Plavšić}
 \label{sec:frontend_architektur}
+In diesem Abschnitt wird die grundlegende Frontend-Architektur von \textit{EffSync} erläutert. Dabei wird zunächst auf die gewählte Ordner- und Komponentenstruktur eingegangen, um die Trennung der Zuständigkeiten zu verdeutlichen. Anschließend werden die Mechanismen des globalen State-Managements, das Routing, die zentrale API-Kommunikationsebene sowie die Vorteile und Nachteile einer Mock-Datenbank erläutert, welche das funktionale Fundament des Frontends bilden.
 
+\subsection{Ordnerstruktur und Trennung der Zuständigkeiten}
+\label{sec:frontend_ordnerstruktur}
+
+Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, folgt die Architektur von \textit{EffSync} dem Prinzip der \textit{Separation of Concerns} \cite{parnas1972criteria} (Trennung der Zuständigkeiten). Wie in Abbildung~\ref{fig:frontend_ordner} dargestellt, wird der Sourcecode in logische Schichten unterteilt, die jeweils spezifische Aufgaben innerhalb des Frontends übernehmen.
+
+\begin{figure}[H]    
+    \dirtree{%    
+    .1 src.    
+    .2 api \DTcomment{Zentrale API-Konfiguration und HTTP-Client (Axios)}.    
+    .3 httpClient.js.    
+    .3 tasks.js.    
+    .3 tasks.test.js.    
+    .2 components \DTcomment{Wiederverwendbare UI-Bausteine, gruppiert nach Features}.    
+    .3 chat.    
+    .3 dashboard.    
+    .3 notifications.    
+    .3 tasks.    
+    .3 templates.    
+    .2 composables \DTcomment{Ausgelagerte Vue 3 Composition-Logik (z.\,B. \texttt{useChat.js})}.    
+    .3 useChat.js.    
+    .3 useTaskFilters.js.    
+    .3 useTaskValidation.js.    
+    .2 config \DTcomment{Globale Konfigurationsdateien}.    
+    .3 api.config.js.    
+    .2 router \DTcomment{Routen-Definitionen der Single Page Application}.    
+    .3 index.js.    
+    .2 stores \DTcomment{Pinia State-Management (Global und Entitäten)}.    
+    .3 authStore.js.    
+    .3 entities.    
+    .4 taskStore.js.    
+    .2 views \DTcomment{Top-Level-Seitenkomponenten (z.\,B. Dashboard, Login)}.    
+    .3 DashboardView.vue.    
+    .3 LoginView.vue.    
+    }    
+    \caption{Frontend-Ordnerstruktur und -Architektur von EffSync}    
+    \label{fig:frontend_ordner}
+\end{figure}
+
+Wie aus der Ordnerstruktur ersichtlich wird, trennt \textit{EffSync} den Datenfluss und die Geschäftslogik strikt von der visuellen Darstellung. Die Komponenten in \texttt{views} und \texttt{components} dienen ausschließlich dem Rendering der Benutzeroberfläche und nehmen keine direkten Netzwerk-Requests vor. Stattdessen wird jegliche komplexe Geschäfts- und Validierungslogik in \texttt{composables} ausgelagert. Die tatsächliche Datenhaltung erfolgt über die \texttt{stores} in Kombination mit der \texttt{api}-Schicht. 
+
+Durch diese Entkopplung entsteht eine modulare Architektur. Sie ermöglicht nicht nur isolierte Unit-Tests für einzelne API-Services (wie beispielsweise \texttt{tasks.test.js}), sondern reduziert auch die Komplexität bei der Weiterentwicklung\cite{hamza2005separation} und beschleunigt das Auffinden von Fehlern (\textit{Debugging}).
 \authorsection{Backend-Architektur und Schichtenmodell}{Dražen Plavšić}
 \label{sec:backend_architektur}
 
 \section{Datenbankdesign}
 
-\section{API und Sicherheitskonzepte}
+\section{API-Design und Sicherheitskonzepte}
