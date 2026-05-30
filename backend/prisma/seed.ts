@@ -60,7 +60,7 @@ async function main() {
             { name: 'manage_users', description: 'Benutzer verwalten', flags: 7 },                  // RWX
             { name: 'create_tasks', description: 'Aufgaben erstellen', flags: 7 },                  // RWX
             { name: 'edit_tasks', description: 'Aufgaben bearbeiten', flags: 6 },                   // RW
-            { name: 'delete_tasks', description: 'Aufgaben löschen', flags: 1 },                    // X
+            { name: 'delete_tasks', description: 'Aufgaben löschen', flags: 5 },                    // RX
             { name: 'view_grades', description: 'Noten einsehen', flags: 4 },                       // READ
             { name: 'edit_grades', description: 'Noten eintragen', flags: 6 },                      // RW
             { name: 'manage_classes', description: 'Klassen verwalten', flags: 7 },                 // RWX
@@ -200,7 +200,7 @@ async function main() {
         }
 
         const userRolesData = [
-            // User 1: Todos Rollen (Superuser mit allen Rollen)
+            // User 1: Superuser-Rolle (deckt alle Superuser-Rechte ab)
             { user_id: 1, role_id: 1 },  // Superuser
             // User 2-6: Teachers
             { user_id: 2, role_id: 3 },
