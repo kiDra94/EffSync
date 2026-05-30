@@ -545,10 +545,6 @@ export class TasksService {
       await tx.task_documents.deleteMany({ where: { task_id: taskId } });
 
       // Referenzen lösen, statt Fremddaten hart zu löschen
-      await tx.notes.updateMany({
-        where: { task_id: taskId },
-        data: { task_id: null },
-      });
       await tx.chat_rooms.updateMany({
         where: { task_id: taskId },
         data: { task_id: null },

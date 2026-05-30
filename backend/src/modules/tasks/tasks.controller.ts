@@ -49,7 +49,7 @@ export class TasksController {
   }
 
   @Patch(":id")
-  @Permissions("edit_tasks|edit_task")
+  @Permissions()
   update(@Param("id") id: string, @Body() updateTaskDto: UpdateTaskDto, @Req() req) {
     return this.tasksService.update(+id, updateTaskDto, req.user.userId);
   }
@@ -60,7 +60,7 @@ export class TasksController {
    * Nur Lehrer dürfen diese Aktion nutzen
    */
   @Patch(":id/deadline-unlock")
-  @Permissions("edit_tasks|edit_task")
+  @Permissions()
   updateDeadlineAndUnlock(
     @Param("id") id: string,
     @Body() body: { deadline: string | Date },

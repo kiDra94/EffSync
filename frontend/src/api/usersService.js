@@ -43,6 +43,14 @@ export const usersApi = {
   },
 
   /**
+   * Holt alle Benutzer für Auswahl/Dropdown ohne Permissions-Anforderung
+   * GET /users/for-chat
+   */
+  getAllForSelection() {
+    return apiClient.get('/users/for-chat');
+  },
+
+  /**
    * Holt einen spezifischen Benutzer
    * GET /users/:id
    */

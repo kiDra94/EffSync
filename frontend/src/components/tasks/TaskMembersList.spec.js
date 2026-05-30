@@ -72,7 +72,10 @@ describe('TaskMembersList.vue', () => {
   beforeEach(() => {
     taskMembersApi.getTaskMembers.mockResolvedValue({ data: mockMembers });
     taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    taskMembersApi.addTaskMember.mockResolvedValue({ data: { success: true } });
+    taskMembersApi.removeTaskMember.mockResolvedValue({ data: { success: true } });
     usersApi.getAll.mockResolvedValue({ data: mockAllUsers });
+    usersApi.getAllForSelection.mockResolvedValue({ data: { data: mockAllUsers } });
   });
 
   it('renders task members section', async () => {
@@ -105,7 +108,7 @@ describe('TaskMembersList.vue', () => {
 
     // Check API was called
     expect(taskMembersApi.getTaskMembers).toHaveBeenCalledWith(mockTask.task_id);
-    expect(usersApi.getAll).toHaveBeenCalled();
+    expect(usersApi.getAllForSelection).toHaveBeenCalled();
   });
 
   it('displays member cards with correct information', async () => {
