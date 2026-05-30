@@ -51,9 +51,9 @@
             </div>
           </div>
 
-          <!-- Remove Button (nur wenn canEditTask und nicht Creator/Assigned-to) -->
+          <!-- Remove Button (nur für normale Members, nicht Creator/Assigned) -->
           <button
-            v-if="canEditTask && member.role === 'member'"
+            v-if="canManageMembers && member.role === 'member'"
             @click.stop.prevent="openRemoveDialog(member)"
             class="btn-remove"
             title="Mitglied entfernen"
@@ -70,16 +70,16 @@
       <p>Keine Mitglieder hinzugefügt (nur Creator und Assigned-to)</p>
     </div>
 
-    <!-- Add Member Section (nur mit WRITE-Permission) -->
-    <div v-if="canEditTask" class="add-member-section">
-      <h4>Mitglied hinzufügen</h4>
+    <!-- Add Member Section (Creator oder WRITE-Permission) -->
+    <div v-if="canManageMembers" class="add-member-section">
+      <h4>Mitglieder hinzufügen</h4>
       <div class="add-member-form">
         <select
-          v-model="selectedUserId"
+          v-model="selectedUserIds"
           class="member-select"
-          placeholder="Benutzer wählen..."
+          multiple
+          size="6"
         >
-          <option value="">-- Benutzer wählen --</option>
           <option
             v-for="user in availableUsers"
             :key="user.user_id"
@@ -89,14 +89,15 @@
           </option>
         </select>
         <button
-          @click.stop.prevent="addMember"
-          :disabled="!selectedUserId || isAddingMember"
+          @click.stop.prevent="addMembers"
+          :disabled="selectedUserIds.length === 0 || isAddingMember"
           class="btn-add"
           type="button"
         >
-          {{ isAddingMember ? "Wird hinzugefügt..." : "+ Hinzufügen" }}
+          {{ isAddingMember ? 'Werden hinzugefügt...' : `+ ${selectedUserIds.length > 0 ? selectedUserIds.length + ' ' : ''}Hinzufügen` }}
         </button>
       </div>
+      <p class="add-member-hint">Tipp: Mit Ctrl/Cmd oder Shift mehrere Benutzer gleichzeitig auswählen.</p>
     </div>
 
     <!-- Remove Confirmation Modal -->
@@ -162,10 +163,11 @@ const emit = defineEmits(['members-updated']);
 // State
 const members = ref([]);
 const allUsers = ref([]);
-const selectedUserId = ref(null);
+const selectedUserIds = ref([]);
 const loading = ref(false);
 const isAddingMember = ref(false);
 const canEditTask = ref(false);
+const currentUserId = ref(Number(localStorage.getItem('userId')) || null);
 
 const memberToRemove = ref(null);
 const showRemoveDialog = ref(false);
@@ -183,11 +185,18 @@ const allMembers = computed(() => {
       lastname: userData.lastname || 'User',
       email: userData.email || '',
       profile_picture: userData.profile_picture || null,
-      role: m.role || 'member',
+      role: m.role || (m.user_id === props.creatorId ? 'creator' : m.user_id === props.assignedToId ? 'assigned' : 'member'),
       joined_at: m.joined_at,
     };
   }).filter(m => m.user_id);
 });
+
+const isCurrentUserCreator = computed(() => {
+  if (!currentUserId.value || !props.creatorId) return false;
+  return Number(currentUserId.value) === Number(props.creatorId);
+});
+
+const canManageMembers = computed(() => canEditTask.value || isCurrentUserCreator.value);
 
 const availableUsers = computed(() => {
   return allUsers.value.filter(
@@ -216,10 +225,19 @@ const loadMembers = async () => {
 
 const loadUsers = async () => {
   try {
-    const response = await usersApi.getAll();
-    allUsers.value = response.data;
+    const response = await usersApi.getAllForSelection();
+    const users = response?.data?.data ?? response?.data ?? [];
+    allUsers.value = Array.isArray(users) ? users : [];
   } catch (error) {
-    console.error('Fehler beim Laden der Benutzer:', error);
+    console.error('Fehler beim Laden der Benutzer (for-chat), versuche Fallback /users:', error);
+    try {
+      const fallbackResponse = await usersApi.getAll();
+      const users = fallbackResponse?.data?.data ?? fallbackResponse?.data ?? [];
+      allUsers.value = Array.isArray(users) ? users : [];
+    } catch (fallbackError) {
+      console.error('Fehler beim Laden der Benutzer (Fallback /users):', fallbackError);
+      allUsers.value = [];
+    }
   }
 };
 
@@ -233,23 +251,35 @@ const checkPermissions = async () => {
   }
 };
 
-const addMember = async () => {
-  if (!selectedUserId.value) return;
+const addMembers = async () => {
+  if (!Array.isArray(selectedUserIds.value) || selectedUserIds.value.length === 0) return;
+
+  const userIds = selectedUserIds.value.map((id) => Number(id)).filter((id) => Number.isFinite(id));
 
   try {
     isAddingMember.value = true;
-    await taskMembersApi.addTaskMember(props.taskId, {
-      user_id: selectedUserId.value
-    });
-
-    showSuccess('Mitglied hinzugefügt!');
-    await loadMembers();
-    selectedUserId.value = null;
-  } catch (error) {
-    console.error('Fehler beim Hinzufügen des Mitglieds:', error);
-    showError(
-      error.response?.data?.message || 'Mitglied konnte nicht hinzugefügt werden'
+    const results = await Promise.allSettled(
+      userIds.map((userId) =>
+        taskMembersApi.addTaskMember(props.taskId, { user_id: userId })
+      )
     );
+
+    const successCount = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected');
+
+    if (successCount > 0) {
+      showSuccess(successCount === 1 ? '1 Mitglied hinzugefügt!' : `${successCount} Mitglieder hinzugefügt!`);
+    }
+    if (failed.length > 0) {
+      const firstError = failed[0]?.reason?.response?.data?.message;
+      showError(firstError || `${failed.length} Mitglied(er) konnten nicht hinzugefügt werden`);
+    }
+
+    await loadMembers();
+    selectedUserIds.value = [];
+  } catch (error) {
+    console.error('Fehler beim Hinzufügen der Mitglieder:', error);
+    showError(error.response?.data?.message || 'Mitglieder konnten nicht hinzugefügt werden');
   } finally {
     isAddingMember.value = false;
   }
