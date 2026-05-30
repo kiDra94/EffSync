@@ -1,0 +1,93 @@
+\authorchapter{Technologien und Systemarchitektur}{Dražen Plavšić}
+\label{ch:systemarchitektur}
+In diesem Kapitel wird die technische Basis und die grundlegende Softwarearchitektur von \textit{EffSync} vorgestellt. Bevor im darauffolgenden Kapitel auf die konkrete Implementierung der spezifischen Use-Cases eingegangen wird, wird zunächst das strukturelle Fundament des Systems erläutert.
+\todo{Das obere würde ich lösche und nur den unteren teil als einleitung lassen.}
+Bevor die Eigenschaften der verwendeten Architektur beschrieben werden, ist zunächst der Begriff der Software-Architektur zu klären. Nach Bass, Clements und Kazman beschreibt Software-Architektur die Struktur oder die Strukturen eines Softwaresystems, bestehend aus dessen Elementen, deren extern sichtbaren Eigenschaften sowie den Beziehungen zwischen diesen Elementen \cite{bass2012software}. Damit umfasst Software-Architektur nicht nur die Zerlegung eines Systems in einzelne Bestandteile, sondern auch die grundlegenden Entwurfsentscheidungen, welche dessen Wartbarkeit, Erweiterbarkeit und Skalierbarkeit maßgeblich beeinflussen \cite{bass2012software}.
+Deshalb ist das System bewusst in ein getrenntes Frontend als Client und ein Backend als Server gegliedert. Durch diese Trennung erhöht sich die Flexibilität der Architektur, da beide Teile unabhängig entwickelt, gewartet und skaliert werden können.
+
+\authorsection{Technologie Stack}{Dražen Plavšić}
+\label{sec:technologie_stack}
+Für die Implementierung der Benutzeroberfläche wird \textit{Vue.js} eingesetzt, da die Expertise bei diesem JavaScript Framework gegeben ist und die Entwicklung von komponentenbasierten Webanwendungen\cite{vue_introduction} unterstützt wird. Die Build- und Entwicklungsumgebung wird durch \textit{Vite}\cite{vite_guide} ergänzt.
+\textit{NestJS}\cite{nestjs_docs} kommt als Backend-Framework zum Einsatz, da es eine integrierte Unterstützung für WebSockets\cite{nestjs_websocket} bietet und somit die Implementierung der Live-Chat-Funktionalität (siehe Abschnitt~\ref{sec:live_chat}) ermöglicht. Auf dessen Basis wird auch die serverseitige Logik und die \gls{REST-API} implementiert. 
+Für den Datenbankzugriff wird \textit{Prisma ORM}\cite{prisma_orm} verwendet. Dieses übernimmt die Modellierung und Migration der Datenstrukturen.
+Durch diese Kombination wird eine moderne, wartbare und klar strukturierte Systemarchitektur erreicht, bei der die einzelnen Schichten klar voneinander, wie in Abbildung \ref{fig:cleint_server_communication}, getrennt sind.\todo{eventuell nach unten schieben, jetzt wird bei deen unteren subsections auf hier oben verwisen}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{content/bilder/client_server_communication}
+  \caption{Client-Server Kommunikation}
+  \label{fig:cleint_server_communication}
+\end{figure}
+
+\authorsection{Frontend-Architektur und Komponenten-Setup}{Dražen Plavšić}
+\label{sec:frontend_architektur}
+In diesem Abschnitt wird die Frontend-Architektur von \textit{EffSync} erläutert – von der Ordner- und Komponentenstruktur über das globale State-Management und Routing bis hin zur API-Kommunikationsebene und dem Einsatz einer Mock-Datenbank.
+
+\subsection{Ordnerstruktur und Trennung der Zuständigkeiten}
+\label{sec:frontend_ordnerstruktur}
+
+Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, folgt die Architektur von \textit{EffSync} dem Prinzip der \textit{Separation of Concerns} \cite{parnas1972criteria} (Trennung der Zuständigkeiten). Wie in Abbildung~\ref{fig:frontend_ordner} dargestellt, wird der Sourcecode in logische Schichten unterteilt, die jeweils spezifische Aufgaben innerhalb des Frontends übernehmen.
+
+\begin{figure}[H]    
+    \dirtree{%    
+    .1 src.    
+    .2 api \DTcomment{Zentrale API-Konfiguration und HTTP-Client (Axios)}.    
+    .3 httpClient.js.    
+    .3 tasks.js.    
+    .3 tasks.test.js.    
+    .2 components \DTcomment{Wiederverwendbare UI-Bausteine, gruppiert nach Features}.    
+    .3 chat.    
+    .3 dashboard.    
+    .3 notifications.    
+    .3 tasks.    
+    .3 templates.    
+    .2 composables \DTcomment{Ausgelagerte Vue 3 Composition-Logik (z.\,B. \texttt{useChat.js})}.    
+    .3 useChat.js.    
+    .3 useTaskFilters.js.    
+    .3 useTaskValidation.js.    
+    .2 config \DTcomment{Globale Konfigurationsdateien}.    
+    .3 api.config.js.    
+    .2 router \DTcomment{Routen-Definitionen der Single Page Application}.    
+    .3 index.js.    
+    .2 stores \DTcomment{Pinia State-Management (Global und Entitäten)}.
+    .3 authStore.js.    
+    .3 entities.    
+    .4 taskStore.js.    
+    .2 views \DTcomment{Top-Level-Seitenkomponenten (z.\,B. Dashboard, Login)}.    
+    .3 DashboardView.vue.    
+    .3 LoginView.vue.    
+    }    
+    \caption{Frontend-Ordnerstruktur und -Architektur von EffSync}    
+    \label{fig:frontend_ordner}
+\end{figure}
+
+Wie aus der Ordnerstruktur ersichtlich wird, trennt \textit{EffSync} den Datenfluss und die Geschäftslogik strikt von der visuellen Darstellung. Die Komponenten in \texttt{views} und \texttt{components} dienen ausschließlich dem Rendering der Benutzeroberfläche und nehmen keine direkten Netzwerk-Requests vor. Stattdessen wird jegliche komplexe Geschäfts- und Validierungslogik in \texttt{composables} ausgelagert. Die tatsächliche Datenhaltung erfolgt über die \texttt{stores} in Kombination mit der \texttt{api}-Schicht. 
+
+Durch diese Entkopplung entsteht eine modulare Architektur. Sie ermöglicht nicht nur isolierte Unit-Tests dazu im  für einzelne API-Services (wie beispielsweise \texttt{tasks.test.js}, sihe Abschnitt \ref{sec:unit_tests}), sondern reduziert auch die Komplexität bei der Weiterentwicklung\cite{hamza2005separation} und beschleunigt das Auffinden von Fehlern (\textit{Debugging}).
+
+\subsection{Globale Zustandsverwaltung (State Management)}
+\label{sec:globaler_state}
+
+Da die Benutzeroberfläche von \textit{EffSync} als \gls{SPA} konzipiert ist, bei der einzelne Vue-Komponenten dynamisch gerendert werden, stellt die effiziente Datenverteilung zwischen diesen Komponenten eine zentrale architektonische Herausforderung dar. Ohne eine übergeordnete Instanz bestünde die Gefahr redundanter Netzwerkanfragen -- beispielsweise wenn sowohl das \texttt{Dashboard} als auch einzelne \texttt{TaskCard}-Komponenten dieselben Task-Informationen benötigen und dafür jeweils eigene API-Aufrufe an das Backend senden würden.
+
+Um dies zu verhindern, wird ein globales State-Management-System implementiert. Dieses fungiert als \textit{Single Source of Truth} für die gesamte Applikation. Wird der Status eines Tasks geändert, synchronisieren sich alle abhängigen Ansichten (wie das Dashboard und die Task-Listen) sofort und automatisch. 
+Dafür wird Pinia als State-Management-Lösung im Vue-Frontend verwendet. Pinia ist seit Vue 3 die offizielle State-Management-Bibliothek und hat Vuex abgelöst \cite{vuejs_state_managment}. Aufgrund der nativen Integration in das Vue-Ökosystem eignet sich Pinia für die zentrale Verwaltung des gemeinsam genutzten Zustands in \textit{EffSync}.
+
+Um der etablierten Ordnerstruktur und der strikten \textit{Separation of Concerns} treu zu bleiben, ist die Zustandsverwaltung logisch aufgeteilt (siehe Abbildung~\ref{fig:frontend_ordner}). Allgemeine Funktionen wie die Authentifizierung liegen als globale Stores direkt im \texttt{stores}-Verzeichnis. Daten, die zu bestimmten Features gehören (wie Tasks oder Chats), werden hingegen in den eigenen Unterordner \texttt{stores/entities} ausgelagert.
+
+\subsubsection*{Interner Datenfluss und Setup-Store-Architektur}
+Ein wesentliches Merkmal der Implementierung ist die durchgehende Nutzung der modernen \textit{Setup-Store}-Syntax. Wie am Beispiel des \texttt{taskStore.js} ersichtlich wird, ist der Store intern analog zu einer Vue-Komponente aufgebaut und gliedert sich in drei Kernbereiche:
+\todo{statt der Aufzählung eventuell echten code aus den files zeigen?}
+\begin{itemize}
+    \item \textbf{State (Zustand):} Reaktive Variablen (wie \texttt{const tasks = ref([])}) halten die Rohdaten, die initial vom Backend geladen werden.
+    \item \textbf{Getters (Abgeleiteter Zustand):} Mittels \texttt{computed()}-Eigenschaften werden Daten reaktiv gefiltert und aufbereitet (z.\,B. \texttt{getSubtasks}), ohne den originalen Zustand zu verändern.
+    \item \textbf{Actions (Logik):} Asynchrone Funktionen beinhalten die komplexe Geschäftslogik. Sie kommunizieren über die API-Schicht mit dem Server (beispielsweise \texttt{fetchTasks} oder \texttt{patchTask}), verarbeiten WebSocket-Events und aktualisieren anschließend den lokalen State.
+\end{itemize}
+
+Durch diesen modularen Aufbau werden komplexe Logiken wie Datenbeschaffung, rekursiven Filterung oder Echtzeit-Synchronisation vollständig aus den UI-Komponenten (wie der \texttt{TaskCard.vue}) ausgelagert. Die UI-Komponenten benutzen lediglich den fertigen Zustand und rufen bei Benutzerinteraktionen die entsprechenden Actions im Store auf.
+
+\authorsection{Backend-Architektur und Schichtenmodell}{Dražen Plavšić}
+\label{sec:backend_architektur}
+
+\section{Datenbankdesign}
+
+\section{API-Design und Sicherheitskonzepte}

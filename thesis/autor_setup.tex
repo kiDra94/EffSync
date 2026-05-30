@@ -1,0 +1,60 @@
+% ==========================================
+% SETUP: Pakete für Autorenzuordnung und Todos
+% ==========================================
+\usepackage{etoolbox}
+\usepackage{xparse}
+\usepackage[colorinlistoftodos, textsize=tiny, german]{todonotes} % Für To-Do Notizen
+
+% Speicher für die Autorenliste
+\newcommand{\authorlist}{}
+
+% --- Makros für die Gliederungsebene ---
+
+\NewDocumentCommand{\authorchapter}{ o m m }{%
+    \IfNoValueTF{#1}{%
+        \chapter{#2}%
+    }{%
+        \chapter[#1]{#2}%
+    }%
+    % NEU: Hier wird die *aktuelle* Nummer fest in die Liste geschrieben
+    \edef\doappend{%
+        \noexpand\gappto\noexpand\authorlist{\thechapter & \unexpanded{#2} & \unexpanded{#3} \noexpand\\ \noexpand\hline}%
+    }%
+    \doappend
+}
+
+\NewDocumentCommand{\authorsection}{ o m m }{%
+    \IfNoValueTF{#1}{%
+        \section{#2}%
+    }{%
+        \section[#1]{#2}%
+    }%
+    \edef\doappend{%
+        \noexpand\gappto\noexpand\authorlist{\thesection & \unexpanded{#2} & \unexpanded{#3} \noexpand\\ \noexpand\hline}%
+    }%
+    \doappend
+}
+
+\NewDocumentCommand{\authorsubsection}{ o m m }{%
+    \IfNoValueTF{#1}{%
+        \subsection{#2}%
+    }{%
+        \subsection[#1]{#2}%
+    }%
+    \edef\doappend{%
+        \noexpand\gappto\noexpand\authorlist{\thesubsection & \unexpanded{#2} & \unexpanded{#3} \noexpand\\ \noexpand\hline}%
+    }%
+    \doappend
+}
+
+\NewDocumentCommand{\authorsubsubsection}{ o m m }{%
+    \IfNoValueTF{#1}{%
+        \subsubsection{#2}%
+    }{%
+        \subsubsection[#1]{#2}%
+    }%
+    \edef\doappend{%
+        \noexpand\gappto\noexpand\authorlist{\thesubsubsection & \unexpanded{#2} & \unexpanded{#3} \noexpand\\ \noexpand\hline}%
+    }%
+    \doappend
+}
