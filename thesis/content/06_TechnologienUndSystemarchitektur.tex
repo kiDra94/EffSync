@@ -60,7 +60,7 @@ Da die Benutzeroberfläche von \textit{EffSync} als \gls{SPA} konzipiert ist, be
 Um dies zu verhindern, wird ein globales State-Management-System implementiert. Dieses fungiert als \textit{Single Source of Truth} für die gesamte Applikation. Wird der Status eines Tasks geändert, synchronisieren sich alle abhängigen Ansichten (wie das Dashboard und die Task-Listen) sofort und automatisch. 
 Dafür wird Pinia als State-Management-Lösung im Vue-Frontend verwendet. Pinia ist seit Vue 3 die offizielle State-Management-Bibliothek und hat Vuex abgelöst \cite{vuejs_state_managment}. Aufgrund der nativen Integration in das Vue-Ökosystem eignet sich Pinia für die zentrale Verwaltung des gemeinsam genutzten Zustands in \textit{EffSync}.
 
-Um der etablierten Ordnerstruktur und der strikten \textit{Separation of Concerns} treu zu bleiben, ist die Zustandsverwaltung logisch aufgeteilt (siehe Abbildung~\ref{fig:frontend_ordner}). Allgemeine Funktionen wie die Authentifizierung liegen als globale Stores direkt im \texttt{stores}-Verzeichnis. Daten, die zu bestimmten Features gehören (wie Tasks oder Chats), werden hingegen in den eigenen Unterordner \texttt{/stores/entities} ausgelagert.
+Um der etablierten Ordnerstruktur und der strikten \textit{Separation of Concerns} treu zu bleiben, ist die Zustandsverwaltung logisch aufgeteilt (siehe Abbildung~\ref{fig:frontend_ordner}). Allgemeine Funktionen wie die Authentifizierung liegen als globale Stores direkt im \texttt{/stores}-Verzeichnis. Daten, die zu bestimmten Features gehören (wie Tasks oder Chats), werden hingegen in den eigenen Unterordner \texttt{/stores/entities} ausgelagert.
 
 \subsubsection{Interner Datenfluss und Setup-Store-Architektur}
 Wie am Beispiel des \texttt{taskStore.js} ersichtlich wird, ist der Store intern analog zu einer Vue-Komponente aufgebaut und gliedert sich in drei Kernbereiche:
@@ -71,10 +71,10 @@ Wie am Beispiel des \texttt{taskStore.js} ersichtlich wird, ist der Store intern
     \item \textbf{Actions (Logik):} Asynchrone Funktionen beinhalten die komplexe Geschäftslogik. Sie kommunizieren über die API-Schicht mit dem Server (beispielsweise \texttt{fetchTasks} oder \texttt{patchTask}), verarbeiten WebSocket-Events und aktualisieren anschließend den lokalen State.
 \end{itemize}
 
-Durch diesen modularen Aufbau werden komplexe Logiken wie Datenbeschaffung,  Filterung oder Echtzeit-Synchronisation vollständig aus den UI-Komponenten (wie der \texttt{TaskCard.vue}) ausgelagert. Die UI-Komponenten benutzen lediglich den fertigen Zustand und rufen bei Benutzerinteraktionen die entsprechenden Actions im Store auf.
+Durch diesen modularen Aufbau werden komplexe Logiken wie Datenbeschaffung, Filterung oder Echtzeit-Synchronisation vollständig aus den UI-Komponenten (wie der \texttt{TaskCard.vue}) ausgelagert. Die UI-Komponenten benutzen lediglich den fertigen Zustand und rufen bei Benutzerinteraktionen die entsprechenden Actions im Store auf.
 
 \subsubsection{Mock-Datenbank}
-Um bei der Frontend-Entwicklung nicht auf die Fertigstellung der Backend-Schnittstellen warten zu müssen, wird für eine Mock-Datenbank eingesetzt. Dieser Ansatz entkoppelt die Frontend- von der Backend-Entwicklung und ermöglicht parallele Arbeitsabläufe\cite{newman2021building}. 
+Um bei der Frontend-Entwicklung nicht auf die Fertigstellung der Backend-Schnittstellen warten zu müssen, wird eine Mock-Datenbank eingesetzt. Dieser Ansatz entkoppelt die Frontend- von der Backend-Entwicklung und ermöglicht parallele Arbeitsabläufe\cite{newman2021building}. 
 
 Die Simulation der Datenbank erfolgt über das NPM-Paket \texttt{json-server}\cite{typicode_json_server}. Aus einer simplen, lokalen JSON-Datei (\texttt{mock.db}) wird dabei eine vollständig funktionsfähige REST-API generiert. Der \texttt{json-server} verarbeitet Standard-HTTP-Anfragen (wie GET, POST, PUT und DELETE) identisch zu einem realen Backend und simuliert das Verändern, Löschen und Hinzufügen von Datensätzen. 
 
