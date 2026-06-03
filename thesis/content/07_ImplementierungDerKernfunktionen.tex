@@ -16,18 +16,30 @@ Im Folgenden wird detailliert erläutert, wie zentrale Features, wie beispielswe
 \authorsection{Live-Chat}{Dražen Plavšić}
 \label{sec:live_chat}
 
-Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie, zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation. Dies zwingt Teams dazu, für Absprachen auf externe Kommunikationsplattformen wie Discord, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
+Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie, zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation\cite{trello_powerup_boardchat}\cite{atlassian_jira_11_3_documentation}\cite{atlassian_trello_guide}\cite{atlassian_trello_tour}. Dies zwingt Teams dazu, für Absprachen auf externe Kommunikationsplattformen wie Discord, Slack, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
 
 Um dieses Problem zu lösen, wurde in \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
 
 \subsection{Technologische Umsetzung mittels WebSockets}
-Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eignen sie sich nicht für Echtzeitanwendungen. Ein ständiges Abfragen des Servers (\textit{HTTP-Polling}) nach neuen Nachrichten würde unnötige Netzwerklast erzeugen. Daher wird die Chat-Funktion vollständig über \textit{WebSockets} realisiert. Im Backend kommen hierbei NestJS-Gateways zum Einsatz, welche eine dauerhafte, bidirektionale Verbindung zum Vue-Frontend aufrechterhalten. Sendet ein Nutzer eine Nachricht, wird diese vom Server validiert und in Echtzeit per Push-Verfahren an alle relevanten Clients im jeweiligen Chatraum (\textit{Room}) verteilt.
-\todo{grafik vom komunikationsfluss einfugen}
+Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eignen sie sich nicht für Echtzeitanwendungen, da sie keine serverseitige Push-Kommunikation unterstützen~\cite{websocket_restapi_hybrid}. Ein ständiges Abfragen des Servers (\textit{HTTP-Polling}) nach neuen Nachrichten würde zudem unnötige Netzwerklast erzeugen, da jede HTTP-Anfrage einen erheblichen Protokoll-Overhead mit sich bringt~\cite{diva_polling_ws_2017}. Daher wird die Chat-Funktion vollständig über \textit{WebSockets} realisiert. Im Backend kommen hierbei NestJS-Gateways zum Einsatz, welche eine dauerhafte, bidirektionale Verbindung zum Vue-Frontend aufrechterhalten. Sendet ein Nutzer eine Nachricht, wird diese vom Server validiert und in Echtzeit per Push-Verfahren an alle relevanten Clients im jeweiligen Chatraum (\textit{Room}) verteilt (siehe Abbildung~\ref{fig:datenfluss_websocket}).
+\todo{eventuell die grafik selber in ilustrator machen da uberschneiden linien nicht optimal sind!}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{content/bilder/realtime_chat_complex.png}
+  \caption{Echtzeit-Datenfluss via WebSockets.}
+  \label{fig:datefluss_websocket}
+\end{figure}
+
+\subsection{Unterscheidung der Chat-Typen und Vermeidung von Duplikaten}
+In \textit{EffSync} wird das Chat-System prinzipiell in zwei Raumtypen (\textit{Rooms}) unterteilt: private 1-zu-1-Chats und projektbezogene Gruppenchats. Diese Unterscheidung ist nicht nur für die Darstellung in der Benutzeroberfläche, sondern vor allem für die Datenmodellierung und die Berechtigungslogik wichtig. 
+
+Bei der Initialisierung von privaten Chats greift serverseitig eine spezielle Validierungslogik, um die Erstellung redundanter Chaträume zu verhindern. Möchte Nutzer A einen Chat mit Nutzer B starten, prüft das Backend zunächst über eine Datenbankabfrage, ob bereits ein privater Raum existiert, in dem exakt diese beiden Nutzer Mitglied sind. Ist dies der Fall, wird die Erstellung blockiert und dem Client stattdessen die ID des bestehenden Raums zurückgegeben. Dies garantiert, dass die Konversation zwischen zwei Personen nicht fragmentiert wird, sondern die gesamte Historie stets in einem einzigen, fortlaufenden Chatverlauf gebündelt bleibt.
+\todo{noch erklaren wie die privaten chat room gemacht worden sind, tabllen aus erd eventuell einfugen}
 
 \subsection{Raumverwaltung und Berechtigungslogik}
-Die Komplexität eines Chatsystems liegt nicht nur in der Nachrichtenübertragung, sondern vor allem in der sicheren Verwaltung der Chaträume und der Zugriffsrechte (\textit{Authorization}). Ein exemplarisches Sicherheitsszenario ist das Entfernen von Mitgliedern aus einem Gruppenchat. 
+Während in einem privaten Chat beide Teilnehmer gleichgestellte Rechte besitzen, erfordern Gruppenchats eine hierarchische Rollenverteilung, um administrative Aufgaben abzubilden. Die Komplexität liegt hierbei in der sicheren Verwaltung der Zugriffsrechte (\textit{Authorization}). Ein exemplarisches Sicherheitsszenario ist das Entfernen von Mitgliedern aus einem Gruppenchat. 
 
-Wie in Listing~\ref{lst:chat_permissions} dargestellt, wurde im Backend eine strikte Berechtigungslogik implementiert, die zwischen zwei Szenarien unterscheidet: Möchte ein Nutzer den Chatraum freiwillig verlassen (\texttt{requesterId === targetUserId}), wird die Aktion ohne weitere Prüfung gestattet. Versucht jedoch ein Nutzer, eine \textit{andere} Person aus dem Raum zu entfernen, greift eine Sicherheitsprüfung (\texttt{assertIsCreator}). Diese stellt sicher, dass ausschließlich der Ersteller des Chatraums das Recht besitzt, andere Mitglieder auszuschließen. Andernfalls wirft das System eine \texttt{ForbiddenException} (HTTP Status 403).
+Wie in Listing~\ref{lst:chat_permissions} dargestellt, wurde im Backend eine strikte Berechtigungslogik implementiert, die bei Modifikationen der Raummitglieder zwischen zwei Szenarien unterscheidet: Möchte ein Nutzer den Chatraum freiwillig verlassen (\texttt{requesterId === targetUserId}), wird die Aktion ohne weitere Prüfung gestattet. Versucht jedoch ein Nutzer, eine \textit{andere} Person aus dem Gruppenraum zu entfernen, greift eine Sicherheitsprüfung (\texttt{assertIsCreator}). Diese stellt sicher, dass ausschließlich der ursprüngliche Ersteller des Chatraums das Recht besitzt, andere Mitglieder auszuschließen. Andernfalls wirft das System aus Sicherheitsgründen sofort eine \texttt{ForbiddenException} (HTTP Status 403).
 
 \begin{listing}[H]
 \begin{minted}{typescript}
@@ -35,7 +47,7 @@ Wie in Listing~\ref{lst:chat_permissions} dargestellt, wurde im Backend eine str
 async removeMember(roomId: number, requesterId: number, targetUserId: number) {
     // Szenario B: User versucht jemand anderen zu entfernen
     if (requesterId !== targetUserId) {
-        // Prüft, ob der Requester der Creator des Raums ist. 
+        // Prüft, ob der Requester der Creator des Gruppenraums ist. 
         // Wirft intern eine ForbiddenException, falls nicht.
         await this.chatRoomsService.assertIsCreator(roomId, requesterId);
     }
@@ -45,7 +57,7 @@ async removeMember(roomId: number, requesterId: number, targetUserId: number) {
     return this.chatRoomMembersRepository.delete({ roomId, userId: targetUserId });
 }
 \end{minted}
-\caption{Berechtigungsprüfung beim Entfernen von Chat-Mitgliedern}
+\caption{Berechtigungsprüfung beim Entfernen von Mitgliedern aus einem Gruppenchat}
 \label{lst:chat_permissions}
 \end{listing}
 \todo{wieter schreiben}
