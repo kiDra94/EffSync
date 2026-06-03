@@ -1,7 +1,51 @@
 \chapter{Implementierung der Kernfunktionen}
-das dann löschen -- hier werden die funktionen im deteail beschrieben, sectionen habe ich nur grob vorgelegt, kann und darf geändert werden!
-\section{Authentifizierung, Rollen und Berechtigungen}
-\section{Kommunikation, Benachrichtigung und Kalender}
-\section{Taskverwaltung}
-\section{Live-Chat}
+\label{ch:implementierung_kernfunktionen}
+Aufbauend auf den technologischen Entscheidungen und der Systemarchitektur, die im vorherigen Kapitel~\ref{ch:systemarchitektur} definiert wurden, widmet sich dieses Kapitel der praktischen Umsetzung von \textit{EffSync}. Der Fokus liegt dabei auf der Implementierung der wesentlichen Kernfunktionen.
+
+Im Folgenden wird detailliert erläutert, wie zentrale Features, wie beispielsweise das Task-Management, die Echtzeitkommunikation und die rollenbasierte Zugriffssteuerung, technisch realisiert wurden. Anhand ausgewählter Abläufe wird demonstriert, wie das Vue.js-Frontend und das NestJS-Backend in der Praxis zusammenarbeiten.
+
+\authorsection{Authentifizierung, Rollen und Berechtigungen}{Ereny Micail}
+\label{sec:auth_rollen_berechtigungen}
+
+\authorsection{Kommunikation, Benachrichtigung und Kalender}{Ereny Micail}
+\label{sec:kommunkitaion_benachrichhtigung_kalender}
+
+\authorsection{Taskverwaltung}{Dražen Plavšić}
+\label{sec:taskverwaltung}
+
+\authorsection{Live-Chat}{Dražen Plavšić}
 \label{sec:live_chat}
+
+Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie, zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation. Dies zwingt Teams dazu, für Absprachen auf externe Kommunikationsplattformen wie Discord, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
+
+Um dieses Problem zu lösen, wurde in \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
+
+\subsection{Technologische Umsetzung mittels WebSockets}
+Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eignen sie sich nicht für Echtzeitanwendungen. Ein ständiges Abfragen des Servers (\textit{HTTP-Polling}) nach neuen Nachrichten würde unnötige Netzwerklast erzeugen. Daher wird die Chat-Funktion vollständig über \textit{WebSockets} realisiert. Im Backend kommen hierbei NestJS-Gateways zum Einsatz, welche eine dauerhafte, bidirektionale Verbindung zum Vue-Frontend aufrechterhalten. Sendet ein Nutzer eine Nachricht, wird diese vom Server validiert und in Echtzeit per Push-Verfahren an alle relevanten Clients im jeweiligen Chatraum (\textit{Room}) verteilt.
+\todo{grafik vom komunikationsfluss einfugen}
+
+\subsection{Raumverwaltung und Berechtigungslogik}
+Die Komplexität eines Chatsystems liegt nicht nur in der Nachrichtenübertragung, sondern vor allem in der sicheren Verwaltung der Chaträume und der Zugriffsrechte (\textit{Authorization}). Ein exemplarisches Sicherheitsszenario ist das Entfernen von Mitgliedern aus einem Gruppenchat. 
+
+Wie in Listing~\ref{lst:chat_permissions} dargestellt, wurde im Backend eine strikte Berechtigungslogik implementiert, die zwischen zwei Szenarien unterscheidet: Möchte ein Nutzer den Chatraum freiwillig verlassen (\texttt{requesterId === targetUserId}), wird die Aktion ohne weitere Prüfung gestattet. Versucht jedoch ein Nutzer, eine \textit{andere} Person aus dem Raum zu entfernen, greift eine Sicherheitsprüfung (\texttt{assertIsCreator}). Diese stellt sicher, dass ausschließlich der Ersteller des Chatraums das Recht besitzt, andere Mitglieder auszuschließen. Andernfalls wirft das System eine \texttt{ForbiddenException} (HTTP Status 403).
+
+\begin{listing}[H]
+\begin{minted}{typescript}
+// Backend: ChatRoomsService
+async removeMember(roomId: number, requesterId: number, targetUserId: number) {
+    // Szenario B: User versucht jemand anderen zu entfernen
+    if (requesterId !== targetUserId) {
+        // Prüft, ob der Requester der Creator des Raums ist. 
+        // Wirft intern eine ForbiddenException, falls nicht.
+        await this.chatRoomsService.assertIsCreator(roomId, requesterId);
+    }
+    
+    // Szenario A (User entfernt sich selbst) oder
+    // Szenario B (Creator entfernt User) war erfolgreich:
+    return this.chatRoomMembersRepository.delete({ roomId, userId: targetUserId });
+}
+\end{minted}
+\caption{Berechtigungsprüfung beim Entfernen von Chat-Mitgliedern}
+\label{lst:chat_permissions}
+\end{listing}
+\todo{wieter schreiben}
