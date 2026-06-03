@@ -4,13 +4,13 @@
 
 \usepackage[utf8]{inputenc}					% Zeichensatz für Umlaute
 \usepackage[ngerman]{babel}                 % Zeichensatz für \flqq \frqq
-% \usepackage[T1]{fontenc}                   % Schriftart
+% \usepackage[T1]{fontenc}                  % Schriftart
 \usepackage{graphicx}				        % Bilder Packet
 \usepackage{float}                          % Bilder positionieren
 \usepackage{tikz}                           % Zeichnen
 \usepackage{svg}                            % SVG Bilder
 \usepackage{url}							% URL im Literaturverzeichnis
-\usepackage{scrhack}                         % Fix deprecated \float@addtolist warning with KOMA-Script
+\usepackage{dirtree}                        % For directory trees
 \usepackage[hidelinks]{hyperref}            % Links im Dokument
 \usepackage{booktabs}                       % Tabellen Linien
 \usepackage{color}                          % Text Farben
@@ -19,6 +19,7 @@
 \usepackage{longtable}                      % tabellen für api
 \usepackage{array}                          % tabellen für api
 \usepackage{seqsplit}                       % tabelle api
+\usepackage{listings}                       % for listing environment
 \hyphenation{De-zi-mal-tren-nung}			% Silbentrennung
 \hyphenpenalty=9750							% Weniger Silbentrennung
 \usepackage{csquotes}
@@ -36,9 +37,10 @@
 
 \usepackage{pdflscape}
 \usepackage{env}
-\usepackage{minted}
+\usepackage{minted}                  % Fix deprecated \float@addtolist warning with KOMA-Script
 \input{minted_setup}
 \input{autor_setup}
+\usepackage{scrhack}      
 
 \begin{document}
 % \begin{singlespace}
