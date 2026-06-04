@@ -1,84 +1,101 @@
-\chapter{Implementierung der Kernfunktionen}
-\label{ch:implementierung_kernfunktionen}
-Aufbauend auf den technologischen Entscheidungen und der Systemarchitektur, die im vorherigen Kapitel~\ref{ch:systemarchitektur} definiert wurden, widmet sich dieses Kapitel der praktischen Umsetzung von \textit{EffSync}. Der Fokus liegt dabei auf der Implementierung der wesentlichen Kernfunktionen.
+\authorchapter{Technologien und Systemarchitektur}{Dražen Plavšić}
+\label{ch:systemarchitektur}
+In diesem Kapitel wird die technische Basis und die grundlegende Softwarearchitektur von \textit{EffSync} vorgestellt.
+Bevor die Eigenschaften der verwendeten Architektur beschrieben werden, ist zunächst der Begriff der Software-Architektur zu klären. Nach Bass, Clements und Kazman beschreibt Software-Architektur die Struktur oder die Strukturen eines Softwaresystems, bestehend aus dessen Elementen, deren extern sichtbaren Eigenschaften sowie den Beziehungen zwischen diesen Elementen \cite{bass2012software}. Damit umfasst Software-Architektur nicht nur die Zerlegung eines Systems in einzelne Bestandteile, sondern auch die grundlegenden Entwurfsentscheidungen, welche dessen Wartbarkeit, Erweiterbarkeit und Skalierbarkeit maßgeblich beeinflussen \cite{bass2012software}.
+Deshalb ist das System bewusst in ein getrenntes Frontend als Client und ein Backend als Server gegliedert. Durch diese Trennung erhöht sich die Flexibilität der Architektur, da beide Teile unabhängig entwickelt, gewartet und skaliert werden können.
 
-Im Folgenden wird detailliert erläutert, wie zentrale Features, wie beispielsweise das Task-Management, die Echtzeitkommunikation und die rollenbasierte Zugriffssteuerung, technisch realisiert wurden. Anhand ausgewählter Abläufe wird demonstriert, wie das Vue.js-Frontend und das NestJS-Backend in der Praxis zusammenarbeiten.
+\authorsection{Technologie Stack}{Dražen Plavšić}
+\label{sec:technologie_stack}
+Für die Implementierung der Benutzeroberfläche wird \textit{Vue.js} eingesetzt, da die Expertise bei diesem JavaScript Framework gegeben ist und die Entwicklung von komponentenbasierten Webanwendungen\cite{vue_introduction} unterstützt wird. Die Build- und Entwicklungsumgebung wird durch \textit{Vite}\cite{vite_guide} ergänzt.
+\textit{NestJS}\cite{nestjs_docs} kommt als Backend-Framework zum Einsatz, da es eine integrierte Unterstützung für WebSockets\cite{nestjs_websocket} bietet und somit die Implementierung der Live-Chat-Funktionalität (\textit{siehe \autoref{sec:live_chat}}) ermöglicht. Auf dessen Basis wird auch die serverseitige Logik und die \gls{REST-API} implementiert. 
+Als relationales Datenbanksystem kommt \textit{PostgreSQL}\cite{postgresql} zum Einsatz. Für den zugehörigen Datenbankzugriff wird \textit{Prisma ORM}\cite{prisma_orm} verwendet. Dieses übernimmt die Modellierung und Migration der Datenstrukturen.
+Durch diese Kombination wird eine moderne, wartbare und klar strukturierte Systemarchitektur erreicht, bei der die einzelnen Schichten klar voneinander getrennt sind.
 
-\authorsection{Authentifizierung, Rollen und Berechtigungen}{Ereny Micail}
-\label{sec:auth_rollen_berechtigungen}
+\authorsection{Frontend-Architektur und Komponenten-Setup}{Dražen Plavšić}
+\label{sec:frontend_architektur}
+In diesem Abschnitt wird die Frontend-Architektur von \textit{EffSync} erläutert, von der Ordner- und Komponentenstruktur über das globale State-Management und dem Einsatz einer Mock-Datenbank.
 
-\authorsection{Kommunikation, Benachrichtigung und Kalender}{Ereny Micail}
-\label{sec:kommunkitaion_benachrichhtigung_kalender}
+\subsection{Ordnerstruktur und Trennung der Zuständigkeiten}
+\label{sec:frontend_ordnerstruktur}
 
-\authorsection{Taskverwaltung}{Dražen Plavšić}
-\label{sec:taskverwaltung}
+Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, folgt die Architektur von \textit{EffSync} dem Prinzip der \textit{Separation of Concerns} \cite{parnas1972criteria} (Trennung der Zuständigkeiten). Wie in Abbildung~\ref{fig:frontend_ordner} dargestellt, wird der Sourcecode in logische Schichten unterteilt, die jeweils spezifische Aufgaben innerhalb des Frontends übernehmen.
 
-\authorsection{Live-Chat}{Dražen Plavšić}
-\label{sec:live_chat}
+\begin{figure}[H]    
+    \dirtree{%    
+    .1 src.    
+    .2 api \DTcomment{Zentrale API-Konfiguration und HTTP-Client (Axios)}.    
+    .3 httpClient.js.    
+    .3 tasks.js.    
+    .3 tasks.test.js.    
+    .2 components \DTcomment{Wiederverwendbare UI-Bausteine, gruppiert nach Features}.    
+    .3 chat.    
+    .3 tasks.   
+    .2 composables \DTcomment{Ausgelagerte Vue 3 Composition-Logik (z.\,B. \texttt{useChat.js})}.    
+    .3 useChat.js.    
+    .3 useTaskFilters.js.    
+    .3 useTaskValidation.js.    
+    .2 config \DTcomment{Globale Konfigurationsdateien}.    
+    .3 api.config.js.  
+    .2 stores \DTcomment{Pinia State-Management (Global und Entitäten)}.
+    .3 authStore.js.    
+    .3 entities.    
+    .4 taskStore.js.    
+    .2 views \DTcomment{Top-Level-Seitenkomponenten (z.\,B. Dashboard, Login)}.    
+    .3 DashboardView.vue.    
+    .3 LoginView.vue.    
+    }    
+    \caption{Frontend-Ordnerstruktur und -Architektur von EffSync}    
+    \label{fig:frontend_ordner}
+\end{figure}
 
-Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie, zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation\cite{trello_powerup_boardchat}\cite{atlassian_jira_11_3_documentation}\cite{atlassian_trello_guide}\cite{atlassian_trello_tour}. Dies zwingt Teams dazu, für Absprachen auf externe Kommunikationsplattformen wie Discord, Slack, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
+Wie aus der Ordnerstruktur ersichtlich wird, trennt \textit{EffSync} den Datenfluss und die Geschäftslogik strikt von der visuellen Darstellung. Die Komponenten in \texttt{/views} und \texttt{/components} dienen ausschließlich dem Rendering der Benutzeroberfläche und nehmen keine direkten Netzwerk-Requests vor. Stattdessen wird jegliche komplexe Geschäfts- und Validierungslogik in \texttt{/composables} ausgelagert. Die tatsächliche Datenhaltung erfolgt über die \texttt{/stores} in Kombination mit der \texttt{/api}-Schicht. 
 
-Um dieses Problem zu lösen, wirdin \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
+Durch diese Entkopplung entsteht eine modulare Architektur. Sie ermöglicht nicht nur isolierte Unit-Tests (wie beispielsweise \texttt{tasks.test.js}, \textit{siehe \autoref{sec:unit_tests}}) sondern reduziert auch die Komplexität bei der Weiterentwicklung\cite{hamza2005separation} und beschleunigt das Auffinden von Fehlern (\textit{Debugging}).
 
-\subsection{Technologische Umsetzung mittels WebSockets}
-Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eignen sie sich nicht für Echtzeitanwendungen, da sie keine serverseitige Push-Kommunikation unterstützen~\cite{websocket_restapi_hybrid}. Ein ständiges Abfragen des Servers (\textit{HTTP-Polling}) nach neuen Nachrichten würde zudem unnötige Netzwerklast erzeugen, da jede HTTP-Anfrage einen erheblichen Protokoll-Overhead mit sich bringt~\cite{diva_polling_ws_2017}. Daher wird die Chat-Funktion vollständig über \textit{WebSockets} realisiert. Im Backend kommen hierbei NestJS-Gateways zum Einsatz, welche eine dauerhafte, bidirektionale Verbindung zum Vue-Frontend aufrechterhalten. Sendet ein Nutzer eine Nachricht, wird diese vom Server validiert und in Echtzeit per Push-Verfahren an alle relevanten Clients im jeweiligen Chatraum (\textit{Room}) verteilt (siehe Abbildung\ref{fig:datenfluss_websocket}).
-\begin{figure}[H]
+\subsection{Globale Zustandsverwaltung (State Management)}
+\label{sec:globaler_state}
+
+Da die Benutzeroberfläche von \textit{EffSync} als \gls{SPA} konzipiert ist, bei der einzelne Vue-Komponenten dynamisch gerendert werden, stellt die  Datenverteilung zwischen diesen Komponenten eine architektonische Herausforderung dar. Ohne eine übergeordnete Instanz besteht die Gefahr redundanter Netzwerkanfragen. Beispielsweise wenn das \texttt{Dashboard} als auch einzelne \texttt{TaskCard}-Komponenten dieselben Task-Informationen benötigen und dafür jeweils eigene API-Aufrufe an das Backend senden würden.
+
+Um dies zu verhindern, wird ein globales State-Management-System implementiert. Dieses fungiert als \textit{Single Source of Truth} für die gesamte Applikation. Wird der Status eines Tasks geändert, synchronisieren sich alle abhängigen Ansichten (wie das Dashboard und die Task-Listen) sofort und automatisch. 
+Dafür wird Pinia als State-Management-Lösung im Vue-Frontend verwendet. Pinia ist seit Vue 3 die offizielle State-Management-Bibliothek und hat Vuex abgelöst \cite{vuejs_state_managment}. Aufgrund der nativen Integration in das Vue-Ökosystem eignet sich Pinia für die zentrale Verwaltung des gemeinsam genutzten Zustands in \textit{EffSync}.
+
+Um der etablierten Ordnerstruktur und der strikten \textit{Separation of Concerns} treu zu bleiben, ist die Zustandsverwaltung logisch aufgeteilt (siehe Abbildung~\ref{fig:frontend_ordner}). Allgemeine Funktionen wie die Authentifizierung liegen als globale Stores direkt im \texttt{/stores}-Verzeichnis. Daten, die zu bestimmten Features gehören (wie Tasks oder Chats), werden hingegen in den eigenen Unterordner \texttt{/stores/entities} ausgelagert.
+
+\subsubsection{Interner Datenfluss und Setup-Store-Architektur}
+Wie am Beispiel des \texttt{taskStore.js} ersichtlich wird, ist der Store intern analog zu einer Vue-Komponente aufgebaut und gliedert sich in drei Kernbereiche:
+\todo{statt der Aufzählung eventuell echten code aus den files zeigen?}
+\begin{itemize}
+    \item \textbf{State (Zustand):} Reaktive Variablen (wie \texttt{const tasks = ref([])}) halten die Rohdaten, die initial vom Backend geladen werden.
+    \item \textbf{Getters (Abgeleiteter Zustand):} Mittels \texttt{computed()}-Eigenschaften werden Daten reaktiv gefiltert und aufbereitet (z.\,B. \texttt{getSubtasks}), ohne den originalen Zustand zu verändern.
+    \item \textbf{Actions (Logik):} Asynchrone Funktionen beinhalten die komplexe Geschäftslogik. Sie kommunizieren über die API-Schicht mit dem Server (beispielsweise \texttt{fetchTasks} oder \texttt{patchTask}), verarbeiten WebSocket-Events und aktualisieren anschließend den lokalen State.
+\end{itemize}
+
+Durch diesen modularen Aufbau werden komplexe Logiken wie Datenbeschaffung, Filterung oder Echtzeit-Synchronisation vollständig aus den UI-Komponenten (wie der \texttt{TaskCard.vue}) ausgelagert. Die UI-Komponenten benutzen lediglich den fertigen Zustand und rufen bei Benutzerinteraktionen die entsprechenden Actions im Store auf.
+
+\subsubsection{Mock-Datenbank}
+Um bei der Frontend-Entwicklung nicht auf die Fertigstellung der Backend-Schnittstellen warten zu müssen, wird eine Mock-Datenbank eingesetzt. Dieser Ansatz entkoppelt die Frontend- von der Backend-Entwicklung und ermöglicht parallele Arbeitsabläufe\cite{newman2021building}. 
+
+Die Simulation der Datenbank erfolgt über das NPM-Paket \texttt{json-server}\cite{typicode_json_server}. Aus einer simplen, lokalen JSON-Datei (\texttt{mock.db}) wird dabei eine vollständig funktionsfähige REST-API generiert. Der \texttt{json-server} verarbeitet Standard-HTTP-Anfragen (wie GET, POST, PUT und DELETE) identisch zu einem realen Backend und simuliert das Verändern, Löschen und Hinzufügen von Datensätzen. 
+
+Dadurch lassen sich Architektur-Komponenten wie der HTTP-Client (Axios) und das State-Management (Pinia) bereits frühzeitig implementieren und testen. Sobald das echte NestJS-Backend einsatzbereit ist, muss lediglich die Basis-URL in der Konfiguration ausgetauscht werden, während die Logik der UI-Komponenten vollständig unangetastet bleibt.
+
+\authorsection{Backend-Architektur und Schichtenmodell}{Dražen Plavšić}
+\label{sec:backend_architektur}
+Die Backend-Architektur von \textit{EffSync} folgt einem strikten Schichtenmodell, um den Datenfluss und die Geschäftslogik voneinander zu trennen. Die Struktur besteht im Kern aus Controllern, Services und dem Data Access Layer.
+
+Eingehende HTTP-Anfragen vom \textit{Frontend} werden, wie in Abbildung \ref{fig:cleint_server_communication}, von den \textit{Controllern} entgegengenommen. Deren Aufgabe beschränkt sich darauf, das Routing zu verwalten, Parameter zu extrahieren und die Anfrage an den entsprechenden Service weiterzuleiten. Die eigentliche Geschäftslogik wie Berechnungen, Autorisierungsprüfungen und Datenmanipulation ist vollständig in den \textit{Services} gekapselt. Die Instanziierung und Verknüpfung dieser Klassen wird durch das in NestJS integrierte Dependency-Injection-System verwaltet. Die Kommunikation mit der relationalen PostgreSQL-Datenbank erfolgt über \textit{Prisma ORM} im Data Access Layer.
+\begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\textwidth]{content/bilder/realtime_chat_simpler_no_notes.png}
-  \caption{Echtzeit-Datenfluss via WebSockets.}
-  \label{fig:datenfluss_websocket}
+  \includegraphics[width=0.8\textwidth]{content/bilder/client_server_communication}
+  \caption{Client-Server Kommunikation}
+  \label{fig:cleint_server_communication}
 \end{figure}
 
-\subsection{Unterscheidung der Chat-Typen und Vermeidung von Duplikaten}
-In \textit{EffSync} wird das Chat-System prinzipiell in zwei Raumtypen (\textit{Rooms}) unterteilt: private 1-zu-1-Chats und projektbezogene Gruppenchats. Diese Unterscheidung ist nicht nur für die Darstellung in der Benutzeroberfläche, sondern vor allem für die Datenmodellierung und die Berechtigungslogik wichtig. 
+Zur Abbildung des Datenbankschemas im Backend wird das \textit{Table Module}-Pattern verfolgt \cite{fowler2002patterns}. Für jede Tabelle des \gls{erd} (beispielsweise \texttt{tasks} oder \texttt{task\_assignments}) wird über die NestJS-CLI ein separates Modul generiert, das jeweils einen eigenen Controller und Service beinhaltet.
 
-Wie im Datenbankschema (siehe Abbildung \ref{fig:chat_schema}) ersichtlich, wird der Raumtyp über das Flag \texttt{is\_private} in der Tabelle \texttt{chat\_rooms} gesteuert. Bei Gruppenchats kann zudem optional eine direkte Verknüpfung zur entsprechenden Aufgabe (\texttt{task\_id}) hergestellt werden.
+Der Datenbankzugriff ist zentral durch ein Prisma-Modul gekapselt. Dieses Modul wird einmalig im globalen \texttt{AppModule} registriert. Dadurch steht der \texttt{PrismaService} systemweit zur Verfügung und kann von jedem anderen Modul direkt über Dependency Injection injiziert und genutzt werden\cite{prisma_database_connections}. Dies verhindert die redundante Erstellung von Datenbankverbindungen und stellt ein zentralisiertes Connection Pooling sicher\cite{prisma_connection_management}.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{content/bilder/chat_db_schema.png}
-    \caption{Auszug des Datenbankschemas zur Verwaltung der Chaträume}
-    \label{fig:chat_schema}
-\end{figure}
+\authorsection{Datenbankdesign}{Ereny Micail}
 
-Bei der Initialisierung von privaten Chats greift serverseitig eine spezielle Validierungslogik, um die Erstellung redundanter Chaträume zu verhindern. Möchte Nutzer A einen Chat mit Nutzer B starten, muss sichergestellt werden, dass für diese Konstellation nicht bereits ein Raum existiert. Anstatt hierfür eine rechenintensive Datenbankabfrage über die Mitgliedertabelle durchzuführen, wird dies über das Feld \texttt{direct\_chat\_hash} in der Tabelle \texttt{chat\_rooms} (siehe Abbildung \ref{fig:chat_schema}) gelöst. 
-
-Aus den Identifikationsnummern der beiden Teilnehmer wird ein deterministischer String generiert (beispielsweise \texttt{user1\_user2}). Da dieses Feld in der Datenbank mit einem \texttt{UNIQUE}-Constraint versehen ist, wird die Erstellung eines Duplikats bereits auf Datenbankebene strikt abgelehnt. Schlägt der Erstellungsversuch aufgrund des Constraints fehl, wird die Erstellung blockiert und dem Client stattdessen die ID des bestehenden Raums zurückgegeben. Dies garantiert, dass die Konversation zwischen zwei Personen nicht fragmentiert wird, sondern die gesamte Historie stets in einem einzigen, fortlaufenden Chatverlauf bleibt.
-
-\subsection{Raumverwaltung und Berechtigungslogik}
-Während in einem privaten Chat beide Teilnehmer gleichgestellte Rechte besitzen, erfordern Gruppenchats eine hierarchische Rollenverteilung, um administrative Aufgaben abzubilden. Die Komplexität liegt hierbei in der sicheren Verwaltung der Zugriffsrechte (\textit{Authorization}). Ein exemplarisches Sicherheitsszenario ist das Entfernen von Mitgliedern aus einem Gruppenchat. 
-
-Wie in Listing~\ref{lst:chat_permissions} dargestellt, wurde im Backend eine strikte Berechtigungslogik implementiert, die bei Modifikationen der Raummitglieder zwischen zwei Szenarien unterscheidet: Möchte ein Nutzer den Chatraum freiwillig verlassen (\texttt{requesterId === targetUserId}), wird die Aktion ohne weitere Prüfung gestattet. Versucht jedoch ein Nutzer, eine \textit{andere} Person aus dem Gruppenraum zu entfernen, greift eine Sicherheitsprüfung (\texttt{assertIsCreator}). Diese stellt sicher, dass ausschließlich der ursprüngliche Ersteller des Chatraums das Recht besitzt, andere Mitglieder auszuschließen. Andernfalls wirft das System aus Sicherheitsgründen sofort eine \texttt{ForbiddenException} (HTTP Status 403).
-
-\begin{listing}[H]
-\begin{minted}{typescript}
-// Backend: ChatRoomsService
-async removeMember(roomId: number, requesterId: number, targetUserId: number) {
-    // Szenario B: User versucht jemand anderen zu entfernen
-    if (requesterId !== targetUserId) {
-        // Prüft, ob der Requester der Creator des Gruppenraums ist. 
-        // Wirft intern eine ForbiddenException, falls nicht.
-        await this.chatRoomsService.assertIsCreator(roomId, requesterId);
-    }
-    // Szenario A (User entfernt sich selbst) oder
-    // Szenario B (Creator entfernt User) war erfolgreich:
-    return this.chatRoomMembersRepository.delete({ roomId, userId: targetUserId });
-}
-async assertIsCreator(roomId: number, userId: number) {
-    // Raum anhand der roomId aus der Datenbank laden,
-    // nur das Feld created_by wird benötigt.
-    const room = await this.prisma.chat_rooms.findUnique({
-        where: { room_id: roomId },
-        select: { created_by: true },
-    });
-    // Raum existiert nicht → 404
-    if (!room) throw new NotFoundException('Room not found!');
-    // Prüft, ob der anfragende User der Ersteller des Raums ist.
-    // Falls nicht → 403 ForbiddenException
-    if (room.created_by !== userId)
-        throw new ForbiddenException('Only the room creator can do this!');
-}
-\end{minted}
-\caption{Berechtigungsprüfung beim Entfernen von Mitgliedern aus einem Gruppenchat}
-\label{lst:chat_permissions}
-\end{listing}
+\authorsection{API-Design und Sicherheitskonzepte}{Ereny Micail}
