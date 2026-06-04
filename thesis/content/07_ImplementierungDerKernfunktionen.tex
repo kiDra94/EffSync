@@ -13,28 +13,199 @@ Im Folgenden wird detailliert erläutert, wie zentrale Features, wie beispielswe
 \authorsection{Taskverwaltung}{Dražen Plavšić}
 \label{sec:taskverwaltung}
 
+Da EffSync als Task-Management-System konzipiert wurde, bildet das Task-Modul das zentrale Element der Anwendung. Die Zielsetzung des Systems ist es, sowohl Schülern als auch Lehrern die Verwaltung von Aufgaben zu erleichtern. Schüler erhalten die Möglichkeit, ihre Aufgaben eigenständig zu organisieren, während Lehrern ein strukturiertes Werkzeug zur Verfügung steht, um Aufgaben gezielt zuzuweisen und deren Bearbeitung zu überwachen.
+
+Das System wurde dabei bewusst über den schulischen Kontext hinaus konzipiert. Durch die Möglichkeit der beliebig tiefen Verschachtlung von Tasks und Subtasks lassen sich nicht nur einfache Aufgaben, sondern auch komplexe Projektstrukturen abbilden. Ein einzelner Task kann dabei ein übergeordnetes Projekt repräsentieren, dessen Teilaufgaben in weitere Unteraufgaben unterteilt werden. Dies macht das Task-Modul von EffSync grundsätzlich auch für den unternehmensinternen Einsatz geeignet, da sich ganze Projekte oder Teilprojekte vollständig innerhalb des Systems strukturieren lassen.
+
+\subsection{Datenbankschema und grundlegender Aufbau einer Aufgabe}
+Bevor komplexe Mechanismen wie Aufgabenhierarchien und automatische Evaluierungsregeln betrachtet werden, ist es wichtig, den grundlegenden strukturellen Aufbau eines \textit{Tasks} zu verstehen. Die Task-Entität bildet das zentrale Kernstück der Applikation und ist in der Datenbank so modelliert, dass sie alle Metadaten für das Projektmanagement effizient speichern kann.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{content/bilder/task_db_schema.png}
+  \caption{Auszug des Datenbankschemas zur Verwaltung der Tasks}
+  \label{fig:task_schema}
+\end{figure}
+
+Die Tabelle (sihe Abbildung \ref{fig:task_schema}) lässt sich logisch in drei wesentliche Datenbereiche unterteilen:
+\begin{itemize}
+    \item \textbf{Basisdaten \& Fortschritt:} Felder wie \texttt{title}, \texttt{description}, \texttt{status} und \texttt{progress} bilden die Kerninformationen für die Benutzeroberfläche. Der Status und der Fortschritt (0 bis 100\,\%) sind logisch aneinander gekoppelt.
+    \item \textbf{Verantwortlichkeiten \& Organisation:} Über \texttt{created\_by} und \texttt{assigned\_to} wird auf Datenbankebene sichergestellt, dass jede Aufgabe einem Ersteller und optional einem Bearbeiter zugewiesen ist. Das Feld \texttt{priority\_id} referenziert eine separate Tabelle, um Tasks nach Dringlichkeit (z.\,B. Niedrig, Hoch) zu kategorisieren, während \texttt{deadline} die zeitliche Frist setzt.
+    \item \textbf{Architektonische Steuerungsfelder:} Die Spalte \texttt{parent\_task\_id} dient als Selbstreferenz (\textit{Self-Join}) auf die gleiche Tabelle, um unendlich tiefe Task-Bäume zu ermöglichen. Die Felder \texttt{completion\_rule} (vom Datentyp JSONB) und \texttt{auto\_complete} sind speziell für die eigens entwickelte Rule-Engine reserviert.
+\end{itemize}
+
+Dieser Aufbau bildet das Fundament für die gesamte Geschäftslogik der Taskverwaltung, welche in den folgenden Abschnitten detailliert erläutert wird.
+
+\subsection{Hierarchie der Tasks}
+Jeder Task kann über das Feld \texttt{parent\_task\_id} einem übergeordneten Task zugewiesen werden. Dadurch entsteht eine hierarchische Baumstruktur (\textit{Tree Structure})\cite{celko2004trees}, bei der ein Haupt-Task theoretisch unendlich viele Subtasks und deren Unteraufgaben (\textit{Descendants}) besitzen kann.
+
+Diese strukturelle Flexibilität bringt jedoch eine technische Herausforderung mit sich: die Vermeidung von \textit{Circular References}. Wenn Task A der übergeordnete Task von Task B ist, darf Task B nicht nachträglich als übergeordneter Task von Task A definiert werden. Ebenso darf ein Task nicht sein eigener Parent werden, da dies unweigerlich zu Endlosschleifen beim Auslesen der Daten führen würde.
+
+Um die Datenintegrität aufrechtzuerhalten, implementiert das Backend bei jeder Zuweisung oder Änderung eines Parent-Tasks eine Sicherheitsprüfung. Wie in Listing \ref{lst:circular_reference} dargestellt, traversiert die Methode \texttt{validateNoCircularReference} den Baum iterativ von unten nach oben. Dabei speichert sie alle bereits besuchten Task-IDs in einem \texttt{Set}. Sobald die Methode auf einen Task stößt, dessen ID bereits im Set existiert, greift der Schutzmechanismus und das System bricht den Vorgang mit einer \texttt{BadRequestException} (HTTP Status 400) ab.
+
+\begin{listing}[H]
+\begin{minted}{typescript}
+// Backend: TasksService
+private async validateNoCircularReference(taskId: number, parentTaskId: number): Promise<void> {
+  let currentTask = await this.prisma.tasks.findUnique({
+    where: { task_id: parentTaskId },
+    select: { task_id: true, parent_task_id: true },
+  });
+  // Set initialisieren, um bereits besuchte Knoten zu speichern
+  const visited = new Set<number>([taskId]);
+  while (currentTask) {
+    if (visited.has(currentTask.task_id)) {
+      throw new BadRequestException(
+        'Circular reference detected: Task cannot be ancestor of itself'
+      );
+    }
+    visited.add(currentTask.task_id);
+    if (!currentTask.parent_task_id) break;
+    // Nächsten Knoten in der Hierarchie abfragen
+    currentTask = await this.prisma.tasks.findUnique({
+      where: { task_id: currentTask.parent_task_id },
+      select: { task_id: true, parent_task_id: true },
+    });
+  }
+}
+\end{minted}
+\caption{Schutz vor Zirkelbezügen durch Traversierung der Baumstruktur}
+\label{lst:circular_reference}
+\end{listing}
+
+Beim Abrufen der hierarchischen Daten aus der Datenbank nutzt das Backend zwei optimierte Strategien, um verschachtelte Strukturen effizient an das Vue.js-Frontend zu liefern. Für den allgemeinen Listenaufruf sammelt die Hilfsfunktion \texttt{collectDescendants} alle Nachkommen eines Tasks rekursiv über mehrere Datenbankabfragen ein und führt die Ergebnisse im Speicher zusammen. Für die vollständige Baumansicht hingegen stellt der Endpunkt \texttt{GET /tasks/:id/tree} eine optimiertere Methode bereit: \texttt{findeOneWithSubtasks} lädt dabei alle relevanten Tasks in \textbf{einer einzigen} Datenbankabfrage und übergibt sie an die Methode \texttt{buildTree}, welche das Ergebnis serverseitig als tief verschachteltes JSON-Objekt rekonstruiert (siehe Listing \ref{lst:build_tree}).
+
+\begin{listing}[H]
+\begin{minted}{typescript}
+// Backend: TasksService
+async findeOneWithSubtasks(taskId: number, includeRelations = true) {
+const rootTask = await this.prisma.tasks.findUnique({
+where: { task_id: taskId },
+});
+// Alle Tasks des Erstellers in einer einzigen Abfrage laden
+const allTasks = await this.prisma.tasks.findMany({
+where: { created_by: rootTask.created_by },
+include: includeRelations ? this.basicInclude() : undefined,
+});
+// Serverseitige Rekonstruktion als verschachtelter JSON-Baum
+return this.buildTree(allTasks, taskId);
+}
+private buildTree(allTasks: any[], taskId: number) {
+const taskMap = new Map();
+allTasks.forEach(task =>
+taskMap.set(task.task_id, { ...task, subtasks: [] })
+);
+taskMap.forEach(task => {
+const parentTaskId = taskMap.get(task.parent_task_id);
+parentTaskId?.subtasks.push(taskMap.get(task.task_id));
+});
+return taskMap.get(taskId); // Gibt das vollständige JSON-Objekt zurück
+}
+\end{minted}
+\caption{Serverseitige Rekonstruktion des Task-Baums als verschachteltes JSON-Objekt}
+\label{lst:build_tree}
+\end{listing}
+
+Dieses verschachtelte JSON-Objekt wird anschließend über die \gls{REST-API} direkt an das Vue.js-Frontend übertragen, welches die Struktur ohne weitere Transformationen für die Darstellung der Baumansicht verwenden kann.
+
+\subsection{Rule-Engine und automatische Task-Validierung}
+\textit{EffSync} besitzt auch die Fähigkeit, übergeordnete Tasks automatisch abzuschließen (\textit{Auto-Completion}), sobald bestimmte, vom Nutzer definierte Kriterien der zugehörigen Subtasks erfüllt sind. Um dies zu realisieren, wird eine eigene \textit{Rule-Engine} implementiert, die in einen visuellen Frontend-Builder und einen serverseitigen Evaluator unterteilt ist.
+
+Im Vue.js-Frontend ermöglicht die Komponente \texttt{RuleBuilder} dem Ersteller eines Tasks, logische Bedingungen zu definieren. Dabei können einzelne Subtasks beliebig tief mit logischen Operatoren (\texttt{UND}, \texttt{ODER}, \texttt{XOR}, \texttt{NICHT}) verknüpft werden. Das Frontend übersetzt diese visuelle Darstellung in einen 
+\gls{AST} im JSON-Format und übermittelt diesen an das Backend., wo er als \texttt{JSONB}\cite{postgresql_jsonb} abgespeichert wird.
+
+Sobald der Status eines Subtasks geändert wird (beispielsweise auf \texttt{COMPLETED}), löst das Backend einen Event-Trigger aus. Die serverseitige Engine lädt daraufhin den JSONB-Regelbaum des übergeordneten Tasks und wertet diesen aus. Da der Baum beliebig tief verschachtelt sein kann, erfolgt die Auswertung über einen rekursiven Algorithmus.
+
+Wie in Listing~\ref{lst:rule_evaluator} gezeigt, traversiert die Funktion \texttt{evaluateCondition} den JSON-Baum. Handelt es sich bei dem aktuellen Knoten (\textit{Node}) um ein Endblatt (\textit{Leaf}), wird geprüft, ob der referenzierte Task abgeschlossen ist. Handelt es sich hingegen um einen Operator, ruft sich die Funktion für alle angehängten Bedingungen (\textit{Operands}) selbst auf und verknüpft die booleschen Ergebnisse anschließend anhand des jeweiligen logischen Operators.
+
+\begin{listing}[H]
+\begin{minted}{typescript}
+// Backend: task.evaluator.completion.ts
+export function evaluateCondition(
+    node: ConditionNode,
+    completedTaskIds: Set<string>,
+): boolean {
+    // Abbruchbedingung der Rekursion: Blattknoten (konkreter Task)
+    if (node.type === 'leaf') {
+        return completedTaskIds.has(String(node.task_id));
+    }
+    // Rekursiver Aufruf für alle Kind-Knoten
+    const results = node.operands.map(operand =>
+        evaluateCondition(operand, completedTaskIds),
+    );
+    // Auswertung anhand des logischen Operators
+    switch (node.operator) {
+        case 'AND': return results.every(r => r === true);
+        case 'OR':  return results.some(r => r === true);
+        case 'XOR': return results.filter(r => r === true).length === 1;
+        case 'NOT': return !results[0];
+    }
+}
+\end{minted}
+\caption{Rekursive Auswertung des JSONB-Baums zur Task-Validierung}
+\label{lst:rule_evaluator}
+\end{listing}
+
+Ergibt die Evaluierung des gesamten Baums den Wert \texttt{true}, setzt die Engine den Status des Parent-Tasks automatisch auf \texttt{COMPLETED}. Gleichzeitig wird über das WebSocket-Gateway ein Echtzeit-Event an das Frontend gesendet, um die Benutzeroberfläche aller beteiligten Nutzer ohne Verzögerung zu aktualisieren.
+
+\subsection{Benutzerinteraktion, Usability und Sicherheit}
+Neben einer performanten Datenverarbeitung im Hintergrund liegt ein wesentlicher Fokus der Taskverwaltung auf der Benutzerfreundlichkeit (\textit{Usability}) und dem Schutz vor Bedienfehlern im Vue.js-Frontend. 
+
+Um dem Nutzer die Verwaltung einer Vielzahl von Aufgaben zu erleichtern, wird eine dynamische Filter- und Suchfunktion (\texttt{useTaskFilters}) implementiert. Diese ermöglicht es, die Aufgabenliste \textit{Client-seitig}, also ohne erneute Datenbankabfrage, in Echtzeit nach Status, Priorität oder Freitext zu filtern und zu sortieren. Die Priorisierung der Aufgaben ist dabei in vier Stufen unterteilt (Niedrig, Mittel, Hoch, Dringend), was eine effiziente Arbeitsorganisation unterstützt.
+
+Besonderes Augenmerk wird auf die Datenintegrität und die Vermeidung von ungewolltem Datenverlust gelegt. Das Löschen von Tasks ist daher mit mehrstufigen Sicherheitsmechanismen versehen. Versucht ein Nutzer, einen Task zu löschen, der noch aktive Subtasks enthält, lehnt das Backend die Anfrage direkt ab. Dieses Verhalten entspricht dem Prinzip der referentiellen Integrität, bei dem abhängige Kindeinträge das Löschen eines Elterndatensatzes verhindern\cite{postgresql_constraints}. Das System verlangt in diesem Fall zwingend, dass die untergeordneten Aufgaben (\textit{Dependencies}) zuerst gelöscht oder einem anderen Parent-Task zugewiesen werden.
+
+Um zudem versehentliche Löschungen von wichtigen Hauptaufgaben durch simple Fehleingaben (z.\,B.\ durch einen unachtsamen Klick) zu verhindern\cite{uxpsychology_destructive}\cite{nielsen_heuristics}, wurde eine zusätzliche Hürde im Frontend etabliert.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.4\textwidth]{content/bilder/task_delete_dilog.png}
+  \caption{Bestätigungsfenster beim Löschen von Task}
+  \label{fig:task_delete}
+\end{figure}
+
+Wie in der Abbildung \ref{fig:task_delete} ersichtlich, muss der Nutzer bei kritischen Löschvorgängen den exakten Namen des Tasks in ein Dialogfenster abtippen. Erst wenn die Eingabe zeichengenau mit dem Task-Titel übereinstimmt, wird der Lösch-Button freigeschaltet.
+
+Darüber hinaus existieren strikte Prüfungen beim Ändern des Task-Status. Ein Task kann nicht in den Status \texttt{COMPLETED} (Erledigt) übergehen, wenn der verknüpfte Arbeitsfortschritt (\textit{Progress}) noch nicht bei 100\,\% liegt. Auch hier arbeiten Frontend und Backend Hand in Hand: Das UI blockiert die Checkbox visuell, während das Backend bei einem API-Aufruf die Validierung der Werte erzwingt, um inkonsistente Zustände in der Datenbank zu verhindern.
+
+\subsection{Task-Templates zur Effizienzsteigerung}
+Da sich viele Arbeitsabläufe, wie beispielsweise Assignments aus Schulfächern (z.\,B.\ POS oder DB), Hausaufgaben für Schüler oder klassische Arbeitspakete in einem Softwareprojekt (z.\,B.\ das Implementieren von Unit-Tests), in ihrer Form und Struktur ähneln und regelmäßig wiederholen, ermöglicht \textit{EffSync} das Abspeichern von Tasks als Vorlage (\textit{Template}). 
+
+Die Verwendung von Vorlagen zur Wiederverwendung wiederkehrender Aufgabenstrukturen ist eine etablierte Praxis in modernen Projektmanagement-Werkzeugen \cite{nielsen_heuristics} und reduziert gemäß dem UX-Prinzip der Effizienz redundante Dateneingaben für erfahrene Nutzer.
+
+Möchte der Nutzer nun einen neuen Arbeitsauftrag erstellen, kann er direkt auf ein gespeichertes Template zurückgreifen. Das Frontend lädt die entsprechenden Parameter aus dem Backend und füllt die Eingabemasken der Benutzeroberfläche automatisch aus. Der Nutzer muss anschließend lediglich aufgabenspezifische, variable Details, wie etwa eine neue Deadline oder eine abweichende Zuweisung (\texttt{assigned\_to}), anpassen, bevor der finale Task generiert wird.
+
 \authorsection{Live-Chat}{Dražen Plavšić}
 \label{sec:live_chat}
 
 Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie, zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation\cite{trello_powerup_boardchat}\cite{atlassian_jira_11_3_documentation}\cite{atlassian_trello_guide}\cite{atlassian_trello_tour}. Dies zwingt Teams dazu, für Absprachen auf externe Kommunikationsplattformen wie Discord, Slack, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
 
-Um dieses Problem zu lösen, wurde in \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
+Um dieses Problem zu lösen, wirdin \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
 
 \subsection{Technologische Umsetzung mittels WebSockets}
-Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eignen sie sich nicht für Echtzeitanwendungen, da sie keine serverseitige Push-Kommunikation unterstützen~\cite{websocket_restapi_hybrid}. Ein ständiges Abfragen des Servers (\textit{HTTP-Polling}) nach neuen Nachrichten würde zudem unnötige Netzwerklast erzeugen, da jede HTTP-Anfrage einen erheblichen Protokoll-Overhead mit sich bringt~\cite{diva_polling_ws_2017}. Daher wird die Chat-Funktion vollständig über \textit{WebSockets} realisiert. Im Backend kommen hierbei NestJS-Gateways zum Einsatz, welche eine dauerhafte, bidirektionale Verbindung zum Vue-Frontend aufrechterhalten. Sendet ein Nutzer eine Nachricht, wird diese vom Server validiert und in Echtzeit per Push-Verfahren an alle relevanten Clients im jeweiligen Chatraum (\textit{Room}) verteilt (siehe Abbildung~\ref{fig:datenfluss_websocket}).
-\todo{eventuell die grafik selber in ilustrator machen da uberschneiden linien nicht optimal sind!}
-\begin{figure}[h]
+Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eignen sie sich nicht für Echtzeitanwendungen, da sie keine serverseitige Push-Kommunikation unterstützen~\cite{websocket_restapi_hybrid}. Ein ständiges Abfragen des Servers (\textit{HTTP-Polling}) nach neuen Nachrichten würde zudem unnötige Netzwerklast erzeugen, da jede HTTP-Anfrage einen erheblichen Protokoll-Overhead mit sich bringt~\cite{diva_polling_ws_2017}. Daher wird die Chat-Funktion vollständig über \textit{WebSockets} realisiert. Im Backend kommen hierbei NestJS-Gateways zum Einsatz, welche eine dauerhafte, bidirektionale Verbindung zum Vue-Frontend aufrechterhalten. Sendet ein Nutzer eine Nachricht, wird diese vom Server validiert und in Echtzeit per Push-Verfahren an alle relevanten Clients im jeweiligen Chatraum (\textit{Room}) verteilt (siehe Abbildung \ref{fig:datenfluss_websocket}).
+\begin{figure}[H]
   \centering
-  \includegraphics[width=0.8\textwidth]{content/bilder/realtime_chat_complex.png}
+  \includegraphics[width=0.6\textwidth]{content/bilder/realtime_chat_simpler_no_notes.png}
   \caption{Echtzeit-Datenfluss via WebSockets.}
-  \label{fig:datefluss_websocket}
+  \label{fig:datenfluss_websocket}
 \end{figure}
 
 \subsection{Unterscheidung der Chat-Typen und Vermeidung von Duplikaten}
 In \textit{EffSync} wird das Chat-System prinzipiell in zwei Raumtypen (\textit{Rooms}) unterteilt: private 1-zu-1-Chats und projektbezogene Gruppenchats. Diese Unterscheidung ist nicht nur für die Darstellung in der Benutzeroberfläche, sondern vor allem für die Datenmodellierung und die Berechtigungslogik wichtig. 
 
-Bei der Initialisierung von privaten Chats greift serverseitig eine spezielle Validierungslogik, um die Erstellung redundanter Chaträume zu verhindern. Möchte Nutzer A einen Chat mit Nutzer B starten, prüft das Backend zunächst über eine Datenbankabfrage, ob bereits ein privater Raum existiert, in dem exakt diese beiden Nutzer Mitglied sind. Ist dies der Fall, wird die Erstellung blockiert und dem Client stattdessen die ID des bestehenden Raums zurückgegeben. Dies garantiert, dass die Konversation zwischen zwei Personen nicht fragmentiert wird, sondern die gesamte Historie stets in einem einzigen, fortlaufenden Chatverlauf gebündelt bleibt.
-\todo{noch erklaren wie die privaten chat room gemacht worden sind, tabllen aus erd eventuell einfugen}
+Wie im Datenbankschema (siehe Abbildung \ref{fig:chat_schema}) ersichtlich, wird der Raumtyp über das Flag \texttt{is\_private} in der Tabelle \texttt{chat\_rooms} gesteuert. Bei Gruppenchats kann zudem optional eine direkte Verknüpfung zur entsprechenden Aufgabe (\texttt{task\_id}) hergestellt werden.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{content/bilder/chat_db_schema.png}
+    \caption{Auszug des Datenbankschemas zur Verwaltung der Chaträume}
+    \label{fig:chat_schema}
+\end{figure}
+
+Bei der Initialisierung von privaten Chats greift serverseitig eine spezielle Validierungslogik, um die Erstellung redundanter Chaträume zu verhindern. Möchte Nutzer A einen Chat mit Nutzer B starten, muss sichergestellt werden, dass für diese Konstellation nicht bereits ein Raum existiert. Anstatt hierfür eine rechenintensive Datenbankabfrage über die Mitgliedertabelle durchzuführen, wird dies über das Feld \texttt{direct\_chat\_hash} in der Tabelle \texttt{chat\_rooms} (siehe Abbildung \ref{fig:chat_schema}) gelöst. 
+
+Aus den Identifikationsnummern der beiden Teilnehmer wird ein deterministischer String generiert (beispielsweise \texttt{user1\_user2}). Da dieses Feld in der Datenbank mit einem \texttt{UNIQUE}-Constraint versehen ist, wird die Erstellung eines Duplikats bereits auf Datenbankebene strikt abgelehnt. Schlägt der Erstellungsversuch aufgrund des Constraints fehl, wird die Erstellung blockiert und dem Client stattdessen die ID des bestehenden Raums zurückgegeben. Dies garantiert, dass die Konversation zwischen zwei Personen nicht fragmentiert wird, sondern die gesamte Historie stets in einem einzigen, fortlaufenden Chatverlauf bleibt.
 
 \subsection{Raumverwaltung und Berechtigungslogik}
 Während in einem privaten Chat beide Teilnehmer gleichgestellte Rechte besitzen, erfordern Gruppenchats eine hierarchische Rollenverteilung, um administrative Aufgaben abzubilden. Die Komplexität liegt hierbei in der sicheren Verwaltung der Zugriffsrechte (\textit{Authorization}). Ein exemplarisches Sicherheitsszenario ist das Entfernen von Mitgliedern aus einem Gruppenchat. 
@@ -51,13 +222,25 @@ async removeMember(roomId: number, requesterId: number, targetUserId: number) {
         // Wirft intern eine ForbiddenException, falls nicht.
         await this.chatRoomsService.assertIsCreator(roomId, requesterId);
     }
-    
     // Szenario A (User entfernt sich selbst) oder
     // Szenario B (Creator entfernt User) war erfolgreich:
     return this.chatRoomMembersRepository.delete({ roomId, userId: targetUserId });
+}
+async assertIsCreator(roomId: number, userId: number) {
+    // Raum anhand der roomId aus der Datenbank laden,
+    // nur das Feld created_by wird benötigt.
+    const room = await this.prisma.chat_rooms.findUnique({
+        where: { room_id: roomId },
+        select: { created_by: true },
+    });
+    // Raum existiert nicht → 404
+    if (!room) throw new NotFoundException('Room not found!');
+    // Prüft, ob der anfragende User der Ersteller des Raums ist.
+    // Falls nicht → 403 ForbiddenException
+    if (room.created_by !== userId)
+        throw new ForbiddenException('Only the room creator can do this!');
 }
 \end{minted}
 \caption{Berechtigungsprüfung beim Entfernen von Mitgliedern aus einem Gruppenchat}
 \label{lst:chat_permissions}
 \end{listing}
-\todo{wieter schreiben}
