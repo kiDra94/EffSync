@@ -1,8 +1,36 @@
 \chapter{Testing und Qualitätssicherung}
+\label{ch:testing_quality}
+Die Qualitätssicherung ist ein wesentlicher Bestandteil des Softwareentwicklungsprozesses. Um sicherzustellen, dass \textit{EffSync} funktional korrekt, stabil und wartbar umgesetzt wird, wurde ein mehrstufiges Testkonzept definiert.
 
-\section{Teststrategie}
-\section{Unit- und E2E-Tests}
-\section{Usability-Test}
-\section{Fehelernalyse und Verbesserung}
+Dieses Kapitel beschreibt die eingesetzten Verfahren zur systematischen Prüfung des Systems. Zunächst wird die Teststrategie als methodischer Rahmen vorgestellt. Anschließend werden die implementierten Testarten von isolierten Unit-Tests über API-Tests bis hin zu E2E-Tests erläutert.
+
+Ergänzend werden die Usability-Tests zur Bewertung der Bedienbarkeit sowie die Fehleranalyse zur Dokumentation und Nachverfolgung identifizierter Probleme dargestellt.
+
+\authorsection{Teststrategie}{Dražen Plavšić}
+\label{sec:test_strategie}
+
+Um die Stabilität und Wartbarkeit von \text{EffSync} zu gewährleisten, wird für dieses Projekt eine mehrstufige Teststrategie definiert. Diese orientiert sich konzeptionell an der klassischen Testpyramide nach Mike Cohn\cite{cohn2009succeeding} (siehe Abbildung \ref{fig:testpyramide}). 
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=0.4\textwidth]{content/bilder/test_pyramide.svg} 
+    \caption{Die Testpyramide für das EffSync-Projekt in Anlehnung an Mike Cohn}
+    \label{fig:testpyramide}
+\end{figure}
+
+Wie in der Abbiludng \ref{fig:testpyramide}, bilden die Unit-Tests das Fundament der Pyramide, welche die größte Menge an Tests ausmachen. Hierbei gilt das Grundprinzip: Je weiter unten in der Testpyramide eine Testebene angesiedelt ist, desto isolierter und schneller in der Ausführung sind die entsprechenden Tests. Auf der mittleren Ebene befinden sich die Integrations- und API-Tests, welche die Kommunikation zwischen den Schichten prüfen. Die Spitze der Pyramide bilden ausgewählte End-to-End-Tests (E2E), die isoliert kritische User-Flows aus der Perspektive des Endanwenders validieren.
+
+\subsubsection{Richtlinien zur Testabdeckung (Code Coverage)}
+In der Softwareentwicklung existiert kein universell gültiger oder verbindlich vorgeschriebener Prozentwert für die Testabdeckung. Selbst die internen Engineering-Richtlinien von Google \cite{google2020coverage} verzichten auf starre Vorgaben und empfehlen stattdessen zielgerichtete Werte, wobei 60\,\% als akzeptabel, 75\,\% als lobenswert und 90\,\% als vorbildlich eingestuft werden. 
+
+Sicherheitskritische Bereiche, wie beispielsweise die Authentifizierungslogik oder Autorisierungs-Guards, streben eine Testabdeckung von über 90\,\% an, da ungetestete Code-Pfade in diesen Modulen ein erhebliches Sicherheitsrisiko darstellen. Für Standard-Controller oder Datentransferobjekte (DTOs) wurde hingegen kein fixer Prozentwert auf Unit-Ebene definiert, da deren Validierung systembedingt primär durch die höherstufigen API-Tests erfolgt. Bei den API- und E2E-Tests wird bewusst auf eine zeilenbasierte Code-Coverage verzichtet; stattdessen dient die Vollständigkeit der getesteten HTTP-Endpunkte und User-Flows als primäres Qualitätskriterium.
+
+\authorsection{Unit-Tests}{Dražen Plavšić}
+\label{sec:unit_tests}
+\authorsection{API-Tests}{Dražen Plavšić}
+\label{sec:api_tests}
+\authorsection{E2E-Tests}{Ereny Micail}
+\authorsection{Usability-Test}{Ereny Micail}
+\authorsection{Fehelernalyse und Verbesserung}{Ereny Micail}
 hier eventuell infos wie wir fehler gefunden haben und was gemacht worden ist zum verbessern, eventuell auf den BugFix issus mit den subisssuse eingehen.
 
