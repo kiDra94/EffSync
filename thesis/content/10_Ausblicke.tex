@@ -1,4 +1,19 @@
 \chapter{Ausblicke}
-Was wir alles noch implemntieren wollten/konnten, Ideen für neue Features usw.
-\authorsection{Refactoring vom Backend}{Dražen Plavšić}
-\authorsection{Deployment}{Dražen Plavšić}
+\label{ch:ausblicke}
+In diesem Abschnitt werden die geplanten Weiterentwicklungen von EffSync dargestellt, also alle Funktionen und Ideen, die im bisherigen Projektverlauf noch nicht umgesetzt wurden, aber für die Zukunft vorgesehen sind.
+
+\authorsection{Refactoring der Backend-Architektur}{Dražen Plavšić}
+\label{sec:ausblick_refactoring_backend}
+Ein wichtiger Refactoring-Schritt von \textit{EffSync} besteht darin, die in der Reflexion (siehe \autoref{sec:table_modul_pattern_vs_domain_model}) identifizierte architektonische Schwäche des \textit{Table-Module Pattern} zu überwinden. Statt fachlich zusammengehörige Logik über mehrere Module und Controller zu verteilen, soll das Backend künftig strikt entlang von Domänengrenzen nach dem \textit{Domain-Driven Design} organisiert werden.
+
+Bezogen auf die Taskverwaltung bedeutet dies, dass sämtliche taskbezogenen Operationen, inklusive der Erstellung von Kommentaren und dem Activity-Log, in einer übergreifenden Domäne und einem zentralen \texttt{TaskController} gebündelt werden. 
+
+\authorsection{Deployment \& Cronjobs}{Dražen Plavšić}
+\label{sec:deployment_outlook}
+Neben den softwarearchitektonischen Anpassungen ist für den künftigen Produktivbetrieb eine self-hosted Bereitstellung von EffSync vorgesehen. Eine Docker-Compose-basierte Lösung auf einem\gls{VPS} würde dabei eine einfache und gleichzeitig gut kontrollierbare Betriebsumgebung ermöglichen. Ergänzend sind Cronjobs für Wartungsaufgaben und die automatische Datenpflege geplant, etwa zum Archivieren oder Löschen nicht mehr benötigter Datensätze. Dadurch könnten Aufbewahrungsfristen eingehalten und administrative Löschfristen flexibel konfiguriert werden.
+
+\authorsection{Datenexport \& Admin-Dashboard}{Dražen Plavšić}
+\label{sec:datenexport_admindashboard}
+Aus funktionaler Perspektive stellt die Implementierung einer Exportfunktion eine wertvolle Erweiterung dar. Dem Nutzer soll es ermöglicht werden, strukturierte Daten wie Tasks oder Notizen in Formaten wie CSV oder JSON zu exportieren. Dadurch würde nicht nur die Weiterverarbeitung in anderen Anwendungen erleichtert, sondern auch die Nachvollziehbarkeit und Portabilität der eigenen Daten verbessert.
+
+Denkbar wäre auch die Einführung eines zentralen Administrationsdashboards, das sowohl der Überwachung von Hintergrundprozessen als auch der allgemeinen Systemverwaltung dient. Neben Informationen zu geplanten Cronjobs, deren Ausführungszeitpunkten, Laufzeiten, Fehlermeldungen sowie Archivierungs- und Löschregeln könnten dort auch administrative Funktionen wie die Verwaltung von Schülerinnen und Schülern, Klassen, Benutzern, Rollen und vorhandenen Datensätzen gebündelt bereitgestellt werden. Dadurch ließen sich technische Wartungsaufgaben und organisatorische Verwaltungsprozesse in einer gemeinsamen Oberfläche zusammenführen.
