@@ -9,7 +9,7 @@ Ergänzend werden die Usability-Tests zur Bewertung der Bedienbarkeit sowie die 
 \authorsection{Teststrategie}{Dražen Plavšić}
 \label{sec:test_strategie}
 
-Um die Stabilität und Wartbarkeit von \text{EffSync} zu gewährleisten, wird für dieses Projekt eine mehrstufige Teststrategie definiert. Diese orientiert sich konzeptionell an der klassischen Testpyramide nach Mike Cohn\cite{cohn2009succeeding} (siehe Abbildung \ref{fig:testpyramide}). 
+Um die Stabilität und Wartbarkeit von \text{EffSync} zu gewährleisten, wird für dieses Projekt eine mehrstufige Teststrategie definiert. Diese orientiert sich konzeptionell an der klassischen Testpyramide nach Mike Cohn \cite{cohn2009succeeding} (siehe Abbildung \ref{fig:testpyramide}). 
 
 \begin{figure}[H]
     \centering
@@ -18,7 +18,7 @@ Um die Stabilität und Wartbarkeit von \text{EffSync} zu gewährleisten, wird f�
     \label{fig:testpyramide}
 \end{figure}
 
-Wie in der Abbiludng \ref{fig:testpyramide}, bilden die Unit-Tests das Fundament der Pyramide, welche die größte Menge an Tests ausmachen. Hierbei gilt das Grundprinzip: Je weiter unten in der Testpyramide eine Testebene angesiedelt ist, desto isolierter und schneller in der Ausführung sind die entsprechenden Tests. Auf der mittleren Ebene befinden sich die Integrations- und API-Tests, welche die Kommunikation zwischen den Schichten prüfen. Die Spitze der Pyramide bilden ausgewählte End-to-End-Tests (E2E), die isoliert kritische User-Flows aus der Perspektive des Endanwenders validieren.
+Wie in Abbildung \ref{fig:testpyramide} ersichtlich, bilden die Unit-Tests das Fundament der Pyramide, welche die größte Menge an Tests ausmachen. Hierbei gilt das Grundprinzip: Je weiter unten in der Testpyramide eine Testebene angesiedelt ist, desto isolierter und schneller in der Ausführung sind die entsprechenden Tests. Auf der mittleren Ebene befinden sich die Integrations- und API-Tests, welche die Kommunikation zwischen den Schichten prüfen. Die Spitze der Pyramide bilden ausgewählte End-to-End-Tests (E2E), die isoliert kritische User-Flows aus der Perspektive des Endanwenders validieren.
 
 \subsubsection{Richtlinien zur Testabdeckung (Code Coverage)}
 In der Softwareentwicklung existiert kein universell gültiger oder verbindlich vorgeschriebener Prozentwert für die Testabdeckung. Selbst die internen Engineering-Richtlinien von Google \cite{google2020coverage} verzichten auf starre Vorgaben und empfehlen stattdessen zielgerichtete Werte, wobei 60\,\% als akzeptabel, 75\,\% als lobenswert und 90\,\% als vorbildlich eingestuft werden. 
@@ -27,6 +27,76 @@ Sicherheitskritische Bereiche, wie beispielsweise die Authentifizierungslogik od
 
 \authorsection{Unit-Tests}{Dražen Plavšić}
 \label{sec:unit_tests}
+Unit-Tests bilden das Fundament der Qualitätssicherung innerhalb von \textit{EffSync}. Ihr primärer Zweck besteht darin, einzelne funktionale Einheiten des Sourcecodes, wie Klassen, Methoden oder Komponenten, isoliert auf ihre korrekte Funktionsweise zu überprüfen. Da solche Einheiten in der Regel von weiteren Modulen oder externen Diensten abhängen, werden diese Abhängigkeiten in Unit-Tests gezielt simuliert. Dadurch lassen sich die Tests unter kontrollierten Bedingungen ausführen und das Verhalten der jeweiligen Einheit unabhängig bewerten.
+
+\subsection{Testwerkzeuge und Zielvorgaben}
+Für die technische Umsetzung werden zwei auf die jeweilige Umgebung abgestimmte Testwerkzeuge eingesetzt. Im \textbf{Backend (NestJS)} wird \textit{Jest} in Kombination mit \texttt{@nestjs/testing} verwendet\cite{nestjs_testing_docs}, im \textbf{Frontend (Vue 3)} \textit{Vitest}\cite{vitest_docs} zusammen mit \texttt{@vue/test-utils}\cite{vue_test_utils_docs}. Die Ausführung der Tests erfolgt über das Skript \texttt{npm run test:coverage}.
+
+Anhand des zuvor definierten Ansatzes sind für die Unit-Tests spezifische Prioritäten und Abdeckungsziele (Code Coverage) für beide Systemkomponenten festgelegt:
+
+\begin{itemize}
+    \item \textbf{Kritische Priorität (Zielabdeckung $\ge$ 90\,\%):}\\
+    Im Backend betrifft dies essenzielle Sicherheitskomponenten wie den \texttt{AuthService} (Token-Handling, Passwort-Hashing), Zugriffskontrollen (\texttt{JwtAuthGuard}, \texttt{LocalAuthGuard}) sowie die Kernlogik der Applikation (\texttt{TaskService}). Im Frontend liegt der Fokus auf der globalen Zustandsverwaltung, dem Pinia \texttt{Auth-Store} und \texttt{Task-Store}, sowie auf kritischen \textit{HTTP-Utility-Functions}.
+    
+    \item \textbf{Mittlere Priorität (Zielabdeckung $\ge$ 75\,\%):}\\
+    Hierzu zählen im Backend weniger komplexe CRUD-Operationen (\texttt{UserService}) oder der \texttt{PermissionService}. Im Frontend fallen darunter unter anderem die \textit{Routen-Guards} des Vue Routers zur Verhinderung unberechtigter Weiterleitungen sowie wiederverwendbare komplexe UI-Komponenten.
+    
+    \item \textbf{Bereiche ohne spezifisches Abdeckungsziel:}\\
+    Technischer Initialisierungscode (\texttt{main.ts}, \texttt{app.module.ts}), logikfreie Datenbank-Schemata (\textit{Prisma}) sowie reine CSS- und Layout-Komponenten sind von der Metrik ausgenommen, da ein isolierter Unit-Test an dieser Stelle keinen funktionalen Mehrwert bietet.
+\end{itemize}
+
+\subsection{Praktische Umsetzung und Mocking-Strategie}
+Wie in Listing \ref{lst:unit_test_example} ersichtlich, wird die Datenbankabhängigkeit vollständig durch das Test-Framework gemockt. Dadurch wird gewährleistet, dass ein Fehlschlagen des Tests ausschließlich auf einen Fehler in der Geschäftslogik des Services zurückzuführen ist und nicht durch externe Faktoren, wie eine fehlende Datenbankverbindung, verfälscht wird.
+
+\begin{listing}[H]
+\begin{minted}{typescript}
+// Backend: tasks.service.spec.ts
+describe('TasksService', () => {
+  let service: TasksService;
+  const mockPrismaService = {
+    tasks: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    task_members: {
+      findMany: jest.fn(),
+    },
+    users: {
+      findMany: jest.fn(),
+    },
+    documents: {
+      findMany: jest.fn(),
+    },
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        TasksService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: WebsocketGateway, useValue: {} },
+        { provide: TaskActivityLogService, useValue: { create: jest.fn() } },
+        { provide: PermissionsService, useValue: { hasPermission: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get<TasksService>(TasksService);
+  });
+
+  it('recalculates task status in findOne', async () => {
+    mockPrismaService.tasks.findUnique
+      .mockResolvedValueOnce({ task_id: 10, status: 'IN_PROGRESS' })
+      .mockResolvedValueOnce({ task_id: 10, status: 'COMPLETED' });
+
+    const result = await service.findOne(10, false);
+    expect(result.status).toBe('COMPLETED');
+  });
+});
+\end{minted}
+\caption{Exemplarischer Unit-Test mit gemockten Abhängigkeiten}
+\label{lst:unit_test_example}
+\end{listing}
+
 \authorsection{API-Tests}{Dražen Plavšić}
 \label{sec:api_tests}
 \authorsection{E2E-Tests}{Ereny Micail}
