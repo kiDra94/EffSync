@@ -68,7 +68,6 @@ describe('TasksService', () => {
       findMany: jest.fn(),
     },
   };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -79,15 +78,12 @@ describe('TasksService', () => {
         { provide: PermissionsService, useValue: { hasPermission: jest.fn() } },
       ],
     }).compile();
-
     service = module.get<TasksService>(TasksService);
   });
-
   it('recalculates task status in findOne', async () => {
     mockPrismaService.tasks.findUnique
       .mockResolvedValueOnce({ task_id: 10, status: 'IN_PROGRESS' })
       .mockResolvedValueOnce({ task_id: 10, status: 'COMPLETED' });
-
     const result = await service.findOne(10, false);
     expect(result.status).toBe('COMPLETED');
   });
@@ -97,8 +93,50 @@ describe('TasksService', () => {
 \label{lst:unit_test_example}
 \end{listing}
 
-\authorsection{API-Tests}{Dražen Plavšić}
+\authorsection{API- und Integrationstests}{Dražen Plavšić}\todo{Info an Simon, das ist im Code noch nicht vollstaendig getestet, wird von mir naechste woche nach donnerstag noch gemacht, sollte dann bis Sonntag (14.06.) fertig sein}
 \label{sec:api_tests}
+Neben den isolierten Unit-Tests bilden API- und Integrationstests die zweite Ebene der Qualitätssicherung im Backend. Im Gegnsatz zu Unit-test prüfen API-Tests das Zusammenspiel mehrerer architektonischer Schichten innerhalb der laufenden Anwendung\cite{winter2005integrationstest}. Hierzu zählen insbesondere Controller, Guards, Pipes, Service-Logik sowie die finale Datenbankanbindung. Die Tests werden mit der Bibliothek \textit{Supertest} gegen eine, zu Testzwecken gestartete Instanz des NestJS-Servers, ausgeführt und simulieren vollständige HTTP-Anfragen\cite{nestjs_testing}.
+
+\subsection{Coverage-Ziele und Testpfade}
+Auf dieser Testebene wird bewusst keine Code-Coverage als primäre Metrik verwendet. Stattdessen steht die \textit{vollständige Abdeckung aller relevanten API-Endpunkte durch Tests} im Vordergrund. Für jeden relevanten HTTP-Endpunkt wird mindestens ein erfolgreicher Anfragepfad (\textit{Happy Path}) sowie die wichtigsten Fehlerpfade (\textit{Error Paths}) geprüft. Dazu zählen insbesondere Validierungsfehler (\texttt{400 Bad Request}), fehlende Authentifizierung (\texttt{401 Unauthorized}), unzureichende Berechtigungen (\texttt{403 Forbidden}) sowie nicht gefundene Ressourcen (\texttt{404 Not Found}). Dadurch wird sichergestellt, dass nicht nur der reguläre Erfolgsfall, sondern auch das Verhalten des Systems unter fehlerhaften oder unzulässigen Eingaben nachvollziehbar abgesichert ist.
+
+\subsection{Testdatenbank und Determinismus}
+Ein weiterer zentraler Bestandteil der API-Teststrategie ist die deterministische Vorbereitung der Testumgebung. Da die Tests gegen eine reale Testdatenbank ausgeführt werden, muss das sogenannte \textit{State Leakage}, also die unkontrollierte Beeinflussung nachfolgender Testläufe durch zuvor manipulierte Daten, zwingend verhindert werden. Vor dem Start der API-Test-Suite wird die Datenbank daher über den Befehl \texttt{prisma migrate reset --force} vollständig zurückgesetzt und mittels eines dedizierten Seed-Skripts (\texttt{test-seed.ts}) mit vordefinierten Testdaten neu befüllt. Dieser Prozess wird vollautomatisiert über die Jest-Konfiguration gesteuert, sodass für jeden Testlauf exakt identische Ausgangsbedingungen herrschen.
+
+\subsection{Fokusbereiche und Priorisierung}
+Inhaltlich folgt die API-Testebene einer strikt Vorgehensweise: Zuerst werden die sicherheitskritischen und geschäftsrelevanten Schnittstellen vollständig abgesichert, danach ergänzend weitere Endpunkte mit geringerem Fehlerrisiko (wie beispielsweise Benachrichtigungen, Notizen oder Profilinformationen). 
+
+Als kritisch sind die Authentifizierungsendpunkte sowie die Kernendpunkte der Aufgabenverwaltung eingestuft. Gerade im Fall der Task-Endpunkte müssen dabei komplexe fachliche Regeln wie Filterlogiken, Statusänderungen oder Löschbedingungen (z.\,B. Verbot des Löschens bei vorhandenen Subtasks) korrekt validiert werden. Die Tabelle \ref{tab:api_endpoints} liefert eine detaillierte Übersicht dieser priorisierten Schnittstellen.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|l|c|p{8.5cm}|}
+        \hline
+        \textbf{Endpunkt} & \textbf{Methode} & \textbf{Begründung } \\
+        \hline
+        \texttt{/api/auth/register} & \texttt{POST} & Öffentlicher Registrierungsendpunkt. \\
+        \hline
+        \texttt{/api/auth/login} & \texttt{POST} & Endpunkt der für die Validierung der Zugangsdaten und die JWT-Token-Ausgabe verantwortlich ist. \\
+        \hline
+        \texttt{/api/auth/logout} & \texttt{POST} & Endpunkt zur sicheren Abmeldung Löschung des Sitzungstokens. \\
+        \hline
+        \texttt{/api/tasks} & \texttt{POST} & Zentrales Kernfeature zur Erstellung neuer Tasks. \\
+        \hline
+        \texttt{/api/tasks} & \texttt{GET} & Listen-Endpunkt mit fehleranfälliger Filter- und Sortierlogik. \\
+        \hline
+        \texttt{/api/tasks/:id} & \texttt{GET} & Detail-Endpunkt zum gesicherten Abruf einzelner Task-Informationen. \\
+        \hline
+        \texttt{/api/tasks/:id} & \texttt{PATCH} & Endpunkt zur Teilaktualisierung potenziell anfällig für Inkonsistenzen. \\
+        \hline
+        \texttt{/api/tasks/:id} & \texttt{DELETE} & Kritischer Lösch-Endpunkt mit komplexer Guard-Logik. \\
+        \hline
+    \end{tabular}
+    \caption{Übersicht der sicherheitskritischen und priorisierten API-Endpunkte}
+    \label{tab:api_endpoints}
+\end{table}
+
+Auf diese Weise trägt die API-Testebene wesentlich dazu bei, Fehler an den Systemgrenzen frühzeitig zu erkennen und die Stabilität der gesamten Backend-Kommunikation nachweislich zu garantieren.
 \authorsection{E2E-Tests}{Ereny Micail}
 \authorsection{Usability-Test}{Ereny Micail}
 \authorsection{Fehelernalyse und Verbesserung}{Ereny Micail}
