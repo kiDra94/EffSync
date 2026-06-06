@@ -4,7 +4,7 @@ Um eine praxisnahe Projektabwicklung sicherzustellen, wird entschieden, GitHub s
 
 \authorsection{Git-Hub Strategie und Workflow}{Dražen Plavšić}
 Damit eine konsistente Arbeitsmethodik garantiert wird, ist eine klare, hierarchische Benennungskonvention, welche sich an Projektphasen und Themenstellungen orientiert sowie eine feste Branching-\cite{git_branching_workflow_chacon2014progit} und Merging-Strategie festgelegt.
-Die Strategie kann sich in 4 Punkte unterteilen:
+Die Strategie kann sich in 5 Punkte unterteilen:
 \begin{itemize}
     \item Haupt-Branches
     \item Feature-Branches
@@ -39,7 +39,7 @@ werden hier hinein gemergt. \\
 
 \subsubsection{Feature-Branches}
 Dies ist der wichtigste Branch-Typ. Für jedes Arbeitspaket welches durch ein Issue repräsentiert wird, erstellt jeder Entwickler einen neuen Branch, welcher sich aus dem \textbf{development-branch} abzweigt, sobald dieses Angefangen wird. Zur Gewährleistung einer durchgehende konsistente und nachvollziehbare Struktur wird für die Benennung eine eindeutige Namenskonvention (Naming Convention) angewendet. 
-Die Strukturierung folgt einem standardisierten Schema:
+Die Strukturierung folgt einem standardisierten Schema (siehe \autoref{tab:branch-schema}):
 \texttt{feature-\textlangle thema\textrangle-\textlangle beschreibung\textrangle}
 
 \begin{table}[h]
@@ -58,7 +58,7 @@ Die automatisch generierte Nummer des GitHub Issues, auf das sich dieser Branch 
 \hline
 \texttt{\textbf{thema}} &
 \texttt{frontend-} oder \texttt{backend-} oder \texttt{user-} &
-Bezieht sich auf Ihre Haupt-Themenstellung (z.\,B.\ Frontendentwicklung, Backendentwicklung, Userverwaltung). \\
+Bezieht sich auf Ihre Haupt-Themenstellung (z.\,B.\ Frontendentwicklung, Backendentwicklung, Userverwaltung).\\
 \hline
 \texttt{\textbf{beschreibung}} &
 \texttt{calendar-view} oder \texttt{2fa-implementation} &
@@ -71,7 +71,7 @@ Eine kurze, prägnante Beschreibung der spezifischen Aufgabe.\\
 \subsubsection{Spezial-Branches}
 Für Sonderfälle existieren situationsabhängige Branches, die außerhalb des 
 regulären Entwicklungsprozesses bei Bedarf angelegt werden.\newline
-Die Benennung orientiert sich an folgendem Schema:
+Die Benennung orientiert sich an folgendem Schema (sihe Tabelle \autoref{tab:spezial-branches}):
 \texttt{fix/hotfix-\textlangle beschreibung\textrangle}
 \begin{table}[h]
 \centering
@@ -97,13 +97,16 @@ die sofort ausgerollt werden müssen. &
 Damit Änderungen inhaltlich kategorisierbar sind und die Historie übersichtlich bleibt, sind die Commit-Messages nach folgenden Schema zu schreiben: \texttt{\#issue-number: \textlangle beschreibung\textrangle}.\newline
 Durch das hinzufügen der \textbf{issue-number} jeder \textbf{Commit-Massage} erkennt GitHub die Referenzen automatisch als klickbare Verlinkung\cite{github_autolinked_references} zum entsprechenden Issue, wodurch jede Änderung direkt dem jeweiligen Arbeitspakte zugeordnet werden kann.
 \subsubsection{Pull-Request- und Merge-Strategie}
-Um Konflikte beim Mergen von Pull Requests zu minimieren, wurde vor dem finalen Push die aktuelle \textbf{development-branch} zuerst lokal in die \textbf{feature-branch} gemergt\cite{git_branching_merging_chacon2014progit}. Dadurch konnten potenzielle Konflikte frühzeitig lokal gelöst werden, sodass der anschließende Merge in GitHub reibungslos erfolgte.
+Um Konflikte beim Mergen von Pull Requests zu minimieren, wird vor dem finalen Push die aktuelle \textbf{development-branch} zuerst lokal in die \textbf{feature-branch} gemergt\cite{git_branching_merging_chacon2014progit}.  Dadurch können potenzielle Konflikte frühzeitig lokal gelöst werden, sodass der anschließende Merge in GitHub reibungslos erfolgte.
 \authorsection{Digitaler Workflow mit GitHub und SCRUM}{Dražen Plavšić}
-Im Rahmen des Projekts kommen sowohl klassische als auch agile Projektmanagement-Methoden zum Einsatz. Neben dem Wasserfallmodell wird auf Vorgabe des Abteilungsvorstands die agile Methode \gls{SCRUM}\cite{schwaber2020scrum} benutzt.\newline
-\gls{SCRUM} bietet in der Softwareentwicklung mehrere wesentliche Vorteile\cite{SCRUM_entscheidungen}: die featurebasierte Entwicklung, die kontinuierliche Anpassung an sich ändernde Anforderungen sowie die Gewährleistung, dass zu jedem Zeitpunkt eine lauffähige Version der Software bzw. potenziell lieferbares Produkt vorhanden ist.
+Im Rahmen des Projekts kommen sowohl klassische als auch agile Projektmanagement-Methoden zum Einsatz. Neben dem Wasserfallmodell wird auf Vorgabe des Abteilungsvorstands die agile Methode \gls{SCRUM}\cite{schwaber2020scrum} benutzt.
 
-Die Rolle des Product Owners wird dem Betreuer übertragen, da dieser im Falle von Terminproblemen darüber entscheidet, ob ein Feature angepasst oder gegebenenfalls weggelassen wird. Darüber hinaus obliegt ihm die Abnahme und das Review der einzelnen \gls{SCRUM}-Sprints. Die Sprint-Dauer ist einheitlich auf vier Wochen festgelegt.Die Rolle des \gls{SCRUM}-Masters wird aufgrund der geringen Teamgröße von beiden Teammitgliedern ausgeübt.\newline
+\gls{SCRUM} bietet in der Softwareentwicklung mehrere wesentliche Vorteile\cite{SCRUM_entscheidungen} wie die featurebasierte Entwicklung, die kontinuierliche Anpassung an sich ändernde Anforderungen sowie die Gewährleistung, dass zu jedem Zeitpunkt eine lauffähige Version der Software bzw. potenziell lieferbares Produkt vorhanden ist.
+
+Die Rolle des Product Owners wird dem Betreuer übertragen, da dieser im Falle von Terminproblemen darüber entscheidet, ob ein Feature angepasst oder gegebenenfalls weggelassen wird. Darüber hinaus obliegt ihm die Abnahme und das Review der einzelnen \gls{SCRUM}-Sprints. Die Sprint-Dauer ist einheitlich auf vier Wochen festgelegt.Die Rolle des \gls{SCRUM}-Masters wird aufgrund der geringen Teamgröße von beiden Teammitgliedern ausgeübt.
+
 Die Abbildung der \gls{SCRUM}-Sprints erfolgt in GitHub über Milestones. Jeder Milestone\cite{codetree2017sprintplanning} umfasst die spezifischen Issues des jeweiligen Sprints. GitHub übernimmt das Fortschrittstracking der Sprints automatisch\cite{github2026milestones} durch eine prozentuale Berechnung des Status. Das Sprint-Ende wird durch die Due-Date-Funktion definiert und als Sprint-Backlog dient die Kommentarfunktion des Milestones. Alle Arbeitspakete existieren als Issues mit detaillierter Beschreibung. Diese sind fest einer Person und dem entsprechenden Milestone zugewiesen\cite{github2026associatingmilestones}.
+
 \authorsection{Automatisierung und Qualitätssicherung (CI/CD)}{Dražen Plavšić}
 Um sicherzustellen dass, die Funktionalität nach dem implementieren von neue Features gewährleistet ist, wird eine \gls{CI/CD} Pipeline\cite{cogent2025devsecopsCICD} mit GitHub Actions\cite{github2026actionsquickstart} implementiert.
 Da das Projekt auf den Ressourcen von GitHub aufbaut, muss die Pipeline-Strategie aufgrund der plattformspezifischen Ressourcenlimits\cite{github2026actionslimits} optimiert werden.

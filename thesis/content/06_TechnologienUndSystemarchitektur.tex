@@ -18,7 +18,7 @@ In diesem Abschnitt wird die Frontend-Architektur von \textit{EffSync} erläuter
 \subsection{Ordnerstruktur und Trennung der Zuständigkeiten}
 \label{sec:frontend_ordnerstruktur}
 
-Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, folgt die Architektur von \textit{EffSync} dem Prinzip der \textit{Separation of Concerns} \cite{parnas1972criteria} (Trennung der Zuständigkeiten). Wie in Abbildung~\ref{fig:frontend_ordner} dargestellt, wird der Sourcecode in logische Schichten unterteilt, die jeweils spezifische Aufgaben innerhalb des Frontends übernehmen.
+Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, folgt die Architektur von \textit{EffSync} dem Prinzip der \textit{Separation of Concerns} \cite{parnas1972criteria} (Trennung der Zuständigkeiten).  Der Sourcecode wird  in logische Schichten unterteilt (siehe Abbildung \autoref{fig:frontend_ordner}), die jeweils spezifische Aufgaben innerhalb des Frontends übernehmen.
 
 \begin{figure}[H]    
     \dirtree{%    
@@ -50,7 +50,7 @@ Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, f
 
 Wie aus der Ordnerstruktur ersichtlich wird, trennt \textit{EffSync} den Datenfluss und die Geschäftslogik strikt von der visuellen Darstellung. Die Komponenten in \texttt{/views} und \texttt{/components} dienen ausschließlich dem Rendering der Benutzeroberfläche und nehmen keine direkten Netzwerk-Requests vor. Stattdessen wird jegliche komplexe Geschäfts- und Validierungslogik in \texttt{/composables} ausgelagert. Die tatsächliche Datenhaltung erfolgt über die \texttt{/stores} in Kombination mit der \texttt{/api}-Schicht. 
 
-Durch diese Entkopplung entsteht eine modulare Architektur. Sie ermöglicht nicht nur isolierte Unit-Tests (wie beispielsweise \texttt{tasks.test.js}, \textit{siehe \autoref{sec:unit_tests}}) sondern reduziert auch die Komplexität bei der Weiterentwicklung\cite{hamza2005separation} und beschleunigt das Auffinden von Fehlern (\textit{Debugging}).
+Durch diese Entkopplung entsteht eine modulare Architektur. Sie ermöglicht nicht nur isolierte Unit-Tests (wie beispielsweise \texttt{tasks.test.js}, \textit{siehe Abschnitt \autoref{sec:unit_tests}}) sondern reduziert auch die Komplexität bei der Weiterentwicklung\cite{hamza2005separation} und beschleunigt das Auffinden von Fehlern (\textit{Debugging}).
 
 \subsection{Globale Zustandsverwaltung (State Management)}
 \label{sec:globaler_state}
@@ -58,7 +58,7 @@ Durch diese Entkopplung entsteht eine modulare Architektur. Sie ermöglicht nich
 Da die Benutzeroberfläche von \textit{EffSync} als \gls{SPA} konzipiert ist, bei der einzelne Vue-Komponenten dynamisch gerendert werden, stellt die  Datenverteilung zwischen diesen Komponenten eine architektonische Herausforderung dar. Ohne eine übergeordnete Instanz besteht die Gefahr redundanter Netzwerkanfragen. Beispielsweise wenn das \texttt{Dashboard} als auch einzelne \texttt{TaskCard}-Komponenten dieselben Task-Informationen benötigen und dafür jeweils eigene API-Aufrufe an das Backend senden würden.
 
 Um dies zu verhindern, wird ein globales State-Management-System implementiert. Dieses fungiert als \textit{Single Source of Truth} für die gesamte Applikation. Wird der Status eines Tasks geändert, synchronisieren sich alle abhängigen Ansichten (wie das Dashboard und die Task-Listen) sofort und automatisch. 
-Dafür wird Pinia als State-Management-Lösung im Vue-Frontend verwendet. Pinia ist seit Vue 3 die offizielle State-Management-Bibliothek und hat Vuex abgelöst \cite{vuejs_state_managment}. Aufgrund der nativen Integration in das Vue-Ökosystem eignet sich Pinia für die zentrale Verwaltung des gemeinsam genutzten Zustands in \textit{EffSync}.
+Dafür wird Pinia als State-Management-Lösung im Vue-Frontend verwendet. \todo{disen teil vt. löschen?}Pinia ist seit Vue 3 die offizielle State-Management-Bibliothek und hat Vuex abgelöst \cite{vuejs_state_managment}. Aufgrund der nativen Integration in das Vue-Ökosystem eignet sich Pinia für die zentrale Verwaltung des gemeinsam genutzten Zustands in \textit{EffSync}.
 
 Um der etablierten Ordnerstruktur und der strikten \textit{Separation of Concerns} treu zu bleiben, ist die Zustandsverwaltung logisch aufgeteilt (siehe Abbildung~\ref{fig:frontend_ordner}). Allgemeine Funktionen wie die Authentifizierung liegen als globale Stores direkt im \texttt{/stores}-Verzeichnis. Daten, die zu bestimmten Features gehören (wie Tasks oder Chats), werden hingegen in den eigenen Unterordner \texttt{/stores/entities} ausgelagert.
 
@@ -76,7 +76,7 @@ Durch diesen modularen Aufbau werden komplexe Logiken wie Datenbeschaffung, Filt
 \subsubsection{Mock-Datenbank}
 Um bei der Frontend-Entwicklung nicht auf die Fertigstellung der Backend-Schnittstellen warten zu müssen, wird eine Mock-Datenbank eingesetzt. Dieser Ansatz entkoppelt die Frontend- von der Backend-Entwicklung und ermöglicht parallele Arbeitsabläufe\cite{newman2021building}. 
 
-Die Simulation der Datenbank erfolgt über das NPM-Paket \texttt{json-server}\cite{typicode_json_server}. Aus einer simplen, lokalen JSON-Datei (\texttt{mock.db}) wird dabei eine vollständig funktionsfähige REST-API generiert. Der \texttt{json-server} verarbeitet Standard-HTTP-Anfragen (wie GET, POST, PUT und DELETE) identisch zu einem realen Backend und simuliert das Verändern, Löschen und Hinzufügen von Datensätzen. 
+Die Simulation der Datenbank erfolgt über das NPM-Paket \texttt{json-server}\cite{typicode_json_server}. Aus einer simplen, lokalen JSON-Datei (\texttt{mockdb.json}) wird dabei eine vollständig funktionsfähige REST-API generiert. Der \texttt{json-server} verarbeitet Standard-HTTP-Anfragen (wie GET, POST, PUT und DELETE) identisch zu einem realen Backend und simuliert das Verändern, Löschen und Hinzufügen von Datensätzen. 
 
 Dadurch lassen sich Architektur-Komponenten wie der HTTP-Client (Axios) und das State-Management (Pinia) bereits frühzeitig implementieren und testen. Sobald das echte NestJS-Backend einsatzbereit ist, muss lediglich die Basis-URL in der Konfiguration ausgetauscht werden, während die Logik der UI-Komponenten vollständig unangetastet bleibt.
 

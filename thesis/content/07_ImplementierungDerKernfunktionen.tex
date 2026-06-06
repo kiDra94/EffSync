@@ -12,13 +12,12 @@ Im Folgenden wird detailliert erläutert, wie zentrale Features, wie beispielswe
 
 \authorsection{Taskverwaltung}{Dražen Plavšić}
 \label{sec:taskverwaltung}
-
-Da EffSync als Task-Management-System konzipiert wurde, bildet das Task-Modul das zentrale Element der Anwendung. Die Zielsetzung des Systems ist es, sowohl Schülern als auch Lehrern die Verwaltung von Aufgaben zu erleichtern. Schüler erhalten die Möglichkeit, ihre Aufgaben eigenständig zu organisieren, während Lehrern ein strukturiertes Werkzeug zur Verfügung steht, um Aufgaben gezielt zuzuweisen und deren Bearbeitung zu überwachen.
+Da EffSync als Task-Management-System konzipiert ist, bildet das Task-Modul das zentrale Element der Anwendung. Die Zielsetzung des Systems ist es, sowohl Schülern als auch Lehrern die Verwaltung von Aufgaben zu erleichtern. Schüler erhalten die Möglichkeit, ihre Aufgaben eigenständig zu organisieren, während Lehrern ein strukturiertes Werkzeug zur Verfügung steht, um Aufgaben gezielt zuzuweisen und deren Bearbeitung zu überwachen.
 
 Das System wurde dabei bewusst über den schulischen Kontext hinaus konzipiert. Durch die Möglichkeit der beliebig tiefen Verschachtlung von Tasks und Subtasks lassen sich nicht nur einfache Aufgaben, sondern auch komplexe Projektstrukturen abbilden. Ein einzelner Task kann dabei ein übergeordnetes Projekt repräsentieren, dessen Teilaufgaben in weitere Unteraufgaben unterteilt werden. Dies macht das Task-Modul von EffSync grundsätzlich auch für den unternehmensinternen Einsatz geeignet, da sich ganze Projekte oder Teilprojekte vollständig innerhalb des Systems strukturieren lassen.
 
-\subsection{Datenbankschema und grundlegender Aufbau einer Aufgabe}
-Bevor komplexe Mechanismen wie Aufgabenhierarchien und automatische Evaluierungsregeln betrachtet werden, ist es wichtig, den grundlegenden strukturellen Aufbau eines \textit{Tasks} zu verstehen. Die Task-Entität bildet das zentrale Kernstück der Applikation und ist in der Datenbank so modelliert, dass sie alle Metadaten für das Projektmanagement effizient speichern kann.
+\subsection{Datenbankschema und grundlegender Aufbau eines Tasks}
+Bevor komplexe Mechanismen wie Taskhierarchien und automatische Evaluierungsregeln betrachtet werden, ist es wichtig, den grundlegenden strukturellen Aufbau eines \textit{Tasks} zu verstehen. Die Task-Entität bildet das zentrale Kernstück der Applikation und ist in der Datenbank so modelliert, dass sie alle Metadaten für das Projektmanagement effizient speichern kann.
 
 \begin{figure}[H]
   \centering
@@ -37,7 +36,7 @@ Die Tabelle (sihe Abbildung \ref{fig:task_schema}) lässt sich logisch in drei w
 Dieser Aufbau bildet das Fundament für die gesamte Geschäftslogik der Taskverwaltung, welche in den folgenden Abschnitten detailliert erläutert wird.
 
 \subsection{Hierarchie der Tasks}
-Jeder Task kann über das Feld \texttt{parent\_task\_id} einem übergeordneten Task zugewiesen werden. Dadurch entsteht eine hierarchische Baumstruktur (\textit{Tree Structure})\cite{celko2004trees}, bei der ein Haupt-Task theoretisch unendlich viele Subtasks und deren Unteraufgaben (\textit{Descendants}) besitzen kann.
+Jeder Task kann über das Feld \texttt{parent\_task\_id} einem übergeordneten Task zugewiesen werden. Dadurch entsteht eine hierarchische Baumstruktur (\textit{Tree Structure})\cite{celko2004trees}, bei der ein Haupt-Task theoretisch unendlich viele Subtasks und deren Nachkommen (\textit{Descendants}) besitzen kann.
 
 Diese strukturelle Flexibilität bringt jedoch eine technische Herausforderung mit sich: die Vermeidung von \textit{Circular References}. Wenn Task A der übergeordnete Task von Task B ist, darf Task B nicht nachträglich als übergeordneter Task von Task A definiert werden. Ebenso darf ein Task nicht sein eigener Parent werden, da dies unweigerlich zu Endlosschleifen beim Auslesen der Daten führen würde.
 
@@ -73,7 +72,7 @@ private async validateNoCircularReference(taskId: number, parentTaskId: number):
 \label{lst:circular_reference}
 \end{listing}
 
-Beim Abrufen der hierarchischen Daten aus der Datenbank nutzt das Backend zwei optimierte Strategien, um verschachtelte Strukturen effizient an das Vue.js-Frontend zu liefern. Für den allgemeinen Listenaufruf sammelt die Hilfsfunktion \texttt{collectDescendants} alle Nachkommen eines Tasks rekursiv über mehrere Datenbankabfragen ein und führt die Ergebnisse im Speicher zusammen. Für die vollständige Baumansicht hingegen stellt der Endpunkt \texttt{GET /tasks/:id/tree} eine optimiertere Methode bereit: \texttt{findeOneWithSubtasks} lädt dabei alle relevanten Tasks in \textbf{einer einzigen} Datenbankabfrage und übergibt sie an die Methode \texttt{buildTree}, welche das Ergebnis serverseitig als tief verschachteltes JSON-Objekt rekonstruiert (siehe Listing \ref{lst:build_tree}).
+Beim Abrufen der hierarchischen Daten aus der Datenbank nutzt das Backend zwei optimierte Strategien, um verschachtelte Strukturen effizient an das Vue.js-Frontend zu liefern. Für den allgemeinen Listenaufruf sammelt die Hilfsfunktion \texttt{collectDescendants} alle Nachkommen eines Tasks rekursiv über mehrere Datenbankabfragen ein und führt die Ergebnisse im Speicher zusammen. Für die vollständige Baumansicht hingegen werden mit der Methode \texttt{findeOneWithSubtasks} alle relevanten Tasks in \textbf{einer einzigen} Datenbankabfrage geladen und an die \texttt{buildTree} Methode übergeben, welche das Ergebnis serverseitig als tief verschachteltes JSON-Objekt rekonstruiert (siehe Listing \ref{lst:build_tree}).
 
 \begin{listing}[H]
 \begin{minted}{typescript}
@@ -184,7 +183,7 @@ Ergänzend zur Taskverwaltung ermöglicht \textit{EffSync} das Anlegen einfacher
 
 Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie, zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation\cite{trello_powerup_boardchat}\cite{atlassian_jira_11_3_documentation}\cite{atlassian_trello_guide}\cite{atlassian_trello_tour}. Dies zwingt Teams dazu, für Absprachen auf externe Kommunikationsplattformen wie Discord, Slack, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
 
-Um dieses Problem zu lösen, wirdin \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
+Um dieses Problem zu lösen, wird in \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
 
 \subsection{Technologische Umsetzung mittels WebSockets}
 Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eignen sie sich nicht für Echtzeitanwendungen, da sie keine serverseitige Push-Kommunikation unterstützen~\cite{websocket_restapi_hybrid}. Ein ständiges Abfragen des Servers (\textit{HTTP-Polling}) nach neuen Nachrichten würde zudem unnötige Netzwerklast erzeugen, da jede HTTP-Anfrage einen erheblichen Protokoll-Overhead mit sich bringt~\cite{diva_polling_ws_2017}. Daher wird die Chat-Funktion vollständig über \textit{WebSockets} realisiert. Im Backend kommen hierbei NestJS-Gateways zum Einsatz, welche eine dauerhafte, bidirektionale Verbindung zum Vue-Frontend aufrechterhalten. Sendet ein Nutzer eine Nachricht, wird diese vom Server validiert und in Echtzeit per Push-Verfahren an alle relevanten Clients im jeweiligen Chatraum (\textit{Room}) verteilt (siehe Abbildung \ref{fig:datenfluss_websocket}).
