@@ -14,20 +14,21 @@ Um die Stabilität und Wartbarkeit von \text{EffSync} zu gewährleisten, wird f�
 \begin{figure}[H]
     \centering
     \includesvg[width=0.4\textwidth]{content/bilder/test_pyramide.svg} 
-    \caption{Die Testpyramide für das EffSync-Projekt in Anlehnung an Mike Cohn}
+    \caption{Die Testpyramide für das \textit{EffSync}-Projekt in Anlehnung an Mike Cohn}
     \label{fig:testpyramide}
 \end{figure}
 
-Wie in Abbildung \ref{fig:testpyramide} ersichtlich, bilden die Unit-Tests das Fundament der Pyramide, welche die größte Menge an Tests ausmachen. Hierbei gilt das Grundprinzip: Je weiter unten in der Testpyramide eine Testebene angesiedelt ist, desto isolierter und schneller in der Ausführung sind die entsprechenden Tests. Auf der mittleren Ebene befinden sich die Integrations- und API-Tests, welche die Kommunikation zwischen den Schichten prüfen. Die Spitze der Pyramide bilden ausgewählte End-to-End-Tests (E2E), die isoliert kritische User-Flows aus der Perspektive des Endanwenders validieren.
+Wie in Abbildung \ref{fig:testpyramide} zu sehen ist, bilden die Unit-Tests das Fundament der Pyramide, welche die größte Menge an Tests ausmachen. Hierbei gilt das Grundprinzip: Je weiter unten in der Testpyramide eine Testebene angesiedelt ist, desto isolierter und schneller in der Ausführung sind die entsprechenden Tests. Auf der mittleren Ebene befinden sich die Integrations- und API-Tests, welche die Kommunikation zwischen den Schichten prüfen. Die Spitze der Pyramide bilden ausgewählte End-to-End-Tests (E2E), die isoliert kritische User-Flows aus der Perspektive des Endanwenders validieren.
 
 \subsubsection{Richtlinien zur Testabdeckung (Code Coverage)}
 In der Softwareentwicklung existiert kein universell gültiger oder verbindlich vorgeschriebener Prozentwert für die Testabdeckung. Selbst die internen Engineering-Richtlinien von Google \cite{google2020coverage} verzichten auf starre Vorgaben und empfehlen stattdessen zielgerichtete Werte, wobei 60\,\% als akzeptabel, 75\,\% als lobenswert und 90\,\% als vorbildlich eingestuft werden. 
+
 
 Sicherheitskritische Bereiche, wie beispielsweise die Authentifizierungslogik oder Autorisierungs-Guards, streben eine Testabdeckung von über 90\,\% an, da ungetestete Code-Pfade in diesen Modulen ein erhebliches Sicherheitsrisiko darstellen. Für Standard-Controller oder Datentransferobjekte (DTOs) wurde hingegen kein fixer Prozentwert auf Unit-Ebene definiert, da deren Validierung systembedingt primär durch die höherstufigen API-Tests erfolgt. Bei den API- und E2E-Tests wird bewusst auf eine zeilenbasierte Code-Coverage verzichtet; stattdessen dient die Vollständigkeit der getesteten HTTP-Endpunkte und User-Flows als primäres Qualitätskriterium.
 
 \authorsection{Unit-Tests}{Dražen Plavšić}
 \label{sec:unit_tests}
-Unit-Tests bilden das Fundament der Qualitätssicherung innerhalb von \textit{EffSync}. Ihr primärer Zweck besteht darin, einzelne funktionale Einheiten des Sourcecodes, wie Klassen, Methoden oder Komponenten, isoliert auf ihre korrekte Funktionsweise zu überprüfen. Da solche Einheiten in der Regel von weiteren Modulen oder externen Diensten abhängen, werden diese Abhängigkeiten in Unit-Tests gezielt simuliert. Dadurch lassen sich die Tests unter kontrollierten Bedingungen ausführen und das Verhalten der jeweiligen Einheit unabhängig bewerten.
+Unit-Tests bilden das Fundament der Qualitätssicherung innerhalb von \textit{EffSync}. Ihr primärer Zweck besteht darin, einzelne funktionale Einheiten des Sourcecodes, wie Klassen, Methoden oder Komponenten, isoliert auf ihre korrekte Funktionsweise zu überprüfen. Da solche Einheiten in der Regel von weiteren Modulen oder externen Diensten abhängig sind, werden diese Abhängigkeiten in Unit-Tests gezielt simuliert. Dadurch lassen sich die Tests unter kontrollierten Bedingungen ausführen und das Verhalten der jeweiligen Einheit unabhängig bewerten.
 
 \subsection{Testwerkzeuge und Zielvorgaben}
 Für die technische Umsetzung werden zwei auf die jeweilige Umgebung abgestimmte Testwerkzeuge eingesetzt. Im \textbf{Backend (NestJS)} wird \textit{Jest} in Kombination mit \texttt{@nestjs/testing} verwendet\cite{nestjs_testing_docs}, im \textbf{Frontend (Vue 3)} \textit{Vitest}\cite{vitest_docs} zusammen mit \texttt{@vue/test-utils}\cite{vue_test_utils_docs}. Die Ausführung der Tests erfolgt über das Skript \texttt{npm run test:coverage}.
@@ -46,7 +47,7 @@ Anhand des zuvor definierten Ansatzes sind für die Unit-Tests spezifische Prior
 \end{itemize}
 
 \subsection{Praktische Umsetzung und Mocking-Strategie}
-Wie in Listing \ref{lst:unit_test_example} ersichtlich, wird die Datenbankabhängigkeit vollständig durch das Test-Framework gemockt. Dadurch wird gewährleistet, dass ein Fehlschlagen des Tests ausschließlich auf einen Fehler in der Geschäftslogik des Services zurückzuführen ist und nicht durch externe Faktoren, wie eine fehlende Datenbankverbindung, verfälscht wird.
+Wie in Listing \ref{lst:unit_test_example} veranschaulicht, wird die Datenbankabhängigkeit vollständig durch das Test-Framework gemockt. Dadurch wird gewährleistet, dass ein Fehlschlagen des Tests ausschließlich auf einen Fehler in der Geschäftslogik des Services zurückzuführen ist und nicht durch externe Faktoren, wie eine fehlende Datenbankverbindung, verfälscht wird.
 
 \begin{listing}[H]
 \begin{minted}{typescript}
@@ -93,9 +94,9 @@ describe('TasksService', () => {
 \label{lst:unit_test_example}
 \end{listing}
 
-\authorsection{API- und Integrationstests}{Dražen Plavšić}\todo{Info an Simon, das ist im Code noch nicht vollstaendig getestet, wird von mir naechste woche nach donnerstag noch gemacht, sollte dann bis Sonntag (14.06.) fertig sein}
+\authorsection{API- und Integrationstests}{Dražen Plavšić}
 \label{sec:api_tests}
-Neben den isolierten Unit-Tests bilden API- und Integrationstests die zweite Ebene der Qualitätssicherung im Backend. Im Gegnsatz zu Unit-test prüfen API-Tests das Zusammenspiel mehrerer architektonischer Schichten innerhalb der laufenden Anwendung\cite{winter2005integrationstest}. Hierzu zählen insbesondere Controller, Guards, Pipes, Service-Logik sowie die finale Datenbankanbindung. Die Tests werden mit der Bibliothek \textit{Supertest} gegen eine, zu Testzwecken gestartete Instanz des NestJS-Servers, ausgeführt und simulieren vollständige HTTP-Anfragen\cite{nestjs_testing}.
+Neben den isolierten Unit-Tests bilden API- und Integrationstests die zweite Ebene der Qualitätssicherung im Backend. Im Gegensatz zu Unit-Tests prüfen API-Tests das Zusammenspiel mehrerer architektonischer Schichten innerhalb der laufenden Anwendung\cite{winter2005integrationstest}. Hierzu zählen insbesondere Controller, Guards, Pipes, Service-Logik sowie die finale Datenbankanbindung. Die Tests werden mit der Bibliothek \textit{Supertest} gegen eine, zu Testzwecken, gestartete Instanz des NestJS-Servers, ausgeführt und simulieren vollständige HTTP-Anfragen\cite{nestjs_testing_docs}.
 
 \subsection{Coverage-Ziele und Testpfade}
 Auf dieser Testebene wird bewusst keine Code-Coverage als primäre Metrik verwendet. Stattdessen steht die \textit{vollständige Abdeckung aller relevanten API-Endpunkte durch Tests} im Vordergrund. Für jeden relevanten HTTP-Endpunkt wird mindestens ein erfolgreicher Anfragepfad (\textit{Happy Path}) sowie die wichtigsten Fehlerpfade (\textit{Error Paths}) geprüft. Dazu zählen insbesondere Validierungsfehler (\texttt{400 Bad Request}), fehlende Authentifizierung (\texttt{401 Unauthorized}), unzureichende Berechtigungen (\texttt{403 Forbidden}) sowie nicht gefundene Ressourcen (\texttt{404 Not Found}). Dadurch wird sichergestellt, dass nicht nur der reguläre Erfolgsfall, sondern auch das Verhalten des Systems unter fehlerhaften oder unzulässigen Eingaben nachvollziehbar abgesichert ist.
@@ -104,7 +105,7 @@ Auf dieser Testebene wird bewusst keine Code-Coverage als primäre Metrik verwen
 Ein weiterer zentraler Bestandteil der API-Teststrategie ist die deterministische Vorbereitung der Testumgebung. Da die Tests gegen eine reale Testdatenbank ausgeführt werden, muss das sogenannte \textit{State Leakage}, also die unkontrollierte Beeinflussung nachfolgender Testläufe durch zuvor manipulierte Daten, zwingend verhindert werden. Vor dem Start der API-Test-Suite wird die Datenbank daher über den Befehl \texttt{prisma migrate reset --force} vollständig zurückgesetzt und mittels eines dedizierten Seed-Skripts (\texttt{test-seed.ts}) mit vordefinierten Testdaten neu befüllt. Dieser Prozess wird vollautomatisiert über die Jest-Konfiguration gesteuert, sodass für jeden Testlauf exakt identische Ausgangsbedingungen herrschen.
 
 \subsection{Fokusbereiche und Priorisierung}
-Inhaltlich folgt die API-Testebene einer strikt Vorgehensweise: Zuerst werden die sicherheitskritischen und geschäftsrelevanten Schnittstellen vollständig abgesichert, danach ergänzend weitere Endpunkte mit geringerem Fehlerrisiko (wie beispielsweise Benachrichtigungen, Notizen oder Profilinformationen). 
+Inhaltlich folgt die API-Testebene einer strikten Vorgehensweise: Zuerst werden die sicherheitskritischen und geschäftsrelevanten Schnittstellen vollständig abgesichert, danach ergänzend weitere Endpunkte mit geringerem Fehlerrisiko (wie beispielsweise Benachrichtigungen, Notizen oder Profilinformationen). 
 
 Als kritisch sind die Authentifizierungsendpunkte sowie die Kernendpunkte der Aufgabenverwaltung eingestuft. Gerade im Fall der Task-Endpunkte müssen dabei komplexe fachliche Regeln wie Filterlogiken, Statusänderungen oder Löschbedingungen (z.\,B. Verbot des Löschens bei vorhandenen Subtasks) korrekt validiert werden. Die Tabelle \ref{tab:api_endpoints} liefert eine detaillierte Übersicht dieser priorisierten Schnittstellen.
 
@@ -117,9 +118,9 @@ Als kritisch sind die Authentifizierungsendpunkte sowie die Kernendpunkte der Au
         \hline
         \texttt{/api/auth/register} & \texttt{POST} & Öffentlicher Registrierungsendpunkt. \\
         \hline
-        \texttt{/api/auth/login} & \texttt{POST} & Endpunkt der für die Validierung der Zugangsdaten und die JWT-Token-Ausgabe verantwortlich ist. \\
+        \texttt{/api/auth/login} & \texttt{POST} & Endpunkt, der für die Validierung der Zugangsdaten und die JWT-Token-Ausgabe verantwortlich ist. \\
         \hline
-        \texttt{/api/auth/logout} & \texttt{POST} & Endpunkt zur sicheren Abmeldung Löschung des Sitzungstokens. \\
+        \texttt{/api/auth/logout} & \texttt{POST} & Endpunkt zur sicheren Abmeldung/Löschung des Sitzungstokens. \\
         \hline
         \texttt{/api/tasks} & \texttt{POST} & Zentrales Kernfeature zur Erstellung neuer Tasks. \\
         \hline
@@ -136,8 +137,7 @@ Als kritisch sind die Authentifizierungsendpunkte sowie die Kernendpunkte der Au
     \label{tab:api_endpoints}
 \end{table}
 
-Auf diese Weise trägt die API-Testebene wesentlich dazu bei, Fehler an den Systemgrenzen frühzeitig zu erkennen und die Stabilität der gesamten Backend-Kommunikation nachweislich zu garantieren.
-\authorsection{E2E-Tests}{Ereny Micail}
+Auf diese Weise trägt die API-Testebene wesentlich dazu bei, Fehler an den Systemgrenzen frühzeitig zu erkennen und die Stabilität der gesamten Backend-Kommunikation nachweislich zu garantieren.\authorsection{E2E-Tests}{Ereny Micail}
 \authorsection{Usability-Test}{Ereny Micail}
 \authorsection{Fehelernalyse und Verbesserung}{Ereny Micail}
 hier eventuell infos wie wir fehler gefunden haben und was gemacht worden ist zum verbessern, eventuell auf den BugFix issus mit den subisssuse eingehen.
