@@ -6,19 +6,19 @@ Deshalb ist das System bewusst in ein getrenntes Frontend als Client und ein Bac
 
 \authorsection{Technologie Stack}{Dražen Plavšić}
 \label{sec:technologie_stack}
-Für die Implementierung der Benutzeroberfläche wird \textit{Vue.js} eingesetzt, da die Expertise bei diesem JavaScript Framework gegeben ist und die Entwicklung von komponentenbasierten Webanwendungen\cite{vue_introduction} unterstützt wird. Die Build- und Entwicklungsumgebung wird durch \textit{Vite}\cite{vite_guide} ergänzt.
-\textit{NestJS}\cite{nestjs_docs} kommt als Backend-Framework zum Einsatz, da es eine integrierte Unterstützung für WebSockets\cite{nestjs_websocket} bietet und somit die Implementierung der Live-Chat-Funktionalität (\textit{siehe \autoref{sec:live_chat}}) ermöglicht. Auf dessen Basis wird auch die serverseitige Logik und die \gls{REST-API} implementiert. 
-Als relationales Datenbanksystem kommt \textit{PostgreSQL}\cite{postgresql} zum Einsatz. Für den zugehörigen Datenbankzugriff wird \textit{Prisma ORM}\cite{prisma_orm} verwendet. Dieses übernimmt die Modellierung und Migration der Datenstrukturen.
+Für die Implementierung der Benutzeroberfläche wird \textit{Vue.js} eingesetzt, da die Expertise bei diesem JavaScript-Framework gegeben ist und die Entwicklung von komponentenbasierten Webanwendungen\cite{vue_introduction} unterstützt wird. Die Build- und Entwicklungsumgebung wird durch \textit{Vite}\cite{vite_guide} ergänzt.
+\textit{NestJS}\cite{nestjs_docs} kommt als Backend-Framework zum Einsatz, da es eine integrierte Unterstützung für WebSockets\cite{nestjs_websocket} bietet und somit die Implementierung der Live-Chat-Funktionalität (\textit{siehe \autoref{sec:live_chat}}) ermöglicht. Auf dieser Basis wird auch die serverseitige Logik und die \gls{REST-API} implementiert. 
+Als relationales Datenbanksystem kommt \textit{PostgreSQL}\cite{postgresql} zum Einsatz. Für den zugehörigen Datenbankzugriff wird \textit{Prisma ORM}\cite{prisma_orm} verwendet, das die Modellierung und Migration der Datenstrukturen übernimmt.
 Durch diese Kombination wird eine moderne, wartbare und klar strukturierte Systemarchitektur erreicht, bei der die einzelnen Schichten klar voneinander getrennt sind.
 
 \authorsection{Frontend-Architektur und Komponenten-Setup}{Dražen Plavšić}
 \label{sec:frontend_architektur}
-In diesem Abschnitt wird die Frontend-Architektur von \textit{EffSync} erläutert, von der Ordner- und Komponentenstruktur über das globale State-Management und dem Einsatz einer Mock-Datenbank.
+In diesem Abschnitt wird die Frontend-Architektur von \textit{EffSync} betrachtet. Dabei wird die Ordner- und Komponentenstruktur, das globale State-Management und der Einsatz einer Mock-Datenbank näher erläutert.
 
 \subsection{Ordnerstruktur und Trennung der Zuständigkeiten}
 \label{sec:frontend_ordnerstruktur}
 
-Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, folgt die Architektur von \textit{EffSync} dem Prinzip der \textit{Separation of Concerns} \cite{parnas1972criteria} (Trennung der Zuständigkeiten).  Der Sourcecode wird  in logische Schichten unterteilt (siehe Abbildung \autoref{fig:frontend_ordner}), die jeweils spezifische Aufgaben innerhalb des Frontends übernehmen.
+Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, folgt die Architektur von \textit{EffSync} dem Prinzip der \textit{Separation of Concerns} \cite{parnas1972criteria} (Trennung der Zuständigkeiten). Wie in Abbildung~\ref{fig:frontend_ordner} dargestellt, wird der Sourcecode in logische Schichten unterteilt, die jeweils spezifische Aufgaben innerhalb des Frontends übernehmen.
 
 \begin{figure}[H]    
     \dirtree{%    
@@ -44,57 +44,34 @@ Um eine hohe Wartbarkeit und Skalierbarkeit des Sourcecodes zu gewährleisten, f
     .3 DashboardView.vue.    
     .3 LoginView.vue.    
     }    
-    \caption{Frontend-Ordnerstruktur und -Architektur von EffSync}    
+    \caption{Frontend-Ordnerstruktur und -Architektur von \textit{EffSync}}    
     \label{fig:frontend_ordner}
 \end{figure}
 
-Wie aus der Ordnerstruktur ersichtlich wird, trennt \textit{EffSync} den Datenfluss und die Geschäftslogik strikt von der visuellen Darstellung. Die Komponenten in \texttt{/views} und \texttt{/components} dienen ausschließlich dem Rendering der Benutzeroberfläche und nehmen keine direkten Netzwerk-Requests vor. Stattdessen wird jegliche komplexe Geschäfts- und Validierungslogik in \texttt{/composables} ausgelagert. Die tatsächliche Datenhaltung erfolgt über die \texttt{/stores} in Kombination mit der \texttt{/api}-Schicht. 
-
-Durch diese Entkopplung entsteht eine modulare Architektur. Sie ermöglicht nicht nur isolierte Unit-Tests (wie beispielsweise \texttt{tasks.test.js}, \textit{siehe Abschnitt \autoref{sec:unit_tests}}) sondern reduziert auch die Komplexität bei der Weiterentwicklung\cite{hamza2005separation} und beschleunigt das Auffinden von Fehlern (\textit{Debugging}).
+\textit{EffSync} trennt Datenfluss und Geschäftslogik strikt von der visuellen Darstellung. Komponenten in \texttt{/views} und \texttt{/components} dienen ausschließlich dem Rendering und nehmen keine direkten Netzwerk-Requests vor. Komplexe Logik wird in \texttt{/composables} ausgelagert, Datenhaltung erfolgt über \texttt{/stores} mit der \texttt{/api}-Schicht. Diese Entkopplung ermöglicht isolierte Unit-Tests\cite{hamza2005separation} und reduziert Komplexität bei der Weiterentwicklung.
 
 \subsection{Globale Zustandsverwaltung (State Management)}
 \label{sec:globaler_state}
 
-Da die Benutzeroberfläche von \textit{EffSync} als \gls{SPA} konzipiert ist, bei der einzelne Vue-Komponenten dynamisch gerendert werden, stellt die  Datenverteilung zwischen diesen Komponenten eine architektonische Herausforderung dar. Ohne eine übergeordnete Instanz besteht die Gefahr redundanter Netzwerkanfragen. Beispielsweise wenn das \texttt{Dashboard} als auch einzelne \texttt{TaskCard}-Komponenten dieselben Task-Informationen benötigen und dafür jeweils eigene API-Aufrufe an das Backend senden würden.
+Da \textit{EffSync} als \gls{SPA} konzipiert ist, stellt die Datenverteilung zwischen Vue-Komponenten eine architektonische Herausforderung dar. Ohne übergeordnete Verwaltung entstehen redundante Netzwerkanfragen. Um dies zu verhindern, wird Pinia als globales State-Management-System eingesetzt\cite{vuejs_state_managment}. Pinia fungiert als \textit{Single Source of Truth}: Änderungen an Task-Daten synchronisieren sich sofort in allen abhängigen Ansichten.
 
-Um dies zu verhindern, wird ein globales State-Management-System implementiert. Dieses fungiert als \textit{Single Source of Truth} für die gesamte Applikation. Wird der Status eines Tasks geändert, synchronisieren sich alle abhängigen Ansichten (wie das Dashboard und die Task-Listen) sofort und automatisch. 
-Dafür wird Pinia als State-Management-Lösung im Vue-Frontend verwendet. \todo{disen teil vt. löschen?}Pinia ist seit Vue 3 die offizielle State-Management-Bibliothek und hat Vuex abgelöst \cite{vuejs_state_managment}. Aufgrund der nativen Integration in das Vue-Ökosystem eignet sich Pinia für die zentrale Verwaltung des gemeinsam genutzten Zustands in \textit{EffSync}.
-
-Um der etablierten Ordnerstruktur und der strikten \textit{Separation of Concerns} treu zu bleiben, ist die Zustandsverwaltung logisch aufgeteilt (siehe Abbildung~\ref{fig:frontend_ordner}). Allgemeine Funktionen wie die Authentifizierung liegen als globale Stores direkt im \texttt{/stores}-Verzeichnis. Daten, die zu bestimmten Features gehören (wie Tasks oder Chats), werden hingegen in den eigenen Unterordner \texttt{/stores/entities} ausgelagert.
-
-\subsubsection{Interner Datenfluss und Setup-Store-Architektur}
-Wie am Beispiel des \texttt{taskStore.js} ersichtlich wird, ist der Store intern analog zu einer Vue-Komponente aufgebaut und gliedert sich in drei Kernbereiche:
-\todo{statt der Aufzählung eventuell echten code aus den files zeigen?}
-\begin{itemize}
-    \item \textbf{State (Zustand):} Reaktive Variablen (wie \texttt{const tasks = ref([])}) halten die Rohdaten, die initial vom Backend geladen werden.
-    \item \textbf{Getters (Abgeleiteter Zustand):} Mittels \texttt{computed()}-Eigenschaften werden Daten reaktiv gefiltert und aufbereitet (z.\,B. \texttt{getSubtasks}), ohne den originalen Zustand zu verändern.
-    \item \textbf{Actions (Logik):} Asynchrone Funktionen beinhalten die komplexe Geschäftslogik. Sie kommunizieren über die API-Schicht mit dem Server (beispielsweise \texttt{fetchTasks} oder \texttt{patchTask}), verarbeiten WebSocket-Events und aktualisieren anschließend den lokalen State.
-\end{itemize}
-
-Durch diesen modularen Aufbau werden komplexe Logiken wie Datenbeschaffung, Filterung oder Echtzeit-Synchronisation vollständig aus den UI-Komponenten (wie der \texttt{TaskCard.vue}) ausgelagert. Die UI-Komponenten benutzen lediglich den fertigen Zustand und rufen bei Benutzerinteraktionen die entsprechenden Actions im Store auf.
+Die Zustandsverwaltung ist logisch aufgeteilt. Allgemeine Funktionen wie Authentifizierung werden global in \texttt{/stores} gespeichert, während featurespezifische Daten (Tasks, Chats) in \texttt{/stores/entities} ausgelagert werden. Der Store ist intern in drei Bereiche gegliedert: \textbf{State} (reaktive Variablen mit Rohdaten), \textbf{Getters} (berechnete Eigenschaften für Filterung/Aufbereitung) und \textbf{Actions} (asynchrone Geschäftslogik mit API-Kommunikation).
 
 \subsubsection{Mock-Datenbank}
-Um bei der Frontend-Entwicklung nicht auf die Fertigstellung der Backend-Schnittstellen warten zu müssen, wird eine Mock-Datenbank eingesetzt. Dieser Ansatz entkoppelt die Frontend- von der Backend-Entwicklung und ermöglicht parallele Arbeitsabläufe\cite{newman2021building}. 
-
-Die Simulation der Datenbank erfolgt über das NPM-Paket \texttt{json-server}\cite{typicode_json_server}. Aus einer simplen, lokalen JSON-Datei (\texttt{mockdb.json}) wird dabei eine vollständig funktionsfähige REST-API generiert. Der \texttt{json-server} verarbeitet Standard-HTTP-Anfragen (wie GET, POST, PUT und DELETE) identisch zu einem realen Backend und simuliert das Verändern, Löschen und Hinzufügen von Datensätzen. 
-
-Dadurch lassen sich Architektur-Komponenten wie der HTTP-Client (Axios) und das State-Management (Pinia) bereits frühzeitig implementieren und testen. Sobald das echte NestJS-Backend einsatzbereit ist, muss lediglich die Basis-URL in der Konfiguration ausgetauscht werden, während die Logik der UI-Komponenten vollständig unangetastet bleibt.
+Um Frontend-Entwicklung unabhängig vom Backend zu ermöglichen, wird \texttt{json-server}\cite{typicode_json_server} als Mock-Datenbank eingesetzt\cite{newman2021building}. Aus einer lokalen JSON-Datei wird eine vollständige REST-API generiert, die Standard-HTTP-Anfragen identisch zu einem realen Backend verarbeitet. Nach Backend-Fertigstellung muss nur die Basis-URL ausgetauscht werden, die UI-Logik bleibt unverändert.
 
 \authorsection{Backend-Architektur und Schichtenmodell}{Dražen Plavšić}
 \label{sec:backend_architektur}
-Die Backend-Architektur von \textit{EffSync} folgt einem strikten Schichtenmodell, um den Datenfluss und die Geschäftslogik voneinander zu trennen. Die Struktur besteht im Kern aus Controllern, Services und dem Data Access Layer.
+Die Backend-Architektur folgt einem strikten Schichtenmodell: HTTP-Anfragen werden von \textit{Controllern} entgegengenommen, an \textit{Services} delegiert (wo die Geschäftslogik liegt), und auf der \textit{Data-Access}-Ebene via \textit{Prisma ORM} mit \textit{PostgreSQL} kommuniziert. Dependency Injection verwaltet die Instanziierung und Verknüpfung dieser Klassen.
 
-Eingehende HTTP-Anfragen vom \textit{Frontend} werden, wie in Abbildung \ref{fig:cleint_server_communication}, von den \textit{Controllern} entgegengenommen. Deren Aufgabe beschränkt sich darauf, das Routing zu verwalten, Parameter zu extrahieren und die Anfrage an den entsprechenden Service weiterzuleiten. Die eigentliche Geschäftslogik wie Berechnungen, Autorisierungsprüfungen und Datenmanipulation ist vollständig in den \textit{Services} gekapselt. Die Instanziierung und Verknüpfung dieser Klassen wird durch das in NestJS integrierte Dependency-Injection-System verwaltet. Die Kommunikation mit der relationalen PostgreSQL-Datenbank erfolgt über \textit{Prisma ORM} im Data Access Layer.
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.8\textwidth]{content/bilder/client_server_communication}
-  \caption{Client-Server Kommunikation}
+  \caption{Client-Server-Kommunikation}
   \label{fig:cleint_server_communication}
 \end{figure}
 
-Zur Abbildung des Datenbankschemas im Backend wird das \textit{Table Module}-Pattern verfolgt \cite{fowler2002patterns}. Für jede Tabelle des \gls{erd} (beispielsweise \texttt{tasks} oder \texttt{task\_assignments}) wird über die NestJS-CLI ein separates Modul generiert, das jeweils einen eigenen Controller und Service beinhaltet.
-
-Der Datenbankzugriff ist zentral durch ein Prisma-Modul gekapselt. Dieses Modul wird einmalig im globalen \texttt{AppModule} registriert. Dadurch steht der \texttt{PrismaService} systemweit zur Verfügung und kann von jedem anderen Modul direkt über Dependency Injection injiziert und genutzt werden\cite{prisma_database_connections}. Dies verhindert die redundante Erstellung von Datenbankverbindungen und stellt ein zentralisiertes Connection Pooling sicher\cite{prisma_connection_management}.
+Das \textit{Table-Module}-Pattern bildet jede Datenbankabelle als separates NestJS-Modul ab\cite{fowler2002patterns}. Der Datenbankzugriff ist zentral durch ein Prisma-Modul gekapselt und systemweit via \textit{Dependency-Injection} verfügbar, was redundante Datenbankverbindungen verhindert\cite{prisma_database_connections}\cite{prisma_connection_management}.
 
 \authorsection{Datenbankdesign}{Ereny Micail}
 
