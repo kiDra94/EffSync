@@ -97,7 +97,7 @@ die sofort ausgerollt werden müssen. &
 \label{tab:spezial-branches}
 \end{table}
 \subsubsection{Naming Convention für Commits}
-Damit Änderungen inhaltlich kategorisierbar sind und die Historie übersichtlich bleibt, werden die Commit-Messages nach folgendem Schema geschrieben: \texttt{\#issue-number: \textlangle beschreibung\textrangle}.\newline
+Damit Änderungen inhaltlich kategorisierbar sind und die Historie übersichtlich bleibt, werden die Commit-Messages nach folgendem Schema geschrieben:\\ \texttt{\#issue-number: \textlangle beschreibung\textrangle}.\newline
 Durch das Hinzufügen der \textbf{issue-number} jeder \textbf{Commit-Massage} erkennt GitHub die Referenzen automatisch als klickbare Verlinkung\cite{github_autolinked_references} zum entsprechenden Issue, wodurch jede Änderung direkt dem jeweiligen Arbeitspaket zugeordnet werden kann.
 \subsubsection{Pull-Request- und Merge-Strategie}
 Um Konflikte beim Mergen von Pull-Requests zu minimieren, wird vor dem finalen Push der aktuellen \textbf{development-branch} zuerst lokal in den \textbf{feature-branch} gemergt\cite{git_branching_merging_chacon2014progit}.  Dadurch können potenzielle Konflikte frühzeitig lokal gelöst werden, sodass der anschließende Merge in GitHub reibungslos erfolgt.
@@ -108,7 +108,7 @@ Im Rahmen des Projekts kommen sowohl klassische als auch agile Projektmanagement
 
 Die Rolle des Product Owners wird dem Betreuer übertragen, da dieser im Fall von Terminproblemen darüber entscheidet, ob ein Feature angepasst oder gegebenenfalls weggelassen wird. Darüber hinaus obliegt ihm die Abnahme und das Review der einzelnen \gls{SCRUM}-Sprints. Die Sprint-Dauer ist einheitlich auf vier Wochen festgelegt. Die Rolle des \gls{SCRUM}-Masters wird aufgrund der geringen Teamgröße von beiden Teammitgliedern ausgeübt.
 
-Die Abbildung der \gls{SCRUM}-Sprints erfolgt in GitHub über Milestones. Jeder Milestone\cite{codetree2017sprintplanning} umfasst die spezifischen Issues des jeweiligen Sprints. GitHub übernimmt das Fortschrittstracking der Sprints automatisch\cite{github2026milestones} durch eine prozentuale Berechnung des Status. Das Sprint-Ende wird durch die Due-Date-Funktion definiert und als Sprint-Backlog dient die Kommentarfunktion des Milestones. Alle Arbeitspakete existieren als Issues mit detaillierter Beschreibung. Diese sind fest einer Person und dem entsprechenden Milestone zugewiesen\cite{github2026associatingmilestones}.
+Die Abbildung der \gls{SCRUM}-Sprints erfolgt in GitHub über Milestones. Jeder Milestone\cite{codetree2017sprintplanning} umfasst die spezifischen Issues des jeweiligen Sprints. GitHub übernimmt das Fortschritts\-tracking der Sprints automatisch\cite{github2026milestones} durch eine prozentuale Berechnung des Status. Das Sprint-Ende wird durch die Due-Date-Funktion definiert und als Sprint-Backlog dient die Kommentarfunktion des Milestones. Alle Arbeitspakete existieren als Issues mit detaillierter Beschreibung. Diese sind fest einer Person und dem entsprechenden Milestone zugewiesen\cite{github2026associatingmilestones}.
 
 \authorsection{Automatisierung und Qualitätssicherung (CI/CD)}{Dražen Plavšić}
 Um sicherzustellen, dass die Funktionalität nach dem Implementieren von neuen Features gewährleistet ist, wird eine \gls{CI/CD}-Pipeline\cite{cogent2025devsecopsCICD} mit GitHub-Actions\cite{github2026actionsquickstart} verwendet.
