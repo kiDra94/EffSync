@@ -1,4 +1,4 @@
-\chapter{Testing und Qualitätssicherung}
+\authorchapter{Testing und Qualitätssicherung}{Ereny Micail}
 \label{ch:testing_quality}
 Die Qualitätssicherung ist ein wesentlicher Bestandteil des Softwareentwicklungsprozesses. Um sicherzustellen, dass \textit{EffSync} funktional korrekt, stabil und wartbar umgesetzt wird, wurde ein mehrstufiges Testkonzept definiert.
 
@@ -137,8 +137,148 @@ Als kritisch sind die Authentifizierungsendpunkte sowie die Kernendpunkte der Au
     \label{tab:api_endpoints}
 \end{table}
 
-Auf diese Weise trägt die API-Testebene wesentlich dazu bei, Fehler an den Systemgrenzen frühzeitig zu erkennen und die Stabilität der gesamten Backend-Kommunikation nachweislich zu garantieren.\authorsection{E2E-Tests}{Ereny Micail}
-\authorsection{Usability-Test}{Ereny Micail}
-\authorsection{Fehelernalyse und Verbesserung}{Ereny Micail}
-hier eventuell infos wie wir fehler gefunden haben und was gemacht worden ist zum verbessern, eventuell auf den BugFix issus mit den subisssuse eingehen.
+Auf diese Weise trägt die API-Testebene wesentlich dazu bei, Fehler an den Systemgrenzen frühzeitig zu erkennen und die Stabilität der gesamten Backend-Kommunikation zu verbessern.
 
+\authorsection{E2E-Tests}{Ereny Micail}
+\label{sec:e2e_tests}
+\subsection{End-to-End-Tests (E2E-Tests)}
+Für die Qualitätssicherung der Backend-Funktionen werden in \textit{EffSync} End-to-End-Tests mit \texttt{Jest} und \texttt{Supertest} eingesetzt. Die E2E-Tests befinden sich im Backend-Testbereich und werden über das Script \texttt{npm run test:e2e} mit der Konfiguration \texttt{test/jest-e2e.json} ausgeführt. Technisch wird dabei die vollständige NestJS-Applikation (\texttt{AppModule}) gestartet, sodass Requests gegen reale HTTP-Endpunkte getestet werden.
+
+Im Gegensatz zu reinen Unit-Tests wird hier das Zusammenspiel mehrerer Ebenen überprüft: Routing, Guards, Validierung, Service-Logik und Datenbankzugriffe. Die Testfälle orientieren sich an typischen Nutzeraktionen und verwenden das \textit{Arrange-Act-Assert}-Muster. Dabei wird im Schritt „Arrange“ die Ausgangssituation vorbereitet (z. B. Testdaten anlegen, Mocks konfigurieren), in „Act“ die eigentliche Aktion ausgeführt (z. B. ein Request an einen Endpunkt gesendet) und in „Assert“ das Ergebnis überprüft (z. B. Rückgabewerte, Statuscodes oder Datenbankzustand verifiziert).
+\paragraph{Beispiel 1: Basis-Erreichbarkeit der API}
+Ein grundlegender E2E-Test prüft, ob die Applikation korrekt startet und der Root-Endpunkt erreichbar ist:
+\begin{itemize}
+    \item \textbf{Request:} \texttt{GET /}
+    \item \textbf{Erwartung:} HTTP \texttt{200} und Antwort \texttt{"Hello World!"}
+\end{itemize}
+Dieser Test dient als technischer Smoke-Test für die Testumgebung.
+
+\paragraph{Beispiel 2: Throttling bei Registrierung}
+Ein sicherheitsrelevanter E2E-Test validiert die Rate-Limiting-Logik im Auth-Bereich:
+\begin{itemize}
+    \item Die Route \texttt{POST /auth/register} wird viermal hintereinander mit identischen Daten aufgerufen.
+    \item Die ersten drei Requests sind erfolgreich (\texttt{201 Created}).
+    \item Der vierte Request wird durch den Throttler blockiert (\texttt{429 Too Many Requests}).
+\end{itemize}
+Damit wird abgesichert, dass Schutzmechanismen gegen Request-Spam im Laufzeitsystem tatsächlich greifen.
+
+\paragraph{Beispiel 3: Mitgliederverwaltung bei Tasks}
+Ein umfassender Workflow-Test bildet den vollständigen Ablauf der Task-Mitgliederverwaltung ab:
+\begin{enumerate}
+    \item Anlegen und Login mehrerer Testnutzer (Admin, Teacher, Student),
+    \item Erstellen eines Tasks durch den Teacher,
+    \item Hinzufügen eines Mitglieds über \texttt{POST /api/tasks/:id/members},
+    \item Verhindern doppelter Mitgliedschaft (Fehlerfall),
+    \item Auflisten und Entfernen von Mitgliedern.
+\end{enumerate}
+Zusätzlich werden Berechtigungsfälle geprüft, etwa ob nicht-autorisierte Nutzer administrative Aktionen ausführen dürfen. Dadurch werden sowohl fachliche als auch sicherheitsrelevante Anforderungen in einem realitätsnahen API-Kontext validiert.
+
+\paragraph{Beispiel 4: Permission-Flags und Rollenprüfung}
+Ein weiterer E2E-Block testet die effektiven Berechtigungen eines Users auf Task-Ebene über \texttt{/api/tasks/:id/members/check-permission}. Dabei werden die zurückgegebenen Flags (\texttt{has\_read}, \texttt{has\_write}, \texttt{has\_execute}, numerischer Flag-Wert) geprüft. So wird sichergestellt, dass die Berechtigungsauflösung im Gesamtsystem konsistent funktioniert.
+
+\paragraph{Abgrenzung zu Unit-Tests}
+Neben E2E-Tests existieren auch klassische Unit-Tests (z.\,B.\ für \texttt{TaskMembersService} mit gemocktem \texttt{PrismaService}). Diese prüfen isolierte Methoden und Randfälle wie \texttt{NotFoundException}, \texttt{ForbiddenException} oder Flag-Berechnungen. E2E-Tests ergänzen diese Ebene, indem sie die gleichen Regeln über echte HTTP-Aufrufe und Modulgrenzen hinweg absichern.
+
+In Summe erhöht die Kombination aus Unit- und E2E-Tests die Stabilität von \textit{EffSync} deutlich: Unit-Tests liefern schnelle, präzise Fehlerlokalisierung auf Methodenebene, während E2E-Tests regressionskritische Gesamtabläufe aus Nutzersicht absichern.
+
+\authorsection{Usability-Test}{Ereny Micail}
+\label{sec:usability_test}
+
+Zur Bewertung der Bedienbarkeit von \textit{EffSync} wurde ein moderierter Usability-Test durchgeführt, bei dem eine einzelne Testperson nacheinander die beiden zentralen Nutzerrollen des Systems (Lehrer bzw. Schüler) in getrennten Sessions durchlief. Die Testperson bringt einschlägige Vorkenntnisse im Bereich UX/UI-Design mit und hatte bereits Erfahrung mit vergleichbaren Tools; nach eigener Einschätzung der Testperson lässt sich \textit{EffSync} funktional am ehesten als Mischung aus Microsoft Teams und Moodle einordnen, wobei keines der beiden Referenzsysteme sämtliche in \textit{EffSync} kombinierten Funktionen auf einer einzigen Plattform vereint. Ziel war es, typische Kernabläufe unter realistischen Bedingungen zu beobachten und dabei sowohl quantitative Kennzahlen (Bearbeitungsdauer, Erfolgsquote) als auch qualitatives Feedback zu erheben. Die Tests orientieren sich lose an den Usability-Heuristiken nach Nielsen \cite{nielsen_heuristics}, insbesondere an den Kriterien \textit{Systemstatus sichtbar machen}, \textit{Wiedererkennung statt Erinnerung} und \textit{Fehlertoleranz}.
+
+Einschränkend ist anzumerken, dass es sich bei nur einer Testperson mit fachlichem Hintergrund im UX/UI-Bereich nicht um einen repräsentativen Endnutzertest im klassischen Sinn handelt: Die Beobachtungen liefern wertvolle, fachlich fundierte Hinweise auf Schwachstellen, lassen jedoch aufgrund der geringen Stichprobengröße und der überdurchschnittlichen Vorerfahrung der Testperson keine statistisch belastbaren Aussagen über die Bedienbarkeit für unerfahrene Schüler oder Lehrkräfte zu.
+
+\paragraph{Testaufbau}
+Jede Session dauerte rund 30 Minuten und gliederte sich in eine kurze Einführung, ein Warm-up sowie drei rollenspezifische Aufgabenszenarien, einen Cross-Browser-Chat-Test und abschließende Fragen. Während des gesamten Tests galt die Regel, der Testperson nicht aktiv zu helfen, außer bei vollständigem Steckenbleiben nach etwa 90 Sekunden. Gemessen wurden pro Aufgabe die Bearbeitungsdauer, der Erfolgsgrad (vollständig / teilweise / nicht erfolgreich) sowie Fehlklicks und Sackgassen.
+
+\paragraph{Ergebnisse Session 1 -- Rolle Lehrer}
+Ziel der ersten Aufgabe war es, ausgehend vom Dashboard die Stelle zu finden, an der eine neue Aufgabe veröffentlicht werden kann. Die zweite Aufgabe bestand darin, eine Aufgabe vollständig anzulegen und das Ergebnis (Dateiupload) zu überprüfen. Tabelle~\ref{tab:usability_lehrer} fasst die gemessenen Zeiten zusammen.
+
+\begin{table}[H]
+    \centering
+    \caption{Usability-Test, Rolle Lehrer -- gemessene Bearbeitungszeiten}
+    \label{tab:usability_lehrer}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Schritt} & \textbf{Dauer} \\
+        \midrule
+        Login & 46 Sek \\
+        Aufgabenfeld finden (Aufgabe 1) & 51 Sek \\
+        Task erstellen und Person hinzufügen (Aufgabe 2) & 2:13 Min \\
+        Navigation von Profil zu Aufgabe & 8 Sek \\
+        Chat finden (Person suchen) & 22 Sek \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Auffällig war, dass das Auffinden des Bereichs zur Aufgabenerstellung mit 51 Sekunden vergleichsweise lange dauerte; die Testperson orientierte sich dabei zunächst an der Bezeichnung \glqq{}offene Aufgaben\grqq{} statt am eigentlichen Aktionsbereich. Als konkrete Verbesserung wurde vorgeschlagen, den entsprechenden Menüpunkt eindeutiger mit einem Aufgaben-Icon zu kennzeichnen. Beim Anlegen der Aufgabe selbst wurde zudem angemerkt, dass die Zeit- bzw.\ Deadline-Abhängigkeit visuell nicht ausreichend hervorgehoben ist. Beim Chat wurde bemängelt, dass Nachrichtenblasen und Kontaktliste zu viel Weißraum aufweisen und dadurch schwerer erfassbar sind.
+
+Aufgabe~3 (Fehlerfall/Recovery) konnte in dieser Session aus organisatorischen Gründen nicht dokumentiert werden und stellt eine Lücke in der Datenerhebung dar. Der Cross-Browser-Chat-Test (Aufgabe~4) verlief hingegen vollständig erfolgreich: Nachrichten wurden in beide Richtungen zugestellt, gleichzeitiges Senden wurde korrekt verarbeitet, der Verlauf blieb nach einem Reload erhalten und Reihenfolge sowie Zeitstempel waren konsistent.
+
+Die abschließende Selbsteinschätzung auf einer Skala von 1 (trifft gar nicht zu) bis 7 (trifft voll zu) ist in Tabelle~\ref{tab:usability_lehrer_skala} dargestellt.
+
+\begin{table}[H]
+    \centering
+    \caption{Usability-Test, Rolle Lehrer -- Selbsteinschätzung}
+    \label{tab:usability_lehrer_skala}
+    \begin{tabularx}{\textwidth}{Xc}
+        \toprule
+        \textbf{Aussage} & \textbf{Wert (1--7)} \\
+        \midrule
+        Ich konnte meine wichtigsten Aufgaben schnell erledigen. & 6 \\
+        Ich wusste jederzeit, wo ich bin und was ich als Nächstes tun kann. & 5 \\
+        Bei Fehlern konnte ich mich leicht erholen. & 7 \\
+        Ich vertraue dem Chat (Zustellung/Reihenfolge). & 7 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Auf die Frage nach der größten Frustrationsquelle antwortete die Testperson, dass das erstmalige Auffinden von Funktionen etwas Aufwand bedeute, man sich die Position jedoch schnell merke -- ein Hinweis auf eine flache, aber vorhandene Lernkurve. Als wirkungsvollste Verbesserung wurde vorgeschlagen, zentrale Funktionen wie \glqq{}Neue Aufgabe\grqq{} direkt über einen Schnellzugriff auf dem Dashboard verfügbar zu machen, statt sie erst über mehrere Navigationsschritte erreichbar zu machen.
+
+\paragraph{Ergebnisse Session 2 -- Rolle Schüler}
+In der zweiten Session bestand Aufgabe~1 darin, die zuletzt gestellte Aufgabe samt Abgabedatum zu finden, Aufgabe~2 darin, eine Kernaufgabe vollständig durchzuführen (Nachricht schreiben, Aufgabe aktualisieren/bewerten, zwischen Chats wechseln). Tabelle~\ref{tab:usability_schueler} zeigt die gemessenen Zeiten.
+
+\begin{table}[H]
+    \centering
+    \caption{Usability-Test, Rolle Schüler -- gemessene Bearbeitungszeiten}
+    \label{tab:usability_schueler}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Schritt} & \textbf{Dauer} \\
+        \midrule
+        Login & 11 Sek \\
+        Aufgabe finden (Aufgabe 1) & 5 Sek \\
+        Nachricht finden & 5 Sek \\
+        Vollständiger Ablauf inkl.\ Zusatzanweisungen (Aufgabe 2+3+4) & 3:10 Min \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Im Vergleich zur Lehrer-Rolle fielen die Orientierungszeiten in der Schüler-Rolle deutlich kürzer aus, da die entsprechenden Bereiche direkter zugänglich sind. Als Verbesserungspotenzial wurde notiert, dass Deadline-Anzeige und Task-Status auf der Aufgabenkarte zu klein dargestellt und dadurch schwer lesbar sind. Da die Aufgaben~3 und~4 einen Chat zwischen zwei Browsern voraussetzen, war dieses Szenario bereits im Rahmen der ersten Session (Rolle Lehrer) erprobt worden und musste in der zweiten Session nicht erneut vollständig durchgeführt werden.
+
+\paragraph{Zusammenfassung und priorisierte Probleme}
+Aus beiden Sessions wurden folgende drei Kernprobleme abgeleitet:
+
+\begin{enumerate}
+    \item[\textbf{P1}] Zentrale Funktionen (\glqq{}Neue Aufgabe\grqq{}, Chat) sind nicht direkt vom Dashboard aus erreichbar, sondern erfordern mehrere Navigationsschritte.
+    \item[\textbf{P2}] Deadline- und Statusanzeigen sind zu klein dargestellt und dadurch schwer lesbar.
+    \item[\textbf{P3}] Die Zeit-/Deadline-Abhängigkeit bei der Aufgabenerstellung ist visuell nicht ausreichend hervorgehoben.
+\end{enumerate}
+
+Insgesamt konnte die Testperson alle ihr in beiden Rollensessions gestellten Kernaufgaben ohne Abbruch abschließen. Die größte Hürde bestand im erstmaligen Auffinden zentraler Funktionen, wobei sich die Bearbeitungsgeschwindigkeit bei wiederholter Nutzung deutlich verbesserte. Der Cross-Browser-Chat-Test verlief in allen geprüften Kriterien fehlerfrei, was auf eine stabile Echtzeitkommunikation zwischen unterschiedlichen Clients hinweist. Da es sich bei der Testperson um eine fachlich vorgebildete Einzelperson handelt, sind die beobachteten Bearbeitungszeiten tendenziell als untere Grenze zu verstehen; bei unerfahreneren Nutzergruppen ist mit längeren Orientierungszeiten zu rechnen. Die identifizierten Probleme betreffen primär die Auffindbarkeit und visuelle Hervorhebung von Funktionen und wurden als Grundlage für die in Abschnitt~\ref{sec:fehleranalyse} beschriebenen Verbesserungsmaßnahmen herangezogen.
+
+\authorsection{Fehleranalyse und Verbesserung}{Ereny Micail}
+\label{sec:fehleranalyse}
+
+Fehler wurden im Projektverlauf über drei Kanäle identifiziert: durch fehlschlagende automatisierte Tests in der \gls{CI/CD}-Pipeline (siehe Kapitel~\ref{ch:workflow}), durch manuelles Review im Rahmen der Code-Reviews vor dem Merge in den \texttt{development}-Branch sowie durch die im Rahmen des Usability-Tests (Abschnitt~\ref{sec:usability_test}) beobachteten Bedienprobleme. Während automatisierte Tests vor allem funktionale Regressionen (z.\,B.\ fehlerhafte Berechtigungsprüfungen oder abgebrochene Task-Erstellungen) aufdeckten, lieferte der Usability-Test gezielt Hinweise auf Schwachstellen in der Bedienbarkeit, die durch reine Funktionstests nicht sichtbar werden.
+
+Zur Nachverfolgung wurde derselbe GitHub-Issue-basierte Workflow verwendet, der bereits in Kapitel~\ref{ch:workflow} für Feature-Arbeitspakete beschrieben wurde: Jeder identifizierte Fehler wurde als eigenes Issue mit dem Label \texttt{bug} angelegt und, sofern er sich klar einem Arbeitspaket zuordnen ließ, als Sub-Issue des jeweiligen Feature-Issues verknüpft. Bei umfangreicheren Problemclustern -- etwa allen aus dem Usability-Test abgeleiteten Bedienbarkeitsproblemen -- wurde ein übergeordnetes Sammel-Issue angelegt, dem die einzelnen Detailprobleme als Sub-Issues zugeordnet wurden. Dies ermöglichte es, den Bearbeitungsfortschritt eines gesamten Themenblocks auf einen Blick nachzuvollziehen, ohne die Übersicht über die Einzelmaßnahmen zu verlieren. Die eigentliche Behebung erfolgte je nach Dringlichkeit über einen kurzlebigen \texttt{fix-}-Branch auf dem \texttt{development}-Branch oder, bei kritischen produktionsrelevanten Fehlern, über einen \texttt{hotfix-}-Branch direkt auf dem \texttt{main}-Branch (vgl.\ Tabelle~\ref{tab:spezial-branches}). Durch die Referenzierung der Issue-Nummer in der Commit-Nachricht blieb jede Änderung durchgehend dem ursprünglich gemeldeten Fehler zuordenbar.
+
+Konkret wurden die in Abschnitt~\ref{sec:usability_test} identifizierten Probleme wie folgt adressiert:
+
+\begin{itemize}
+    \item \textbf{P1 -- fehlender Schnellzugriff auf zentrale Funktionen:} Als Verbesserung ist ein direkter Zugriff auf die Funktionen \glqq{}Neue Aufgabe\grqq{} sowie den Chat über das Dashboard vorgesehen, sodass beide Aktionen ohne zusätzlichen Navigationsschritt erreichbar wären.
+    \item \textbf{P2 -- zu kleine Deadline-/Statusanzeige:} Geplant ist eine Vergrößerung sowie eine stärkere farbliche Hervorhebung von Fälligkeitsdatum und Task-Status auf der Aufgabenkarte.
+    \item \textbf{P3 -- Zeitabhängigkeit bei der Aufgabenerstellung nicht ersichtlich:} Im Formular zur Aufgabenerstellung soll künftig ein zusätzlicher visueller Hinweis ergänzt werden, der die verbleibende Zeit bis zur Deadline unmittelbar sichtbar macht.
+\end{itemize}
+Die genannten Punkte wurden im Rahmen des Usability-Tests dokumentiert, konnten jedoch aus Zeitgründen im Verlauf dieser Diplomarbeit nicht mehr umgesetzt werden. Eine Behebung ist im Nachgang zur Arbeit vorgesehen. Ein erneuter vollständiger Usability-Test mit denselben Aufgabenstellungen wurde daher nicht mehr durchgeführt und stellt eine sinnvolle Anschlussmaßnahme für zukünftige Iterationen dar.

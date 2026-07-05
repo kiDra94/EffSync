@@ -60,6 +60,22 @@ Die Zustandsverwaltung ist logisch aufgeteilt. Allgemeine Funktionen wie Authent
 \subsubsection{Mock-Datenbank}
 Um Frontend-Entwicklung unabhängig vom Backend zu ermöglichen, wird \texttt{json-server}\cite{typicode_json_server} als Mock-Datenbank eingesetzt\cite{newman2021building}. Aus einer lokalen JSON-Datei wird eine vollständige REST-API generiert, die Standard-HTTP-Anfragen identisch zu einem realen Backend verarbeitet. Nach Backend-Fertigstellung muss nur die Basis-URL ausgetauscht werden, die UI-Logik bleibt unverändert.
 
+\subsection{Dashboard und Theming (Dark Mode)}
+\label{sec:dashboard_darkmode}
+
+Wie in der Anforderung NFA-12 (siehe Tabelle~\ref{tab:nfa}) festgelegt, unterstützt \textit{EffSync} sowohl einen hellen als auch einen dunklen Anzeigemodus (\textit{Dark Mode}). Da insbesondere Schüler und Lehrpersonen die Anwendung häufig über längere Zeiträume hinweg nutzen, reduziert ein dunkles Farbschema die Blendung bei schwachem Umgebungslicht und schont dadurch die Augen bei intensiver Bildschirmarbeit.
+
+Technisch wird das Theming über global definierte CSS-Variablen umgesetzt, die zentral in Vue 3 verwaltet und beim Umschalten des Toggles im oberen rechten Bereich der Oberfläche (siehe Abbildung~\ref{fig:dashboard_darkmode}) neu gesetzt werden. Die gewählte Einstellung wird nutzerbezogen persistiert, sodass die Präferenz bei erneuter Anmeldung automatisch wiederhergestellt wird. Da sämtliche Komponenten ausschließlich über diese CSS-Variablen eingefärbt werden, war für die Umsetzung keine Anpassung der einzelnen Vue-Komponenten notwendig; dies bestätigt zusätzlich den in Abschnitt~\ref{sec:frontend_ordnerstruktur} beschriebenen Architekturvorteil der strikten Trennung von Darstellung und Logik.
+
+Abbildung~\ref{fig:dashboard_darkmode} zeigt das zentrale Dashboard im Dark Mode. Es fasst die wichtigsten Kennzahlen für die jeweilige Nutzerrolle zusammen: offene Aufgaben, Klassen bzw. Abteilungen, geteilte Dokumente sowie eigene Notizen. Ergänzend visualisiert die Statusverteilung als Kreisdiagramm den aktuellen Bearbeitungsstand aller Aufgaben, während die Fortschrittsmetriken (Abschlussquote, durchschnittlicher Fortschritt, überfällige und gesamte Aufgaben) einen schnellen Überblick über die Projektsituation ermöglichen, ohne dass die Nutzer in die Detailansichten der Taskverwaltung wechseln müssen.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{content/bilder/dashboard_darkmode.png}
+    \caption{Dashboard von \textit{EffSync} im Dark Mode mit Kennzahlen, Statusverteilung und Fortschrittsmetriken}
+    \label{fig:dashboard_darkmode}
+\end{figure}
+
 \authorsection{Backend-Architektur und Schichtenmodell}{Dražen Plavšić}
 \label{sec:backend_architektur}
 Die Backend-Architektur folgt einem strikten Schichtenmodell: HTTP-Anfragen werden von \textit{Controllern} entgegengenommen, an \textit{Services} delegiert (wo die Geschäftslogik liegt), und auf der \textit{Data-Access}-Ebene via \textit{Prisma ORM} mit \textit{PostgreSQL} kommuniziert. Dependency Injection verwaltet die Instanziierung und Verknüpfung dieser Klassen.
@@ -74,5 +90,155 @@ Die Backend-Architektur folgt einem strikten Schichtenmodell: HTTP-Anfragen werd
 Das \textit{Table-Module}-Pattern bildet jede Datenbankabelle als separates NestJS-Modul ab\cite{fowler2002patterns}. Der Datenbankzugriff ist zentral durch ein Prisma-Modul gekapselt und systemweit via \textit{Dependency-Injection} verfügbar, was redundante Datenbankverbindungen verhindert\cite{prisma_database_connections}\cite{prisma_connection_management}.
 
 \authorsection{Datenbankdesign}{Ereny Micail}
+\label{sec:datenbankdesign}
+
+\textit{EffSync} verwendet \textit{PostgreSQL}\cite{postgresql} als relationale Datenbank. Dabei war es unser Ziel, die Daten sicher zu speichern, das System problemlos erweiterbar zu halten und eine hohe Geschwindigkeit zu gewährleisten. Zur Anbindung nutzen wir \textit{Prisma ORM}\cite{prisma_orm}. Dieses Werkzeug unterstützt uns dabei, das Datenbankdesign (die Datei \texttt{schema.prisma}) komfortabel und zuverlässig in ausführbaren Code (SQL) zu überführen.
+
+\setcounter{table}{2} % Nächste Tabelle wird 6.3
+
+\begin{table}[H]
+\centering
+\caption{Datenbankvergleich: PostgreSQL, MySQL/MariaDB, SQLite, MongoDB}
+\label{tab:datenbankvergleich}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Feature} & \textbf{PostgreSQL} & \textbf{MySQL/MariaDB} & \textbf{SQLite} & \textbf{MongoDB} \\
+\hline
+Strikte Datenintegrität     & $\star\star\star$ & $\star\star$ & $\star$           & --                \\
+\hline
+Enums / Typensystem         & vollständig       & vollständig  & eingeschränkt     & --                \\
+\hline
+JSON + Indexierung          & JSONB             & JSON         & Text only         & nativ             \\
+\hline
+Volltextsuche               & sehr stark        & mittel       & --                & extra Feature     \\
+\hline
+Extensions                  & riesig            & mittel       & kaum              & --                \\
+\hline
+Concurrency                 & $\star\star\star$ & $\star\star$ & schwach           & $\star\star$      \\
+\hline
+Skalierbarkeit              & $\star\star\star$ & $\star\star$ & $\star$           & $\star\star\star$ \\
+\hline
+Ideal für                   & Projekte /        & Webapps      & Prototypen        & NoSQL /           \\
+                            & Unternehmen       &              &                   & Big Data          \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{SQLite} erwies sich als ungeeignet, da bei uns viele Benutzer gleichzeitig
+  auf das System zugreifen. Für solche Mehrbenutzerszenarien ist SQLite nicht ausgelegt~\cite{sqlite_whentouse}.
+
+  \item \textbf{MongoDB} (eine dokumentenorientierte Datenbank) eignet sich besser für eher
+  unstrukturierte bzw.\ lose gekoppelte Daten. In unserem Fall liegen jedoch viele eng
+  verknüpfte Daten vor, etwa Benutzer, Aufgaben und Klassen. Dafür benötigen wir klar
+  definierte Beziehungen zwischen den Tabellen (referenzielle Integrität)~\cite{fowler2012nosql}.
+
+  \item \textbf{MySQL} ist ebenfalls eine gute Wahl, dennoch bietet uns \textbf{PostgreSQL}
+  noch mehr Möglichkeiten. Es gilt als sehr sicher und stellt mit \texttt{JSONB} eine
+  leistungsfähige Funktion für JSON-Daten bereit~\cite{postgresql_jsonb}. Dadurch können wir bestimmte
+  Regeln flexibel in \texttt{completion\_rule} ablegen, ohne das gesamte Datenbankschema
+  aufzuweichen~\cite{postgresql_jsonb}. Zusätzlich ist \textbf{PostgreSQL} weltweit weit verbreitet und
+  in der Praxis umfassend erprobt~\cite{dbengines2026ranking}.
+\end{itemize}
+
+\vspace{0.5cm}
+\noindent\textbf{Unsere Datenbankbereiche (Domänen)} \\
+Wir haben unsere Datenbank in klare Bereiche aufgeteilt, damit alles übersichtlich bleibt:
+\begin{itemize}
+    \item \textbf{Benutzer und Rechte:} z.\,B. \texttt{users}, \texttt{roles}, \texttt{permissions}
+    \item \textbf{Aufgaben (Task-Management):} z.\,B. \texttt{tasks}, \texttt{task\_members} und \texttt{task\_templates} für wiederkehrende Vorlagen
+    \item \textbf{Kommunikation:} z.\,B. \texttt{chat\_rooms}, \texttt{chat\_messages}
+    \item \textbf{Dokumente und Notizen:} z.\,B. \texttt{documents}, \texttt{notes}
+\end{itemize}
+Durch diese Struktur wirkt das System übersichtlich. Außerdem können wir später neue Funktionen deutlich einfacher ergänzen.
+
+\vspace{0.5cm}
+\noindent\textbf{Ordnung und Fehlervermeidung (Normalisierung)} \\
+Unsere Datenbank ist sehr sorgfältig aufgebaut\cite{elmasri2015fundamentals}. Das bedeutet vor allem, dass wir keine Daten unnötig mehrfach ablegen. Die Wichtigkeit einer Aufgabe (Priorität) speichern wir beispielsweise nicht als Klartext, sondern verknüpfen sie mit einer eigenen Tabelle (\texttt{priorities}). Ändert sich eine Bezeichnung, müssen wir sie nur an dieser einen Stelle anpassen. So vermeiden wir Fehler und Unübersichtlichkeit in den Daten.
+
+\vspace{0.5cm}
+\noindent\textbf{Rechte und Sicherheit} \\
+Um die Datenintegrität sicherzustellen, setzen wir durchgängig auf Primär- und Fremdschlüssel. Ein zentrales Beispiel dafür ist die Rechteverwaltung. Ein Benutzer kann mehrere Rollen besitzen (etwa Lehrer oder Admin). Welche konkreten Berechtigungen zu diesen Rollen gehören, legen wir jedoch getrennt ab (z.\,B. in \texttt{roles\_permissions}). Dadurch bleibt die Verwaltung übersichtlich. Außerdem haben wir das System von Anfang an so konzipiert, dass sich auch temporäre Berechtigungen vergeben lassen.
+
+\vspace{0.5cm}
+\noindent\textbf{Besonderheiten bei den Aufgaben} \\
+Bei den Aufgaben (Tasks) gibt es eine praktische Funktion: Eine Aufgabe kann sich selbst als übergeordnete Aufgabe eintragen (\texttt{parent\_task\_id}). Dadurch lassen sich große Projekte in beliebig viele kleine Unteraufgaben zerlegen\cite{celko2004trees}. Für die speziellen Regeln, wann eine Aufgabe automatisch als erledigt gilt, verwenden wir das \texttt{JSONB}-Feld\cite{postgresql_jsonb}. So bleiben wir flexibel und müssen die Tabellen nicht jedes Mal anpassen, wenn eine neue Regel hinzukommt.
+
+\vspace{0.5cm}
+\noindent\textbf{Geschwindigkeit (Performance)} \\
+Damit die Datenbank auch bei vielen Daten schnell bleibt, haben wir Indizes eingebaut. Das hilft besonders, wenn wir Tabellen verbinden oder wenn wir prüfen wollen, wie lange ein temporäres Recht gültig ist (\texttt{valid\_from} / \texttt{valid\_to})\cite{elmasri2015fundamentals}.
 
 \authorsection{API-Design und Sicherheitskonzepte}{Ereny Micail}
+\label{sec:api_design_sicherheit}
+
+\subsection{API-Design}
+\label{sec:api_design}
+Das API folgt den REST-Prinzipien nach Fielding\cite{fielding2000rest}. Ressourcen werden über standardisierte HTTP-Methoden adressiert (\texttt{GET}/\texttt{POST}/\texttt{PUT}/\texttt{DELETE})\cite{rfc9110_http}. Endpunkte sind domänenorientiert: \texttt{/auth}, \texttt{/users}, \texttt{/tasks}, \texttt{/documents}, \texttt{/chat-rooms}. Konsistente HTTP-Semantik reduziert Integrationsaufwand und verbessert Wartbarkeit.
+Das Backend ist modular aufgebaut mit Modulen für \texttt{auth}, \texttt{users}, \texttt{tasks}, \texttt{documents}, \texttt{chat-rooms}, \texttt{notifications}, \texttt{roles}, \texttt{permissions}. Dies realisiert \textit{Separation of Concerns}\cite{parnas1972criteria} und senkt Komplexität.
+Das API-Design ist eng an das Datenmodell gekoppelt: Entitäten aus dem Prisma-Schema\cite{prisma_orm} bilden die Ressourcen-Basis. \textit{NestJS} DTOs, Validierungs-Pipelines\cite{nestjs_validation} und OpenAPI-Dokumentation\cite{openapi_spec}\cite{nestjs_openapi} sichern konsistente, dokumentierte Schnittstellen.
+Zur Kontrolle und Testung der API wurde \textit{Swagger}\cite{nestjs_openapi} eingesetzt, das auf Basis der OpenAPI-Spezifikation automatisch eine interaktive Dokumentation aller Endpunkte generiert. Über die Swagger-UI konnten Endpunkte direkt im Browser aufgerufen und getestet werden, einschließlich der Übergabe von Authentifizierungs-Tokens, wodurch auch rollen- und berechtigungsabhängige Zugriffe (RBAC) gezielt überprüft werden konnten.
+
+Zur Kontrolle und Testung der API wurde \textit{Swagger}\cite{nestjs_openapi} eingesetzt, das auf Basis der OpenAPI-Spezifikation automatisch eine interaktive Dokumentation aller Endpunkte generiert (siehe Abbildung~\ref{fig:swagger_ui}). Über die Swagger-UI konnten Endpunkte direkt im Browser aufgerufen und getestet werden, einschließlich der Übergabe von Authentifizierungs-Tokens, wodurch auch rollen- und berechtigungsabhängige Zugriffe (RBAC) gezielt überprüft werden konnten.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{content/bilder/swagger_api_overview.png}
+    \caption{Swagger-UI der EffSync API mit automatisch generierter, interaktiver Dokumentation aller Endpunkte}
+    \label{fig:swagger_ui}
+\end{figure}
+
+
+\subsection{Sicherheitskonzepte}
+\label{sec:sicherheitskonzepte}
+
+\textit{EffSync} verarbeitet personenbezogene Daten und verlangt Vertraulichkeit, Integrität und kontrollierten Zugriff nach DSGVO\cite{dsgvo2016}.
+
+\vspace{0.5cm}
+\noindent\textbf{Authentifizierung:} Die Anmeldung ist tokenbasiert mit JWT\cite{rfc7519_jwt}. Nach erfolgreichem Login erhält der Benutzer ein signiertes Token, das in Guards serverseitig geprüft wird\cite{nestjs_authentication}\cite{passportjs_docs}. In der Umsetzung bildet \texttt{JwtAuthGuard} das zentrale Eintrittsgatter für geschützte Endpunkte.
+
+\vspace{0.5cm}
+\noindent\textbf{Autorisierung (RBAC + ABAC):} Das System nutzt einen hybriden Ansatz aus rollenbasierter und attributbasierter Zugriffskontrolle. Die Grundstruktur erfolgt über Rollen und Berechtigungen (\texttt{roles}, \texttt{permissions}, \texttt{user\_roles}, \texttt{roles\_permissions}, \texttt{user\_permissions}). Über \texttt{RolesGuard} und \texttt{@Roles(...)} wird geprüft, ob ein Benutzer mindestens eine erforderliche Rolle besitzt. Zusätzlich erweitert \texttt{PermissionsGuard} mit \texttt{@Permissions(...)} die Kontrolle auf Permission-Ebene. So entsteht neben RBAC auch ABAC-Verhalten, etwa über Zeitattribute (\texttt{valid\_from}/\texttt{valid\_to}) und ressourcenbezogene Beziehungen (z.\,B. Mitgliedschaft bei Tasks).
+
+\vspace{0.5cm}
+\noindent\textbf{Feingranulare Rechte über Flags:} Permissions sind als Bit-Flags modelliert (\texttt{READ}, \texttt{WRITE}, \texttt{EXECUTE}). Damit kann eine Berechtigung nicht nur vorhanden oder fehlend sein, sondern differenziert nach Lese-, Schreib- und Ausführungsrechten bewertet werden. Diese Struktur reduziert Sonderrollen und verbessert die Wiederverwendbarkeit der Sicherheitslogik.
+
+\vspace{0.5cm}
+\noindent\textbf{Automatische Rechtevergabe bei Rollen:} Bei der Rollen-Zuweisung werden Standard-Permissions automatisch ergänzt (zentrale Konfiguration pro Rolle). Dadurch wird vermieden, dass Benutzer zwar eine Rolle, aber keine passenden Rechte erhalten. Das senkt Administrationsaufwand und reduziert Inkonsistenzen in der Benutzerverwaltung.
+
+\vspace{0.5cm}
+\noindent\textbf{Eingabevalidierung und Datenbankschutz:} DTOs mit \textit{class-validator} und \textit{class-transformer}\cite{nestjs_validation} verhindern fehlerhafte oder manipulierte Eingaben\cite{owasp_api_top10_2023}. Prisma ORM nutzt typisierte, parametrisierte Datenbankzugriffe und reduziert klassische SQL-Injection-Risiken\cite{owasp_top10_2021}.
+
+\vspace{0.5cm}
+\noindent\textbf{Objektbezogene Zugriffskontrolle und Transport:} Zugriffe werden zusätzlich auf Objektebene geprüft, z.\,B. über \texttt{document\_shares}, \texttt{chat\_room\_users} und \texttt{task\_members}. Damit wird das Least-Privilege-Prinzip umgesetzt. Für die Übertragung sensibler Inhalte ist HTTPS verpflichtend\cite{rfc9110_http}\cite{owasp_transport_layer}.
+
+\vspace{0.5cm}
+\noindent\textbf{Audit-Logging:} Kritische Operationen (insbesondere im Task-Modul: Create, Update, Delete) werden in einem Aktivitätsprotokoll erfasst. Dadurch sind sicherheitsrelevante Änderungen nachvollziehbar und können im Sinne von Compliance und Fehlersuche ausgewertet werden.
+
+\vspace{0.5cm}
+Der mehrschichtige Ansatz aus JWT, RBAC/ABAC, Guard-Mechanismen, Validierung, parametrierten Datenbankzugriffen, objektbezogener Kontrolle, Audit-Logging und Transportschutz schafft eine belastbare Sicherheitsgrundlage.
+
+Die folgenden Diagramme veranschaulichen die Sicherheitsarchitektur von \textit{EffSync}. \autoref{fig:jwt_flow} zeigt die Prüfreihenfolge im Backend: erst Token, dann Rolle, dann konkrete Berechtigung. \autoref{fig:rbac_abac} verdeutlicht, wie Rollenrechte, Einzelrechte, Flags und Zeitfenster zur finalen Zugriffsentscheidung zusammengeführt werden. \autoref{fig:audit_log} veranschaulicht das Audit-Logging nach kritischen Task-Operationen.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{content/bilder/diagramm_jwt_flow}
+\caption{Ablauf einer geschützten Anfrage (JWT, Rolle, Permission)}
+\label{fig:jwt_flow}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{content/bilder/diagramm_rbac_abac}
+\caption{Entscheidungslogik für RBAC + ABAC}
+\label{fig:rbac_abac}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{content/bilder/diagramm_audit_log}
+\caption{Audit-Logging bei Task-Aktionen (Sequenzdiagramm)}
+\label{fig:audit_log}
+\end{figure}
+

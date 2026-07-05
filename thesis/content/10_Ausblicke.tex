@@ -1,4 +1,4 @@
-\chapter{Ausblicke}
+\authorchapter{Ausblicke}{Ereny Micail}
 \label{ch:ausblicke}
 In diesem Abschnitt werden die geplanten Weiterentwicklungen von \textit{EffSync} dargestellt, also alle Funktionen und Ideen, die im bisherigen Projektverlauf noch nicht umgesetzt wurden, aber für die Zukunft vorgesehen sind.
 
@@ -17,3 +17,19 @@ Neben den softwarearchitektonischen Anpassungen ist für den künftigen Produkti
 Aus funktionaler Perspektive stellt die Implementierung einer Exportfunktion eine wertvolle Erweiterung dar. Dem Nutzer soll es ermöglicht werden, strukturierte Daten wie Tasks oder Notizen in Formaten wie CSV oder JSON zu exportieren. Dadurch würde nicht nur die Weiterverarbeitung in anderen Anwendungen erleichtert, sondern auch die Nachvollziehbarkeit und Portabilität der eigenen Daten verbessert werden.
 
 Denkbar wäre auch die Einführung eines zentralen Administrationsdashboards, das sowohl der Überwachung von Hintergrundprozessen als auch der allgemeinen Systemverwaltung dient. Neben Informationen zu geplanten Cronjobs, deren Ausführungszeitpunkten, Laufzeiten, Fehlermeldungen sowie Archivierungs- und Löschregeln, könnten dort auch administrative Funktionen, wie die Verwaltung von Schülern, Klassen, Benutzern, Rollen und vorhandenen Datensätzen gebündelt bereitgestellt werden. Dadurch ließen sich technische Wartungsaufgaben und organisatorische Verwaltungsprozesse in einer gemeinsamen Oberfläche zusammenführen.
+
+
+\authorsection{Ausblick auf die in Kapitel~\ref{ch:ausgangslage} abgegrenzten Nichtziele}{Ereny Micail}
+\label{sec:ausblick_nichtziele}
+Neben den bereits konkret geplanten Erweiterungen sollen an dieser Stelle auch die in Abschnitt~\ref{ch:ausgangslage} bewusst aus dem aktuellen Projektumfang ausgeklammerten Aspekte aufgegriffen und als mögliche, längerfristige Weiterentwicklungsrichtungen skizziert werden.
+\paragraph{}
+\textbf{Native Mobile-Apps:} Da das Frontend bereits als Vue.js-\gls{SPA} umgesetzt ist, kann eine native App über einen Hybrid-Ansatz (z.\,B.\ mit Capacitor) erstellt werden. So lässt sich die bestehende Codebasis mit REST- und WebSocket-Anbindung weitgehend weiterverwenden, statt die gesamte Anwendungslogik für iOS und Android neu zu programmieren. Capacitor wurde bewusst einem UI-Framework wie Ionic vorgezogen, weil es kein eigenes UI-Vorgabesystem mitbringt, sondern nur eine native Laufzeitumgebung und Zugriff auf Betriebssystem-APIs bereitstellt. Dadurch bleibt das vorhandene, bereits im Usability-Test geprüfte Frontend-Design unverändert. Zusätzlich könnten Push-Benachrichtigungen des Betriebssystems an die vorhandene Benachrichtigungslogik angebunden werden.
+\paragraph{}
+\textbf{Mandantenfähigkeit für mehrere Schulen/Organisationen:} Aktuell geht das Datenmodell von einer einzelnen Organisation aus. Für einen Mehrmandantenbetrieb müsste jede relevante Tabelle um ein \texttt{tenant\_id}-Feld ergänzt und die bestehende Berechtigungslogik (siehe Abschnitt~\ref{sec:rollen_berechtigungen}) um eine zusätzliche Mandantenprüfung erweitert werden, sodass Nutzer ausschließlich auf Daten des eigenen Mandanten zugreifen können. Alternativ wäre eine strikte Trennung über separate Datenbankschemata je Mandant denkbar, was eine stärkere Isolation, jedoch einen höheren Betriebsaufwand mit sich brächte.
+\paragraph{}
+\textbf{Horizontale Hochskalierung:} Da der aktuelle Live-Chat direkt über zustandsbehaftete WebSocket-Gateways einer einzelnen Backend-Instanz läuft, würde ein horizontal skalierter Betrieb mit mehreren Instanzen einen zentralen Message-Broker (z.\,B.\ einen Redis-Adapter für Socket.IO) erfordern, damit Echtzeit-Events instanzübergreifend an alle verbundenen Clients zugestellt werden. Ergänzend müsste das Backend konsequent zustandslos gestaltet werden, um einen Lastausgleich über mehrere Instanzen hinweg zu ermöglichen.
+\paragraph{}
+\textbf{Vollständige Offline-Funktionalität:} Für eine Nutzung ohne durchgehende Internetverbindung wäre eine clientseitige Zwischenspeicherung zentraler Daten (z.\,B.\ über einen Service Worker und IndexedDB) notwendig, verbunden mit einer Synchronisationslogik, die lokale Änderungen nach Wiederherstellung der Verbindung konfliktfrei mit dem Server abgleicht. Insbesondere bei gleichzeitigen Änderungen an derselben Aufgabe durch mehrere Nutzer müsste dabei eine geeignete Konfliktlösungsstrategie (z.\,B.\ nach dem Prinzip \textit{Last-Write-Wins} oder durch manuelle Konfliktauflösung) ergänzt werden.
+
+\paragraph{}
+Alle vier Punkte wurden bewusst nicht im Rahmen der vorliegenden Diplomarbeit umgesetzt, da sie den Umfang einer einsemestrigen Arbeit übersteigen würden; sie stellen jedoch naheliegende nächste Schritte für eine produktive Weiterentwicklung von \textit{EffSync} dar.

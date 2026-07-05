@@ -4,20 +4,70 @@ Aufbauend auf den technologischen Entscheidungen und der Systemarchitektur, die 
 
 Im Folgenden wird detailliert erläutert, wie zentrale Features, wie beispielsweise das Task-Management, die Echtzeitkommunikation und die rollenbasierte Zugriffssteuerung, technisch realisiert wurden. Anhand ausgewählter Abläufe wird demonstriert, wie das Vue.js-Frontend und das NestJS-Backend in der Praxis zusammenarbeiten.
 
-\authorsection{Authentifizierung, Rollen und Berechtigungen}{Ereny Micail}
-\label{sec:auth_rollen_berechtigungen}
+\authorsection{Authentifizierung}{Ereny Micail}
+\label{sec:authentifizierung}
+Die Authentifizierung in \textit{EffSync} stellt sicher, dass ausschließlich registrierte Benutzer auf geschützte Ressourcen zugreifen können. Nach erfolgreichem Login wird ein Zugriffstoken ausgestellt, das bei nachfolgenden API-Aufrufen im \texttt{Authorization}-Header übertragen wird. Das Backend validiert dieses Token serverseitig, bevor Controller-Methoden für geschützte Endpunkte ausgeführt werden.
 
-\authorsection{Kommunikation, Benachrichtigung und Kalender}{Ereny Micail}
-\label{sec:kommunkitaion_benachrichhtigung_kalender}
+
+Zur Absicherung gegen Missbrauch wird zusätzlich ein Request-Throttling eingesetzt. Sicherheitsrelevante Endpunkte wie die Registrierung werden limitiert, sodass wiederholte Anfragen in kurzer Zeit automatisch mit HTTP \texttt{429 Too Many Requests} blockiert werden. Die Wirksamkeit dieses Mechanismus wird durch E2E-Tests verifiziert.
+
+Neben der klassischen Anmeldung mit Benutzername/E-Mail und Passwort unterstützt \textit{EffSync} auch einen OAuth-2.0-basierten Login über Google. Ziel dieser Erweiterung ist es, den Zugang zur Plattform für Benutzer zu vereinfachen und gleichzeitig die Sicherheit der Anmeldung durch einen etablierten externen Identity-Provider zu erhöhen.
+
+Technisch wird der OAuth-Flow über \texttt{Passport} und die Strategie \texttt{passport-google-oauth20} in das NestJS-Backend integriert. Der Ablauf folgt dem üblichen Prinzip:
+\begin{enumerate}
+    \item Der Benutzer startet den Login über den Google-Provider.
+    \item Nach erfolgreicher Authentifizierung bei Google wird der Benutzer zum Backend zurückgeleitet.
+    \item Das Backend validiert die Provider-Daten, ordnet den Account einem bestehenden Benutzer zu bzw. legt einen neuen an.
+    \item Anschließend wird für die weitere API-Nutzung ein eigener Anwendungstoken ausgestellt.
+\end{enumerate}
+
+Damit bleibt die interne Autorisierungslogik von \textit{EffSync} konsistent: Unabhängig davon, ob der Benutzer über Passwort-Login oder OAuth einsteigt, erfolgen Rollen- und Berechtigungsprüfungen weiterhin ausschließlich innerhalb der Plattformlogik. OAuth erweitert somit den Authentifizierungsweg, ersetzt jedoch nicht das interne Berechtigungsmodell.
+
+
+\authorsection{Rollen und Berechtigungen}{Ereny Micail}
+\label{sec:rollen_berechtigungen}
+Neben der reinen Authentifizierung implementiert \textit{EffSync} ein differenziertes Autorisierungskonzept. Berechtigungen werden nicht ausschließlich global über Rollen vergeben, sondern kontextabhängig auf Aufgabenebene ausgewertet. Dadurch kann das System präzise unterscheiden, ob ein Benutzer eine Aktion nur lesen, schreiben oder administrativ ausführen darf.
+
+Technisch werden Berechtigungen in Form von Flags verarbeitet (z.\,B. \texttt{READ}, \texttt{WRITE}, \texttt{EXECUTE}). Diese lassen sich effizient kombinieren und prüfen, wodurch eine performante Rechteauswertung für API-Anfragen möglich ist. Zusätzlich können zeitliche Gültigkeitsgrenzen (\texttt{valid\_from}, \texttt{valid\_to}) berücksichtigt werden, um befristete Rechte kontrolliert abzubilden.
+
+Besonders kritische Aktionen – wie das Hinzufügen oder Entfernen von Mitgliedern – werden serverseitig strikt validiert. Unzulässige Zugriffe werden konsistent mit HTTP \texttt{403 Forbidden} abgelehnt. Damit wird verhindert, dass Benutzer außerhalb ihres Verantwortungsbereiches Veränderungen an Aufgaben- oder Raumstrukturen vornehmen.
+
+Zur administrativen Pflege dieses Rechtemodells steht Benutzern mit entsprechender Berechtigung ein eigenes Admin-Panel zur Verwaltung von Rollen und Berechtigungen zur Verfügung (siehe Abbildung~\ref{fig:admin_rollen_permissions}). Über die in der linken Seitenleiste hervorgehobene Zahnrad-Schaltfläche gelangt man in diesen Bereich. Dort lässt sich pro Benutzer einsehen und bearbeiten, welche Rollen (z.\,B. \textit{Teacher}) sowie welche direkten, gegebenenfalls zeitlich befristeten Einzelberechtigungen (z.\,B. \texttt{manage\_users}, \texttt{manage\_classes}, \texttt{manage\_system}) aktuell zugewiesen sind. Neue Rollen und Berechtigungen können darüber hinaus direkt zugewiesen bzw. bestehende entfernt werden, ohne dass ein direkter Datenbankzugriff notwendig ist.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{content/bilder/admin_rollen_permissions.png}
+  \caption{Admin-Oberfläche zur Verwaltung von Rollen und Berechtigungen; die rote Markierung zeigt das Zahnrad-Icon in der Seitenleiste, über das der Bereich erreichbar ist}
+  \label{fig:admin_rollen_permissions}
+\end{figure}
+
+\authorsection{Kommunikation}{Ereny Micail}
+\label{sec:kommunikation}
+Die Kommunikation wird in \textit{EffSync} als integraler Bestandteil der Projektarbeit umgesetzt. Anstatt auf externe Messenger auszuweichen, erfolgt der Austausch direkt innerhalb der Plattform. Dadurch bleiben Nachrichten im fachlichen Kontext der jeweiligen Aufgaben bzw. Projekträume und sind für alle berechtigten Beteiligten nachvollziehbar.
+
+Für die technische Umsetzung wird auf WebSockets gesetzt, da klassische REST-Schnittstellen keine bidirektionale Echtzeitkommunikation ermöglichen. Das Backend verteilt neue Nachrichten serverseitig per Push-Mechanismus an alle verbundenen Clients eines Raums. Dadurch erscheinen neue Inhalte ohne manuelles Aktualisieren der Benutzeroberfläche.
+
+\authorsection{Benachrichtigungen}{Ereny Micail}
+\label{sec:benachrichtigungen}
+Benachrichtigungen dienen dazu, relevante Ereignisse unmittelbar sichtbar zu machen, etwa neue Nachrichten, Statusänderungen oder mitgliedschaftsrelevante Aktionen. Die Übertragung erfolgt ereignisgesteuert über die bestehende Echtzeitinfrastruktur. Dadurch reduziert sich die Reaktionszeit der Benutzer deutlich, und kritische Änderungen gehen im Arbeitsfluss nicht verloren.
+
+Aus architektonischer Sicht folgt die Benachrichtigungslogik dem Prinzip, nur fachlich relevante Events zu publizieren. Damit wird unnötige Client-Last vermieden und die Oberfläche bleibt trotz häufiger Ereignisse übersichtlich.
+
+\authorsection{Kalender}{Ereny Micail}
+\label{sec:kalender}
+Die Kalenderfunktion ergänzt die Aufgabenverwaltung um eine zeitliche Perspektive. Deadlines aus Tasks können in einer kalenderartigen Sicht zusammengeführt werden, wodurch zeitliche Abhängigkeiten und Belastungsspitzen früh erkennbar sind. Dies unterstützt sowohl die individuelle Lernorganisation als auch die Koordination in Teams.
+
+In Verbindung mit Prioritäten und Statusinformationen entsteht eine konsistente Planungsgrundlage: Benutzer sehen nicht nur \textit{was} zu erledigen ist, sondern auch \textit{bis wann} und in welcher Dringlichkeit. Dadurch verbessert die Kalenderintegration die praktische Umsetzbarkeit der zuvor definierten Task-Strukturen.
+
 
 \authorsection{Taskverwaltung}{Dražen Plavšić}
 \label{sec:taskverwaltung}
-Da EffSync als Task-Management-System konzipiert ist, bildet das Task-Modul das zentrale Element der Anwendung. Die Zielsetzung des Systems ist es, sowohl Schülern als auch Lehrern die Verwaltung von Aufgaben zu erleichtern. Schüler erhalten die Möglichkeit, ihre Aufgaben eigenständig zu organisieren, während Lehrern ein strukturiertes Werkzeug zur Verfügung steht, um Aufgaben gezielt zuzuweisen und deren Bearbeitung zu überwachen.
+Da \textit{EffSync} als Task-Management-System konzipiert ist, bildet das Task-Modul das zentrale Element der Anwendung. Die Zielsetzung des Systems ist es, sowohl Schülern als auch Lehrern die Verwaltung von Aufgaben zu erleichtern. Schüler erhalten die Möglichkeit, ihre Aufgaben eigenständig zu organisieren, während Lehrern ein strukturiertes Werkzeug zur Verfügung steht, um Aufgaben gezielt zuzuweisen und deren Bearbeitung zu überwachen.
 
-Das System wurde dabei bewusst über den schulischen Kontext hinaus konzipiert. Durch die Möglichkeit der beliebig tiefen Verschachtlung von Tasks und Subtasks lassen sich nicht nur einfache Aufgaben, sondern auch komplexe Projektstrukturen abbilden. Ein einzelner Task kann dabei ein übergeordnetes Projekt repräsentieren, dessen Teilaufgaben in weitere Unteraufgaben unterteilt werden. Dies macht das Task-Modul von EffSync grundsätzlich auch für den unternehmensinternen Einsatz geeignet, da sich ganze Projekte oder Teilprojekte vollständig innerhalb des Systems strukturieren lassen.
+Das System wurde dabei bewusst über den schulischen Kontext hinaus konzipiert. Durch die Möglichkeit der beliebig tiefen Verschachtelung von Tasks und Subtasks lassen sich nicht nur einfache Aufgaben, sondern auch komplexe Projektstrukturen abbilden. Ein einzelner Task kann dabei ein übergeordnetes Projekt repräsentieren, dessen Teilaufgaben in weitere Unteraufgaben unterteilt werden. Dies macht das Task-Modul von \textit{EffSync} grundsätzlich auch für den unternehmensinternen Einsatz geeignet, da sich ganze Projekte oder Teilprojekte vollständig innerhalb des Systems strukturieren lassen.
 
-\subsection{Datenbankschema und grundlegender Aufbau eines Tasks}
-Bevor komplexe Mechanismen wie Taskhierarchien und automatische Evaluierungsregeln betrachtet werden, ist es wichtig, den grundlegenden strukturellen Aufbau eines \textit{Tasks} zu verstehen. Die Task-Entität bildet das zentrale Kernstück der Applikation und ist in der Datenbank so modelliert, dass sie alle Metadaten für das Projektmanagement effizient speichern kann.
+\subsection{Datenbankschema und grundlegender Aufbau eines Tasks}{Dražen Plavšić}
+Bevor komplexe Mechanismen wie Taskhierarchien und automatische Evaluierungsregeln betrachtet werden, ist es wichtig den grundlegenden strukturellen Aufbau eines \textit{Tasks} zu verstehen. Die Task-Entität bildet das zentrale Kernstück der Applikation und ist in der Datenbank so modelliert, dass sie alle Metadaten für das Projektmanagement effizient speichern kann.
 
 \begin{figure}[H]
   \centering
@@ -26,16 +76,16 @@ Bevor komplexe Mechanismen wie Taskhierarchien und automatische Evaluierungsrege
   \label{fig:task_schema}
 \end{figure}
 
-Die Tabelle (sihe Abbildung \ref{fig:task_schema}) lässt sich logisch in drei wesentliche Datenbereiche unterteilen:
+Die Tasks-Tabelle (siehe Abbildung \ref{fig:task_schema}) lässt sich logisch in drei wesentliche Datenbereiche unterteilen:
 \begin{itemize}
     \item \textbf{Basisdaten \& Fortschritt:} Felder wie \texttt{title}, \texttt{description}, \texttt{status} und \texttt{progress} bilden die Kerninformationen für die Benutzeroberfläche. Der Status und der Fortschritt (0 bis 100\,\%) sind logisch aneinander gekoppelt.
-    \item \textbf{Verantwortlichkeiten \& Organisation:} Über \texttt{created\_by} und \texttt{assigned\_to} wird auf Datenbankebene sichergestellt, dass jede Aufgabe einem Ersteller und optional einem Bearbeiter zugewiesen ist. Das Feld \texttt{priority\_id} referenziert eine separate Tabelle, um Tasks nach Dringlichkeit (z.\,B. Niedrig, Hoch) zu kategorisieren, während \texttt{deadline} die zeitliche Frist setzt.
+    \item \textbf{Verantwortlichkeiten \& Organisation:} Über \texttt{created\_by} und \texttt{assigned\_to} wird auf Datenbankebene sichergestellt, dass jede Aufgabe einem Ersteller und optional einem Bearbeiter zugewiesen ist. Das Feld \texttt{priority\_id} referenziert eine separate Tabelle, um Tasks nach Dringlichkeit (z.\,B. niedrig, hoch) zu kategorisieren, während \texttt{deadline} die zeitliche Frist setzt.
     \item \textbf{Architektonische Steuerungsfelder:} Die Spalte \texttt{parent\_task\_id} dient als Selbstreferenz (\textit{Self-Join}) auf die gleiche Tabelle, um unendlich tiefe Task-Bäume zu ermöglichen. Die Felder \texttt{completion\_rule} (vom Datentyp JSONB) und \texttt{auto\_complete} sind speziell für die eigens entwickelte Rule-Engine reserviert.
 \end{itemize}
 
-Dieser Aufbau bildet das Fundament für die gesamte Geschäftslogik der Taskverwaltung, welche in den folgenden Abschnitten detailliert erläutert wird.
+Dieser Aufbau bildet das Fundament für die gesamte Geschäftslogik der Taskverwaltung, die in den folgenden Abschnitten detailliert erläutert wird.
 
-\subsection{Hierarchie der Tasks}
+\subsection{Hierarchie der Tasks}{Dražen Plavšić}
 Jeder Task kann über das Feld \texttt{parent\_task\_id} einem übergeordneten Task zugewiesen werden. Dadurch entsteht eine hierarchische Baumstruktur (\textit{Tree Structure})\cite{celko2004trees}, bei der ein Haupt-Task theoretisch unendlich viele Subtasks und deren Nachkommen (\textit{Descendants}) besitzen kann.
 
 Diese strukturelle Flexibilität bringt jedoch eine technische Herausforderung mit sich: die Vermeidung von \textit{Circular References}. Wenn Task A der übergeordnete Task von Task B ist, darf Task B nicht nachträglich als übergeordneter Task von Task A definiert werden. Ebenso darf ein Task nicht sein eigener Parent werden, da dies unweigerlich zu Endlosschleifen beim Auslesen der Daten führen würde.
@@ -107,11 +157,11 @@ return taskMap.get(taskId); // Gibt das vollständige JSON-Objekt zurück
 
 Dieses verschachtelte JSON-Objekt wird anschließend über die \gls{REST-API} direkt an das Vue.js-Frontend übertragen, welches die Struktur ohne weitere Transformationen für die Darstellung der Baumansicht verwenden kann.
 
-\subsection{Rule-Engine und automatische Task-Validierung}
-\textit{EffSync} besitzt auch die Fähigkeit, übergeordnete Tasks automatisch abzuschließen (\textit{Auto-Completion}), sobald bestimmte, vom Nutzer definierte Kriterien der zugehörigen Subtasks erfüllt sind. Um dies zu realisieren, wird eine eigene \textit{Rule-Engine} implementiert, die in einen visuellen Frontend-Builder und einen serverseitigen Evaluator unterteilt ist.
+\subsection{Rule-Engine und automatische Task-Validierung}{Dražen Plavšić}
+\textit{EffSync} besitzt auch die Fähigkeit, übergeordnete Tasks automatisch abzuschließen (\textit{Auto-Completion}), sobald bestimmte vom Nutzer definierte Kriterien der zugehörigen Subtasks erfüllt sind. Um dies zu realisieren, wird eine eigene \textit{Rule-Engine} implementiert, die in einen visuellen Frontend-Builder und einen serverseitigen Evaluator unterteilt ist.
 
 Im Vue.js-Frontend ermöglicht die Komponente \texttt{RuleBuilder} dem Ersteller eines Tasks, logische Bedingungen zu definieren. Dabei können einzelne Subtasks beliebig tief mit logischen Operatoren (\texttt{UND}, \texttt{ODER}, \texttt{XOR}, \texttt{NICHT}) verknüpft werden. Das Frontend übersetzt diese visuelle Darstellung in einen 
-\gls{AST} im JSON-Format und übermittelt diesen an das Backend., wo er als \texttt{JSONB}\cite{postgresql_jsonb} abgespeichert wird.
+\gls{AST} im JSON-Format und übermittelt diesen an das Backend, wo er als \texttt{JSONB}\cite{postgresql_jsonb} abgespeichert wird.
 
 Sobald der Status eines Subtasks geändert wird (beispielsweise auf \texttt{COMPLETED}), löst das Backend einen Event-Trigger aus. Die serverseitige Engine lädt daraufhin den JSONB-Regelbaum des übergeordneten Tasks und wertet diesen aus. Da der Baum beliebig tief verschachtelt sein kann, erfolgt die Auswertung über einen rekursiven Algorithmus.
 
@@ -150,20 +200,20 @@ Ergibt die Evaluierung des gesamten Baums den Wert \texttt{true}, setzt die Engi
 \subsection{Benutzerinteraktion, Usability und Sicherheit}
 Neben einer performanten Datenverarbeitung im Hintergrund liegt ein wesentlicher Fokus der Taskverwaltung auf der Benutzerfreundlichkeit (\textit{Usability}) und dem Schutz vor Bedienfehlern im Vue.js-Frontend. 
 
-Um dem Nutzer die Verwaltung einer Vielzahl von Aufgaben zu erleichtern, wird eine dynamische Filter- und Suchfunktion (\texttt{useTaskFilters}) implementiert. Diese ermöglicht es, die Aufgabenliste \textit{Client-seitig}, also ohne erneute Datenbankabfrage, in Echtzeit nach Status, Priorität oder Freitext zu filtern und zu sortieren. Die Priorisierung der Aufgaben ist dabei in vier Stufen unterteilt (Niedrig, Mittel, Hoch, Dringend), was eine effiziente Arbeitsorganisation unterstützt.
+Um dem Nutzer die Verwaltung einer Vielzahl von Aufgaben zu erleichtern, wird eine dynamische Filter- und Suchfunktion (\texttt{useTaskFilters}) implementiert. Diese ermöglicht es, die Aufgabenliste auf Seiten der Clients, also ohne erneute Datenbankabfrage, in Echtzeit nach Status, Priorität oder Freitext zu filtern und zu sortieren. Die Priorisierung der Aufgaben ist dabei in vier Stufen unterteilt (niedrig, mittel, hoch, dringend), was eine effiziente Arbeitsorganisation unterstützt.
 
-Besonderes Augenmerk wird auf die Datenintegrität und die Vermeidung von ungewolltem Datenverlust gelegt. Das Löschen von Tasks ist daher mit mehrstufigen Sicherheitsmechanismen versehen. Versucht ein Nutzer, einen Task zu löschen, der noch aktive Subtasks enthält, lehnt das Backend die Anfrage direkt ab. Dieses Verhalten entspricht dem Prinzip der referentiellen Integrität, bei dem abhängige Kindeinträge das Löschen eines Elterndatensatzes verhindern\cite{postgresql_constraints}. Das System verlangt in diesem Fall zwingend, dass die untergeordneten Aufgaben (\textit{Dependencies}) zuerst gelöscht oder einem anderen Parent-Task zugewiesen werden.
+Besonderes Augenmerk wird auf die Datenintegrität und die Vermeidung von ungewolltem Datenverlust gelegt. Das Löschen von Tasks ist daher mit mehrstufigen Sicherheitsmechanismen versehen. Versucht ein Nutzer einen Task zu löschen, der noch aktive Subtasks enthält, lehnt das Backend die Anfrage direkt ab. Dieses Verhalten entspricht dem Prinzip der referentiellen Integrität, bei dem abhängige Kindeinträge das Löschen eines Elterndatensatzes verhindern\cite{postgresql_constraints}. Das System verlangt in diesem Fall zwingend, dass die untergeordneten Aufgaben (\textit{Dependencies}) zuerst gelöscht oder einem anderen Parent-Task zugewiesen werden.
 
 Um zudem versehentliche Löschungen von wichtigen Hauptaufgaben durch simple Fehleingaben (z.\,B.\ durch einen unachtsamen Klick) zu verhindern\cite{uxpsychology_destructive}\cite{nielsen_heuristics}, wurde eine zusätzliche Hürde im Frontend etabliert.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.4\textwidth]{content/bilder/task_delete_dilog.png}
-  \caption{Bestätigungsfenster beim Löschen von Task}
+  \caption{Bestätigungsfenster beim Löschen eines Tasks}
   \label{fig:task_delete}
 \end{figure}
 
-Wie in der Abbildung \ref{fig:task_delete} ersichtlich, muss der Nutzer bei kritischen Löschvorgängen den exakten Namen des Tasks in ein Dialogfenster abtippen. Erst wenn die Eingabe zeichengenau mit dem Task-Titel übereinstimmt, wird der Lösch-Button freigeschaltet.
+Wie Abbildung \ref{fig:task_delete} zeigt, muss der Nutzer bei kritischen Löschvorgängen den exakten Namen des Tasks in ein Dialogfenster abtippen. Erst wenn die Eingabe zeichengenau mit dem Task-Titel übereinstimmt, wird der Lösch-Button freigeschaltet.
 
 Darüber hinaus existieren strikte Prüfungen beim Ändern des Task-Status. Ein Task kann nicht in den Status \texttt{COMPLETED} (Erledigt) übergehen, wenn der verknüpfte Arbeitsfortschritt (\textit{Progress}) noch nicht bei 100\,\% liegt. Auch hier arbeiten Frontend und Backend Hand in Hand: Das UI blockiert die Checkbox visuell, während das Backend bei einem API-Aufruf die Validierung der Werte erzwingt, um inkonsistente Zustände in der Datenbank zu verhindern.
 
@@ -174,14 +224,22 @@ Die Verwendung von Vorlagen zur Wiederverwendung wiederkehrender Aufgabenstruktu
 
 Möchte der Nutzer nun einen neuen Arbeitsauftrag erstellen, kann er direkt auf ein gespeichertes Template zurückgreifen. Das Frontend lädt die entsprechenden Parameter aus dem Backend und füllt die Eingabemasken der Benutzeroberfläche automatisch aus. Der Nutzer muss anschließend lediglich aufgabenspezifische, variable Details, wie etwa eine neue Deadline oder eine abweichende Zuweisung (\texttt{assigned\_to}), anpassen, bevor der finale Task generiert wird.
 
-\subsection{Notizverwaltung}
-\todo{mit Simon abklären ob das wegfallen kann}
-Ergänzend zur Taskverwaltung ermöglicht \textit{EffSync} das Anlegen einfacher Notizen (\textit{Notes}). Diese bestehen ausschließlich aus einem Titel und einer Beschreibung und dienen als schnelle, unstrukturierte Gedächtnisstütze – ohne Zuweisung, Deadline oder Statusverwaltung.
+\authorsection{Notizverwaltung}{Ereny Micail}
+\label{sec:notizverwaltung}
+Die Notizverwaltung erweitert das Task-Modul um eine bewusst einfache Möglichkeit, Informationen schnell und ohne feste Struktur abzulegen. Während Tasks in \textit{EffSync} auf planbare Arbeitseinheiten mit Status, Priorität, Fälligkeit und Zuständigkeiten ausgelegt sind, dienen Notizen als flexibler Zwischenspeicher für Inhalte, die (noch) nicht in ein konkretes Aufgabenmodell passen.
+
+Technisch ist die Notizfunktion als eigenständige Entität umgesetzt, um die strukturierte Aufgabenplanung klar von der freien Textdokumentation zu trennen. Eine Notiz umfasst einen \texttt{title} und eine \texttt{description} und ist eindeutig einem Benutzer zugeordnet. So lassen sich Gedanken, Besprechungsergebnisse, Lehrinhalte oder spontane Ideen ohne zusätzlichen Verwaltungsaufwand erfassen.
+
+Die Geschäftslogik folgt dem bekannten \textit{Create, Read, Update, Delete} (CRUD)-Muster: Nutzer können Notizen anlegen, einsehen, bearbeiten, auflisten und löschen. Anders als bei Tasks wird bewusst auf komplexe Funktionen wie Hierarchien, Fortschrittsmodelle oder automatische Auswertungsregeln verzichtet. Diese Reduktion senkt den Bedienaufwand im Interface und erleichtert die schnelle Erfassung im Arbeitsalltag.
+
+Im Frontend führt dies zu einer schlanken Interaktion: Nach dem Anlegen steht der Notizinhalt sofort bereit und kann bei Bedarf kontinuierlich angepasst werden. Die Notizverwaltung wirkt damit als leichtgewichtiges Pendant zur Taskverwaltung und schließt die Lücke zwischen formaler Aufgabenplanung und informeller Wissenssammlung.
+
+Architektonisch stärkt das Modul die Trennung von Verantwortlichkeiten (\textit{Separation of Concerns}): Tasks bleiben prozessorientiert und auswertbar, Notizen fungieren als freiformorientierter Informationsspeicher. Dadurch steigt die Praxistauglichkeit von \textit{EffSync}, weil Informationen nicht zwanghaft in die starre Struktur eines Tasks gepresst werden müssen.
 
 \authorsection{Live-Chat}{Dražen Plavšić}
 \label{sec:live_chat}
 
-Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie, zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation\cite{trello_powerup_boardchat}\cite{atlassian_jira_11_3_documentation}\cite{atlassian_trello_guide}\cite{atlassian_trello_tour}. Dies zwingt Teams dazu, für Absprachen auf externe Kommunikationsplattformen wie Discord, Slack, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
+Im akademischen Umfeld der HTL, aber auch in der modernen Softwareindustrie zeigt sich bei der Projektarbeit häufig ein wiederkehrendes Problem: Etablierte Task-Management-Lösungen bieten meist keine native, integrierte Echtzeitkommunikation\cite{trello_powerup_boardchat}\cite{atlassian_jira_11_3_documentation}\cite{atlassian_trello_guide}\cite{atlassian_trello_tour}. Dies zwingt Arbeitsgruppen dazu für Absprachen auf externe Kommunikationsplattformen wie Discord, Slack, WhatsApp oder Microsoft Teams auszuweichen. Dieser ständige Plattformwechsel (\textit{Context Switching}) führt zu einem fragmentierten Informationsfluss, bei dem Projektkontext und Aufgabenbezug schnell verloren gehen. 
 
 Um dieses Problem zu lösen, wird in \textit{EffSync} ein nativer Live-Chat implementiert. Diese nahtlose Verschmelzung von Aufgabenverwaltung und Echtzeitkommunikation stellt die \textit{Unique Selling Proposition} (USP) der Applikation dar. 
 
@@ -190,14 +248,14 @@ Da klassische REST-Schnittstellen auf dem Request-Response-Prinzip basieren, eig
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.6\textwidth]{content/bilder/realtime_chat_simpler_no_notes.png}
-  \caption{Echtzeit-Datenfluss via WebSockets.}
+  \caption{Echtzeit-Datenfluss via WebSockets}
   \label{fig:datenfluss_websocket}
 \end{figure}
 
 \subsection{Unterscheidung der Chat-Typen und Vermeidung von Duplikaten}
-In \textit{EffSync} wird das Chat-System prinzipiell in zwei Raumtypen (\textit{Rooms}) unterteilt: private 1-zu-1-Chats und projektbezogene Gruppenchats. Diese Unterscheidung ist nicht nur für die Darstellung in der Benutzeroberfläche, sondern vor allem für die Datenmodellierung und die Berechtigungslogik wichtig. 
+In \textit{EffSync} wird das Chat-System prinzipiell in zwei Raumtypen (\textit{Rooms}) unterteilt: private 1-zu-1-Chats und projektbezogene Gruppenchats. Diese Unterscheidung ist nicht nur für die Darstellung in der Benutzeroberfläche relevant, sondern vor allem für die Datenmodellierung und die Berechtigungslogik wichtig. 
 
-Wie im Datenbankschema (siehe Abbildung \ref{fig:chat_schema}) ersichtlich, wird der Raumtyp über das Flag \texttt{is\_private} in der Tabelle \texttt{chat\_rooms} gesteuert. Bei Gruppenchats kann zudem optional eine direkte Verknüpfung zur entsprechenden Aufgabe (\texttt{task\_id}) hergestellt werden.
+Wie im Datenbankschema (siehe Abbildung \ref{fig:chat_schema}) zu erkennen ist, wird der Raumtyp über das Flag \texttt{is\_private} in der Tabelle \texttt{chat\_rooms} gesteuert. Bei Gruppenchats kann zudem optional eine direkte Verknüpfung zur entsprechenden Aufgabe (\texttt{task\_id}) hergestellt werden.
 
 \begin{figure}[H]
     \centering
@@ -213,7 +271,7 @@ Aus den Identifikationsnummern der beiden Teilnehmer wird ein deterministischer 
 \subsection{Raumverwaltung und Berechtigungslogik}
 Während in einem privaten Chat beide Teilnehmer gleichgestellte Rechte besitzen, erfordern Gruppenchats eine hierarchische Rollenverteilung, um administrative Aufgaben abzubilden. Die Komplexität liegt hierbei in der sicheren Verwaltung der Zugriffsrechte (\textit{Authorization}). Ein exemplarisches Sicherheitsszenario ist das Entfernen von Mitgliedern aus einem Gruppenchat. 
 
-Wie in Listing~\ref{lst:chat_permissions} dargestellt, wurde im Backend eine strikte Berechtigungslogik implementiert, die bei Modifikationen der Raummitglieder zwischen zwei Szenarien unterscheidet: Möchte ein Nutzer den Chatraum freiwillig verlassen (\texttt{requesterId === targetUserId}), wird die Aktion ohne weitere Prüfung gestattet. Versucht jedoch ein Nutzer, eine \textit{andere} Person aus dem Gruppenraum zu entfernen, greift eine Sicherheitsprüfung (\texttt{assertIsCreator}). Diese stellt sicher, dass ausschließlich der ursprüngliche Ersteller des Chatraums das Recht besitzt, andere Mitglieder auszuschließen. Andernfalls wirft das System aus Sicherheitsgründen sofort eine \texttt{ForbiddenException} (HTTP Status 403).
+Wie in Listing~\ref{lst:chat_permissions} dargestellt, wurde im Backend eine strikte Berechtigungslogik implementiert, die bei Modifikationen der Raummitglieder zwischen zwei Szenarien unterscheidet: Möchte ein Nutzer den Chatraum freiwillig verlassen (\texttt{requesterId === targetUserId}), wird die Aktion ohne weitere Prüfung gestattet. Versucht jedoch ein Nutzer eine andere Person aus dem Gruppenraum zu entfernen, greift eine Sicherheitsprüfung (\texttt{assertIsCreator}). Diese stellt sicher, dass ausschließlich der ursprüngliche Ersteller des Chatraums das Recht besitzt, andere Mitglieder auszuschließen. Andernfalls meldet das System aus Sicherheitsgründen sofort eine \texttt{ForbiddenException} (HTTP Status 403).
 
 \begin{listing}[H]
 \begin{minted}{typescript}

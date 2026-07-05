@@ -1,0 +1,410 @@
+WURDE IN 05 ALS SECTION KOPIERT!!!
+\section{}{Anforderungsanalyse}
+\label{ch:anforderungsanalyse}
+
+Die Anforderungsanalyse bildet die Grundlage für die gesamte Entwicklung
+von EffSync. Sie definiert, welche Funktionen das System bereitstellen
+muss (funktionale Anforderungen) und welche Qualitätseigenschaften es
+erfüllen soll (nicht-funktionale Anforderungen). Die Anforderungen wurden
+gemeinsam mit dem Betreuer \textbf{Simon Gunacker} in der Kickoff-Phase
+erarbeitet und im Laufe des Projekts iterativ verfeinert.
+
+\subsection{Stakeholder}
+
+Folgende Stakeholder wurden im Rahmen der Anforderungsanalyse identifiziert:
+
+\begin{table}[H]
+    \centering
+    \caption{Stakeholder-Übersicht}
+    \begin{tabularx}{\textwidth}{lXl}
+        \toprule
+        \textbf{Stakeholder} & \textbf{Interesse / Erwartung}
+          & \textbf{Priorität} \\
+        \midrule
+        Schülerinnen \& Schüler
+          & Einfache Aufgabenverwaltung, Kalender, Chat
+          & Hoch \\
+        Lehrpersonen
+          & Überblick über Klassen, Aufgaben und Fortschritt
+          & Hoch \\
+        Unternehmen (Teams)
+          & Skalierbare Projektverwaltung, Sicherheit, DSGVO
+          & Hoch \\
+        Betreuer (Simon Gunacker)
+          & Technische Qualität, Dokumentation, Git-Workflow
+          & Mittel \\
+        Entwickler (Plavsic, Micail)
+          & Wartbarkeit, klare Architektur, Testbarkeit
+          & Mittel \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:stakeholder}
+\end{table}
+
+\subsection{Funktionale Anforderungen}
+\label{sec:funktionale-anforderungen}
+
+Funktionale Anforderungen beschreiben, \textit{was} das System tun soll.
+Sie sind nach Themenbereichen gruppiert und mit einer eindeutigen ID
+sowie einer Priorität (Muss / Soll / Kann) versehen.
+
+\subsubsection{}{Benutzerverwaltung \& Authentifizierung}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Benutzerverwaltung}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-01 & Muss & Benutzer können sich mit E-Mail und Passwort
+                       registrieren und anmelden.
+                     & \checkmark \\
+        FA-02 & Muss & Passwörter werden gehasht (bcrypt) gespeichert.
+                     & \checkmark \\
+        FA-03 & Muss & Authentifizierung erfolgt über \ac{JWT}-Token
+                       (Access- \& Refresh-Token).
+                     & \checkmark \\
+        FA-04 & Soll & Anmeldung via Google \ac{OAuth} ist möglich.
+                     & \checkmark \\
+        FA-05 & Soll & Benutzer können ihr Profil (Name, Avatar,
+                       Passwort) bearbeiten.
+                     & \checkmark \\
+        FA-06 & Kann & Zwei-Faktor-Authentifizierung (\ac{2FA})
+                       via \ac{TOTP} (z.\,B.\ Google Authenticator)
+                       ist verfügbar.
+                     & \checkmark \\
+        FA-07 & Muss & Passwort-Reset per E-Mail ist möglich.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-auth}
+\end{table}
+
+\subsubsection{Rollen \& Berechtigungen}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Rollen \& Berechtigungen}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-10 & Muss & Das System verfügt über ein rollenbasiertes
+                       Berechtigungssystem (\ac{RBAC}).
+                     & \checkmark \\
+        FA-11 & Muss & Rollen: Superuser, Admin, Manager, Member,
+                       Viewer (Unternehmen) bzw.\ Superuser, Admin,
+                       Teacher, Student (Schule).
+                     & \checkmark \\
+        FA-12 & Muss & Jede Rolle hat klar definierte Berechtigungen
+                       für CRUD-Operationen.
+                     & \checkmark \\
+        FA-13 & Soll & Berechtigungen werden serverseitig geprüft
+                       (Guards in NestJS).
+                     & \checkmark \\
+        FA-14 & Soll & Kritische Operationen werden in einem
+                       Audit-Log protokolliert.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-rbac}
+\end{table}
+
+\subsubsection{Aufgabenverwaltung}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Aufgabenverwaltung}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-20 & Muss & Tasks können erstellt, bearbeitet, gelöscht
+                       und einem Status zugewiesen werden.
+                     & \checkmark \\
+        FA-21 & Muss & Tasks haben folgende Felder: Titel,
+                       Beschreibung, Status, Priorität,
+                       Fälligkeitsdatum, Verantwortliche.
+                     & \checkmark \\
+        FA-22 & Muss & Tasks können Subtasks enthalten.
+                     & \checkmark \\
+        FA-23 & Soll & Tasks können Mitgliedern explizit zugewiesen
+                       werden (Task-Member-Verwaltung).
+                     & \checkmark \\
+        FA-24 & Soll & Tasks können nach Status, Priorität und
+                       Fälligkeitsdatum gefiltert werden.
+                     & \checkmark \\
+        FA-25 & Kann & Tasks können mit Tags/Labels versehen werden.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-tasks}
+\end{table}
+
+\subsubsection{Dashboard \& Metriken}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Dashboard}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{An76forderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-30 & Muss & Das Dashboard zeigt eine Übersicht aller
+                       aktiven Projekte und Tasks.
+                     & \checkmark \\
+        FA-31 & Soll & Metriken: Gesamtanzahl Tasks, offene Tasks,
+                       abgeschlossene Tasks, überfällige Tasks.
+                     & \checkmark \\
+        FA-32 & Soll & Statusverteilung wird als Diagramm
+                       (Donut-Chart) visualisiert.
+                     & \checkmark \\
+        FA-33 & Soll & Wöchentliche und monatliche Trends werden
+                       als Liniendiagramm dargestellt.
+                     & \checkmark \\
+        FA-34 & Kann & Fortschrittsbalken für einzelne Projekte
+                       werden angezeigt.
+                     & \checkmark \\
+        FA-35 & Kann & Top-5-Mitglieder nach abgeschlossenen
+                       Tasks werden angezeigt.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-dashboard}
+\end{table}
+
+\subsubsection{Kommunikation \& Benachrichtigungen}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Kommunikation}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-40 & Soll & Ein Live-Chat ermöglicht Echtzeit-Kommunikation
+                       via WebSockets (Socket.io).
+                     & \checkmark \\
+        FA-41 & Soll & Chatnachrichten werden persistent gespeichert
+                       (DSGVO-konform mit Löschkonzept).
+                     & \checkmark \\
+        FA-42 & Muss & Benutzer erhalten In-App-Benachrichtigungen
+                       bei relevanten Ereignissen (z.\,B.\ neue
+                       Task-Zuweisung).
+                     & \checkmark \\
+        FA-43 & Soll & Benachrichtigungen können als gelesen
+                       markiert werden.
+                     & \checkmark \\
+        FA-44 & Kann & E-Mail-Benachrichtigungen bei kritischen
+                       Ereignissen (z.\,B.\ überfällige Tasks).
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-komm}
+\end{table}
+
+\subsubsection{Kalender \& Suche}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Kalender \& Suche}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-50 & Soll & Eine Kalenderansicht zeigt Tasks nach
+                       Fälligkeitsdatum an.
+                     & \checkmark \\
+        FA-51 & Soll & Der Kalender unterstützt Monats-, Wochen-
+                       und Tagesansicht.
+                     & \checkmark \\
+        FA-52 & Soll & Eine globale Suche ermöglicht das Auffinden
+                       von Tasks, Projekten und Benutzern.
+                     & \checkmark \\
+        FA-53 & Kann & Suchergebnisse werden in Kategorien
+                       gruppiert dargestellt.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-kalender}
+\end{table}
+
+\subsection{Nicht-funktionale Anforderungen}
+\label{sec:nichtfunktionale-anforderungen}
+
+Nicht-funktionale Anforderungen beschreiben \textit{wie} das System
+seine Aufgaben erfüllen soll. Sie betreffen Qualitätseigenschaften
+wie Performance, Sicherheit und Wartbarkeit.
+
+\begin{table}[H]
+    \centering
+    \caption{Nicht-funktionale Anforderungen}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{ID} & \textbf{Kategorie} & \textbf{Anforderung} \\
+        \midrule
+        NFA-01 & Performance
+          & API-Antwortzeiten sollen unter 200\,ms liegen
+            (bei normaler Last). \\
+        NFA-02 & Performance
+          & Das Frontend soll innerhalb von 3 Sekunden vollständig
+            geladen sein. \\
+        NFA-03 & Skalierbarkeit
+          & Die Anwendung soll mindestens 100 gleichzeitige
+            Benutzer unterstützen. \\
+        NFA-04 & Sicherheit
+          & Alle Passwörter werden mit bcrypt (Kostenfaktor 12)
+            gehasht. \\
+        NFA-05 & Sicherheit
+          & Die Kommunikation erfolgt ausschließlich über HTTPS. \\
+        NFA-06 & Sicherheit
+          & \ac{JWT}-Tokens haben eine begrenzte Gültigkeitsdauer
+            (Access-Token: 15\,min, Refresh-Token: 7\,Tage). \\
+        NFA-07 & Sicherheit
+          & Rate Limiting verhindert Brute-Force-Angriffe
+            auf Login-Endpunkte. \\
+        NFA-08 & Datenschutz
+          & Die Anwendung ist \ac{DSGVO}-konform (Löschkonzepte,
+            Datensparsamkeit). \\
+        NFA-09 & Wartbarkeit
+          & Der Code folgt den SOLID-Prinzipien und ist modular
+            aufgebaut. \\
+        NFA-10 & Wartbarkeit
+          & Alle API-Endpunkte sind mit Swagger dokumentiert. \\
+        NFA-11 & Usability
+          & Die Benutzeroberfläche ist responsiv und auf mobilen
+            Geräten nutzbar. \\
+        NFA-12 & Usability
+          & Die Anwendung unterstützt Dark Mode und Light Mode. \\
+        NFA-13 & Verfügbarkeit
+          & Das System soll eine Verfügbarkeit von 99\,\% anstreben. \\
+        NFA-14 & Testbarkeit
+          & Kritische Backend-Module werden durch Unit-Tests
+            abgedeckt. \\
+        NFA-15 & Kompatibilität
+          & Die Anwendung ist mit den aktuellen Versionen von
+            Chrome, Firefox und Edge kompatibel. \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:nfa}
+\end{table}
+
+\subsection{Use-Case-Diagramm}
+\label{sec:use-cases}
+
+Die folgende Tabelle beschreibt die wichtigsten Use-Cases des Systems
+gegliedert nach Akteuren:
+
+\begin{table}[H]
+    \centering
+    \caption{Use-Case-Übersicht}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{Akteur} & \textbf{UC-ID} & \textbf{Use-Case} \\
+        \midrule
+        Alle Benutzer
+          & UC-01 & Registrieren \& Anmelden \\
+          & UC-02 & Profil bearbeiten \\
+          & UC-03 & Dashboard einsehen \\
+          & UC-04 & Aufgaben anzeigen \& filtern \\
+          & UC-05 & Kalender einsehen \\
+          & UC-06 & Live-Chat nutzen \\
+          & UC-07 & Globale Suche verwenden \\
+          & UC-08 & Benachrichtigungen verwalten \\
+        \midrule
+        Member / Student
+          & UC-10 & Aufgaben erstellen \& bearbeiten \\
+          & UC-11 & Subtasks verwalten \\
+          & UC-12 & Aufgaben als erledigt markieren \\
+        \midrule
+        Manager / Teacher
+          & UC-20 & Projekte \& Klassen verwalten \\
+          & UC-21 & Mitglieder zuweisen \\
+          & UC-22 & Metriken \& Trends einsehen \\
+        \midrule
+        Admin
+          & UC-30 & Benutzerverwaltung \\
+          & UC-31 & Rollen vergeben \\
+          & UC-32 & Audit-Log einsehen \\
+        \midrule
+        Superuser
+          & UC-40 & Systemkonfiguration \\
+          & UC-41 & Backup \& Restore \\
+          & UC-42 & Vollzugriff auf alle Daten \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:usecases}
+\end{table}
+
+\subsection{Detaillierter Use-Case: Aufgabe erstellen}
+
+\begin{table}[H]
+    \centering
+    \caption{UC-10: Aufgabe erstellen}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Feld} & \textbf{Beschreibung} \\
+        \midrule
+        Use-Case-ID   & UC-10 \\
+        Name          & Aufgabe erstellen \\
+        Akteur        & Member, Manager, Admin, Superuser \\
+        Vorbedingung  & Benutzer ist authentifiziert und Mitglied
+                        eines Projekts \\
+        Nachbedingung & Neue Aufgabe ist in der Datenbank gespeichert
+                        und im Frontend sichtbar \\
+        Normalablauf  & 1. Benutzer klickt auf \glqq{}Neue Aufgabe\grqq{} \\
+                      & 2. Formular mit Titel, Beschreibung, Status,
+                           Priorität, Fälligkeitsdatum öffnet sich \\
+                      & 3. Benutzer füllt Pflichtfelder aus \\
+                      & 4. Benutzer weist optional Mitglieder zu \\
+                      & 5. Benutzer speichert die Aufgabe \\
+                      & 6. Backend validiert Eingaben und speichert
+                           in PostgreSQL \\
+                      & 7. Zugewiesene Mitglieder erhalten eine
+                           Benachrichtigung \\
+        Ausnahmen     & Pflichtfelder fehlen $\rightarrow$ Validierungsfehler \\
+                      & Benutzer hat keine Berechtigung $\rightarrow$
+                        403 Forbidden \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:uc10}
+\end{table}
+
+\subsection{Detaillierter Use-Case: Anmeldung mit 2FA}
+
+\begin{table}[H]
+    \centering
+    \caption{UC-01b: Anmeldung mit Zwei-Faktor-Authentifizierung}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Feld} & \textbf{Beschreibung} \\
+        \midrule
+        Use-Case-ID   & UC-01b \\
+        Name          & Anmeldung mit 2FA \\
+        Akteur        & Alle Benutzer (sofern 2FA aktiviert) \\
+        Vorbedingung  & Benutzer hat 2FA in den Profileinstellungen
+                        aktiviert und eine Authenticator-App
+                        eingerichtet \\
+        Nachbedingung & Benutzer ist authentifiziert und erhält
+                        gültige JWT-Tokens \\
+        Normalablauf  & 1. Benutzer gibt E-Mail und Passwort ein \\
+                      & 2. Backend prüft Credentials \\
+                      & 3. Backend erkennt aktive 2FA und fordert
+                           TOTP-Code an \\
+                      & 4. Benutzer öffnet Authenticator-App und
+                           gibt 6-stelligen Code ein \\
+                      & 5. Backend validiert TOTP-Code \\
+                      & 6. Access- und Refresh-Token werden ausgestellt \\
+        Ausnahmen     & Falscher TOTP-Code $\rightarrow$ 401 Unauthorized \\
+                      & Code abgelaufen $\rightarrow$ Neuen Code anfordern \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:uc01b}
+\end{table}

@@ -1,0 +1,138 @@
+\authorchapter{Digitaler Workflow mit GitHub}{Dražen Plavšić}
+\label{ch:workflow}
+
+GitHub ist eine weltweit etablierte Plattform zur Abwicklung von Softwareprojekten. Neben der reinen Versionsverwaltung des Sourcecode bietet die Plattform integrierte Projektmanagementtools, die stark in den Prozess der Softwareentwicklung eingebunden sind. Laut eigenem Jahresbericht \cite{github2025octoverse} zählt GitHub mit mehr als 180 Millionen Entwicklern weltweit zu den meistgenutzten Plattformen für die kollaborative Softwareentwicklung \cite{stackoverflow2025survey}. 
+
+Für die strukturierte Umsetzung dieses Projekts sind dabei insbesondere Funktionen wie \textit{Issues} und \textit{Milestones} von zentraler Bedeutung. Diese Werkzeuge erleichtern die Planung, Priorisierung und Nachverfolgung von Arbeitspaketen wesentlich, da sie eine transparente Zusammenarbeit sowie die kontinuierliche Aktualisierung des Projektstatus an einem zentralen Ort gewährleisten.
+
+\authorsection{GitHub Strategie und Workflow}{Dražen Plavšić}
+Damit eine konsistente Arbeitsmethodik garantiert wird, ist eine klare, hierarchische Benennungskonvention, welche sich an Projektphasen und Themenstellungen orientiert, sowie eine feste Branching-\cite{git_branching_workflow_chacon2014progit} und Merging-Strategie festgelegt.
+Die Strategie wird in 5 Punkte unterteilen:
+\begin{itemize}
+    \item Haupt-Branches
+    \item Feature-Branches
+    \item Spezial-Branches
+    \item Naming Convention für Commits
+    \item Pull-request- und Merge-Strategie
+\end{itemize}
+\subsubsection{Haupt-Branches}
+Diese Branches (\textit{main} und \textit{development}) bilden die Basis unserer Applikation. Sie bleiben dauerhaft bestehen und bug-frei, damit gewährleistet wird, dass in jedem Moment eine lauffähige Version der Software vorhanden ist. 
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{0.25\textwidth}|p{0.65\textwidth}|}
+\hline
+\textbf{Branch Name} & \textbf{Zweck} \\
+\hline
+\texttt{main} &
+Enthält immer den \textbf{stabilen, abgenommenen Code}
+(entspricht dem aktuellen Stand nach einer Phase oder dem
+finalen Abgabestand). Merges erfolgen nur von
+\texttt{development}-Branch. \\
+\hline
+\texttt{development} &
+Ist der Hauptentwicklungs-Branch. Er repräsentiert den
+\textbf{aktuellen Stand der integrierten Arbeit} und ist
+die Basis für alle neuen Features. Alle Feature-Branches
+werden hier hineingemergt. \\
+\hline
+\end{tabular}
+\caption{Branch-Übersicht}
+\label{tab:branches}
+\end{table}
+
+\subsubsection{Feature-Branches}
+Dies ist der wichtigste Branch-Typ. Für jedes Arbeitspaket, das durch ein Issue repräsentiert wird, erstellt jeder Entwickler einen neuen Branch, welcher sich aus dem \textbf{development-branch} abzweigt, sobald dieser angefangen wird. Zur Gewährleistung einer durchgehenden konsistenten und nachvollziehbaren Struktur, wird für die Benennung eine eindeutige Namenskonvention (Naming Convention) angewendet. 
+Die Strukturierung folgt einem standardisierten Schema (siehe \autoref{tab:branch-schema}):
+\texttt{feature-\textlangle thema\textrangle-\textlangle beschreibung\textrangle}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{0.18\textwidth}|p{0.28\textwidth}|p{0.44\textwidth}|}
+\hline
+\textbf{Teil} & \textbf{Beispiel} & \textbf{Erklärung} \\
+\hline
+\texttt{\textbf{feature}} &
+\texttt{feature-} &
+Standard-Präfix für neue Funktionen. \\
+\hline
+\texttt{\textbf{issue number}} &
+\texttt{X-} &
+Die automatisch generierte Nummer des GitHub Issues, auf das sich dieser Branch bezieht. \\
+\hline
+\texttt{\textbf{thema}} &
+\texttt{frontend-}, \texttt{backend-} oder \texttt{user-} &
+Bezieht sich auf die Haupt-Themenstellung (z.\,B.\ Frontendentwicklung, Backendentwicklung, Userverwaltung).\\
+\hline
+\texttt{\textbf{beschreibung}} &
+\texttt{calendar-view} oder \texttt{2fa-implementation} &
+Eine kurze prägnante Beschreibung der spezifischen Aufgabe.\\
+\hline
+\end{tabular}
+\caption{Aufbau des Branch-Namensschemas}
+\label{tab:branch-schema}
+\end{table}
+\subsubsection{Spezial-Branches}
+Für Sonderfälle existieren situationsabhängige Branches, die außerhalb des 
+regulären Entwicklungsprozesses bei Bedarf angelegt werden.\newline
+Die Benennung orientiert sich an folgendem Schema (sihe Tabelle \autoref{tab:spezial-branches}):
+
+\texttt{fix/hotfix-\textlangle beschreibung\textrangle}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{|p{0.20\textwidth}|p{0.34\textwidth}|p{0.38\textwidth}|}
+\hline
+\textbf{Branch Name} & \textbf{Zweck} & \textbf{Beispiel} \\
+\hline
+\texttt{fix-} &
+Für schnelle Fehlerbehebungen auf dem \texttt{development}-branch. &
+\texttt{fix-frontend-test-fails-in-} \texttt{Github-\gls{CI/CD}} \\
+\hline
+\texttt{hotfix-} &
+Für \textbf{kritische Fehlerbehebungen} direkt auf dem \texttt{main}-branch,
+die sofort ausgerollt werden müssen. &
+\texttt{hotfix-login-bug-prod}. \\
+\hline
+\end{tabular}
+\caption{Spezial-Branches Übersicht}
+\label{tab:spezial-branches}
+\end{table}
+\subsubsection{Naming Convention für Commits}
+Damit Änderungen inhaltlich kategorisierbar sind und die Historie übersichtlich bleibt, werden die Commit-Messages nach folgendem Schema geschrieben:\\ \texttt{\#issue-number: \textlangle beschreibung\textrangle}.\newline
+Durch das Hinzufügen der \textbf{issue-number} jeder \textbf{Commit-Massage} erkennt GitHub die Referenzen automatisch als klickbare Verlinkung\cite{github_autolinked_references} zum entsprechenden Issue, wodurch jede Änderung direkt dem jeweiligen Arbeitspaket zugeordnet werden kann.
+\subsubsection{Pull-Request- und Merge-Strategie}
+Um Konflikte beim Mergen von Pull-Requests zu minimieren, wird vor dem finalen Push der aktuellen \textbf{development-branch} zuerst lokal in den \textbf{feature-branch} gemergt\cite{git_branching_merging_chacon2014progit}.  Dadurch können potenzielle Konflikte frühzeitig lokal gelöst werden, sodass der anschließende Merge in GitHub reibungslos erfolgt.
+\authorsection{Digitaler Workflow mit GitHub und SCRUM}{Dražen Plavšić}
+Im Rahmen des Projekts kommen sowohl klassische als auch agile Projektmanagement-Methoden zum Einsatz. Neben dem Wasserfallmodell wird auf Vorgabe des Abteilungsvorstands die agile Methode \gls{SCRUM}\cite{schwaber2020scrum} benutzt.
+
+\gls{SCRUM} bietet in der Softwareentwicklung zahlreiche wesentliche Vorteile\cite{SCRUM_entscheidungen}, wie die featurebasierte Entwicklung, die kontinuierliche Anpassung an sich ändernde Anforderungen, sowie die Gewährleistung, dass zu jedem Zeitpunkt eine lauffähige Version der Software bzw. ein potenziell lieferbares Produkt vorhanden ist.
+
+Die Rolle des Product Owners wird dem Betreuer übertragen, da dieser im Fall von Terminproblemen darüber entscheidet, ob ein Feature angepasst oder gegebenenfalls weggelassen wird. Darüber hinaus obliegt ihm die Abnahme und das Review der einzelnen \gls{SCRUM}-Sprints. Die Sprint-Dauer ist einheitlich auf vier Wochen festgelegt. Die Rolle des \gls{SCRUM}-Masters wird aufgrund der geringen Teamgröße von beiden Teammitgliedern ausgeübt.
+
+Die Abbildung der \gls{SCRUM}-Sprints erfolgt in GitHub über Milestones. Jeder Milestone\cite{codetree2017sprintplanning} umfasst die spezifischen Issues des jeweiligen Sprints. GitHub übernimmt das Fortschritts\-tracking der Sprints automatisch\cite{github2026milestones} durch eine prozentuale Berechnung des Status. Das Sprint-Ende wird durch die Due-Date-Funktion definiert und als Sprint-Backlog dient die Kommentarfunktion des Milestones. Alle Arbeitspakete existieren als Issues mit detaillierter Beschreibung. Diese sind fest einer Person und dem entsprechenden Milestone zugewiesen\cite{github2026associatingmilestones}.
+
+\authorsection{Automatisierung und Qualitätssicherung (CI/CD)}{Dražen Plavšić}
+Um sicherzustellen, dass die Funktionalität nach dem Implementieren von neuen Features gewährleistet ist, wird eine \gls{CI/CD}-Pipeline\cite{cogent2025devsecopsCICD} mit GitHub-Actions\cite{github2026actionsquickstart} verwendet.
+Da das Projekt auf den Ressourcen von GitHub aufbaut, muss die Pipeline-Strategie aufgrund der plattformspezifischen Ressourcenlimits\cite{github2026actionslimits} optimiert werden.
+Um die zur Verfügung stehenden Freiminuten effektiv zu nutzen, wird die Pipeline so konfiguriert, dass automatisierte Tests und Builds ausschließlich beim Mergen und Pushen in dem \textbf{development-branch} und dem \textbf{main-branch} ausgeführt werden. Auf die Überprüfung der einzelnen Feature-Branches wird bewusst verzichtet.\newline
+Im genutzten GitHub-Free-Plan\cite{github2026plans} ist es technisch nicht möglich eine Branch-Protection-Regel in vollem Umfang zu nutzen\cite{github2026protectedbranches}. Dadurch ist es jedoch theoretisch möglich, einen Merge durchzuführen bevor die automatisierten Tests der Pipeline vollständig abgeschlossen sind. Deshalb muss vor jedem Merge abgewartet werden, bis die Pipeline die Tests erfolgreich beendet hat. 
+
+Um die Entwickler auf diesen Umstand aufmerksam zu machen und Fehler zu vermeiden, wird bei jedem Pull-Request automatisch ein vorgefertigtes Markdown-Template eingefügt. Dieses standardisierte Pull-Request-Template, das in \autoref{lst:pr-template} abgebildet ist, dient als Checkliste zur Selbstprüfung vor dem finalen Merge.
+
+\begin{listing}[H]
+    \begin{minted}{markdown}
+## Summary of Changes
+## CI/CD Verification (Self-Check)
+> **Note:** Since this is a private free repository, please verify the checkmarks in the "Actions" tab or the Status Badge before merging.
+
+- [ ] **Frontend:** Vitest unit tests passed (check)
+- [ ] **Backend:** Jest unit tests passed (check)
+- [ ] **Database:** Prisma client generated successfully 
+- [ ] **Manual Run:** I have started the app locally and it runs without errors
+
+## Related Issue
+- Fixes #
+    \end{minted}
+    \caption{GitHub-Pull-Request-Template für standardisierte Code-Reviews}
+    \label{lst:pr-template}
+\end{listing}

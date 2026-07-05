@@ -1,71 +1,299 @@
-\chapter{Projektmanagement und Arbeitsweise}
+\authorchapter{Projektplanung}{Dražen Plavšić, Ereny Micail}
+\label{ch:projektmanagement}
 
-\section{Zeitbudget}
-Wie viel Stunden stehen für das Projekt zur Verfügung?\\
-
-Semester Beginn.\\
-Semester Ende.
-
-\section{Zeitplan}
-    \begin{ganttchart}
-        [
-        hgrid,
-        vgrid={*6{white},*1{dotted}},
-        x unit=0.08cm,
-        y unit chart=0.8cm,
-            time slot format=isodate,
-        title label font=\footnotesize,
-        bar label font=\footnotesize,
-        bar/.append style={fill=blue!30},
-        milestone label font=\footnotesize,
-        milestone/.append style={fill=red},
-        milestone/.append style={xscale=5} 
-        ]{2024-01-01}{2024-06-20} % Start und Ende
-        \label{gantt:01}
-        % Jahre
-        \gantttitlecalendar{year, month=shortname}\\
-        % Arbeitspakete und Meilensteine
-        \ganttbar{Arbeitspaket 1}{2024-01-01}{2024-02-15}\\
-        \ganttmilestone{Meilenstein 1}{2024-01-15}\\
-        \ganttbar{Arbeitspaket 2}{2024-03-01}{2024-05-15}\\        
-        \ganttmilestone{Meilenstein 2}{2024-05-15}
-    \end{ganttchart}
-
-
+\authorsection{Zeitplan}{Ereny Micail}
+ 
+Das folgende Gantt-Diagramm gibt einen strukturierten Überblick über den tatsächlichen Projektverlauf von Oktober 2025 bis zur finalen Abgabe im Juli 2026. Der gesamte Bearbeitungszeitraum von rund 10 Monaten wurde in zehn aufeinanderfolgende Phasen unterteilt, die jeweils inhaltlich und methodisch zusammenhängende Arbeitspakete bündeln. Die Phasen sind so konzipiert, dass sie sequenziell aufeinander aufbauen: Die Ergebnisse und Erkenntnisse einer abgeschlossenen Phase bilden die konzeptionelle sowie inhaltliche Grundlage für die jeweils nachfolgende. Auf diese Weise wird ein kontinuierlicher und nachvollziehbarer Projektfortschritt sichergestellt.
+ 
+Die im Diagramm eingetragenen Meilensteine markieren jeweils den formalen Abschluss einer Phase. Sie fungieren gleichzeitig als definierte Kontrollpunkte, an denen der aktuelle Projektstand bewertet, Zwischenergebnisse gesichert und gegebenenfalls Anpassungen an der weiteren Planung vorgenommen werden können. Durch diese strukturierte Vorgehensweise wird sowohl die Transparenz des Projektverlaufs als auch die Einhaltung des Gesamtzeitplans gewährleistet.
+ 
+Die nachfolgende Legende erläutert die im Diagramm verwendeten Symbole und Darstellungsformen:
+ 
+\begin{itemize}
+  \item \textbf{Balken (durchgezogen)} – Repräsentieren einzelne Arbeitspakete innerhalb einer Phase. Die Länge des Balkens entspricht der geplanten Bearbeitungsdauer des jeweiligen Arbeitspakets.
+  \item \textbf{Phasenbalken (übergeordnet)} – Fassen mehrere zusammengehörige Arbeitspakete zu einer übergeordneten Projektphase zusammen und verdeutlichen deren zeitliche Ausdehnung.
+  \item \textbf{Meilenstein ($\blacklozenge$)} – Kennzeichnet den Abschluss einer Phase bzw. ein definiertes Zwischenziel im Projektverlauf.
+  \item \textbf{Zeitachse (horizontal)} – Gibt den Projektzeitraum in Monaten von Oktober 2025 bis Juli 2026 an.
+\end{itemize}
+ 
+\vspace{1em}
+\begin{adjustbox}{max width=\textwidth, keepaspectratio, center}
+\begin{ganttchart}[
+    hgrid,
+    vgrid={*{9}{dotted}},
+    x unit=1.1cm,
+    y unit chart=0.55cm,
+    y unit title=0.65cm,
+    title label font=\tiny,
+    bar label font=\tiny,
+    milestone label font=\tiny,
+    group label font=\tiny\bfseries,
+    bar/.append style={fill=blue!40, rounded corners=1pt},
+    milestone/.append style={fill=orange!80, xscale=1.2},
+    group/.append style={fill=gray!25},
+    title height=1,
+    bar height=0.55,
+    group height=.35,
+    bar label node/.append style={anchor=east, font=\tiny},
+    milestone label node/.append style={anchor=east, font=\tiny},
+    group label node/.append style={anchor=east, font=\tiny\bfseries},
+]{1}{10}
+ 
+  \gantttitle{2025}{3}\gantttitle{2026}{7} \\
+  \gantttitle{Okt}{1}\gantttitle{Nov}{1}\gantttitle{Dez}{1}%
+  \gantttitle{J\"{a}n}{1}\gantttitle{Feb}{1}\gantttitle{M\"{a}r}{1}%
+  \gantttitle{Apr}{1}\gantttitle{Mai}{1}\gantttitle{Jun}{1}%
+  \gantttitle{Jul}{1} \\
+ 
+  % Phase 1
+  \ganttgroup{Phase 1: Kickoff \& Analyse}{1}{1} \\
+  \ganttbar{AP 1.1: Projektziele, Scope \& Risikoliste}{1}{1} \\
+  \ganttmilestone{MS1: Kickoff abgeschlossen}{1} \\[grid]
+ 
+  % Phase 2
+  \ganttgroup{Phase 2: UX, Architektur \& API-Skelett}{1}{2} \\
+  \ganttbar{AP 2.1: Navigationskonzept \& UI-Flows}{1}{1} \\
+  \ganttbar{AP 2.2: Systemarchitektur \& Datenmodell}{1}{2} \\
+  \ganttbar{AP 2.3: Lauff\"{a}higes API-Skelett}{2}{2} \\
+  \ganttmilestone{MS2: Architektur \& Prototyp fertig}{2} \\[grid]
+ 
+  % Phase 3
+  \ganttgroup{Phase 3: Fundamentals}{3}{3} \\
+  \ganttbar{AP 3.1--3.10: Frontend Basics, Task-CRUD, JSON~DB}{3}{3} \\
+  \ganttmilestone{MS3: Fundamentals abgeschlossen}{3} \\[grid]
+ 
+  % Phase 4
+  \ganttgroup{Phase 4: Backend Fundamentals \& Usability}{4}{4} \\
+  \ganttbar{AP 4.1--4.7: Backend, Auth, PostgreSQL, Files}{4}{4} \\
+  \ganttmilestone{MS4: Backend-Basis fertig}{4} \\[grid]
+ 
+  % Phase 5
+  \ganttgroup{Phase 5: Zusammenarbeit \& Realtime}{5}{5} \\
+  \ganttbar{AP 5.1--5.9: Team-Mgmt, Notifications, Chat}{5}{5} \\
+  \ganttmilestone{MS5: Realtime-Features fertig}{5} \\[grid]
+ 
+  % Phase 6
+  \ganttgroup{Phase 6: Kalender \& Dashboard}{6}{6} \\
+  \ganttbar{AP 6.1--6.4: Kalender-Ansichten, Metriken}{6}{6} \\
+  \ganttmilestone{MS6: Kalender \& Dashboard fertig}{6} \\[grid]
+ 
+  % Phase 7
+  \ganttgroup{Phase 7: Sicherheit \& Compliance}{6}{6} \\
+  \ganttbar{AP 7.1--7.6: 2FA, RBAC, Hardening, Backup}{6}{6} \\
+  \ganttmilestone{MS7: Sicherheit abgeschlossen}{6} \\[grid]
+ 
+  % Phase 8
+  \ganttgroup{Phase 8: Tests, Qualit\"{a}t \& Migration}{6}{7} \\
+  \ganttbar{AP 8.1: Testpyramide (Unit/API/E2E)}{6}{6} \\
+  \ganttbar{AP 8.3: Fehlerbudget \& Release-Kriterien}{6}{7} \\
+  \ganttbar{AP 8.4: Migration json.db $\rightarrow$ PostgreSQL}{7}{7} \\
+  \ganttmilestone{MS8: Tests \& Migration abgeschlossen}{7} \\[grid]
+ 
+  % Phase 9
+  \ganttgroup{Phase 9: Deployment \& Doku}{7}{7} \\
+  \ganttbar{AP 9.1: CI/CD Pipeline aufsetzen}{7}{7} \\
+  \ganttbar{AP 9.4: Entwicklerdokumentation finalisieren}{7}{7} \\
+  \ganttmilestone{MS9: Deployment \& Doku fertig}{7} \\[grid]
+ 
+  % Phase 10
+  \ganttgroup{Phase 10: Abnahme \& Pr\"{a}sentation}{7}{10} \\
+  \ganttbar{AP 10.1: Feature-Freeze, Regressionstest}{7}{7} \\
+  \ganttbar{AP 10.2: Live-Demo-Skript \& Abnahme}{7}{8} \\
+  \ganttbar{Thesis verfassen \& finalisieren}{8}{10} \\
+  \ganttmilestone{MS10: Abgabe der Diplomarbeit}{10} \\
+ 
+\end{ganttchart}
+\end{adjustbox}
+\vspace{1em}
+ 
+ 
 \subsection{Meilensteine}
-
-    \begin{tabular*}{\textwidth}{c l p{4cm} l}
-        \toprule
-        Nr. & Meilenstein & & Abgabedatum \\
-        \midrule \midrule
-        \ref{Ms:Bsp01}  & MS A   && 01.15.2024\\
-        \ref{Ms:Bsp02}  & MS B   && 05.15.2024\\
-        \bottomrule
-    \end{tabular*}
-    \\ [1em]
-    \Meilenstein{MS A}\label{Ms:Bsp01}
-        Beschrieb\\
-        Datum: 15.01.2024\\
-    
-    \Meilenstein{MS B}\label{Ms:Bsp02}
-        Beschrieb\\
-        Datum: 15.05.2024\
-
-
+ 
+\begin{tabular*}{\textwidth}{c l p{6cm} l}
+    \toprule
+    Nr. & Meilenstein & Beschreibung & Abschlussdatum \\
+    \midrule\midrule
+    \ref{Ms:Kickoff}      & MS1  & Kickoff \& Analyse abgeschlossen          & Oktober 2025  \\
+    \ref{Ms:Architektur}  & MS2  & Architektur, UX \& API-Skelett fertig     & November 2025 \\
+    \ref{Ms:Fundamentals} & MS3  & Frontend-Fundamentals abgeschlossen       & Dezember 2025 \\
+    \ref{Ms:Backend}      & MS4  & Backend-Basis \& Usability fertig         & J\"{a}nner 2026   \\
+    \ref{Ms:Realtime}     & MS5  & Zusammenarbeit \& Realtime fertig         & Februar 2026  \\
+    \ref{Ms:Kalender}     & MS6  & Kalender \& Dashboard-Reifegrad erreicht  & M\"{a}rz 2026     \\
+    \ref{Ms:Sicherheit}   & MS7  & Sicherheit \& Compliance abgeschlossen    & M\"{a}rz 2026     \\
+    \ref{Ms:Tests}        & MS8  & Tests, Qualit\"{a}t \& Migration fertig       & April 2026    \\
+    \ref{Ms:Deployment}   & MS9  & Deployment \& Dokumentation abgeschlossen & April 2026    \\
+    \ref{Ms:Abgabe}       & MS10 & Abgabe der Diplomarbeit                   & Juli 2026     \\
+    \bottomrule
+\end{tabular*}
+\\[1.5em]
+ 
+\Meilenstein{Kickoff \& Analyse abgeschlossen}\label{Ms:Kickoff}
+Projektziele, Zielgruppe und Abgrenzungen wurden schriftlich festgehalten, Pflicht- und Kür-Features definiert sowie die Risikoliste angelegt. Architekturentscheidungen (Vue~3, NestJS, PostgreSQL), Sicherheitsziele, Git-Branching-Strategie und Kommunikationsregeln wurden finalisiert.\\
+Datum: Oktober 2025\\
+ 
+\Meilenstein{Architektur, UX \& API-Skelett fertiggestellt}\label{Ms:Architektur}
+Das Navigationskonzept und die UI-Flows wurden ausgearbeitet, die Systemarchitektur und das Datenmodell sind klar definiert. Ein lauffähiges API-Skelett sowie eine \texttt{proto.html} als visueller Orientierungsrahmen für das Frontend wurden erstellt.\\
+Datum: November 2025\\
+ 
+\Meilenstein{Frontend-Fundamentals abgeschlossen}\label{Ms:Fundamentals}
+Die grundlegende Frontend-Struktur wurde mit Vue.js aufgebaut. Funktionsfähige Komponenten umfassen das Dashboard, die Taskliste mit Filter- und Sortierfunktion, eine Kalender-Basisansicht, das Subtask-System sowie ein Prioritäts-Ampelsystem. Die Datenhaltung erfolgte initial über eine JSON-Datenbank.\\
+Datum: Dezember 2025\\
+ 
+\Meilenstein{Backend-Basis \& Usability fertiggestellt}\label{Ms:Backend}
+Das NestJS-Backend wurde aufgebaut und mit PostgreSQL verbunden. Authentifizierung, Dateianhänge, grundlegende Sicherheitsmaßnahmen (Throttler, Helmet) sowie E2E-Tests wurden implementiert.\\
+Datum: Jänner 2026\\
+ 
+\Meilenstein{Zusammenarbeit \& Realtime-Features fertiggestellt}\label{Ms:Realtime}
+Team-Management, In-App-Benachrichtigungen, E-Mail-Service für \texttt{@mentions} sowie der Live-Chat mit WebSockets und DSGVO-konformer Anonymisierungslogik wurden vollständig implementiert.\\
+Datum: Februar 2026\\
+ 
+\Meilenstein{Kalender \& Dashboard-Reifegrad erreicht}\label{Ms:Kalender}
+Die erweiterten Kalenderansichten (Tag, Woche, Monat, Jahr) mit Ereignisverwaltung und Erinnerungen sowie die Dashboard-Metriken wurden fertiggestellt.\\
+Datum: März 2026\\
+ 
+\Meilenstein{Sicherheit \& Compliance abgeschlossen}\label{Ms:Sicherheit}
+Zwei-Faktor-Authentifizierung, rollenbasierte Zugriffskontrolle (RBAC), CSRF-Schutz, Input-Validierung, Secrets-Management sowie Backup- und Restore-Strategie wurden vollständig umgesetzt.\\
+Datum: März 2026\\
+ 
+\Meilenstein{Tests, Qualität \& Migration abgeschlossen}\label{Ms:Tests}
+Die Testpyramide (Unit, API, E2E) wurde finalisiert, Fehlerbudget und Release-Kriterien definiert sowie die Migration von der JSON-Datenbank auf PostgreSQL erfolgreich durchgeführt.\\
+Datum: April 2026\\
+ 
+\Meilenstein{Deployment \& Dokumentation abgeschlossen}\label{Ms:Deployment}
+Die CI/CD-Pipeline wurde aufgesetzt, Deployment-Optionen evaluiert und die Entwicklerdokumentation (Architektur, API) finalisiert.\\
+Datum: April 2026\\
+ 
+\Meilenstein{Abgabe der Diplomarbeit}\label{Ms:Abgabe}
+Die Diplomarbeit ist vollständig verfasst, korrekturgelesen und fristgerecht eingereicht.\\
+Datum: Juli 2026\\
+ 
+ 
 \subsection{Detaillierte Arbeits- und Zeitplanung}
+ 
+\Arbeitspaket{AP 1.1: Projektziele, Scope \& Risikoliste}
+Projektziele, Zielgruppe und Abgrenzungen wurden schriftlich festgehalten sowie Pflicht- und Kür-Features definiert. Architekturentscheidungen (Vue~3 + Bootstrap~5, NestJS, PostgreSQL), Sicherheitsziele, Git-Branching-Strategie und Kommunikationsregeln wurden festgelegt und die Risikoliste angelegt.\\
+Zeitraum: Oktober 2025\\
+ 
+\Arbeitspaket{AP 2.1: Navigationskonzept \& UI-Flows}
+Ausarbeitung des Navigationskonzepts, Definition der UI-Flows und Erstellung der \texttt{proto.html} als visueller Orientierungsrahmen für die Frontend-Gestaltung.\\
+Zeitraum: Oktober -- November 2025\\
+ 
+\Arbeitspaket{AP 2.2: Systemarchitektur \& Datenmodell}
+Definition der Gesamtarchitektur (Frontend, Backend, Datenbank), Erstellung des Entity-Relationship-Diagramms sowie Festlegung der Schnittstellen zwischen den Systemkomponenten.\\
+Zeitraum: November 2025\\
+ 
+\Arbeitspaket{AP 2.3: Lauffähiges API-Skelett}
+Aufbau eines lauffähigen API-Skeletts mit grundlegenden Endpunkten als Basis für die weitere Backend-Entwicklung.\\
+Zeitraum: November 2025\\
+ 
+\Arbeitspaket{AP 3.1--3.10: Frontend Basics, Task-CRUD \& JSON-Datenbank}
+Einrichtung des Vue.js-Projekts mit Vue Router und Pinia, Implementierung der zentralen App-Komponenten, des Dashboards, der Taskliste mit Filter- und Sortierfunktion, des Subtask-Systems, des Prioritäts-Ampelsystems sowie der Kalender-Basisansicht. Die Datenhaltung erfolgte initial über eine JSON-Datenbank.\\
+Zeitraum: Dezember 2025\\
+ 
+\Arbeitspaket{AP 4.1--4.7: Backend-Aufbau, Auth, PostgreSQL, Dateien \& Sicherheit}
+Aufbau des NestJS-Backends mit Prisma ORM, Verbindung zur PostgreSQL-Datenbank, Implementierung der REST-API-Endpunkte, Authentifizierung, Datei-Upload-System (25\,MB Limit) sowie grundlegender Sicherheitsmaßnahmen mittels Throttler und Helmet.\\
+Zeitraum: Jänner 2026\\
+ 
+\Arbeitspaket{AP 5.1--5.9: Team-Management, Benachrichtigungen \& Realtime-Chat}
+Implementierung der Mitgliederverwaltung, des In-App-Benachrichtigungssystems, des E-Mail-Service für \texttt{@mentions} in Task-Kommentaren sowie des Live-Chats mit WebSockets. Die Umsetzung erfolgte DSGVO-konform mit Ghost-User-Anonymisierungslogik.\\
+Zeitraum: Februar 2026\\
+ 
+\Arbeitspaket{AP 6.1--6.4: Erweiterte Kalenderansichten \& Dashboard-Metriken}
+Umsetzung der detaillierten Kalenderansichten (Tag, Woche, Monat, Jahr) mit Ereignisverwaltung
+und konfigurierbaren Erinnerungen sowie Erweiterung des Dashboards um aussagekräftige Metriken-Karten.\\
+Zeitraum: März 2026\\
+ 
+\Arbeitspaket{AP 7.1--7.6: Sicherheit, RBAC, 2FA, Compliance \& Backup}
+Implementierung der Zwei-Faktor-Authentifizierung, des rollenbasierten Rechtesystems (RBAC),
+von CSRF-Schutz, Input-Validierung und Secrets-Management sowie Ausarbeitung der Backup-
+und Restore-Strategie mit Monitoring-Ansatz.\\
+Zeitraum: März 2026\\
+ 
+\Arbeitspaket{AP 8.1: Testpyramide finalisieren (Unit/API/E2E Coverage)}
+Finalisierung der Testpyramide mit vollständiger Abdeckung auf Unit-, API- und E2E-Ebene
+sowie Dokumentation der Testergebnisse.\\
+Zeitraum: März 2026\\
+ 
+\Arbeitspaket{AP 8.3: Fehlerbudget, Bug-Triage \& finale Release-Kriterien}
+Definition des Fehlerbudgets, Durchführung der Bug-Triage sowie Festlegung und Überprüfung
+der finalen Release-Kriterien.\\
+Zeitraum: März -- April 2026\\
+ 
+\Arbeitspaket{AP 8.4: Migration von JSON-Datenbank auf PostgreSQL}
+Vollständige Migration der Datenhaltung von der JSON-Datenbank auf PostgreSQL inklusive
+Datenmigrations-Skripten und abschließenden Integrationstests.\\
+Zeitraum: April 2026\\
+ 
+\Arbeitspaket{AP 9.1: Deployment-Option klären \& CI/CD Pipeline aufsetzen}
+Evaluierung der Deployment-Optionen, Einrichtung der CI/CD-Pipeline sowie Konfiguration
+der Produktivumgebung.\\
+Zeitraum: April 2026\\
+ 
+\Arbeitspaket{AP 9.4: Entwicklerdokumentation finalisieren (Architektur, API)}
+Finalisierung der vollständigen Entwicklerdokumentation umfassend Systemarchitektur,
+API-Referenz und Betriebshandbuch.\\
+Zeitraum: April 2026\\
+ 
+\Arbeitspaket{AP 10.1: Feature-Freeze \& finaler Regressionstest}
+Einfrieren des Funktionsumfangs (Feature-Freeze) und Durchführung des finalen Regressionstests
+zur Sicherstellung der Gesamtstabilität der Anwendung.\\
+Zeitraum: April 2026\\
+ 
+\Arbeitspaket{AP 10.2: Live-Demo-Skript \& Abnahmeszenarien}
+Erstellung des Live-Demo-Skripts und der Abnahmeszenarien für die finale Projektpräsentation.\\
+Zeitraum: April -- Mai 2026\\
+ 
+\Arbeitspaket{Thesis verfassen \& finalisieren}
+Verfassen aller Kapitel der Diplomarbeit, Korrekturlesen, Formatierung und finale Einreichung.\\
+Zeitraum: Mai -- Juli 2026\\
+ 
+\authorsection{Risiken und Randbedingungen}{Ereny Micail}
+Die Realisierung von \textit{EffSync} fand unter mehreren technischen und organisatorischen Rahmenbedingungen statt, die unmittelbar auf Architektur, Implementierung und Qualitätssicherung wirkten. Um die Projektrisiken beherrschbar zu machen, wurden kritische Bereiche frühzeitig erkannt und gezielt durch geeignete Gegenmaßnahmen abgesichert.
+ 
+\subsection{Technische Risiken}
+\textbf{Komplexität verteilter Systemteile:}
+Da \textit{EffSync} aus einem Vue.js-Frontend, einem NestJS-Backend, einer relationalen Datenbank und einer WebSocket-Echtzeitkommunikation besteht, gibt es ein grundlegendes Risiko bei der Abstimmung dieser Teile. Vor allem bei gleichzeitigen Aktionen mehrerer Nutzer können Unterschiede zwischen dem Zustand der API und der Anzeige in der Benutzeroberfläche entstehen.
+ 
+\textbf{Datenintegrität bei hierarchischen Tasks:}
+Durch die beliebig tiefe Verschachtelung von Aufgaben besteht die Gefahr, dass fehlerhafte Baumstrukturen entstehen (z.\,B. Kreisbezüge). Ohne passende Prüfungen können rekursive Lesezugriffe in Endlosschleifen laufen oder fehlerhafte Zustände erzeugen.
+ 
+\textbf{Sicherheits- und Berechtigungsfehler:}
+Die Mischung aus Rollen, Einzelrechten und kontextabhängigen Rechten (z.\,B. Task-Mitgliedschaften, Chat-Administration) macht die Berechtigungslogik komplex. Fehler in diesem Bereich können dazu führen, dass unberechtigte Zugriffe möglich sind oder erlaubte Aktionen unerwartet blockiert werden.
+ 
+\textbf{Echtzeitkommunikation unter Last:}
+WebSocket-Kommunikation verringert zwar den Aufwand durch ständiges Abfragen, bringt aber Risiken beim Umgang mit Verbindungen, der richtigen Reihenfolge von Ereignissen und dem Wiederaufbau der Verbindung nach Abbrüchen mit sich.
+\subsection{Qualitätsrisiken}
+\textbf{Regressionen bei Weiterentwicklung:}
+Durch die enge Verschachtelung mehrerer Module (Tasks, Chat, Rechteverwaltung) können Anpassungen in einem Bereich unbeabsichtigte Auswirkungen auf andere Komponenten haben. Dieses Risiko nimmt mit zunehmendem Funktionsumfang zu.
+ 
+\textbf{Unzureichende Testabdeckung komplexer Workflows:}
+Reine Unit-Tests reichen für zentrale Ende-zu-Ende-Abläufe nicht aus. Vor allem Authentifizierungs-, Berechtigungs- und Mehrbenutzer-Szenarien müssen im Gesamtsystem geprüft werden, um realistische Fehlerbilder frühzeitig zu erkennen.
+ 
+\subsection{Organisatorische Randbedingungen}
+\textbf{Zeitliche Begrenzung durch die Diplomarbeit:}
+Der begrenzte Projektzeitraum macht eine Fokussierung auf zentrale Funktionen erforderlich. Komfortfunktionen, umfassende Behandlung von Randfällen oder große Lasttests können daher nur eingeschränkt realisiert werden.
+ 
+\textbf{Rollenverteilung im Team:}
+Die Verteilung der Implementierungsschwerpunkte auf zwei Teammitglieder erhöht die Spezialisierung, führt aber gleichzeitig zu mehr Abstimmungsaufwand bei Schnittstellen, Datenmodellen und Coding-Richtlinien.
+ 
+\subsection{Gegenmaßnahmen}
+Zur Verringerung der beschriebenen Risiken wurden folgende Maßnahmen umgesetzt:
+\begin{itemize}
+   \item \textbf{Zusätzliche Prüfungen im Backend} bei wichtigen Aktionen (z.\,B. Kontrolle von übergeordneten Tasks, Statusregeln, Berechtigungen),
+   \item \textbf{Mehrstufiges Testkonzept} mit einer Kombination aus Unit-Tests und End-to-End-Tests,
+   \item \textbf{Klare API-Absprachen} zwischen Frontend und Backend, um Integrationsprobleme zu vermeiden,
+   \item \textbf{Datenbank-Constraints} (z.\,B. \texttt{UNIQUE}, Fremdschlüssel), um die Datenkonsistenz sicherzustellen,
+   \item \textbf{Schrittweises Vorgehen mit laufender Kontrolle} der wichtigsten Workflows, statt nur einer großen Abnahme am Ende.
+\end{itemize}
 
-    \Arbeitspaket{Arbeitspaket 1}
-        Inhalt, Ergebins, Meilenstein\\
-        
-    \Arbeitspaket{Arbeitspaket 2}
-        Inhalt, Ergebins, Meilenstein\\
-\section{Risiken und Randbedingungen}
+Insgesamt zeigen die genannten Rahmenbedingungen, dass die technische Umsetzung nicht nur von den fachlichen Zielen abhängt, sondern auch stark von Anforderungen an Stabilität, Sicherheit und Integration. Die gewählten Maßnahmen helfen dabei, das verbleibende Projektrisiko auf ein akzeptables Maß zu senken.
+ 
 \authorsection{Datenschutz und \texorpdfstring{\gls{DSGVO}}{DSGVO}}{Dražen Plavšić}
 \label{sec:dsgvo}
 Gemäß dem Grundsatz der Datenminimierung \cite[Art.~5 Abs.~1 lit.~c]{dsgvo2016} priorisiert \textit{EffSync} die Speicherung absoluter Kernmetadaten. Bei der Erstellung von Benutzerprofilen, Tasks und vor allem bei der Echtzeit-Kommunikation werden nur Daten abgespeichert, die für die Funktionalität erforderlich sind. So wird beispielsweise im Live-Chat, siehe~\autoref{sec:live_chat}, bewusst auf die Protokollierung von IP-Adressen oder Lese-Zeitstempeln pro Nutzer verzichtet, um die Privatsphäre zu schützen und Profiling auszuschließen.\\
-
+ 
 Im Falle einer Account-Löschung (Recht auf Löschung bzw. Vergessenwerden, \cite[Art.~17]{dsgvo2016}) verfolgt \textit{EffSync} den Ansatz der Anonymisierung statt des harten Löschens. Diese Architekturentscheidung ist wichtig, um die definierten Aufbewahrungsfristen für aufgabenbezogene Chats und Tasks zu unterstützen. Würden Nachrichten eines ausscheidenden Nutzers restlos aus der Datenbank entfernt werden, entstünden in geteilten Projekt-Chats inhaltliche Lücken. Dies würde den Lesefluss zerstören und die wichtige Nachvollziehbarkeit von Arbeitsprozessen für rechtliche Zwecke (z.\,B. Gewährleistungsdokumentation) verhindern.\\
-
-Stattdessen werden die Nachrichten vom realen Nutzer entkoppelt. Die Datenbank erfordert jedoch weiterhin eine gültige \texttt{user\_id}. Aus diesem Grund überschreibt das System den ursprünglichen Autor mit einem anonymen \textbf{Ghost-User}. So bleibt die Chat-Historie für das Team intakt und entspricht gleichzeitig den Vorgaben der \gls{DSGVO}.
-
+ 
+Stattdessen werden die Nachrichten vom realen Nutzer entkoppelt. Die Datenbank erfordert jedoch weiterhin eine gültige \texttt{user\_id}. Aus diesem Grund überschreibt das System den ursprünglichen Autor mit einem anonymen \gls{ghost-user}. So bleibt die Chat-Historie für das Team intakt und entspricht gleichzeitig den Vorgaben der \gls{DSGVO}.
+ 
 Technisch ist hierbei zu beachten, dass \texttt{PostgreSQL} bei automatisch inkrementierenden Primärschlüsseln (\texttt{autoincrement}) standardmäßig bei 1 zu zählen beginnt. Um referenzielle Integritätsfehler zu vermeiden, muss daher der Ghost-User mit der \textbf{\texttt{user\_id 0}} bei der Initialisierung der Datenbank (z.\,B. via Seed-Script) einmalig manuell angelegt werden.
