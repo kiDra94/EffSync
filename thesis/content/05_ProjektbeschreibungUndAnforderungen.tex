@@ -1,0 +1,694 @@
+\authorchapter{Projektbeschreibung und Anforderungen}{Dražen Plavšić, Ereny Micail}
+\label{ch:projektbeschreibung}
+
+\authorsection{Was ist EffSync?}{Dražen Plavšić}
+
+\textbf{EffSync} (von \textit{Efficient Synchronization}) ist ein webbasiertes
+Task-Management-System, das Teams und Einzelpersonen dabei unterstützt, Projekte
+effizienter zu planen, zu organisieren und zu verfolgen. Die Anwendung kombiniert
+klassische Projektmanagement-Funktionen mit modernen Kommunikationsfeatures und
+bietet dabei eine übersichtliche, benutzerfreundliche Oberfläche.
+
+Der Name \textit{EffSync} steht für die zwei Kernprinzipien der Anwendung:
+
+\begin{itemize}
+    \item \textbf{Effizienz} -- Aufgaben schnell erfassen, priorisieren
+          und abschließen
+    \item \textbf{Synchronisation} -- Teams in Echtzeit auf dem gleichen
+          Stand halten
+\end{itemize}
+
+Das Projekt wurde im Rahmen der Diplomarbeit an der \textbf{BULME Graz}
+von \textbf{Drazen Plavsic} und \textbf{Ereny Micail} der Klasse 3/4AKIFT
+unter der Betreuung von \textbf{Simon Gunacker} entwickelt. Als
+Versionsverwaltung wurde GitHub eingesetzt, wobei eine strukturierte
+Git-Flow-Strategie mit Feature-Branches, einem Development-Branch und
+einem stabilen Main-Branch verfolgt wurde.
+
+\authorsection{Ausgangslage}{Dražen Plavšić, Ereny Micail}
+
+\subsection{Ausgangslage -- Drazen Plavsic}
+
+Die Ausgangslage basiert auf verfügbaren Schulressourcen wie Räumlichkeiten
+und Laptops sowie den im Unterricht erworbenen Kenntnissen in
+Webentwicklung, Datenbanken und Softwarearchitektur. Ziel war es, diese
+Kenntnisse in einem praxisnahen Projekt anzuwenden und zu vertiefen.
+Der Fokus lag dabei auf der Backend-Entwicklung mit NestJS, dem Design
+der Datenbankstruktur mit PostgreSQL und Prisma ORM sowie der Umsetzung
+eines umfassenden Sicherheitskonzepts.
+
+\subsection{Ausgangslage -- Ereny Micail}
+
+Die Ausgangslage umfasst ebenfalls die verfügbaren Schulressourcen sowie
+die im Unterricht erworbenen Kenntnisse in Frontend-Entwicklung und
+UI/UX-Design. Der Schwerpunkt lag auf der Entwicklung einer intuitiven
+Benutzeroberfläche mit Vue.js, der Implementierung des Dashboard-Metriken-Systems
+sowie der serverseitigen Rollen- und Rechteprüfung inklusive Audit-Log.
+
+\authorsection{Zielgruppen}{Dražen Plavšić, Ereny Micail}
+
+EffSync wurde für zwei klar definierte Zielgruppen konzipiert:
+
+\subsection{Zielgruppe 1: Schulen (Schüler und Lehrer)}
+
+Die erste Zielgruppe umfasst Schülerinnen, Schüler und Lehrpersonen an
+Höheren Technischen Lehranstalten und anderen Bildungseinrichtungen.
+Für diese Gruppe steht eine \textbf{vereinfachte Version} zur Verfügung,
+die folgende Eigenschaften aufweist:
+
+\begin{itemize}
+    \item Verwaltung von Klassen, Fächern, Stundenplänen und Schulräumen
+    \item Aufgabenverwaltung für Schulprojekte und Hausübungen
+    \item Rollenkonzept mit Superuser, Admin, Teacher und Student
+    \item Einfache Installation und Inbetriebnahme
+    \item Live-Chat für Klassen- und Projektgruppen
+\end{itemize}
+
+\subsection{Zielgruppe 2: Unternehmen}
+
+Die zweite Zielgruppe sind kleine bis mittelgroße Unternehmen, die eine
+professionelle Projektmanagement-Lösung benötigen. Für diese Gruppe
+steht eine \textbf{erweiterte Version} zur Verfügung:
+
+\begin{itemize}
+    \item PostgreSQL-Datenbank für hohe Performance und Skalierbarkeit
+    \item Abbildung der Unternehmensstruktur (Abteilungen, Teams, Rollen)
+    \item Erweitertes Sicherheitskonzept inkl.\ \gls{2FA} und Audit-Log
+    \item Persistente Speicherung von Chatverläufen und Dateien
+    \item Detaillierte Projektmetriken, Trends und Reporting
+    \item \gls{DSGVO}-konforme Datenhaltung und Löschkonzepte
+\end{itemize}
+
+\authorsection{Funktionsübersicht}{Dražen Plavšić, Ereny Micail}
+
+Tabelle~\ref{tab:features} gibt einen Überblick über die implementierten
+Features von EffSync:
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionsübersicht EffSync}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Feature} & \textbf{Beschreibung} \\
+        \midrule
+        Aufgabenverwaltung   & Tasks \& Subtasks erstellen, bearbeiten, löschen \\
+        Kalenderansicht      & Aufgaben nach Fälligkeitsdatum visualisieren \\
+        Dashboard            & Metriken, Statusverteilung, Trends (wöchentlich/monatlich) \\
+        Live-Chat            & Echtzeit-Kommunikation via WebSockets (Socket.io) \\
+        Globale Suche        & Suche über Tasks, User, Projekte \\
+        Benachrichtigungen   & In-App-Benachrichtigungen \\
+        Profilverwaltung     & Benutzerprofile anpassen \\
+        Google OAuth         & Anmeldung via Google-Konto \\
+        RBAC                 & Rollenbasierte Zugriffskontrolle \\
+        Audit-Log            & Nachverfolgung kritischer Operationen \\
+        Mitgliederverwaltung & Explizite Task-Member-Verwaltung \\
+        Klassenstruktur      & Klassen, Fächer, Stundenpläne \\
+        Firmenstruktur       & Abteilungen und Teams abbilden \\
+        Chatverlauf          & Persistente Speicherung (DSGVO) \\
+        2FA                  & Zwei-Faktor-Authentifizierung \\
+        Backup \& Restore    & Datensicherungsstrategie \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:features}
+\end{table}
+
+\authorsection{Arbeitspaketplan (Work Breakdown Structure)}{Dražen Plavšić, Ereny Micail}
+\label{sec:wbs}
+
+Der Arbeitspaketplan gliedert das Projekt in sieben Phasen, die
+chronologisch von Oktober 2025 bis April 2026 durchgeführt wurden.
+
+\subsection{Phase 1: Kickoff \& Analyse (Oktober 2025)}
+
+\begin{table}[H]
+    \centering
+    \caption{Arbeitspakete Phase 1}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{AP-ID} & \textbf{Verantwortlich} & \textbf{Arbeitspaket} \\
+        \midrule
+        AP 1.1 & Gemeinsam & Projektidee definieren \& Scope festlegen \\
+        AP 1.2 & Gemeinsam & Zielgruppenanalyse (Schule vs.\ Unternehmen) \\
+        AP 1.3 & Gemeinsam & Technologie-Stack evaluieren \& entscheiden \\
+        AP 1.4 & Gemeinsam & Git-Repository aufsetzen \& Git-Flow definieren \\
+        AP 1.5 & Gemeinsam & Meilensteinplanung \& Zeitplan erstellen \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:ap1}
+\end{table}
+
+\subsection{Phase 2: Grundarchitektur (November 2025)}
+
+\begin{table}[H]
+    \centering
+    \caption{Arbeitspakete Phase 2}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{AP-ID} & \textbf{Verantwortlich} & \textbf{Arbeitspaket} \\
+        \midrule
+        AP 2.1 & Drazen & Backend-Grundstruktur (NestJS) aufsetzen \\
+        AP 2.2 & Drazen & Datenbankschema entwerfen (\gls{ERD}, Prisma Schema) \\
+        AP 2.3 & Ereny  & Frontend-Grundstruktur (Vue.js, Vite) aufsetzen \\
+        AP 2.4 & Ereny  & UI-Komponentenbibliothek \& Design-System \\
+        AP 2.5 & Gemeinsam & API-Schnittstellen definieren \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:ap2}
+\end{table}
+
+\subsection{Phase 3: Authentifizierung \& Benutzerverwaltung
+  (Dezember 2025)}
+
+\begin{table}[H]
+    \centering
+    \caption{Arbeitspakete Phase 3}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{AP-ID} & \textbf{Verantwortlich} & \textbf{Arbeitspaket} \\
+        \midrule
+        AP 3.1 & Drazen & JWT-Authentifizierung implementieren \\
+        AP 3.2 & Drazen & Google OAuth Integration \\
+        AP 3.3 & Drazen & Registrierung \& Login (Backend) \\
+        AP 3.4 & Ereny  & Login- \& Registrierungsseite (Frontend) \\
+        AP 3.5 & Ereny  & Profilverwaltung (Frontend) \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:ap3}
+\end{table}
+
+\subsection{Phase 4: Kernfunktionen (Jänner 2026)}
+
+\begin{table}[H]
+    \centering
+    \caption{Arbeitspakete Phase 4}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{AP-ID} & \textbf{Verantwortlich} & \textbf{Arbeitspaket} \\
+        \midrule
+        AP 4.1 & Drazen & Task-CRUD-API (Backend) \\
+        AP 4.2 & Drazen & Subtask-Verwaltung (Backend) \\
+        AP 4.3 & Ereny  & Task-Ansicht \& Verwaltung (Frontend) \\
+        AP 4.4 & Ereny  & Mitgliederverwaltung (Frontend \& Backend) \\
+        AP 4.5 & Gemeinsam & Benachrichtigungssystem \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:ap4}
+\end{table}
+
+\subsection{Phase 5: Kommunikation \& Echtzeit (Februar 2026)}
+
+\begin{table}[H]
+    \centering
+    \caption{Arbeitspakete Phase 5}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{AP-ID} & \textbf{Verantwortlich} & \textbf{Arbeitspaket} \\
+        \midrule
+        AP 5.1 & Drazen & WebSocket-Integration (Socket.io, Backend) \\
+        AP 5.2 & Ereny  & Live-Chat-Komponente (Frontend) \\
+        AP 5.3 & Drazen & Chatverlauf-Persistenz \& DSGVO-Löschkonzept \\
+        AP 5.4 & Ereny  & Globale Suche (Frontend \& Backend) \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:ap5}
+\end{table}
+
+\subsection{Phase 6: Kalender \& Dashboard (März 2026)}
+
+\begin{table}[H]
+    \centering
+    \caption{Arbeitspakete Phase 6}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{AP-ID} & \textbf{Verantwortlich} & \textbf{Arbeitspaket} \\
+        \midrule
+        AP 6.1 & Ereny  & Kalenderansicht (Frontend) \\
+        AP 6.2 & Drazen & Kalender-API (Backend) \\
+        AP 6.3 & Ereny  & Dashboard-Metriken Vollausbau:
+                          Statusverteilung, Fortschritt, Trends \\
+        AP 6.4 & Drazen & Backend-APIs für Datenvisualisierung \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:ap6}
+\end{table}
+
+\subsection{Phase 7: Sicherheit \& Compliance (März--April 2026)}
+
+\begin{table}[H]
+    \centering
+    \caption{Arbeitspakete Phase 7}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{AP-ID} & \textbf{Verantwortlich} & \textbf{Arbeitspaket} \\
+        \midrule
+        AP 7.1 & Drazen & Zwei-Faktor-Authentifizierung (2FA/TOTP) \\
+        AP 7.2 & Ereny  & Rollen-/Rechteprüfung serverseitig \&
+                          Audit-Log \\
+        AP 7.3 & Drazen & Sicherheitsmaßnahmen (Interceptors,
+                          Middleware, Rate Limiting) \\
+        AP 7.4 & Drazen & Secrets Management \& HTTPS-Vorgaben \\
+        AP 7.5 & Drazen & Hintergrundprozesse \& Cronjobs \\
+        AP 7.6 & Drazen & Deployment, Backup- \&
+                          Restore-Strategie, Monitoring \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:ap7}
+\end{table}
+
+\authorsection{Projektmanagement-Methodik}{Dražen Plavšić, Ereny Micail}
+
+Für die Planung und Durchführung des Projekts wurde ein hybrides
+Vorgehensmodell gewählt, das Elemente aus dem \textbf{Wasserfallmodell}
+und \textbf{agilen Methoden} kombiniert:
+
+\begin{description}
+    \item[Wasserfallmodell] Die übergeordnete Projektstruktur folgt
+          einem sequenziellen Ablauf mit klar definierten Phasen
+          (Analyse, Design, Implementierung, Test). Dies ermöglichte
+          eine strukturierte Planung und klare Meilensteine.
+    \item[Agile Elemente] Innerhalb der Phasen wurden kurze
+          Entwicklungszyklen (Sprints) mit regelmäßigen Besprechungen
+          mit dem Betreuer durchgeführt. Änderungen an Anforderungen
+          konnten so flexibel eingearbeitet werden.
+    \item[Git-Flow] Die Versionsverwaltung folgte einer strukturierten
+          Git-Flow-Strategie mit einem \texttt{main}-Branch für stabile
+          Releases, einem \texttt{development}-Branch für die laufende
+          Entwicklung und Feature-Branches für einzelne Arbeitspakete
+          (z.\,B.\ \texttt{feature/35-dashboard-metriken}).
+    \item[Issue-Tracking] Alle Arbeitspakete wurden als GitHub-Issues
+          erfasst und mit Verantwortlichen, Labels und Meilensteinen
+          versehen. Dies ermöglichte eine transparente Nachverfolgung
+          des Projektfortschritts.
+\end{description}
+
+
+\authorsection{Anforderungsanalyse}{Dražen Plavšić, Ereny Micail}
+
+Die Anforderungsanalyse bildet die Grundlage für die gesamte Entwicklung
+von EffSync. Sie definiert, welche Funktionen das System bereitstellen
+muss (funktionale Anforderungen) und welche Qualitätseigenschaften es
+erfüllen soll (nicht-funktionale Anforderungen). Die Anforderungen wurden
+gemeinsam mit dem Betreuer \textbf{Simon Gunacker} in der Kickoff-Phase
+erarbeitet und im Laufe des Projekts iterativ verfeinert.
+
+\subsection{Stakeholder}
+
+Folgende Stakeholder wurden im Rahmen der Anforderungsanalyse identifiziert:
+
+\begin{table}[H]
+    \centering
+    \caption{Stakeholder-Übersicht}
+    \begin{tabularx}{\textwidth}{lXl}
+        \toprule
+        \textbf{Stakeholder} & \textbf{Interesse / Erwartung}
+          & \textbf{Priorität} \\
+        \midrule
+        Schülerinnen \& Schüler
+          & Einfache Aufgabenverwaltung, Kalender, Chat
+          & Hoch \\
+        Lehrpersonen
+          & Überblick über Klassen, Aufgaben und Fortschritt
+          & Hoch \\
+        Unternehmen (Teams)
+          & Skalierbare Projektverwaltung, Sicherheit, DSGVO
+          & Hoch \\
+        Betreuer (Simon Gunacker)
+          & Technische Qualität, Dokumentation, Git-Workflow
+          & Mittel \\
+        Entwickler (Plavsic, Micail)
+          & Wartbarkeit, klare Architektur, Testbarkeit
+          & Mittel \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:stakeholder}
+\end{table}
+
+\subsection{Funktionale Anforderungen}
+\label{sec:funktionale-anforderungen}
+
+Funktionale Anforderungen beschreiben, \textit{was} das System tun soll.
+Sie sind nach Themenbereichen gruppiert und mit einer eindeutigen ID
+sowie einer Priorität (Muss / Soll / Kann) versehen.
+
+\subsubsection{Benutzerverwaltung \& Authentifizierung}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Benutzerverwaltung}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-01 & Muss & Benutzer können sich mit E-Mail und Passwort
+                       registrieren und anmelden.
+                     & \checkmark \\
+        FA-02 & Muss & Passwörter werden gehasht (bcrypt) gespeichert.
+                     & \checkmark \\
+        FA-03 & Muss & Authentifizierung erfolgt über \gls{JWT}-Token
+                       (Access- \& Refresh-Token).
+                     & \checkmark \\
+        FA-04 & Soll & Anmeldung via Google \gls{OAuth} ist möglich.
+                     & \checkmark \\
+        FA-05 & Soll & Benutzer können ihr Profil (Name, Avatar,
+                       Passwort) bearbeiten.
+                     & \checkmark \\
+        FA-06 & Kann & Zwei-Faktor-Authentifizierung (\gls{2FA})
+                       via \gls{TOTP} (z.\,B.\ Google Authenticator)
+                       ist verfügbar.
+                     & \checkmark \\
+        FA-07 & Muss & Passwort-Reset per E-Mail ist möglich.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-auth}
+\end{table}
+
+\subsubsection{Rollen \& Berechtigungen}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Rollen \& Berechtigungen}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-10 & Muss & Das System verfügt über ein rollenbasiertes
+                       Berechtigungssystem (\gls{RBAC}).
+                     & \checkmark \\
+        FA-11 & Muss & Rollen: Superuser, Admin, Manager, Member,
+                       Viewer (Unternehmen) bzw.\ Superuser, Admin,
+                       Teacher, Student (Schule).
+                     & \checkmark \\
+        FA-12 & Muss & Jede Rolle hat klar definierte Berechtigungen
+                       für CRUD-Operationen.
+                     & \checkmark \\
+        FA-13 & Soll & Berechtigungen werden serverseitig geprüft
+                       (Guards in NestJS).
+                     & \checkmark \\
+        FA-14 & Soll & Kritische Operationen werden in einem
+                       Audit-Log protokolliert.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-rbac}
+\end{table}
+
+\subsubsection{Aufgabenverwaltung}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Aufgabenverwaltung}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-20 & Muss & Tasks können erstellt, bearbeitet, gelöscht
+                       und einem Status zugewiesen werden.
+                     & \checkmark \\
+        FA-21 & Muss & Tasks haben folgende Felder: Titel,
+                       Beschreibung, Status, Priorität,
+                       Fälligkeitsdatum, Verantwortliche.
+                     & \checkmark \\
+        FA-22 & Muss & Tasks können Subtasks enthalten.
+                     & \checkmark \\
+        FA-23 & Soll & Tasks können Mitgliedern explizit zugewiesen
+                       werden (Task-Member-Verwaltung).
+                     & \checkmark \\
+        FA-24 & Soll & Tasks können nach Status, Priorität und
+                       Fälligkeitsdatum gefiltert werden.
+                     & \checkmark \\
+        FA-25 & Kann & Tasks können mit Tags/Labels versehen werden.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-tasks}
+\end{table}
+
+\subsubsection{Dashboard \& Metriken}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Dashboard}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-30 & Muss & Das Dashboard zeigt eine Übersicht aller
+                       aktiven Projekte und Tasks.
+                     & \checkmark \\
+        FA-31 & Soll & Metriken: Gesamtanzahl Tasks, offene Tasks,
+                       abgeschlossene Tasks, überfällige Tasks.
+                     & \checkmark \\
+        FA-32 & Soll & Statusverteilung wird als Diagramm
+                       (Donut-Chart) visualisiert.
+                     & \checkmark \\
+        FA-33 & Soll & Wöchentliche und monatliche Trends werden
+                       als Liniendiagramm dargestellt.
+                     & \checkmark \\
+        FA-34 & Kann & Fortschrittsbalken für einzelne Projekte
+                       werden angezeigt.
+                     & \checkmark \\
+        FA-35 & Kann & Top-5-Mitglieder nach abgeschlossenen
+                       Tasks werden angezeigt.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-dashboard}
+\end{table}
+
+\subsubsection{Kommunikation \& Benachrichtigungen}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Kommunikation}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-40 & Soll & Ein Live-Chat ermöglicht Echtzeit-Kommunikation
+                       via WebSockets (Socket.io).
+                     & \checkmark \\
+        FA-41 & Soll & Chatnachrichten werden persistent gespeichert
+                       (DSGVO-konform mit Löschkonzept).
+                     & \checkmark \\
+        FA-42 & Muss & Benutzer erhalten In-App-Benachrichtigungen
+                       bei relevanten Ereignissen (z.\,B.\ neue
+                       Task-Zuweisung).
+                     & \checkmark \\
+        FA-43 & Soll & Benachrichtigungen können als gelesen
+                       markiert werden.
+                     & \checkmark \\
+        FA-44 & Kann & E-Mail-Benachrichtigungen bei kritischen
+                       Ereignissen (z.\,B.\ überfällige Tasks).
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-komm}
+\end{table}
+
+\subsubsection{Kalender \& Suche}
+
+\begin{table}[H]
+    \centering
+    \caption{Funktionale Anforderungen -- Kalender \& Suche}
+    \begin{tabularx}{\textwidth}{llXl}
+        \toprule
+        \textbf{ID} & \textbf{Prio} & \textbf{Anforderung}
+          & \textbf{Status} \\
+        \midrule
+        FA-50 & Soll & Eine Kalenderansicht zeigt Tasks nach
+                       Fälligkeitsdatum an.
+                     & \checkmark \\
+        FA-51 & Soll & Der Kalender unterstützt Monats-, Wochen-
+                       und Tagesansicht.
+                     & \checkmark \\
+        FA-52 & Soll & Eine globale Suche ermöglicht das Auffinden
+                       von Tasks, Projekten und Benutzern.
+                     & \checkmark \\
+        FA-53 & Kann & Suchergebnisse werden in Kategorien
+                       gruppiert dargestellt.
+                     & \checkmark \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:fa-kalender}
+\end{table}
+
+\subsection{Nicht-funktionale Anforderungen}
+\label{sec:nichtfunktionale-anforderungen}
+
+Nicht-funktionale Anforderungen beschreiben \textit{wie} das System
+seine Aufgaben erfüllen soll. Sie betreffen Qualitätseigenschaften
+wie Performance, Sicherheit und Wartbarkeit.
+
+\begin{table}[H]
+    \centering
+    \caption{Nicht-funktionale Anforderungen}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{ID} & \textbf{Kategorie} & \textbf{Anforderung} \\
+        \midrule
+        NFA-01 & Performance
+          & API-Antwortzeiten sollen unter 200\,ms liegen
+            (bei normaler Last). \\
+        NFA-02 & Performance
+          & Das Frontend soll innerhalb von 3 Sekunden vollständig
+            geladen sein. \\
+        NFA-03 & Skalierbarkeit
+          & Die Anwendung soll mindestens 100 gleichzeitige
+            Benutzer unterstützen. \\
+        NFA-04 & Sicherheit
+          & Alle Passwörter werden mit bcrypt (Kostenfaktor 12)
+            gehasht. \\
+        NFA-05 & Sicherheit
+          & Die Kommunikation erfolgt ausschließlich über HTTPS. \\
+        NFA-06 & Sicherheit
+          & \gls{JWT}-Tokens haben eine begrenzte Gültigkeitsdauer
+            (Access-Token: 15\,min, Refresh-Token: 7\,Tage). \\
+        NFA-07 & Sicherheit
+          & Rate Limiting verhindert Brute-Force-Angriffe
+            auf Login-Endpunkte. \\
+        NFA-08 & Datenschutz
+          & Die Anwendung ist \gls{DSGVO}-konform (Löschkonzepte,
+            Datensparsamkeit). \\
+        NFA-09 & Wartbarkeit
+          & Der Code folgt den SOLID-Prinzipien und ist modular
+            aufgebaut. \\
+        NFA-10 & Wartbarkeit
+          & Alle API-Endpunkte sind mit Swagger dokumentiert. \\
+        NFA-11 & Usability
+          & Die Benutzeroberfläche ist responsiv und auf mobilen
+            Geräten nutzbar. \\
+        NFA-12 & Usability
+          & Die Anwendung unterstützt Dark Mode und Light Mode. \\
+        NFA-13 & Verfügbarkeit
+          & Das System soll eine Verfügbarkeit von 99\,\% anstreben. \\
+        NFA-14 & Testbarkeit
+          & Kritische Backend-Module werden durch Unit-Tests
+            abgedeckt. \\
+        NFA-15 & Kompatibilität
+          & Die Anwendung ist mit den aktuellen Versionen von
+            Chrome, Firefox und Edge kompatibel. \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:nfa}
+\end{table}
+
+\subsection{Use-Case-Diagramm}
+\label{sec:use-cases}
+
+Die folgende Tabelle beschreibt die wichtigsten Use-Cases des Systems
+gegliedert nach Akteuren:
+
+\begin{table}[H]
+    \centering
+    \caption{Use-Case-Übersicht}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{Akteur} & \textbf{UC-ID} & \textbf{Use-Case} \\
+        \midrule
+        Alle Benutzer
+          & UC-01 & Registrieren \& Anmelden \\
+          & UC-02 & Profil bearbeiten \\
+          & UC-03 & Dashboard einsehen \\
+          & UC-04 & Aufgaben anzeigen \& filtern \\
+          & UC-05 & Kalender einsehen \\
+          & UC-06 & Live-Chat nutzen \\
+          & UC-07 & Globale Suche verwenden \\
+          & UC-08 & Benachrichtigungen verwalten \\
+        \midrule
+        Member / Student
+          & UC-10 & Aufgaben erstellen \& bearbeiten \\
+          & UC-11 & Subtasks verwalten \\
+          & UC-12 & Aufgaben als erledigt markieren \\
+          & UC-13 & Im Rahmen einer Aufgabe Datein hochladen \& Note einsehen\\
+        \midrule
+        Manager / Teacher
+          & UC-20 & Projekte \& Klassen verwalten \\
+          & UC-21 & Mitglieder zuweisen \\
+          & UC-22 & Metriken \& Trends einsehen \\
+          & UC-23 & abgegebene Tasks bewerten \& Kommentieren \\
+        \midrule
+        Admin
+          & UC-30 & Benutzerverwaltung \\
+          & UC-31 & Rollen vergeben \\
+          & UC-32 & Audit-Log einsehen \\
+        \midrule
+        Superuser
+          & UC-40 & Systemkonfiguration \\
+          & UC-41 & Backup \& Restore \\
+          & UC-42 & Vollzugriff auf alle Daten \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:usecases}
+\end{table}
+
+\subsection{Detaillierter Use-Case: Aufgabe erstellen}
+
+\begin{table}[H]
+    \centering
+    \caption{UC-10: Aufgabe erstellen}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Feld} & \textbf{Beschreibung} \\
+        \midrule
+        Use-Case-ID   & UC-10 \\
+        Name          & Aufgabe erstellen \\
+        Akteur        & Member, Manager, Admin, Superuser \\
+        Vorbedingung  & Benutzer ist authentifiziert und Mitglied
+                        eines Projekts \\
+        Nachbedingung & Neue Aufgabe ist in der Datenbank gespeichert
+                        und im Frontend sichtbar \\
+        Normalablauf  & 1. Benutzer klickt auf \glqq{}Neue Aufgabe\grqq{} \\
+                      & 2. Formular mit Titel, Beschreibung, Status,
+                           Priorität, Fälligkeitsdatum öffnet sich, Zeit muss eingetragen werden \\
+                      & 3. Benutzer füllt Pflichtfelder aus \\
+                      & 4. Benutzer weist optional Mitglieder zu \\
+                      & 5. Benutzer speichert die Aufgabe \\
+                      & 6. Backend validiert Eingaben und speichert
+                           in PostgreSQL \\
+                      & 7. Zugewiesene Mitglieder erhalten eine
+                           Benachrichtigung \\
+        Ausnahmen     & Pflichtfelder fehlen $\rightarrow$ Validierungsfehler \\
+                      & Benutzer hat keine Berechtigung $\rightarrow$
+                        403 Forbidden \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:uc10}
+\end{table}
+
+\subsection{Detaillierter Use-Case: Anmeldung mit 2FA}
+
+\begin{table}[H]
+    \centering
+    \caption{UC-01b: Anmeldung mit Zwei-Faktor-Authentifizierung}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Feld} & \textbf{Beschreibung} \\
+        \midrule
+        Use-Case-ID   & UC-01b \\
+        Name          & Anmeldung mit 2FA \\
+        Akteur        & Alle Benutzer (sofern 2FA aktiviert) \\
+        Vorbedingung  & Benutzer hat 2FA in den Profileinstellungen
+                        aktiviert und eine Authenticator-App
+                        eingerichtet \\
+        Nachbedingung & Benutzer ist authentifiziert und erhält
+                        gültige JWT-Tokens \\
+        Normalablauf  & 1. Benutzer gibt E-Mail und Passwort ein \\
+                      & 2. Backend prüft Credentials \\
+                      & 3. Backend erkennt aktive 2FA und fordert
+                           TOTP-Code an \\
+                      & 4. Benutzer öffnet Authenticator-App und
+                           gibt 6-stelligen Code ein \\
+                      & 5. Backend validiert TOTP-Code \\
+                      & 6. Access- und Refresh-Token werden ausgestellt \\
+        Ausnahmen     & Falscher TOTP-Code $\rightarrow$ 401 Unauthorized \\
+                      & Code abgelaufen $\rightarrow$ Neuen Code anfordern \\
+        \bottomrule
+    \end{tabularx}
+    \label{tab:uc01b}
+\end{table}

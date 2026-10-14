@@ -1,45 +1,38 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
+import { useNoteStore } from '@/stores/entities/noteStore';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { apiClient } from '@/api/httpClient';
+import { fetchAllLessonSlots } from '@/api/lessonSlots';
+import { fetchMetrics } from '@/api/metrics';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 
 const router = useRouter();
+const authStore = useAuthStore();
+const noteStore = useNoteStore();
 const taskStore = useTaskStore();
 
 // Schnelle Notiz
 const quickNote = ref('');
 const noteInput = ref('');
 
-const addQuickNote = () => {
+const addQuickNote = async () => {
   if (noteInput.value.trim()) {
-    quickNote.value = noteInput.value;
-    // Speichern in Notes
-    const notes = JSON.parse(localStorage.getItem('effsync_notes') || '[]');
-    const newNote = {
-      id: Date.now(),
-      title: 'Schnelle Notiz vom Dashboard',
-      content: noteInput.value,
-      created_at: new Date().toISOString()
-    };
-    notes.unshift(newNote);
-    localStorage.setItem('effsync_notes', JSON.stringify(notes));
-    noteInput.value = '';
-    window.dispatchEvent(new Event('storage'));
-  }
-};
-
-// Funktion zum Abrufen der Länge aus localStorage
-const getStorageCount = (key) => {
-  try {
-    const data = localStorage.getItem(`effsync_${key}`);
-    if (!data) return 0;
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed.length : 0;
-  } catch (error) {
-    console.error(`Fehler beim Lesen von effsync_${key}:`, error);
-    return 0;
+    try {
+      const content = noteInput.value.trim();
+      await noteStore.addNote({
+        title: 'Schnelle Notiz vom Dashboard',
+        description: content,
+      });
+      quickNote.value = content;
+      noteInput.value = '';
+      await updateMetrics();
+    } catch (error) {
+      console.error('Fehler beim Speichern der schnellen Notiz:', error);
+    }
   }
 };
 
@@ -101,29 +94,83 @@ const metrics = ref([
   }
 ]);
 
+const unwrapArray = (input) => {
+  if (Array.isArray(input)) return input;
+  if (!input || typeof input !== 'object') return [];
+
+  if (Array.isArray(input.data)) return input.data;
+  if (input.data && Array.isArray(input.data.data)) return input.data.data;
+
+  return [];
+};
+
 // Funktion zum Aktualisieren der Metriken
-const updateMetrics = () => {
-  const counts = {
-    tasks: getStorageCount('tasks'),
-    classes: getStorageCount('classes'),
-    documents: getStorageCount('documents'),
-    notes: getStorageCount('notes'),
-    schedules: getStorageCount('schedules'),
-    departments: getStorageCount('departments')
+const updateMetrics = async () => {
+  // Alle Zählungen parallel via API laden
+  const [taskProgressRes, classesRes, documentsRes, slotsRes, departmentsRes] = await Promise.allSettled([
+    fetchMetrics('task-progress'),
+    apiClient.get('/classes'),
+    apiClient.get('/documents'),
+    fetchAllLessonSlots(),
+    apiClient.get('/departments'),
+  ]);
+
+  const getCount = (result, fallbackKey, directArray = false) => {
+    if (result.status === 'fulfilled') {
+      const data = directArray ? unwrapArray(result.value) : unwrapArray(result.value);
+      return Array.isArray(data) ? data.length : 0;
+    }
+    // Fallback: localStorage-Cache aus dem jeweiligen View
+    try {
+      const cached = localStorage.getItem(`effsync_${fallbackKey}`);
+      if (!cached) return 0;
+      const parsed = JSON.parse(cached);
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch { return 0; }
   };
-  
-  metrics.value[0].value = String(counts.tasks);
-  metrics.value[1].value = String(counts.classes);
-  metrics.value[2].value = String(counts.documents);
-  metrics.value[3].value = String(counts.notes);
-  metrics.value[4].value = String(counts.schedules);
-  metrics.value[5].value = String(counts.departments);
+
+  const currentUserId = Number(authStore.userId ?? localStorage.getItem('userId'));
+  const documentsData = documentsRes.status === 'fulfilled' ? unwrapArray(documentsRes.value) : [];
+  const ownDocumentsCount = Number.isFinite(currentUserId)
+    ? documentsData.filter((doc) => Number(doc?.added_by) === currentUserId).length
+    : documentsData.length;
+
+  const openTasks = taskProgressRes.status === 'fulfilled'
+    ? Number(taskProgressRes.value?.openTasks ?? (
+        Math.max(0,
+          Number(taskProgressRes.value?.totalTasks ?? 0)
+            - Number(taskProgressRes.value?.completedTasks ?? 0)
+        )
+      ))
+    : taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
+
+  metrics.value[0].value = String(openTasks);
+  metrics.value[1].value = String(getCount(classesRes, 'classes'));
+  metrics.value[2].value = String(
+    documentsRes.status === 'fulfilled'
+      ? ownDocumentsCount
+      : getCount({ status: 'rejected' }, 'documents')
+  );
+  metrics.value[3].value = String(noteStore.notes.length);
+  metrics.value[4].value = String(
+    slotsRes.status === 'fulfilled'
+      ? unwrapArray(slotsRes.value).length
+      : getCount({ status: 'rejected' }, 'schedules')
+  );
+  metrics.value[5].value = String(getCount(departmentsRes, 'departments'));
 };
 
 onMounted(() => {
-  updateMetrics();
-  // Storage Events abfangen um Live-Updates zu ermöglichen
+  Promise.all([
+    noteStore.getNotes().catch(() => {}),
+    taskStore.getTasks().catch(() => {}),
+  ]).finally(() => updateMetrics());
+
   window.addEventListener('storage', updateMetrics);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('storage', updateMetrics);
 });
 
 const handleCardClick = (routeName) => {
@@ -159,31 +206,31 @@ const handleCardClick = (routeName) => {
 
     <div class="content-section">
       <!-- Stundenplan -->
-      <div class="placeholder-box clickable" @click="router.push({name: 'Schedules'})">
+      <div class="placeholder-box clickable" @click="router.push({name: 'Schedules', query: { today: 'true' }})">
         <h3>📅 Heutiger Stundenplan</h3>
-        <p style="margin-bottom: 10px; color: #666;">Deine heutigen Stunden anschauen...</p>
-        <button style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+        <p class="schedule-subtitle">Deine heutigen Stunden anschauen...</p>
+        <button class="schedule-btn">
           Zum Stundenplan →
         </button>
       </div>
-      
+
       <!-- Schnelle Notizen -->
       <div class="placeholder-box">
         <h3>⚡ Schnelle Notiz erfassen</h3>
-        <input 
+        <input
           v-model="noteInput"
-          type="text" 
+          type="text"
           placeholder="Notiz eingeben..."
-          style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px;"
+          class="quick-note-input"
           @keyup.enter="addQuickNote"
         />
-        <button 
+        <button
           @click="addQuickNote"
-          style="background: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; width: 100%;"
+          class="quick-note-btn"
         >
           Speichern in Notizen
         </button>
-        <p v-if="quickNote" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 6px; color: #333;">
+        <p v-if="quickNote" class="quick-note-success">
           ✓ Gespeichert: "{{ quickNote }}"
         </p>
       </div>
@@ -299,6 +346,45 @@ const handleCardClick = (routeName) => {
 .placeholder-box h3 { margin-top: 0; color: #23234c; }
 .placeholder-box p { color: #666; }
 
+.schedule-subtitle {
+  margin-bottom: 10px;
+}
+
+.schedule-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.quick-note-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.quick-note-btn {
+  background: #2ecc71;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.quick-note-success {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  color: #333;
+}
+
 /* --- METRICS SECTION --- */
 .metrics-section {
   display: grid;
@@ -333,6 +419,33 @@ const handleCardClick = (routeName) => {
 :global(body.dark-mode) .dashboard-container .card-info .subtext,
 :global(body.dark-mode) .dashboard-container .placeholder-box p {
   color: #9aa0b2;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-input {
+  background: #1e1e2f;
+  border: 1px solid #4a4d62;
+  color: #edf0fa;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-input::placeholder {
+  color: #9aa0b2;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-btn {
+  background: #1f9d64;
+  border: 1px solid #2abf7b;
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .dashboard-container .schedule-btn {
+  background: #2d6fb3;
+  border: 1px solid #3f84cc;
+  color: #ffffff;
+}
+
+:global(body.dark-mode) .dashboard-container .quick-note-success {
+  background: #2a3147;
+  color: #dbe3f3;
 }
 
 @media (max-width: 768px) {

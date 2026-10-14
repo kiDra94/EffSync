@@ -96,12 +96,18 @@ model documents {
   document_id     Int               @id @default(autoincrement())
   name            String?           @db.VarChar
   file_path       String?           @db.VarChar
+  file_blob       Bytes?
   file_size       Int?
   mime_type       String?           @db.VarChar
   added_by        Int?
+  grade           String?           @db.VarChar
+  feedback        String?
+  graded_by       Int?
+  graded_at       DateTime?         @db.Timestamp(6)
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   updated_at      DateTime?         @db.Timestamp(6)
   document_shares document_shares[]
+  graded_by_user  users?            @relation("documents_graded_by", fields: [graded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   users           users?            @relation(fields: [added_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   note_documents  note_documents[]
   task_documents  task_documents[]
@@ -139,7 +145,6 @@ model notes {
   note_id        Int              @id @default(autoincrement())
   title          String?          @db.VarChar
   created_by     Int?
-  task_id        Int?
   description    String?
   subject_id     Int?
   priority_id    Int?
@@ -147,10 +152,20 @@ model notes {
   updated_at     DateTime?        @db.Timestamp(6)
   note_documents note_documents[]
   users          users?           @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  tasks          tasks?           @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
   priorities     priorities?      @relation(fields: [priority_id], references: [priority_id], onDelete: NoAction, onUpdate: NoAction)
   subjects       subjects?        @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction)
   notes_users    notes_users[]
+}
+
+model comments {
+  comment_id         Int              @id @default(autoincrement())
+  task_id            Int?
+  created_by         Int?
+  content            String?
+  created_at         DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?        @db.Timestamp(6)
+  users              users?           @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks              tasks?           @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model notes_users {
@@ -327,7 +342,7 @@ model tasks {
   task_comments                  task_comments[]
   task_documents                 task_documents[]
   task_members                   task_members[]
-  notes                          notes[]
+    comments                       comments[]
   users_tasks_assigned_toTousers users?              @relation("tasks_assigned_toTousers", fields: [assigned_to], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   users_tasks_created_byTousers  users?              @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   tasks                          tasks?              @relation("tasksTotasks", fields: [parent_task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
@@ -383,16 +398,19 @@ model users {
   lastname                               String              @db.VarChar
   email                                  String              @unique @db.VarChar
   username                               String              @unique @db.VarChar
-  password_hash                          String              @db.VarChar
+  password_hash                          String?             @db.VarChar
+  google_id                              String?             @unique @db.VarChar
   created_at                             DateTime?           @default(now()) @db.Timestamp(6)
   updated_at                             DateTime?           @updatedAt @db.Timestamp(6)
   chat_messages                          chat_messages[]
   chat_room_users                        chat_room_users[]
   document_shares                        document_shares[]
   documents                              documents[]
+  graded_documents                       documents[]         @relation("documents_graded_by")
   notes                                  notes[]
   notes_users                            notes_users[]
   notifications                          notifications[]
+    comments                              comments[]
   email_preferences                      email_preferences?
   email_logs                             email_logs[]
   students                               students?

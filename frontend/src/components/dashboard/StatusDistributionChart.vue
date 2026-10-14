@@ -29,6 +29,7 @@ const statusLabels = {
   IN_REVIEW: 'In Review',
   COMPLETED: 'Abgeschlossen',
   ON_HOLD: 'In Wartestellung',
+  OVERDUE: 'Überfällig',
 };
 
 const statusColors = {
@@ -37,11 +38,12 @@ const statusColors = {
   IN_REVIEW: '#9b59b6',
   COMPLETED: '#2ecc71',
   ON_HOLD: '#95a5a6',
+  OVERDUE: '#e74c3c',
 };
 
 onMounted(async () => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     
     // Load chart data
     const data = await fetchMetrics('status-distribution');
@@ -57,6 +59,7 @@ onMounted(async () => {
             '#9b59b6', // Purple for IN_REVIEW
             '#2ecc71', // Green for COMPLETED
             '#95a5a6', // Gray for ON_HOLD
+            '#e74c3c', // Red for OVERDUE
           ],
           borderColor: '#fff',
           borderWidth: 2,
@@ -65,7 +68,7 @@ onMounted(async () => {
     };
 
     // Load tasks by status
-    const response = await fetch('/api/metrics/tasks-by-status', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/metrics/tasks-by-status`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -79,7 +82,7 @@ onMounted(async () => {
 });
 
 const goToStatusTasks = (statusIndex) => {
-  const statusKeys = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED', 'ON_HOLD'];
+  const statusKeys = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED', 'ON_HOLD', 'OVERDUE'];
   const statusKey = statusKeys[statusIndex];
   console.log('Navigating to status:', statusKey);
   router.push({ name: 'TaskList', query: { status: statusKey } });

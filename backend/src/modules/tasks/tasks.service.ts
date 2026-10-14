@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -7,6 +7,7 @@ import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
 import { Prisma } from "@prisma/client";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { TaskActivityLogService } from "../task-activity-log/task-activity-log.service";
+import { PermissionFlag, PermissionsService } from "../permissions/permissions.service";
 
 
 @Injectable()
@@ -15,6 +16,7 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
     private readonly activityLogService: TaskActivityLogService,
+    private readonly permissionsService: PermissionsService,
   ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
@@ -61,6 +63,17 @@ export class TasksService {
       }, userId, false);
     } catch (error) {
       console.error('Failed to log task creation activity:', error);
+    }
+
+    // Auto-add creator as task member
+    try {
+      await this.prisma.task_members.upsert({
+        where: { task_id_user_id: { task_id: task.task_id, user_id: userId } },
+        update: {},
+        create: { task_id: task.task_id, user_id: userId },
+      });
+    } catch (error) {
+      console.error('Failed to add creator as task member:', error);
     }
 
     return task;
@@ -135,19 +148,78 @@ export class TasksService {
       this.prisma.tasks.count({ where }),
     ]);
 
+    const isTeacher = await (async () => {
+      if (!userId) return true;
+      const userRoles = await this.prisma.user_roles.findMany({
+        where: { user_id: userId },
+        include: { roles: true },
+      });
+
+      return userRoles.some(ur =>
+        ur.roles.name === 'Teacher' || ur.roles.name === 'Admin' || ur.roles.name === 'Superuser'
+      );
+    })();
+
+    const collectDescendants = async (parentIds: number[], visited = new Set<number>()): Promise<any[]> => {
+      const uniqueParentIds = parentIds.filter((id) => Number.isFinite(id) && !visited.has(id));
+      if (uniqueParentIds.length === 0) return [];
+
+      uniqueParentIds.forEach((id) => visited.add(id));
+
+      const children = await this.prisma.tasks.findMany({
+        where: { parent_task_id: { in: uniqueParentIds } },
+        include: includeRelations ? this.basicInclude() : undefined,
+        orderBy: { [sortBy]: sortOrder },
+      });
+
+      const childIds = children.map((child) => Number(child.task_id)).filter((id) => Number.isFinite(id));
+      const deeperChildren = await collectDescendants(childIds, visited);
+
+      return [...children, ...deeperChildren];
+    };
+
+    let visibleTasks = tasks;
+    if (userId && !isTeacher) {
+      const descendants = await collectDescendants(tasks.map((task) => Number(task.task_id)));
+      const merged = new Map<number, any>();
+      for (const task of [...tasks, ...descendants]) {
+        merged.set(Number(task.task_id), task);
+      }
+      visibleTasks = Array.from(merged.values());
+    }
+
+    const recalculatedTasks = await Promise.all(
+      visibleTasks.map(async (task) => {
+        const changedToCompleted = await this.recalculateTaskCompletionFromGrades(
+          task.task_id,
+          task,
+        );
+
+        if (changedToCompleted) {
+          return {
+            ...task,
+            status: 'COMPLETED',
+            progress: 100,
+          };
+        }
+
+        return task;
+      }),
+    );
+
     return {
-      data: tasks,
+      data: recalculatedTasks,
       meta: {
-        total,
+        total: userId && !isTeacher ? recalculatedTasks.length : total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((userId && !isTeacher ? recalculatedTasks.length : total) / limit),
       },
     };
   }
 
   async findOne(taskId: number, includeRelations = true) {
-    const task = await this.prisma.tasks.findUnique({
+    let task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
       include: includeRelations ? this.basicInclude() : undefined,
     });
@@ -155,7 +227,67 @@ export class TasksService {
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found!`)
     }
+
+    const changedToCompleted = await this.recalculateTaskCompletionFromGrades(
+      taskId,
+      task,
+    );
+
+    if (changedToCompleted) {
+      const refreshedTask = await this.prisma.tasks.findUnique({
+        where: { task_id: taskId },
+        include: includeRelations ? this.basicInclude() : undefined,
+      });
+
+      if (refreshedTask) {
+        task = refreshedTask;
+      }
+    }
+
     return task;
+  }
+
+  /**
+   * Feature #27: Hole einen Task pro Schüler mit Info ob sein Dokument bewertet wurde
+   * Wenn ein Schüler sein Dokument eingereicht hat und es wurde bewertet,
+   * zeige den Task als für DIESEN Schüler gesperrt (nicht global)
+   */
+  async findOneForStudent(taskId: number, userId: number, includeRelations = true) {
+    const task = await this.findOne(taskId, includeRelations);
+
+    // Prüfe: Hat dieser Schüler Dokumente zu diesem Task eingereicht?
+    const submissions = await this.prisma.documents.findMany({
+      where: {
+        task_documents: {
+          some: { task_id: taskId }
+        },
+        added_by: userId, // Von DIESEM Schüler
+      },
+      select: {
+        document_id: true,
+        graded_at: true,
+        grade: true,
+        feedback: true,
+      }
+    });
+
+    // Wenn mindestens ein Dokument bewertet wurde, sperr den Task FÜR DIESEN SCHÜLER
+    const hasGradedSubmission = submissions.some((doc) => doc.graded_at !== null);
+
+    return {
+      ...task,
+      student_submission_status: {
+        has_submitted: submissions.length > 0,
+        has_graded_submission: hasGradedSubmission,
+        submission_count: submissions.length,
+        latest_grade: submissions
+          .filter((doc) => doc.graded_at)
+          .map((doc) => doc.grade)
+          .pop() || null,
+      },
+      // Überschreibe is_locked für Frontend: Nur wenn DAS SCHÜLER-DOKUMENT bewertet wurde
+      is_student_submission_locked: hasGradedSubmission,
+    };
   }
 
   async findeOneWithSubtasks(taskId: number, includeRelations = true) {
@@ -174,7 +306,23 @@ export class TasksService {
     return this.buildTree(allTasks, taskId);
   }
 
-  async update(taskId: number, updateTaskDto: UpdateTaskDto) {
+  async update(taskId: number, updateTaskDto: UpdateTaskDto, userId?: number) {
+    // First check if task is locked
+    const task = await this.prisma.tasks.findUnique({
+      where: { task_id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${taskId} not found`);
+    }
+
+    // If task is locked, only allow the creator to edit it
+    if (task.is_locked && userId && task.created_by !== userId) {
+      throw new BadRequestException(
+        'Task ist gesperrt und kann nicht bearbeitet werden. Nur der Task-Ersteller kann einen gesperrten Task ändern.'
+      );
+    }
+
     const {
       parent_task_id,
       priority_id,
@@ -227,6 +375,24 @@ export class TasksService {
       include: this.basicInclude(),
     });
 
+    // Wenn Task auf COMPLETED gesetzt wird, müssen auch alle Subtasks abgeschlossen werden
+    if (updateTaskDto.status === 'COMPLETED') {
+      const descendantIds = await this.getAllDescendantIds(taskId);
+      if (descendantIds.length > 0) {
+        await this.prisma.tasks.updateMany({
+          where: {
+            task_id: { in: descendantIds },
+            status: { not: 'COMPLETED' },
+          },
+          data: {
+            status: 'COMPLETED',
+            progress: 100,
+            updated_at: new Date(),
+          },
+        });
+      }
+    }
+
     // Log activity
     try {
       if (updated.created_by) {
@@ -246,8 +412,121 @@ export class TasksService {
     return updated;
   }
 
-  async remove(taskId: number) {
+  /**
+   * Aktualisiert das Deadline eines Tasks und entsperrt ihn automatisch
+   * wenn der Task nach einer Bewertung gesperrt war.
+   * 
+   * Diese Methode wird von Lehrern verwendet um einen Task nach Bewertung
+   * neu freizugeben indem sie ein neues Deadline-Datum setzen.
+   * 
+   * @param taskId - Die Task ID
+   * @param newDeadline - Das neue Deadline-Datum
+   * @returns Der aktualisierte Task mit entsperrt Status
+   */
+  async updateDeadlineAndUnlockIfNeeded(taskId: number, newDeadline: Date) {
     const task = await this.findOne(taskId, false);
+
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${taskId} not found`);
+    }
+
+    const updated = await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        deadline: new Date(newDeadline),
+        // Entsperre den Task automatisch wenn er nach Bewertung gesperrt war
+        is_locked: false,
+        locked_reason: null,
+        locked_until: null,
+        updated_at: new Date(),
+      },
+      include: this.basicInclude(),
+    });
+
+    console.log(`✓ Task ${taskId} Deadline aktualisiert auf ${newDeadline} und entsperrt`);
+
+    // Log activity
+    try {
+      if (task.created_by) {
+        await this.activityLogService.create({
+          task_id: updated.task_id,
+          action: `Task deadline updated to ${newDeadline.toISOString().split('T')[0]} and unlocked`,
+        }, task.created_by, false);
+      }
+    } catch (error) {
+      console.error('Failed to log task deadline update activity:', error);
+    }
+
+    return updated;
+  }
+
+  async remove(taskId: number, requesterId?: number) {
+    const task = await this.findOne(taskId, false);
+
+    // Ersteller darf eigenen Task immer löschen.
+    // Alle anderen benötigen delete_task(s)-Permission.
+    if (requesterId && task.created_by !== requesterId) {
+      const now = new Date();
+      const READ_FLAG = 4;
+      const permissionNames = ['delete_tasks', 'delete_task'];
+
+      const directPermission = await this.prisma.user_permissions.findFirst({
+        where: {
+          user_id: requesterId,
+          permissions: { name: { in: permissionNames } },
+        },
+        include: { permissions: true },
+      });
+
+      let canDelete = false;
+
+      if (directPermission) {
+        const isTimeValid =
+          (!directPermission.valid_from || now >= directPermission.valid_from) &&
+          (!directPermission.valid_to || now <= directPermission.valid_to);
+
+        canDelete =
+          isTimeValid &&
+          (directPermission.permissions.flags & READ_FLAG) === READ_FLAG;
+      }
+
+      if (!canDelete) {
+        const rolePermission = await this.prisma.user_roles.findFirst({
+          where: {
+            user_id: requesterId,
+            roles: {
+              roles_permissions: {
+                some: {
+                  permissions: { name: { in: permissionNames } },
+                },
+              },
+            },
+          },
+          include: {
+            roles: {
+              include: {
+                roles_permissions: {
+                  where: {
+                    permissions: { name: { in: permissionNames } },
+                  },
+                  include: { permissions: true },
+                },
+              },
+            },
+          },
+        });
+
+        if (rolePermission?.roles?.roles_permissions?.length) {
+          canDelete = rolePermission.roles.roles_permissions.some((rp) =>
+            (rp.permissions.flags & READ_FLAG) === READ_FLAG,
+          );
+        }
+      }
+
+      if (!canDelete) {
+        throw new ForbiddenException('Missing permission: delete_tasks');
+      }
+    }
 
     const subtasksCount = await this.prisma.tasks.count({
       where: { parent_task_id: taskId },
@@ -259,21 +538,26 @@ export class TasksService {
       );
     }
 
-    await this.prisma.tasks.delete({
-      where: { task_id: taskId },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      // FK NoAction auf mehreren Relationen -> abhängige Daten zuerst bereinigen
+      await tx.task_activity_log.deleteMany({ where: { task_id: taskId } });
+      await tx.task_comments.deleteMany({ where: { task_id: taskId } });
+      await tx.task_documents.deleteMany({ where: { task_id: taskId } });
 
-    // Log activity
-    try {
-      if (task.created_by) {
-        await this.activityLogService.create({
-          task_id: task.task_id,
-          action: `Task deleted: "${task.title}"`,
-        }, task.created_by, false);
-      }
-    } catch (error) {
-      console.error('Failed to log task deletion activity:', error);
-    }
+      // Referenzen lösen, statt Fremddaten hart zu löschen
+      await tx.comments.updateMany({
+        where: { task_id: taskId },
+        data: { task_id: null },
+      });
+      await tx.chat_rooms.updateMany({
+        where: { task_id: taskId },
+        data: { task_id: null },
+      });
+
+      await tx.tasks.delete({
+        where: { task_id: taskId },
+      });
+    });
 
     return {
       message: 'Task deleted successfully',
@@ -376,6 +660,130 @@ export class TasksService {
     }
   }
 
+  /**
+   * Rückwirkende Vervollständigung:
+   * Wenn alle studentischen Teilnehmer eines Tasks mindestens eine bewertete
+   * Abgabe zu diesem Task haben, wird der Task auf COMPLETED gesetzt.
+   *
+   * @returns true, wenn Status in diesem Lauf auf COMPLETED geändert wurde.
+   */
+  private async recalculateTaskCompletionFromGrades(taskId: number, taskSnapshot?: any): Promise<boolean> {
+    const task = taskSnapshot ?? await this.prisma.tasks.findUnique({
+      where: { task_id: taskId },
+      select: {
+        task_id: true,
+        status: true,
+        created_by: true,
+        assigned_to: true,
+      },
+    });
+
+    if (!task || task.status === 'COMPLETED') {
+      return false;
+    }
+
+    const participantIds = new Set<number>();
+
+    if (task.created_by) participantIds.add(Number(task.created_by));
+    if (task.assigned_to) participantIds.add(Number(task.assigned_to));
+
+    const explicitMembers = await this.prisma.task_members.findMany({
+      where: { task_id: taskId },
+      select: { user_id: true },
+    });
+
+    for (const member of explicitMembers) {
+      if (member.user_id) {
+        participantIds.add(Number(member.user_id));
+      }
+    }
+
+    if (participantIds.size === 0) {
+      return false;
+    }
+
+    const participantUsers = await this.prisma.users.findMany({
+      where: {
+        user_id: {
+          in: Array.from(participantIds),
+        },
+      },
+      select: {
+        user_id: true,
+        students: {
+          select: {
+            student_id: true,
+          },
+        },
+        user_roles: {
+          select: {
+            roles: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const studentParticipantIds = participantUsers
+      .filter((user) => {
+        const hasStudentProfile = Boolean(user.students?.student_id);
+        const hasStudentRole = Array.isArray(user.user_roles)
+          ? user.user_roles.some(
+              (entry) => entry.roles?.name?.toLowerCase?.() === 'student',
+            )
+          : false;
+        return hasStudentProfile || hasStudentRole;
+      })
+      .map((user) => Number(user.user_id));
+
+    if (studentParticipantIds.length === 0) {
+      return false;
+    }
+
+    const gradedSubmissions = await this.prisma.documents.findMany({
+      where: {
+        added_by: { in: studentParticipantIds },
+        graded_at: { not: null },
+        task_documents: {
+          some: {
+            task_id: taskId,
+          },
+        },
+      },
+      select: {
+        added_by: true,
+      },
+    });
+
+    const gradedStudentIds = new Set(
+      gradedSubmissions
+        .map((document) => Number(document.added_by))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    );
+
+    const allParticipantsGraded = studentParticipantIds.every((id) =>
+      gradedStudentIds.has(Number(id)),
+    );
+
+    if (!allParticipantsGraded) {
+      return false;
+    }
+
+    await this.prisma.tasks.update({
+      where: { task_id: taskId },
+      data: {
+        status: 'COMPLETED',
+        progress: 100,
+        updated_at: new Date(),
+      },
+    });
+
+    return true;
+  }
+
   private notifyTaskUpdate(parent: any, updated: any) {
     if (parent.assigned_to) {
       this.websocketGateway.emitTaskUpdated(parent.assigned_to, updated);
@@ -383,6 +791,25 @@ export class TasksService {
     if (parent.created_by && parent.created_by !== parent.assigned_to) {
       this.websocketGateway.emitTaskUpdated(parent.created_by, updated);
     }
+  }
+
+  private async getAllDescendantIds(parentTaskId: number, visited = new Set<number>()): Promise<number[]> {
+    if (visited.has(parentTaskId)) return [];
+    visited.add(parentTaskId);
+
+    const children = await this.prisma.tasks.findMany({
+      where: { parent_task_id: parentTaskId },
+      select: { task_id: true },
+    });
+
+    let allDescendants: number[] = children.map((child) => Number(child.task_id));
+
+    for (const child of children) {
+      const deeperDescendants = await this.getAllDescendantIds(Number(child.task_id), visited);
+      allDescendants = allDescendants.concat(deeperDescendants);
+    }
+
+    return allDescendants;
   }
 
   private basicInclude() {
@@ -405,6 +832,11 @@ export class TasksService {
       },
       priorities: true,
       tasks: true, // parent task
+      task_members: {
+        select: {
+          user_id: true,
+        },
+      },
     };
   }
 

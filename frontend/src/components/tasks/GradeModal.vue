@@ -2,11 +2,32 @@
   <div class="modal-overlay" @click.self="handleClose">
     <div class="modal-content grade-modal">
       <div class="modal-header">
-        <h2>Bewertung für: {{ task.title }}</h2>
+        <h2>Dokument bewerten: {{ task.title }}</h2>
         <button @click="handleClose" class="close-btn" aria-label="Schließen">×</button>
       </div>
 
       <div class="modal-body">
+        <!-- Loading State -->
+        <div v-if="isLoadingDocuments" class="loading-state">
+          <p>Verknüpfte Dokumente werden geladen...</p>
+        </div>
+
+        <!-- No Documents -->
+        <div v-else-if="linkedDocuments.length === 0" class="no-documents">
+          <p>⚠️ Keine Dokumente mit dieser Task verknüpft.</p>
+          <p class="hint">Schüler müssen zuerst ein Dokument hochladen.</p>
+        </div>
+
+        <!-- Document Selection -->
+        <div v-else class="form-group">
+          <label for="document-select">Dokument:</label>
+          <select v-model="selectedDocumentId" id="document-select" class="document-select">
+            <option v-for="doc in linkedDocuments" :key="doc.document_id" :value="doc.document_id">
+              {{ doc.name }} ({{ doc.mime_type }})
+            </option>
+          </select>
+        </div>
+
         <div class="form-group">
           <label for="feedback">Feedback / Notiz:</label>
           <textarea 
@@ -25,18 +46,16 @@
             <input 
               id="grade"
               v-model="form.grade" 
-              type="number" 
-              placeholder="z.B. 85 oder 1.5"
+              type="text" 
+              placeholder="z.B. 85, 1.5 oder Sehr gut"
               class="grade-input"
-              min="0"
-              step="0.5"
             />
-            <span class="grade-hint">/100 oder Schulnoten</span>
           </div>
         </div>
 
-        <div v-if="task.created_by_user" class="student-info">
-          <p><strong>Schüler:</strong> {{ task.created_by_user.first_name }} {{ task.created_by_user.last_name }}</p>
+        <div class="info-box">
+          <strong>ℹ️ Hinweis:</strong> Nach der Bewertung wird dieser Task für den Schüler automatisch gesperrt.
+          Der Schüler kann ihn nur bearbeiten, wenn du ein neues Abgabedatum setzt.
         </div>
       </div>
 
@@ -47,9 +66,9 @@
         <button 
           @click="handleSubmit" 
           class="btn-primary"
-          :disabled="isSubmitting || !form.feedback.trim()"
+          :disabled="isSubmitting || linkedDocuments.length === 0 || (!form.feedback.trim() && !form.grade.trim())"
         >
-          {{ isSubmitting ? 'Speichern...' : '✓ Speichern' }}
+          {{ isSubmitting ? 'Speichern...' : '✓ Speichern & Sperren' }}
         </button>
       </div>
 
@@ -64,8 +83,9 @@
 </template>
 
 <script>
-import { ref } from 'vue';
-import { createNote } from '@/api/notes';
+import { ref, onMounted } from 'vue';
+import { gradeDocument } from '@/api/documents';
+import { fetchDocuments } from '@/api/documents';
 import { useAuthStore } from '@/stores/authStore';
 
 export default {
@@ -87,31 +107,57 @@ export default {
     const isSubmitting = ref(false);
     const errorMessage = ref('');
     const successMessage = ref('');
+    const linkedDocuments = ref([]);
+    const selectedDocumentId = ref(null);
+    const isLoadingDocuments = ref(true);
+
+    // Laden der für diesen Task verknüpften Dokumente
+    const loadLinkedDocuments = async () => {
+      try {
+        isLoadingDocuments.value = true;
+        const allDocs = await fetchDocuments();
+        
+        // Filter: Nur Dokumente die mit dem Task verknüpft sind
+        linkedDocuments.value = allDocs.filter(doc => 
+          doc.task_documents?.some(td => td.task_id === props.task.task_id)
+        );
+
+        if (linkedDocuments.value.length > 0) {
+          selectedDocumentId.value = linkedDocuments.value[0].document_id;
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden der Dokumente:', error);
+        errorMessage.value = 'Fehler beim Laden der verknüpften Dokumente.';
+      } finally {
+        isLoadingDocuments.value = false;
+      }
+    };
 
     const handleSubmit = async () => {
       errorMessage.value = '';
       successMessage.value = '';
 
-      if (!form.value.feedback.trim()) {
-        errorMessage.value = 'Bitte schreibe ein Feedback!';
+      if (!selectedDocumentId.value) {
+        errorMessage.value = 'Bitte wähle ein Dokument zum Bewerten aus.';
+        return;
+      }
+
+      if (!form.value.feedback.trim() && !form.value.grade.trim()) {
+        errorMessage.value = 'Bitte gib mindestens eine Note oder ein Feedback an!';
         return;
       }
 
       try {
         isSubmitting.value = true;
 
-        const noteData = {
-          title: `Bewertung: ${props.task.title}`,
-          description: form.value.feedback,
-          subject_id: props.task.subject_id || undefined,
-          task_id: props.task.task_id,
-          priority_id: form.value.grade ? parseInt(form.value.grade) : undefined,
-          created_by: authStore.userId
-        };
+        // Sende die Bewertung zum Backend - das freizeigibt oder sperrt
+        // automatisch den Task basierend auf der Bewertung
+        await gradeDocument(selectedDocumentId.value, {
+          grade: form.value.grade.trim() || null,
+          feedback: form.value.feedback.trim() || null,
+        });
 
-        await createNote(noteData);
-
-        successMessage.value = '✓ Bewertung gespeichert!';
+        successMessage.value = '✓ Dokument bewertet! Task wurde automatisch gesperrt.';
         
         setTimeout(() => {
           emit('saved');
@@ -129,13 +175,20 @@ export default {
       emit('close');
     };
 
+    onMounted(() => {
+      loadLinkedDocuments();
+    });
+
     return {
       form,
       isSubmitting,
       errorMessage,
       successMessage,
       handleSubmit,
-      handleClose
+      handleClose,
+      linkedDocuments,
+      selectedDocumentId,
+      isLoadingDocuments,
     };
   }
 };

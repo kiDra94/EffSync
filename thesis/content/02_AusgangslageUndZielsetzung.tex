@@ -1,0 +1,103 @@
+\authorchapter{Ausgangslage und Zielsetzung}{Ereny Micail}
+\label{ch:ausgangslage}
+
+\section{Ausgangslage} 
+
+In schulischen Teamprojekten läuft es meistens so: Aufgaben kommen in ein Tool,
+Absprachen laufen über einen Messenger und Dateien liegen irgendwo anders.
+Man wechselt ständig zwischen verschiedenen Apps hin und her, Infos gehen verloren
+und keiner weiß mehr genau, wer gerade woran arbeitet.
+Das nennt man \textit{Context Switching} -- und genau das war die Ausgangssituation
+für \textit{EffSync}.
+
+\bigskip
+
+Wir wollten eine Lösung bauen, die Task-Management, Berechtigungen und
+Echtzeit-Kommunikation in einem einzigen System zusammenbringt.
+Der Nutzen: bessere Übersicht über den Arbeitsstand, einfachere Zusammenarbeit
+zwischen Schülern und Lehrern und weniger organisatorischer Aufwand im Projektalltag.
+
+\bigskip
+
+Vor dem eigentlichen Projekt haben wir schon Grundlagen gelegt:
+Architekturentscheidungen getroffen (Vue.js im Frontend, NestJS im Backend,
+Prisma und PostgreSQL für die Datenbank), ein erstes Datenmodell erstellt und
+erste Module prototypisch umgesetzt.
+Dabei hat sich gezeigt, dass vor allem die konsistente Modellierung von
+Task-Hierarchien, Berechtigungen und Echtzeit-Events entscheidend für die
+Stabilität des Systems ist.
+
+
+\authorsection{Auftrag}{ Ereny Micail}
+
+Der Auftrag war klar: eine webbasierte Plattform bauen, auf der mehrere Nutzer
+gemeinsam Aufgaben verwalten und direkt miteinander kommunizieren können.
+Aufgaben sollen strukturiert erfasst, zugewiesen und verfolgt werden können --
+inklusive Unteraufgaben und klaren Verantwortlichkeiten.
+Absprachen sollen direkt im System stattfinden, damit der fachliche Kontext
+immer mit den zugehörigen Aufgaben verknüpft bleibt.
+
+\bigskip
+
+Dazu kommt ein Berechtigungskonzept: Nur wer dazu berechtigt ist, darf
+sicherheitsrelevante Aktionen ausführen.
+Die technische Umsetzung soll nachvollziehbar dokumentiert, durch Tests
+abgesichert und wissenschaftlich begründet sein.
+
+
+\authorsection{Projektziele}{ Ereny Micail}
+
+Für das aktuelle Semester haben wir folgende SMART-Ziele definiert:
+
+\begin{enumerate}
+    \item \textbf{Task-Hierarchie produktiv nutzbar umsetzen:}
+          Bis zum Semesterende können Benutzer Tasks inklusive Subtasks in
+          mindestens drei Hierarchieebenen erstellen, bearbeiten und abrufen.
+          Zirkelbezüge werden serverseitig erkannt und mit HTTP~400 abgewiesen.
+
+    \item \textbf{Berechtigungslogik für kritische Aktionen durchsetzen:}
+          Bis zum Semesterende sind für Task-Mitgliederverwaltung und
+          Chatraum-Verwaltung rollen- bzw.\ kontextbasierte Prüfungen
+          implementiert, sodass unautorisierte Änderungsversuche reproduzierbar
+          mit HTTP~403 blockiert werden.
+
+    \item \textbf{Echtzeitkommunikation integrieren:}
+          Bis zum Semesterende ist ein funktionsfähiger Live-Chat mit
+          WebSocket-basierter Zustellung umgesetzt, bei dem Nachrichten in
+          privaten und gruppenbezogenen Räumen ohne manuelles Neuladen auf
+          verbundenen Clients erscheinen.
+
+    \item \textbf{Qualitätssicherung über automatisierte Tests etablieren:}
+          Bis zum Semesterende existiert eine lauffähige Testbasis aus Unit- und
+          E2E-Tests (\texttt{npm run test}, \texttt{npm run test:e2e}), die
+          zentrale Kernabläufe (Auth, Throttling, Mitgliederverwaltung,
+          Berechtigungen) reproduzierbar validiert.
+\end{enumerate}
+
+\subsection*{Abgrenzung (Nichtziele)}
+
+Nicht Teil dieser Etappe sind native Mobile-Apps, Mandantenfähigkeit für mehrere
+Schulen oder Organisationen, horizontale Hochskalierung für sehr große Nutzerzahlen
+sowie vollständige Offline-Funktionalität.
+
+
+\authorsection{Systemgrenze}{ Ereny Micail}
+
+\textit{EffSync} besteht aus dem Vue.js-Frontend, dem NestJS-Backend, den REST-
+und WebSocket-Schnittstellen sowie der Datenbank über Prisma und PostgreSQL.
+Externe Systeme wie E-Mail-Dienste oder Drittplattformen werden nur über klar
+definierte Schnittstellen angebunden und sind nicht Teil der Kernlogik.
+Nutzer arbeiten ausschließlich über das Frontend -- Persistenz, Validierung und
+Autorisierung laufen im Backend.
+
+
+\authorsection{Vorgehen}{ Ereny Micail}
+
+Wir setzen das Projekt iterativ um.
+Zuerst haben wir Datenmodell und Kernlogik (Tasks, Auth, Berechtigungen)
+stabilisiert, danach kamen Echtzeit-Funktionen und Usability-Verbesserungen dazu.
+Die Abhängigkeiten zwischen den Zielen haben wir dabei bewusst berücksichtigt:
+Eine sichere Mitgliederverwaltung braucht ein konsistentes Rollenmodell,
+und Echtzeit-Updates brauchen valide Zustandsänderungen im Backend.
+Risiken haben wir durch frühe Prototypen, laufende Reviews und automatisierte
+Tests reduziert.

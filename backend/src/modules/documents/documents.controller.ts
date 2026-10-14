@@ -1,11 +1,16 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
   Body,
   Param,
   Delete,
+  Patch,
+  ParseIntPipe,
   Req,
+  Res,
+  StreamableFile,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -14,12 +19,39 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { DocumentsService } from "./documents.service";
-import { diskStorage } from "multer";
+import { memoryStorage } from "multer";
 import { extname } from "path";
-import { v4 as uuidv4 } from "uuid";
+import type { Response } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { Permissions } from "../auth/decorators/permissions.decorator";
+import { UpdateDocumentDto } from "./dto/update-document.dto";
+import { GradeDocumentDto } from "./dto/grade-document.dto";
+import { UploadDocumentDto } from "./dto/upload-document.dto";
+import { Throttle } from "@nestjs/throttler";
+
+const ALLOWED_UPLOAD_EXTENSIONS = [
+  ".pdf",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".bmp",
+  ".webp",
+  ".doc",
+  ".docx",
+  ".odt",
+  ".rtf",
+  ".txt",
+  ".md",
+  ".csv",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+  ".ods",
+  ".odp",
+];
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("documents")
@@ -27,20 +59,25 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post("upload")
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor("file", {
-      storage: diskStorage({
-        destination: (req, file, callback) => {
-          // Nutzt den Pfad aus der .env oder Standard './uploads'
-          const uploadPath = process.env.UPLOAD_DIR || "./uploads";
-          callback(null, uploadPath);
-        },
-        filename: (req, file, callback) => {
-          const uniqueSuffix = uuidv4();
-          const fileExtName = extname(file.originalname);
-          callback(null, `${uniqueSuffix}${fileExtName}`);
-        },
-      }),
+      storage: memoryStorage(),
+      fileFilter: (req, file, callback) => {
+        const extension = extname(file.originalname || "").toLowerCase();
+
+        if (!ALLOWED_UPLOAD_EXTENSIONS.includes(extension)) {
+          callback(
+            new BadRequestException(
+              "Erlaubte Formate: PDF, JPG, JPEG, PNG, GIF, BMP, WEBP, DOC, DOCX, ODT, RTF, TXT, MD, CSV, XLS, XLSX, PPT, PPTX, ODS, ODP.",
+            ),
+            false,
+          );
+          return;
+        }
+
+        callback(null, true);
+      },
     }),
   )
   async uploadFile(
@@ -48,21 +85,19 @@ export class DocumentsController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 25 * 1024 * 1024 }),
-          // FIX: Hier darf kein String (Anführungszeichen) stehen, sondern ein echtes Regex-Literal
-          // new FileTypeValidator({
-          //   fileType: /(jpg|jpeg|png|pdf|zip|doc|docx|odt|markdown|tex)/
-          // }),
         ],
       }),
     )
     file: Express.Multer.File,
-    @Body() dto: { userId: string },
+    @Body() body: UploadDocumentDto,
+    @Req() req,
   ) {
-    // Da die Validierung nun klappt, wird diese Methode aufgerufen und in der DB gespeichert
     return this.documentsService.create(
       file,
-      Number(dto.userId),
+      req.user.userId,
       file.mimetype,
+      req.user.role,
+      body.taskId,
     );
   }
 
@@ -72,10 +107,110 @@ export class DocumentsController {
     return this.documentsService.findAll(req.user.userId, req.user.role);
   }
 
+  /**
+   * GET /documents/my-grades
+   * Holt alle Bewertungen des aktuellen Schülers
+   */
+  @Get("my-grades")
+  @Permissions()
+  async getMyGrades(@Req() req) {
+    return this.documentsService.getMyGrades(req.user.userId);
+  }
+
+  /**
+   * GET /documents/by-task/:taskId
+   * Holt alle Dokumente, die zu einem Task verknüpft sind
+   * Nur für Lehrer/Admin des Tasks oder Hochlader des Dokuments
+   */
+  @Get("by-task/:taskId")
+  @Permissions()
+  async getDocumentsByTask(
+    @Param("taskId", ParseIntPipe) taskId: number,
+    @Req() req,
+  ) {
+    return this.documentsService.getDocumentsByTask(
+      taskId,
+      req.user.userId,
+      req.user.role,
+    );
+  }
+
+  @Get(":id/download")
+  @Permissions()
+  async download(
+    @Param("id", ParseIntPipe) id: number,
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const file = await this.documentsService.getDownloadPayload(
+      id,
+      req.user.userId,
+      req.user.role,
+    );
+
+    res.setHeader("Content-Type", file.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+    );
+
+    return new StreamableFile(file.stream);
+  }
+
   @Get(":id")
   @Permissions()
   findOne(@Param("id") id: string, @Req() req) {
     return this.documentsService.findOne(id, req.user.userId, req.user.role);
+  }
+
+  @Patch(":id")
+  @Permissions()
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateDocumentDto: UpdateDocumentDto,
+    @Req() req,
+  ) {
+    return this.documentsService.update(
+      id,
+      updateDocumentDto,
+      req.user.userId,
+      req.user.role,
+    );
+  }
+
+  @Patch(":id/grade")
+  @Permissions()
+  grade(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() gradeDocumentDto: GradeDocumentDto,
+    @Req() req,
+  ) {
+    return this.documentsService.grade(
+      id,
+      gradeDocumentDto,
+      req.user.userId,
+      req.user.role,
+    );
+  }
+
+  /**
+   * PATCH /documents/:id/allow-resubmit
+   * Erlaubt Schüler erneut hochzuladen - entsperrt den Task
+   * Nur Lehrer darf das tun
+   */
+  @Patch(":id/allow-resubmit")
+  @Permissions()
+  allowResubmit(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() body: { new_deadline?: string },
+    @Req() req,
+  ) {
+    return this.documentsService.allowResubmit(
+      id,
+      body.new_deadline ? new Date(body.new_deadline) : undefined,
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   @Delete(":id")

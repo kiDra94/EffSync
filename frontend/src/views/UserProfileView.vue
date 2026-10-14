@@ -15,21 +15,47 @@ const notificationStore = useNotificationStore();
 
 const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
+const tabs = computed(() => {
+  const baseTabs = ['profile', 'security', 'activity'];
+  if (isOwnProfile.value) {
+    baseTabs.push('notifications');
+  }
+  return baseTabs;
+});
 
 const STORAGE_KEY_PREFIX = 'effsync_user_profile_';
 
-// Mock user data
-const user = ref({
-  user_id: userId.value || authStore.userId,
-  firstname: authStore.userDetails?.firstname || 'Max',
-  lastname: authStore.userDetails?.lastname || 'Mustermann',
-  username: authStore.userDetails?.username || 'mustermann',
-  email: authStore.userDetails?.email || 'mustermann@schule.at',
-  role: authStore.userRole || 'Lehrer',
-  department: 'Informationstechnologie',
-  created_at: '2024-09-01',
-  last_login: new Date().toISOString().split('T')[0]
-});
+const deriveNameFromUsername = (username) => {
+  if (!username) return { firstname: '', lastname: '' };
+  const localPart = String(username).split('@')[0] || '';
+  const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+  if (!cleaned) return { firstname: '', lastname: '' };
+  const parts = cleaned.split(' ').filter(Boolean);
+  if (parts.length === 1) return { firstname: parts[0], lastname: '' };
+  return {
+    firstname: parts[0],
+    lastname: parts.slice(1).join(' '),
+  };
+};
+
+const getBaseUser = () => {
+  const details = authStore.userDetails || {};
+  const derived = deriveNameFromUsername(details.username || details.email || '');
+
+  return {
+    user_id: userId.value || authStore.userId,
+    firstname: details.firstname || derived.firstname || '',
+    lastname: details.lastname || derived.lastname || '',
+    username: details.username || '',
+    email: details.email || '',
+    role: authStore.userRole || details.role || 'student',
+    department: details.department || '—',
+    created_at: details.created_at || '—',
+    last_login: new Date().toISOString().split('T')[0]
+  };
+};
+
+const user = ref(getBaseUser());
 
 const editMode = ref(false);
 const formData = ref({ ...user.value });
@@ -40,10 +66,20 @@ const loadUserProfile = () => {
   try {
     const storageKey = STORAGE_KEY_PREFIX + userId.value;
     const stored = localStorage.getItem(storageKey);
+    const base = getBaseUser();
+
     if (stored) {
-      user.value = JSON.parse(stored);
-      formData.value = { ...user.value };
+      const storedUser = JSON.parse(stored);
+      // Lokale Präferenzen beibehalten, aber Auth-Daten priorisieren
+      user.value = {
+        ...storedUser,
+        ...base,
+      };
+    } else {
+      user.value = base;
     }
+
+    formData.value = { ...user.value };
   } catch (error) {
     console.error('Fehler beim Laden des Profils:', error);
   }
@@ -83,6 +119,14 @@ const goBack = () => {
 onMounted(() => {
   loadUserProfile();
   notificationStore.initFromStorage();
+  // Tab aus Query-Parameter setzen (z.B. ?tab=notifications)
+  if (route.query.tab) {
+    if (route.query.tab === 'notifications' && !isOwnProfile.value) {
+      activeTab.value = 'profile';
+    } else {
+      activeTab.value = route.query.tab;
+    }
+  }
 });
 </script>
 
@@ -113,7 +157,7 @@ onMounted(() => {
 
     <div class="tabs">
       <button
-        v-for="tab in ['profile', 'security', 'activity', 'notifications']"
+        v-for="tab in tabs"
         :key="tab"
         :class="{ active: activeTab === tab }"
         @click="activeTab = tab"
@@ -124,6 +168,10 @@ onMounted(() => {
           {{ notificationStore.unreadCount }}
         </span>
       </button>
+    </div>
+
+    <div v-if="!isOwnProfile" class="profile-info-banner" role="note">
+      🔒 Benachrichtigungen sind nur im eigenen Profil sichtbar.
     </div>
 
     <div class="tab-content">
@@ -320,6 +368,16 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.profile-info-banner {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.9rem;
+}
+
 .tab-btn {
   background-color: transparent;
   border: none;
@@ -499,6 +557,12 @@ body.dark-mode .profile-header {
 
 body.dark-mode .tabs {
   border-bottom-color: #444 !important;
+}
+
+body.dark-mode .profile-info-banner {
+  background-color: #252849 !important;
+  border-color: #3f4a8a !important;
+  color: #c7d2fe !important;
 }
 
 body.dark-mode .tab-btn {

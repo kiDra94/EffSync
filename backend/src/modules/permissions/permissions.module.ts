@@ -1,7 +1,7 @@
 import { Global, Module } from "@nestjs/common";
 import { PermissionsController } from "./permissions.controller";
 import { PermissionsService } from "./permissions.service";
-import { PrismaModule } from "src/prisma/prisma.module";
+import { PrismaModule } from "../../prisma/prisma.module";
 
 @Global()
 @Module({

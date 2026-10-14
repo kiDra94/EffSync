@@ -105,13 +105,14 @@ export class TaskMembersController {
       );
     }
 
-    const members = await this.taskMembersService.findByTask(taskIdNum);
+    const members = await this.taskMembersService.findByTaskIncludingImplicit(taskIdNum);
 
     return members.map((m) => ({
       task_id: m.task_id,
       user_id: m.user_id,
       joined_at: m.joined_at,
       user: m.users as any,
+      role: m.role, // 'creator', 'assigned', oder 'member'
     }));
   }
 

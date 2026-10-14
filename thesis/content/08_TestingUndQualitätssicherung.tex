@@ -1,0 +1,284 @@
+\authorchapter{Testing und Qualitätssicherung}{Ereny Micail}
+\label{ch:testing_quality}
+Die Qualitätssicherung ist ein wesentlicher Bestandteil des Softwareentwicklungsprozesses. Um sicherzustellen, dass \textit{EffSync} funktional korrekt, stabil und wartbar umgesetzt wird, wurde ein mehrstufiges Testkonzept definiert.
+
+Dieses Kapitel beschreibt die eingesetzten Verfahren zur systematischen Prüfung des Systems. Zunächst wird die Teststrategie als methodischer Rahmen vorgestellt. Anschließend werden die implementierten Testarten von isolierten Unit-Tests über API-Tests bis hin zu E2E-Tests erläutert.
+
+Ergänzend werden die Usability-Tests zur Bewertung der Bedienbarkeit sowie die Fehleranalyse zur Dokumentation und Nachverfolgung identifizierter Probleme dargestellt.
+
+\authorsection{Teststrategie}{Dražen Plavšić}
+\label{sec:test_strategie}
+
+Um die Stabilität und Wartbarkeit von \text{EffSync} zu gewährleisten, wird für dieses Projekt eine mehrstufige Teststrategie definiert. Diese orientiert sich konzeptionell an der klassischen Testpyramide nach Mike Cohn \cite{cohn2009succeeding} (siehe Abbildung \ref{fig:testpyramide}). 
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=0.4\textwidth]{content/bilder/test_pyramide.svg} 
+    \caption{Die Testpyramide für das \textit{EffSync}-Projekt in Anlehnung an Mike Cohn}
+    \label{fig:testpyramide}
+\end{figure}
+
+Wie in Abbildung \ref{fig:testpyramide} zu sehen ist, bilden die Unit-Tests das Fundament der Pyramide, welche die größte Menge an Tests ausmachen. Hierbei gilt das Grundprinzip: Je weiter unten in der Testpyramide eine Testebene angesiedelt ist, desto isolierter und schneller in der Ausführung sind die entsprechenden Tests. Auf der mittleren Ebene befinden sich die Integrations- und API-Tests, welche die Kommunikation zwischen den Schichten prüfen. Die Spitze der Pyramide bilden ausgewählte End-to-End-Tests (E2E), die isoliert kritische User-Flows aus der Perspektive des Endanwenders validieren.
+
+\subsubsection{Richtlinien zur Testabdeckung (Code Coverage)}
+In der Softwareentwicklung existiert kein universell gültiger oder verbindlich vorgeschriebener Prozentwert für die Testabdeckung. Selbst die internen Engineering-Richtlinien von Google \cite{google2020coverage} verzichten auf starre Vorgaben und empfehlen stattdessen zielgerichtete Werte, wobei 60\,\% als akzeptabel, 75\,\% als lobenswert und 90\,\% als vorbildlich eingestuft werden. 
+
+
+Sicherheitskritische Bereiche, wie beispielsweise die Authentifizierungslogik oder Autorisierungs-Guards, streben eine Testabdeckung von über 90\,\% an, da ungetestete Code-Pfade in diesen Modulen ein erhebliches Sicherheitsrisiko darstellen. Für Standard-Controller oder Datentransferobjekte (DTOs) wurde hingegen kein fixer Prozentwert auf Unit-Ebene definiert, da deren Validierung systembedingt primär durch die höherstufigen API-Tests erfolgt. Bei den API- und E2E-Tests wird bewusst auf eine zeilenbasierte Code-Coverage verzichtet; stattdessen dient die Vollständigkeit der getesteten HTTP-Endpunkte und User-Flows als primäres Qualitätskriterium.
+
+\authorsection{Unit-Tests}{Dražen Plavšić}
+\label{sec:unit_tests}
+Unit-Tests bilden das Fundament der Qualitätssicherung innerhalb von \textit{EffSync}. Ihr primärer Zweck besteht darin, einzelne funktionale Einheiten des Sourcecodes, wie Klassen, Methoden oder Komponenten, isoliert auf ihre korrekte Funktionsweise zu überprüfen. Da solche Einheiten in der Regel von weiteren Modulen oder externen Diensten abhängig sind, werden diese Abhängigkeiten in Unit-Tests gezielt simuliert. Dadurch lassen sich die Tests unter kontrollierten Bedingungen ausführen und das Verhalten der jeweiligen Einheit unabhängig bewerten.
+
+\subsection{Testwerkzeuge und Zielvorgaben}
+Für die technische Umsetzung werden zwei auf die jeweilige Umgebung abgestimmte Testwerkzeuge eingesetzt. Im \textbf{Backend (NestJS)} wird \textit{Jest} in Kombination mit \texttt{@nestjs/testing} verwendet\cite{nestjs_testing_docs}, im \textbf{Frontend (Vue 3)} \textit{Vitest}\cite{vitest_docs} zusammen mit \texttt{@vue/test-utils}\cite{vue_test_utils_docs}. Die Ausführung der Tests erfolgt über das Skript \texttt{npm run test:coverage}.
+
+Anhand des zuvor definierten Ansatzes sind für die Unit-Tests spezifische Prioritäten und Abdeckungsziele (Code Coverage) für beide Systemkomponenten festgelegt:
+
+\begin{itemize}
+    \item \textbf{Kritische Priorität (Zielabdeckung $\ge$ 90\,\%):}\\
+    Im Backend betrifft dies essenzielle Sicherheitskomponenten wie den \texttt{AuthService} (Token-Handling, Passwort-Hashing), Zugriffskontrollen (\texttt{JwtAuthGuard}, \texttt{LocalAuthGuard}) sowie die Kernlogik der Applikation (\texttt{TaskService}). Im Frontend liegt der Fokus auf der globalen Zustandsverwaltung, dem Pinia \texttt{Auth-Store} und \texttt{Task-Store}, sowie auf kritischen \textit{HTTP-Utility-Functions}.
+    
+    \item \textbf{Mittlere Priorität (Zielabdeckung $\ge$ 75\,\%):}\\
+    Hierzu zählen im Backend weniger komplexe CRUD-Operationen (\texttt{UserService}) oder der \texttt{PermissionService}. Im Frontend fallen darunter unter anderem die \textit{Routen-Guards} des Vue Routers zur Verhinderung unberechtigter Weiterleitungen sowie wiederverwendbare komplexe UI-Komponenten.
+    
+    \item \textbf{Bereiche ohne spezifisches Abdeckungsziel:}\\
+    Technischer Initialisierungscode (\texttt{main.ts}, \texttt{app.module.ts}), logikfreie Datenbank-Schemata (\textit{Prisma}) sowie reine CSS- und Layout-Komponenten sind von der Metrik ausgenommen, da ein isolierter Unit-Test an dieser Stelle keinen funktionalen Mehrwert bietet.
+\end{itemize}
+
+\subsection{Praktische Umsetzung und Mocking-Strategie}
+Wie in Listing \ref{lst:unit_test_example} veranschaulicht, wird die Datenbankabhängigkeit vollständig durch das Test-Framework gemockt. Dadurch wird gewährleistet, dass ein Fehlschlagen des Tests ausschließlich auf einen Fehler in der Geschäftslogik des Services zurückzuführen ist und nicht durch externe Faktoren, wie eine fehlende Datenbankverbindung, verfälscht wird.
+
+\begin{listing}[H]
+\begin{minted}{typescript}
+// Backend: tasks.service.spec.ts
+describe('TasksService', () => {
+  let service: TasksService;
+  const mockPrismaService = {
+    tasks: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    task_members: {
+      findMany: jest.fn(),
+    },
+    users: {
+      findMany: jest.fn(),
+    },
+    documents: {
+      findMany: jest.fn(),
+    },
+  };
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        TasksService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: WebsocketGateway, useValue: {} },
+        { provide: TaskActivityLogService, useValue: { create: jest.fn() } },
+        { provide: PermissionsService, useValue: { hasPermission: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get<TasksService>(TasksService);
+  });
+  it('recalculates task status in findOne', async () => {
+    mockPrismaService.tasks.findUnique
+      .mockResolvedValueOnce({ task_id: 10, status: 'IN_PROGRESS' })
+      .mockResolvedValueOnce({ task_id: 10, status: 'COMPLETED' });
+    const result = await service.findOne(10, false);
+    expect(result.status).toBe('COMPLETED');
+  });
+});
+\end{minted}
+\caption{Exemplarischer Unit-Test mit gemockten Abhängigkeiten}
+\label{lst:unit_test_example}
+\end{listing}
+
+\authorsection{API- und Integrationstests}{Dražen Plavšić}
+\label{sec:api_tests}
+Neben den isolierten Unit-Tests bilden API- und Integrationstests die zweite Ebene der Qualitätssicherung im Backend. Im Gegensatz zu Unit-Tests prüfen API-Tests das Zusammenspiel mehrerer architektonischer Schichten innerhalb der laufenden Anwendung\cite{winter2005integrationstest}. Hierzu zählen insbesondere Controller, Guards, Pipes, Service-Logik sowie die finale Datenbankanbindung. Die Tests werden mit der Bibliothek \textit{Supertest} gegen eine, zu Testzwecken, gestartete Instanz des NestJS-Servers, ausgeführt und simulieren vollständige HTTP-Anfragen\cite{nestjs_testing_docs}.
+
+\subsection{Coverage-Ziele und Testpfade}
+Auf dieser Testebene wird bewusst keine Code-Coverage als primäre Metrik verwendet. Stattdessen steht die \textit{vollständige Abdeckung aller relevanten API-Endpunkte durch Tests} im Vordergrund. Für jeden relevanten HTTP-Endpunkt wird mindestens ein erfolgreicher Anfragepfad (\textit{Happy Path}) sowie die wichtigsten Fehlerpfade (\textit{Error Paths}) geprüft. Dazu zählen insbesondere Validierungsfehler (\texttt{400 Bad Request}), fehlende Authentifizierung (\texttt{401 Unauthorized}), unzureichende Berechtigungen (\texttt{403 Forbidden}) sowie nicht gefundene Ressourcen (\texttt{404 Not Found}). Dadurch wird sichergestellt, dass nicht nur der reguläre Erfolgsfall, sondern auch das Verhalten des Systems unter fehlerhaften oder unzulässigen Eingaben nachvollziehbar abgesichert ist.
+
+\subsection{Testdatenbank und Determinismus}
+Ein weiterer zentraler Bestandteil der API-Teststrategie ist die deterministische Vorbereitung der Testumgebung. Da die Tests gegen eine reale Testdatenbank ausgeführt werden, muss das sogenannte \textit{State Leakage}, also die unkontrollierte Beeinflussung nachfolgender Testläufe durch zuvor manipulierte Daten, zwingend verhindert werden. Vor dem Start der API-Test-Suite wird die Datenbank daher über den Befehl \texttt{prisma migrate reset --force} vollständig zurückgesetzt und mittels eines dedizierten Seed-Skripts (\texttt{test-seed.ts}) mit vordefinierten Testdaten neu befüllt. Dieser Prozess wird vollautomatisiert über die Jest-Konfiguration gesteuert, sodass für jeden Testlauf exakt identische Ausgangsbedingungen herrschen.
+
+\subsection{Fokusbereiche und Priorisierung}
+Inhaltlich folgt die API-Testebene einer strikten Vorgehensweise: Zuerst werden die sicherheitskritischen und geschäftsrelevanten Schnittstellen vollständig abgesichert, danach ergänzend weitere Endpunkte mit geringerem Fehlerrisiko (wie beispielsweise Benachrichtigungen, Notizen oder Profilinformationen). 
+
+Als kritisch sind die Authentifizierungsendpunkte sowie die Kernendpunkte der Aufgabenverwaltung eingestuft. Gerade im Fall der Task-Endpunkte müssen dabei komplexe fachliche Regeln wie Filterlogiken, Statusänderungen oder Löschbedingungen (z.\,B. Verbot des Löschens bei vorhandenen Subtasks) korrekt validiert werden. Die Tabelle \ref{tab:api_endpoints} liefert eine detaillierte Übersicht dieser priorisierten Schnittstellen.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|l|c|p{8.5cm}|}
+        \hline
+        \textbf{Endpunkt} & \textbf{Methode} & \textbf{Begründung } \\
+        \hline
+        \texttt{/api/auth/register} & \texttt{POST} & Öffentlicher Registrierungsendpunkt. \\
+        \hline
+        \texttt{/api/auth/login} & \texttt{POST} & Endpunkt, der für die Validierung der Zugangsdaten und die JWT-Token-Ausgabe verantwortlich ist. \\
+        \hline
+        \texttt{/api/auth/logout} & \texttt{POST} & Endpunkt zur sicheren Abmeldung/Löschung des Sitzungstokens. \\
+        \hline
+        \texttt{/api/tasks} & \texttt{POST} & Zentrales Kernfeature zur Erstellung neuer Tasks. \\
+        \hline
+        \texttt{/api/tasks} & \texttt{GET} & Listen-Endpunkt mit fehleranfälliger Filter- und Sortierlogik. \\
+        \hline
+        \texttt{/api/tasks/:id} & \texttt{GET} & Detail-Endpunkt zum gesicherten Abruf einzelner Task-Informationen. \\
+        \hline
+        \texttt{/api/tasks/:id} & \texttt{PATCH} & Endpunkt zur Teilaktualisierung potenziell anfällig für Inkonsistenzen. \\
+        \hline
+        \texttt{/api/tasks/:id} & \texttt{DELETE} & Kritischer Lösch-Endpunkt mit komplexer Guard-Logik. \\
+        \hline
+    \end{tabular}
+    \caption{Übersicht der sicherheitskritischen und priorisierten API-Endpunkte}
+    \label{tab:api_endpoints}
+\end{table}
+
+Auf diese Weise trägt die API-Testebene wesentlich dazu bei, Fehler an den Systemgrenzen frühzeitig zu erkennen und die Stabilität der gesamten Backend-Kommunikation zu verbessern.
+
+\authorsection{E2E-Tests}{Ereny Micail}
+\label{sec:e2e_tests}
+\subsection{End-to-End-Tests (E2E-Tests)}
+Für die Qualitätssicherung der Backend-Funktionen werden in \textit{EffSync} End-to-End-Tests mit \texttt{Jest} und \texttt{Supertest} eingesetzt. Die E2E-Tests befinden sich im Backend-Testbereich und werden über das Script \texttt{npm run test:e2e} mit der Konfiguration \texttt{test/jest-e2e.json} ausgeführt. Technisch wird dabei die vollständige NestJS-Applikation (\texttt{AppModule}) gestartet, sodass Requests gegen reale HTTP-Endpunkte getestet werden.
+
+Im Gegensatz zu reinen Unit-Tests wird hier das Zusammenspiel mehrerer Ebenen überprüft: Routing, Guards, Validierung, Service-Logik und Datenbankzugriffe. Die Testfälle orientieren sich an typischen Nutzeraktionen und verwenden das \textit{Arrange-Act-Assert}-Muster. Dabei wird im Schritt „Arrange“ die Ausgangssituation vorbereitet (z. B. Testdaten anlegen, Mocks konfigurieren), in „Act“ die eigentliche Aktion ausgeführt (z. B. ein Request an einen Endpunkt gesendet) und in „Assert“ das Ergebnis überprüft (z. B. Rückgabewerte, Statuscodes oder Datenbankzustand verifiziert).
+\paragraph{Beispiel 1: Basis-Erreichbarkeit der API}
+Ein grundlegender E2E-Test prüft, ob die Applikation korrekt startet und der Root-Endpunkt erreichbar ist:
+\begin{itemize}
+    \item \textbf{Request:} \texttt{GET /}
+    \item \textbf{Erwartung:} HTTP \texttt{200} und Antwort \texttt{"Hello World!"}
+\end{itemize}
+Dieser Test dient als technischer Smoke-Test für die Testumgebung.
+
+\paragraph{Beispiel 2: Throttling bei Registrierung}
+Ein sicherheitsrelevanter E2E-Test validiert die Rate-Limiting-Logik im Auth-Bereich:
+\begin{itemize}
+    \item Die Route \texttt{POST /auth/register} wird viermal hintereinander mit identischen Daten aufgerufen.
+    \item Die ersten drei Requests sind erfolgreich (\texttt{201 Created}).
+    \item Der vierte Request wird durch den Throttler blockiert (\texttt{429 Too Many Requests}).
+\end{itemize}
+Damit wird abgesichert, dass Schutzmechanismen gegen Request-Spam im Laufzeitsystem tatsächlich greifen.
+
+\paragraph{Beispiel 3: Mitgliederverwaltung bei Tasks}
+Ein umfassender Workflow-Test bildet den vollständigen Ablauf der Task-Mitgliederverwaltung ab:
+\begin{enumerate}
+    \item Anlegen und Login mehrerer Testnutzer (Admin, Teacher, Student),
+    \item Erstellen eines Tasks durch den Teacher,
+    \item Hinzufügen eines Mitglieds über \texttt{POST /api/tasks/:id/members},
+    \item Verhindern doppelter Mitgliedschaft (Fehlerfall),
+    \item Auflisten und Entfernen von Mitgliedern.
+\end{enumerate}
+Zusätzlich werden Berechtigungsfälle geprüft, etwa ob nicht-autorisierte Nutzer administrative Aktionen ausführen dürfen. Dadurch werden sowohl fachliche als auch sicherheitsrelevante Anforderungen in einem realitätsnahen API-Kontext validiert.
+
+\paragraph{Beispiel 4: Permission-Flags und Rollenprüfung}
+Ein weiterer E2E-Block testet die effektiven Berechtigungen eines Users auf Task-Ebene über \texttt{/api/tasks/:id/members/check-permission}. Dabei werden die zurückgegebenen Flags (\texttt{has\_read}, \texttt{has\_write}, \texttt{has\_execute}, numerischer Flag-Wert) geprüft. So wird sichergestellt, dass die Berechtigungsauflösung im Gesamtsystem konsistent funktioniert.
+
+\paragraph{Abgrenzung zu Unit-Tests}
+Neben E2E-Tests existieren auch klassische Unit-Tests (z.\,B.\ für \texttt{TaskMembersService} mit gemocktem \texttt{PrismaService}). Diese prüfen isolierte Methoden und Randfälle wie \texttt{NotFoundException}, \texttt{ForbiddenException} oder Flag-Berechnungen. E2E-Tests ergänzen diese Ebene, indem sie die gleichen Regeln über echte HTTP-Aufrufe und Modulgrenzen hinweg absichern.
+
+In Summe erhöht die Kombination aus Unit- und E2E-Tests die Stabilität von \textit{EffSync} deutlich: Unit-Tests liefern schnelle, präzise Fehlerlokalisierung auf Methodenebene, während E2E-Tests regressionskritische Gesamtabläufe aus Nutzersicht absichern.
+
+\authorsection{Usability-Test}{Ereny Micail}
+\label{sec:usability_test}
+
+Zur Bewertung der Bedienbarkeit von \textit{EffSync} wurde ein moderierter Usability-Test durchgeführt, bei dem eine einzelne Testperson nacheinander die beiden zentralen Nutzerrollen des Systems (Lehrer bzw. Schüler) in getrennten Sessions durchlief. Die Testperson bringt einschlägige Vorkenntnisse im Bereich UX/UI-Design mit und hatte bereits Erfahrung mit vergleichbaren Tools; nach eigener Einschätzung der Testperson lässt sich \textit{EffSync} funktional am ehesten als Mischung aus Microsoft Teams und Moodle einordnen, wobei keines der beiden Referenzsysteme sämtliche in \textit{EffSync} kombinierten Funktionen auf einer einzigen Plattform vereint. Ziel war es, typische Kernabläufe unter realistischen Bedingungen zu beobachten und dabei sowohl quantitative Kennzahlen (Bearbeitungsdauer, Erfolgsquote) als auch qualitatives Feedback zu erheben. Die Tests orientieren sich lose an den Usability-Heuristiken nach Nielsen \cite{nielsen_heuristics}, insbesondere an den Kriterien \textit{Systemstatus sichtbar machen}, \textit{Wiedererkennung statt Erinnerung} und \textit{Fehlertoleranz}.
+
+Einschränkend ist anzumerken, dass es sich bei nur einer Testperson mit fachlichem Hintergrund im UX/UI-Bereich nicht um einen repräsentativen Endnutzertest im klassischen Sinn handelt: Die Beobachtungen liefern wertvolle, fachlich fundierte Hinweise auf Schwachstellen, lassen jedoch aufgrund der geringen Stichprobengröße und der überdurchschnittlichen Vorerfahrung der Testperson keine statistisch belastbaren Aussagen über die Bedienbarkeit für unerfahrene Schüler oder Lehrkräfte zu.
+
+\paragraph{Testaufbau}
+Jede Session dauerte rund 30 Minuten und gliederte sich in eine kurze Einführung, ein Warm-up sowie drei rollenspezifische Aufgabenszenarien, einen Cross-Browser-Chat-Test und abschließende Fragen. Während des gesamten Tests galt die Regel, der Testperson nicht aktiv zu helfen, außer bei vollständigem Steckenbleiben nach etwa 90 Sekunden. Gemessen wurden pro Aufgabe die Bearbeitungsdauer, der Erfolgsgrad (vollständig / teilweise / nicht erfolgreich) sowie Fehlklicks und Sackgassen.
+
+\paragraph{Ergebnisse Session 1 -- Rolle Lehrer}
+Ziel der ersten Aufgabe war es, ausgehend vom Dashboard die Stelle zu finden, an der eine neue Aufgabe veröffentlicht werden kann. Die zweite Aufgabe bestand darin, eine Aufgabe vollständig anzulegen und das Ergebnis (Dateiupload) zu überprüfen. Tabelle~\ref{tab:usability_lehrer} fasst die gemessenen Zeiten zusammen.
+
+\begin{table}[H]
+    \centering
+    \caption{Usability-Test, Rolle Lehrer -- gemessene Bearbeitungszeiten}
+    \label{tab:usability_lehrer}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Schritt} & \textbf{Dauer} \\
+        \midrule
+        Login & 46 Sek \\
+        Aufgabenfeld finden (Aufgabe 1) & 51 Sek \\
+        Task erstellen und Person hinzufügen (Aufgabe 2) & 2:13 Min \\
+        Navigation von Profil zu Aufgabe & 8 Sek \\
+        Chat finden (Person suchen) & 22 Sek \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Auffällig war, dass das Auffinden des Bereichs zur Aufgabenerstellung mit 51 Sekunden vergleichsweise lange dauerte; die Testperson orientierte sich dabei zunächst an der Bezeichnung \glqq{}offene Aufgaben\grqq{} statt am eigentlichen Aktionsbereich. Als konkrete Verbesserung wurde vorgeschlagen, den entsprechenden Menüpunkt eindeutiger mit einem Aufgaben-Icon zu kennzeichnen. Beim Anlegen der Aufgabe selbst wurde zudem angemerkt, dass die Zeit- bzw.\ Deadline-Abhängigkeit visuell nicht ausreichend hervorgehoben ist. Beim Chat wurde bemängelt, dass Nachrichtenblasen und Kontaktliste zu viel Weißraum aufweisen und dadurch schwerer erfassbar sind.
+
+Aufgabe~3 (Fehlerfall/Recovery) konnte in dieser Session aus organisatorischen Gründen nicht dokumentiert werden und stellt eine Lücke in der Datenerhebung dar. Der Cross-Browser-Chat-Test (Aufgabe~4) verlief hingegen vollständig erfolgreich: Nachrichten wurden in beide Richtungen zugestellt, gleichzeitiges Senden wurde korrekt verarbeitet, der Verlauf blieb nach einem Reload erhalten und Reihenfolge sowie Zeitstempel waren konsistent.
+
+Die abschließende Selbsteinschätzung auf einer Skala von 1 (trifft gar nicht zu) bis 7 (trifft voll zu) ist in Tabelle~\ref{tab:usability_lehrer_skala} dargestellt.
+
+\begin{table}[H]
+    \centering
+    \caption{Usability-Test, Rolle Lehrer -- Selbsteinschätzung}
+    \label{tab:usability_lehrer_skala}
+    \begin{tabularx}{\textwidth}{Xc}
+        \toprule
+        \textbf{Aussage} & \textbf{Wert (1--7)} \\
+        \midrule
+        Ich konnte meine wichtigsten Aufgaben schnell erledigen. & 6 \\
+        Ich wusste jederzeit, wo ich bin und was ich als Nächstes tun kann. & 5 \\
+        Bei Fehlern konnte ich mich leicht erholen. & 7 \\
+        Ich vertraue dem Chat (Zustellung/Reihenfolge). & 7 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Auf die Frage nach der größten Frustrationsquelle antwortete die Testperson, dass das erstmalige Auffinden von Funktionen etwas Aufwand bedeute, man sich die Position jedoch schnell merke -- ein Hinweis auf eine flache, aber vorhandene Lernkurve. Als wirkungsvollste Verbesserung wurde vorgeschlagen, zentrale Funktionen wie \glqq{}Neue Aufgabe\grqq{} direkt über einen Schnellzugriff auf dem Dashboard verfügbar zu machen, statt sie erst über mehrere Navigationsschritte erreichbar zu machen.
+
+\paragraph{Ergebnisse Session 2 -- Rolle Schüler}
+In der zweiten Session bestand Aufgabe~1 darin, die zuletzt gestellte Aufgabe samt Abgabedatum zu finden, Aufgabe~2 darin, eine Kernaufgabe vollständig durchzuführen (Nachricht schreiben, Aufgabe aktualisieren/bewerten, zwischen Chats wechseln). Tabelle~\ref{tab:usability_schueler} zeigt die gemessenen Zeiten.
+
+\begin{table}[H]
+    \centering
+    \caption{Usability-Test, Rolle Schüler -- gemessene Bearbeitungszeiten}
+    \label{tab:usability_schueler}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        \textbf{Schritt} & \textbf{Dauer} \\
+        \midrule
+        Login & 11 Sek \\
+        Aufgabe finden (Aufgabe 1) & 5 Sek \\
+        Nachricht finden & 5 Sek \\
+        Vollständiger Ablauf inkl.\ Zusatzanweisungen (Aufgabe 2+3+4) & 3:10 Min \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Im Vergleich zur Lehrer-Rolle fielen die Orientierungszeiten in der Schüler-Rolle deutlich kürzer aus, da die entsprechenden Bereiche direkter zugänglich sind. Als Verbesserungspotenzial wurde notiert, dass Deadline-Anzeige und Task-Status auf der Aufgabenkarte zu klein dargestellt und dadurch schwer lesbar sind. Da die Aufgaben~3 und~4 einen Chat zwischen zwei Browsern voraussetzen, war dieses Szenario bereits im Rahmen der ersten Session (Rolle Lehrer) erprobt worden und musste in der zweiten Session nicht erneut vollständig durchgeführt werden.
+
+\paragraph{Zusammenfassung und priorisierte Probleme}
+Aus beiden Sessions wurden folgende drei Kernprobleme abgeleitet:
+
+\begin{enumerate}
+    \item[\textbf{P1}] Zentrale Funktionen (\glqq{}Neue Aufgabe\grqq{}, Chat) sind nicht direkt vom Dashboard aus erreichbar, sondern erfordern mehrere Navigationsschritte.
+    \item[\textbf{P2}] Deadline- und Statusanzeigen sind zu klein dargestellt und dadurch schwer lesbar.
+    \item[\textbf{P3}] Die Zeit-/Deadline-Abhängigkeit bei der Aufgabenerstellung ist visuell nicht ausreichend hervorgehoben.
+\end{enumerate}
+
+Insgesamt konnte die Testperson alle ihr in beiden Rollensessions gestellten Kernaufgaben ohne Abbruch abschließen. Die größte Hürde bestand im erstmaligen Auffinden zentraler Funktionen, wobei sich die Bearbeitungsgeschwindigkeit bei wiederholter Nutzung deutlich verbesserte. Der Cross-Browser-Chat-Test verlief in allen geprüften Kriterien fehlerfrei, was auf eine stabile Echtzeitkommunikation zwischen unterschiedlichen Clients hinweist. Da es sich bei der Testperson um eine fachlich vorgebildete Einzelperson handelt, sind die beobachteten Bearbeitungszeiten tendenziell als untere Grenze zu verstehen; bei unerfahreneren Nutzergruppen ist mit längeren Orientierungszeiten zu rechnen. Die identifizierten Probleme betreffen primär die Auffindbarkeit und visuelle Hervorhebung von Funktionen und wurden als Grundlage für die in Abschnitt~\ref{sec:fehleranalyse} beschriebenen Verbesserungsmaßnahmen herangezogen.
+
+\authorsection{Fehleranalyse und Verbesserung}{Ereny Micail}
+\label{sec:fehleranalyse}
+
+Fehler wurden im Projektverlauf über drei Kanäle identifiziert: durch fehlschlagende automatisierte Tests in der \gls{CI/CD}-Pipeline (siehe Kapitel~\ref{ch:workflow}), durch manuelles Review im Rahmen der Code-Reviews vor dem Merge in den \texttt{development}-Branch sowie durch die im Rahmen des Usability-Tests (Abschnitt~\ref{sec:usability_test}) beobachteten Bedienprobleme. Während automatisierte Tests vor allem funktionale Regressionen (z.\,B.\ fehlerhafte Berechtigungsprüfungen oder abgebrochene Task-Erstellungen) aufdeckten, lieferte der Usability-Test gezielt Hinweise auf Schwachstellen in der Bedienbarkeit, die durch reine Funktionstests nicht sichtbar werden.
+
+Zur Nachverfolgung wurde derselbe GitHub-Issue-basierte Workflow verwendet, der bereits in Kapitel~\ref{ch:workflow} für Feature-Arbeitspakete beschrieben wurde: Jeder identifizierte Fehler wurde als eigenes Issue mit dem Label \texttt{bug} angelegt und, sofern er sich klar einem Arbeitspaket zuordnen ließ, als Sub-Issue des jeweiligen Feature-Issues verknüpft. Bei umfangreicheren Problemclustern -- etwa allen aus dem Usability-Test abgeleiteten Bedienbarkeitsproblemen -- wurde ein übergeordnetes Sammel-Issue angelegt, dem die einzelnen Detailprobleme als Sub-Issues zugeordnet wurden. Dies ermöglichte es, den Bearbeitungsfortschritt eines gesamten Themenblocks auf einen Blick nachzuvollziehen, ohne die Übersicht über die Einzelmaßnahmen zu verlieren. Die eigentliche Behebung erfolgte je nach Dringlichkeit über einen kurzlebigen \texttt{fix-}-Branch auf dem \texttt{development}-Branch oder, bei kritischen produktionsrelevanten Fehlern, über einen \texttt{hotfix-}-Branch direkt auf dem \texttt{main}-Branch (vgl.\ Tabelle~\ref{tab:spezial-branches}). Durch die Referenzierung der Issue-Nummer in der Commit-Nachricht blieb jede Änderung durchgehend dem ursprünglich gemeldeten Fehler zuordenbar.
+
+Konkret wurden die in Abschnitt~\ref{sec:usability_test} identifizierten Probleme wie folgt adressiert:
+
+\begin{itemize}
+    \item \textbf{P1 -- fehlender Schnellzugriff auf zentrale Funktionen:} Als Verbesserung ist ein direkter Zugriff auf die Funktionen \glqq{}Neue Aufgabe\grqq{} sowie den Chat über das Dashboard vorgesehen, sodass beide Aktionen ohne zusätzlichen Navigationsschritt erreichbar wären.
+    \item \textbf{P2 -- zu kleine Deadline-/Statusanzeige:} Geplant ist eine Vergrößerung sowie eine stärkere farbliche Hervorhebung von Fälligkeitsdatum und Task-Status auf der Aufgabenkarte.
+    \item \textbf{P3 -- Zeitabhängigkeit bei der Aufgabenerstellung nicht ersichtlich:} Im Formular zur Aufgabenerstellung soll künftig ein zusätzlicher visueller Hinweis ergänzt werden, der die verbleibende Zeit bis zur Deadline unmittelbar sichtbar macht.
+\end{itemize}
+Die genannten Punkte wurden im Rahmen des Usability-Tests dokumentiert, konnten jedoch aus Zeitgründen im Verlauf dieser Diplomarbeit nicht mehr umgesetzt werden. Eine Behebung ist im Nachgang zur Arbeit vorgesehen. Ein erneuter vollständiger Usability-Test mit denselben Aufgabenstellungen wurde daher nicht mehr durchgeführt und stellt eine sinnvolle Anschlussmaßnahme für zukünftige Iterationen dar.

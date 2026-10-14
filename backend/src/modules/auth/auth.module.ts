@@ -3,8 +3,9 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { PassportModule } from "@nestjs/passport";
 import { JwtModule, JwtModuleOptions } from "@nestjs/jwt";
-import { PrismaModule } from "src/prisma/prisma.module";
+import { PrismaModule } from "../../prisma/prisma.module";
 import { JwtStrategy } from "./strategies/jwt.strategy";
+import { GoogleStrategy } from "./strategies/google.strategy";
 import { RolesGuard } from "./guards/roles.guard";
 import { PermissionsGuard } from "./guards/permissions.guard";
 import { PermissionsService } from "../permissions/permissions.service";
@@ -23,7 +24,7 @@ import { PermissionsService } from "../permissions/permissions.service";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard, PermissionsGuard, PermissionsService],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, RolesGuard, PermissionsGuard, PermissionsService],
   exports: [AuthService, JwtModule, PassportModule, RolesGuard, PermissionsGuard, PermissionsService],
 })
 export class AuthModule {}

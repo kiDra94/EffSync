@@ -45,32 +45,31 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const userId = request.user?.id;
 
-    console.log('🔐 PermissionsGuard - Required permissions:', requiredPermissions, 'User ID:', userId);
-
     if (!userId) {
       throw new ForbiddenException('No user ID found in request');
     }
 
-    // Prüfe: Hat User ALLE erforderlichen Permissions?
-    // (AND-Logik: alle müssen vorhanden sein)
-    for (const permissionName of requiredPermissions) {
-      const hasPermission = await this.permissionsService.hasPermission(
+    for (const permissionExpression of requiredPermissions) {
+      // Unterstützt Aliase via "perm_a|perm_b" (OR innerhalb eines Eintrags)
+      // Mehrere @Permissions-Einträge bleiben weiterhin AND-verknüpft.
+      const alternatives = permissionExpression
+        .split('|')
+        .map((p) => p.trim())
+        .filter(Boolean);
+
+      const hasPermission = await this.permissionsService.hasAnyPermission(
         userId,
-        permissionName,
-        PermissionFlag.READ, // Minimale Flag für die Prüfung
+        alternatives.length > 0 ? alternatives : [permissionExpression],
+        PermissionFlag.READ,
       );
 
-      console.log(`  ├─ Permission "${permissionName}": ${hasPermission}`);
-
       if (!hasPermission) {
-        console.error(`  └─ ❌ Missing permission: ${permissionName}`);
         throw new ForbiddenException(
-          `Missing permission: ${permissionName}`,
+          `Missing permission: ${permissionExpression}`,
         );
       }
     }
 
-    console.log(`  └─ ✅ All permissions granted`);
-    return true; // Alle erforderlichen Permissions vorhanden → Zugriff erlaubt
+    return true;
   }
 }

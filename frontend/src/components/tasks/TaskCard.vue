@@ -36,18 +36,32 @@
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
         </span>
+        <span v-if="task.is_student_submission_locked" class="lock-badge" :title="'Deine Eingabe wurde bewertet'">
+          🔒 Bewertet
+        </span>
+        <span v-else-if="task.is_locked" class="lock-badge" :title="task.locked_reason || 'Task ist gesperrt'">
+          🔒 Gesperrt
+        </span>
       </div>
       <h3 class="task-title">{{ task.title }}</h3>
     </div>
 
     <div class="task-right">
       <button v-if="isTeacher" @click="gradeTask" class="task-btn task-btn-grade" title="Bewertung hinzufügen">📝</button>
+      <button
+        v-if="isStudent"
+        @click="openUploadForTask"
+        class="task-btn"
+        title="Dokument zu diesem Task hochladen"
+      >
+        📎
+      </button>
       <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
     </div>
 
-    <div v-if="subtasks.length > 0" class="subtasks-section">
+    <div v-if="subtasks.length > 0 && canViewTaskStructure" class="subtasks-section">
 
       <button @click="showSubtasks = !showSubtasks" class="toggle-subtasks-btn">
         {{ showSubtasks ? '▼ Subtasks ausblenden' : '▶ Subtasks anzeigen' }} ({{ subtasks.length }})
@@ -87,6 +101,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
 import RuleVisualizer from './RuleVisualizer.vue';
@@ -101,6 +116,7 @@ const props = defineProps({
 const emit = defineEmits(['edit', 'delete', 'toggle-status', 'change-status', 'edit-rule', 'grade']);
 
 const showSubtasks = ref(false);
+const router = useRouter();
 const taskStore = useTaskStore();
 const authStore = useAuthStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
@@ -111,8 +127,21 @@ const isTeacher = computed(() => {
   return roles.includes((authStore.userRole || '').toLowerCase());
 });
 
+const isStudent = computed(() => (authStore.userRole || '').toLowerCase() === 'student');
+const canManageTaskStructure = computed(() => {
+  return isTeacher.value || String(props.task?.created_by) === String(authStore.userId);
+});
+const isTaskAssignedToUser = computed(() => String(props.task?.assigned_to) === String(authStore.userId));
+const isTaskMember = computed(() => {
+  const members = Array.isArray(props.task?.task_members) ? props.task.task_members : [];
+  return members.some((member) => String(member?.user_id) === String(authStore.userId));
+});
+const canViewTaskStructure = computed(() => {
+  return isTeacher.value || canManageTaskStructure.value || isTaskAssignedToUser.value || isTaskMember.value;
+});
+
 const logicFulfilled = computed(() =>
-  taskStore.tasks.find(t => t.task_id === props.task.task_id)?.isLogicFulfilled ?? false
+  taskStore.isLogicFulfilled(props.task.task_id) ?? false
 );
 
 const parsedRule = computed(() => {
@@ -153,6 +182,16 @@ const editRule = () => {
 
 const gradeTask = () => {
   emit('grade', props.task);
+};
+
+const openUploadForTask = () => {
+  const taskId = props.task?.task_id;
+  if (!taskId) return;
+
+  router.push({
+    name: 'DocumentList',
+    query: { taskId: String(taskId) },
+  });
 };
 
 const getStatusColor = (status) => {
@@ -303,10 +342,19 @@ const formatDate = (dateString) => {
 }
 
 .date-badge,
-.progress-badge {
+.progress-badge,
+.lock-badge {
   font-size: 0.75rem;
   white-space: nowrap;
   color: #6b7280;
+}
+
+.lock-badge {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
 .task-title {

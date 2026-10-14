@@ -1,10 +1,44 @@
 \chapter{Anhang}
+\label{ch:anhang}
 
+Dieses Kapitel enthält ergänzende Materialien, die für das Verständnis der Arbeit nicht
+zwingend erforderlich, aber für die Nachvollziehbarkeit einzelner Ergebnisse hilfreich sind.
 
+% ─────────────────────────────────────────────────────────────
 
+\section{Vollständiges Entity-Relationship-Diagramm}
+\label{sec:anhang_erd}
 
+Das folgende Diagramm zeigt das vollständige Entity-Relationship-Diagramm der
+EffSync-Datenbank. Es umfasst alle Tabellen und Beziehungen, von denen in
+Kapitel~\ref{ch:systemarchitektur} und \ref{ch:implementierung_kernfunktionen}
+jeweils nur Ausschnitte dargestellt wurden.
 
+\begin{figure}[p]
+    \centering
+\includegraphics[width=\textwidth, height=\textheight, keepaspectratio]{content/bilder/Untitled.png}
+    \caption{Vollständiges Entity-Relationship-Diagramm von EffSync}
+    \label{fig:erd_vollstaendig}
+\end{figure}
 
+% ─────────────────────────────────────────────────────────────
+\clearpage
+\section{Fragebogen und Rohdaten des Usability-Tests}
+\label{sec:anhang_usability}
 
+Dieser Abschnitt enthält den vollständigen Aufgabenkatalog sowie die erhobenen
+Rohdaten (Bearbeitungszeiten, Beobachtungsnotizen) des in
+Abschnitt~\ref{sec:usability_test} beschriebenen Usability-Tests.
 
+\input{content/usability_test}     
+% ─────────────────────────────────────────────────────────────
+\clearpage
+\section{Auszug aus dem Prisma-Datenbankschema}
+\label{sec:anhang_prisma}
 
+Der folgende Auszug zeigt alle relevanten Modelle aus der Datei \texttt{schema.prisma},
+die das vollständige Datenbankschema von EffSync abbilden.
+
+\input{content/prisma_schema}  % ← TODO ersetzen durch das
+
+% ─────────────────────────────────────────────────────────────

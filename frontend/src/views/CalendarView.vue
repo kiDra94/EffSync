@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { fetchTasks, patchTask } from '@/api/tasks';
 import { fetchAllLessonSlots } from '@/api/lessonSlots';
 import { useTaskStore } from '@/stores/entities/taskStore';
+import { useAuthStore } from '@/stores/authStore';
 import TaskForm from '@/components/tasks/TaskForm.vue';
 
 // 1. STATE
@@ -14,6 +15,7 @@ const viewMode = ref('month');
 const loading = ref(false);
 const error = ref(null);
 const taskStore = useTaskStore();
+const authStore = useAuthStore();
 const selectedTask = ref(null);
 const isModalOpen = ref(false);
 const weekTimetableRef = ref(null);
@@ -43,6 +45,10 @@ const calendarColors = [
     '#1abc9c', '#e67e22', '#34495e', '#c0392b', '#16a085'
 ];
 
+  const isCompletedTask = (task) => String(task?.status || '').toUpperCase() === 'COMPLETED';
+
+  const activeStoreTasks = computed(() => taskStore.tasks.filter((task) => !isCompletedTask(task)));
+
 // Funktion zum Laden der Daten von der API
 const loadCalendarData = async () => {
     loading.value = true;
@@ -50,7 +56,9 @@ const loadCalendarData = async () => {
     try {
         // Lade Tasks
         const tasksData = await fetchTasks();
-        events.value = tasksData.map((task, index) => {
+        events.value = tasksData
+          .filter((task) => !isCompletedTask(task))
+          .map((task, index) => {
             const deadline = task.deadline ? new Date(task.deadline) : new Date();
             const dateStr = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}`;
             return {
@@ -61,7 +69,7 @@ const loadCalendarData = async () => {
                 description: task.description,
                 status: task.status
             };
-        });
+            });
 
         // Lade Lesson Slots
         const lessonsData = await fetchAllLessonSlots();
@@ -203,8 +211,8 @@ const yearMonths = computed(() => {
     };
   });
 
-  const sourceTasks = taskStore.tasks.length > 0
-    ? taskStore.tasks
+  const sourceTasks = activeStoreTasks.value.length > 0
+    ? activeStoreTasks.value
     : events.value.map(event => ({
       task_id: event.id,
       deadline: event.date,
@@ -269,20 +277,16 @@ const calendarDays = computed(() => {
     for (let i = 1; i <= daysInMonth; i++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
-        const dayTasks = taskStore.tasks
-            .filter(task => task.deadline && task.deadline.startsWith(dateStr))
-            .map(task => ({id: task.task_id, title: task.title, color: '#4f46e5', type: 'task' }));
-
         const dayEvents = events.value
             .filter(event => event.date === dateStr)
-            .map(event => ({ ...event, type: 'event' }));
+            .map(event => ({ ...event, type: 'task' }));
         
         days.push({
             day: i,
             fullDate: dateStr,
             isPadding: false,
             isToday: isSameDate(new Date(), year, month, i),
-            events: [...dayTasks, ...dayEvents],
+            events: dayEvents,
         });
     }
 
@@ -317,7 +321,7 @@ const getLessonsForDay = (dayOfWeek) => {
 
 // Tasks für einen bestimmten Tag
 const getTasksForDay = (dateStr) => {
-  return taskStore.tasks
+  return activeStoreTasks.value
     .filter(task => task.deadline && String(task.deadline).startsWith(dateStr))
     .map(task => ({
       id: task.task_id ?? task.id,
@@ -383,8 +387,13 @@ const onDropOnDate = async (targetDateStr) => {
       throw new Error('Ungültige Task-ID beim Verschieben');
     }
 
-    if (matchedTask?.is_locked) {
-      throw new Error('Task ist gesperrt und kann nicht verschoben werden');
+    // Nur blockieren wenn Task gesperrt ist UND der Benutzer nicht der Creator ist
+    // Feature #27: Prüfe STUDENT_SUBMISSION_LOCKED statt globalem is_locked
+    const isCreator = matchedTask?.created_by === authStore.userId;
+    const isStudentSubmissionLocked = matchedTask?.is_student_submission_locked;
+    
+    if (isStudentSubmissionLocked && !isCreator) {
+      throw new Error('Deine Eingabe wurde bewertet - du darfst den Task nicht mehr verschieben bis der Lehrer ein neues Datum setzt');
     }
 
     const sourceDeadline = matchedTask?.deadline
@@ -545,23 +554,11 @@ const dayLable = computed(() => {
 const currentDayEntries = computed(() => {
     const dateStr = currentDayFormated.value.dateStr;
 
-    const dayTasks = taskStore.tasks
-        .filter(task => task.deadline && task.deadline.startsWith(dateStr))
-        .map(task => ({
-            id: task.task_id,
-            title: task.title,
-            deadline: task.deadline,
-            priority_id: task.priority_id,
-            status: task.status, 
-            type: 'task'
-        }));
-    console.log(dayTasks);
-
     const dayEvents = events.value
         .filter(event => event.date === dateStr)
-        .map(event => ({ ...event, type: 'event' }));
+        .map(event => ({ ...event, type: 'task' }));
 
-    return [...dayTasks, ...dayEvents];
+    return dayEvents;
 });
 
 const openTaskModal = (event) => {
@@ -570,7 +567,7 @@ const openTaskModal = (event) => {
   const eventId = event.id ?? event.task_id;
   const task = taskStore.tasks.find(
     (t) => String(t.task_id ?? t.id) === String(eventId)
-  );
+  ) ?? events.value.find((e) => String(e.id) === String(eventId));
 
   if (task) {
     selectedTask.value = task;
@@ -652,8 +649,7 @@ const getTaskStyle = (task, index) => {
     
     const d = new Date(task.deadline);
     const deadlineMins = d.getHours() * 60 + d.getMinutes();
-    const startMins = 0; // 00:00 Uhr
-    console.log(deadlineMins);
+    const startMins = 0;
     let calculatedTop = deadlineMins - startMins - HEADEROFFSET - HEGIHTOFFSET;
     if (calculatedTop < 0) calculatedTop = 0;
     if (calculatedTop > MAXIMALMINS - HEADEROFFSET) calculatedTop = MAXIMALMINS - HEADEROFFSET;

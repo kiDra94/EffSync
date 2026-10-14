@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
@@ -20,6 +20,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
     constructor(
         private readonly jwtService: JwtService,
         private readonly chatRoomsService: ChatRoomsService,
+        @Inject(forwardRef(() => ChatMessagesService))
         private readonly chatMessagesService: ChatMessagesService,
     ) { }
 
@@ -65,7 +66,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayInit, OnG
         this.server.to(`user_${userId}`).emit('task:updated', task);
     }
 
-    emitToUsser(userId: number, event: string, data: any) {
+    emitToUser(userId: number, event: string, data: any) {
         this.server.to(`user_${userId}`).emit(event, data);
     }
 

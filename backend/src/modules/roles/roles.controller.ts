@@ -22,10 +22,7 @@ export class RolesController {
   @UseGuards(PermissionsGuard)
   @Permissions('manage_users')
   async findAll() {
-    console.log('📋 GET /roles - Fetching all roles');
-    const roles = await this.rolesService.findAll();
-    console.log(`  └─ ✅ Returned ${roles.length} roles`);
-    return roles;
+    return this.rolesService.findAll();
   }
 
   /**

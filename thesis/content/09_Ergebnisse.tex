@@ -1,0 +1,79 @@
+\authorchapter{Ergebnisse}{Ereny Micail}
+\label{ch:ergebnisse}
+\authorsection{Projektergebnisse (SOLL-IST Vergleich von EffSync)}{Ereny Micail}
+\label{subsec:projektergebnisse}
+
+In diesem Abschnitt werden die zu Beginn definierten SOLL-Anforderungen den tatsächlich erreichten IST-Ergebnissen gegenübergestellt. Ziel ist es, transparent darzustellen, in welchen Bereichen \textit{EffSync} die geplanten Funktionen vollständig erfüllt, wo teilweise Abweichungen bestehen und welche Ursachen dafür maßgeblich waren. Der SOLL-IST-Vergleich bildet damit die Grundlage für eine fundierte Bewertung des Projekterfolgs. Grundlage sind die vier in Abschnitt~\ref{ch:ausgangslage} definierten SMART-Ziele; Tabelle~\ref{tab:soll_ist} fasst den Vergleich zusammen, die anschließenden Absätze begründen die jeweilige Einstufung anhand der in den Kapiteln~\ref{ch:implementierung_kernfunktionen} und~\ref{ch:testing_quality} beschriebenen Umsetzung.
+
+\begin{table}[H]
+    \centering
+    \caption{SOLL-IST-Vergleich der Projektziele}
+    \label{tab:soll_ist}
+    \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3.2cm}|X|c|}
+        \hline
+        \textbf{Ziel} & \textbf{SOLL} & \textbf{Status} \\
+        \hline
+        Task-Hierarchie &
+        Subtasks in mind.\ 3 Hierarchieebenen; Zirkelbezüge werden serverseitig mit HTTP 400 abgewiesen &
+        \checkmark~erreicht \\
+        \hline
+        Berechtigungslogik &
+        Rollen-/kontextbasierte Prüfungen für Task-Mitglieder- und Chatraum-Verwaltung; unautorisierte Zugriffe werden mit HTTP 403 blockiert &
+        \checkmark~erreicht \\
+        \hline
+        Echtzeit-kommunikation &
+        Funktionsfähiger Live-Chat mit WebSocket-Zustellung in privaten und Gruppenräumen ohne manuelles Neuladen &
+        \checkmark~erreicht \\
+        \hline
+        Automatisierte Qualitätssicherung &
+        Lauffähige Unit- und E2E-Testbasis (\texttt{npm run test}, \texttt{npm run test:e2e}) für Auth, Throttling, Mitgliederverwaltung, Berechtigungen &
+        \checkmark~erreicht \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\paragraph{Task-Hierarchie}
+Das SOLL-Ziel forderte Subtasks über mindestens drei Hierarchieebenen. Die tatsächliche Umsetzung (Abschnitt~\ref{sec:taskverwaltung}) geht darüber hinaus: Über das Feld \texttt{parent\_task\_id} lassen sich beliebig tief verschachtelte Task-Bäume abbilden, deren Nachkommen serverseitig sowohl einzeln (\texttt{collectDescendants}) als auch vollständig in einer Abfrage (\texttt{findeOneWithSubtasks}) geladen werden können. Der geforderte Schutz vor Zirkelbezügen wurde über die Methode \texttt{validateNoCircularReference} umgesetzt, die bei einem erkannten Zyklus eine \texttt{BadRequestException} (HTTP 400) auslöst. Das Ziel gilt damit als vollständig erreicht und in der Tiefe der Hierarchie sogar übertroffen.
+
+\paragraph{Berechtigungslogik}
+Für die Task-Mitgliederverwaltung wurde ein kontextabhängiges Rechtemodell mit den Flags \texttt{READ}, \texttt{WRITE} und \texttt{EXECUTE} implementiert (Abschnitt~\ref{sec:rollen_berechtigungen}); unautorisierte Änderungen an Mitgliedschaften werden konsistent mit HTTP 403 abgelehnt. Für die Chatraum-Verwaltung stellt die serverseitige Prüfung \texttt{assertIsCreator} sicher, dass ausschließlich der Ersteller eines Gruppenraums andere Mitglieder entfernen kann; unzulässige Versuche lösen ebenfalls eine \texttt{ForbiddenException} (HTTP 403) aus. Beide im Ziel genannten Module sind damit vollständig abgesichert.
+
+\paragraph{Echtzeitkommunikation}
+Die Chat-Funktion wurde vollständig über WebSockets (NestJS-Gateways) realisiert und verteilt neue Nachrichten per Push-Mechanismus an alle verbundenen Clients eines Raums, ohne dass ein manuelles Neuladen erforderlich ist (Abschnitt~\ref{sec:live_chat}). Die Funktionsfähigkeit wurde zusätzlich im Rahmen des Cross-Browser-Chat-Tests (Abschnitt~\ref{sec:usability_test}) verifiziert: Nachrichten wurden in beide Richtungen zugestellt, gleichzeitiges Senden korrekt verarbeitet, der Verlauf blieb nach einem Reload erhalten und Reihenfolge sowie Zeitstempel waren konsistent. Das Ziel gilt damit sowohl technisch als auch empirisch als erreicht.
+
+\paragraph{Automatisierte Qualitätssicherung}
+Wie in Abschnitt~\ref{sec:unit_tests} beschrieben, existiert eine Unit-Testbasis auf Basis von Jest (Backend) und Vitest (Frontend), die für sicherheitskritische Bereiche wie Authentifizierung und Autorisierungs-Guards eine Testabdeckung von über 90\,\% anstrebt. Ergänzend sichert die in Abschnitt~\ref{sec:e2e_tests} beschriebene E2E-Testsuite (\texttt{npm run test:e2e}) zentrale Abläufe wie Auth, Throttling (Rate-Limiting bei Registrierung) sowie die Berechtigungsauflösung auf Task-Ebene über reale HTTP-Aufrufe ab. Damit ist auch dieses Ziel vollständig erfüllt.
+
+\paragraph{Zusammenfassung}
+Alle vier für das aktuelle Semester definierten SMART-Ziele wurden erreicht, teilweise -- wie bei der Tiefe der Task-Hierarchie -- sogar übertroffen. Die in Abschnitt~\ref{ch:ausgangslage} formulierte Abgrenzung (native Mobile-Apps, Mandantenfähigkeit, horizontale Hochskalierung, vollständige Offline-Funktionalität) wurde bewusst nicht bearbeitet und bleibt, wie dort festgelegt, außerhalb des Projektumfangs.
+
+\authorsection{Praktischer Mehrwert}{Ereny Micail}
+\label{subsec:praktischer-mehrwert}
+
+\textit{EffSync} bietet den Zielgruppen einen konkreten praktischen Mehrwert, indem zentrale Arbeitsabläufe digital unterstützt, strukturiert und nachvollziehbar gemacht werden. Die Software reduziert manuellen Aufwand, verbessert die Transparenz von Prozessen und erleichtert die Zusammenarbeit zwischen Beteiligten. Dadurch können Aufgaben effizienter bearbeitet, Fehlerquellen verringert und Entscheidungen auf Basis konsistenter Informationen getroffen werden. Dieser Mehrwert ergibt sich aus der in Abschnitt~\ref{ch:projektbeschreibung} beschriebenen Zusammenführung von Aufgabenverwaltung und Echtzeitkommunikation auf einer einzigen Plattform und lässt sich getrennt nach den beiden definierten Zielgruppen betrachten.
+
+\paragraph{}Für die Zielgruppe \textbf{Schulen} (Schülerinnen, Schüler und Lehrpersonen) reduziert \textit{EffSync} den in der Einleitung beschriebenen Context-Switching-Effekt: Aufgabenstellung, Abgabefristen und projektbezogene Absprachen liegen an einem Ort, sodass Rückfragen zu einer Aufgabe direkt im fachlichen Kontext geklärt werden können, statt über einen separaten Messenger. Das differenzierte Rollenkonzept (Superuser, Admin, Teacher, Student) stellt dabei sicher, dass Lehrpersonen den Überblick über den Bearbeitungsstand ganzer Klassen behalten, während Schüler nur auf die für sie relevanten Aufgaben und Chats zugreifen. Die im Usability-Test (Abschnitt~\ref{sec:usability_test}) gemessenen kurzen Bearbeitungszeiten für Kernabläufe wie das Auffinden von Aufgaben und Abgabefristen deuten darauf hin, dass sich die Einarbeitungszeit für diese Zielgruppe in einem für den Schulalltag praktikablen Rahmen bewegt.
+
+\paragraph{}Für die Zielgruppe kleine bis mittelgroße Unternehmen liegt der Mehrwert insbesondere
+in der Kombination aus professionellem Sicherheitskonzept (u. a. Zwei-Faktor-Authentifizierung,
+Audit-Log) und DSGVO-konformer Datenhaltung mit der gleichen nativen Echtzeitkommu-
+nikation, die im schulischen Kontext genutzt wird. Im Unterschied zu etablierten Werkzeugen
+wie Jira oder Trello, die Kommunikation meist nur über Kommentarfunktionen oder externe
+Power-Ups anbinden, verknüpft EffSync Aufgaben und Chat nativ in einem Datenmodell.
+Dadurch bleibt der fachliche Bezug zwischen einer Diskussion und der zugehörigen Aufgabe
+dauerhaft nachvollziehbar, was insbesondere bei der nachträglichen Klärung von Verantwort-
+lichkeiten einen Mehrwert gegenüber einer über mehrere Tools verteilten Lösung darstellt.
+Ein weiteres Alleinstellungsmerkmal gegenüber diesen Werkzeugen ist die Abbildbarkeit
+komplexer Abhängigkeiten innerhalb der Task-Hierarchie: Während Jira oder Trello Sub-
+tasks im Wesentlichen nur als unabhängige Teilschritte einer übergeordneten Aufgabe ab-
+bilden, erlaubt EffSync die Verknüpfung von Tasks und Subtasks über logische Operatoren
+(\textit{AND}, \textit{OR}, \textit{XOR}). Dadurch lassen sich reale Abhängigkeitsstrukturen --
+etwa \glqq{}Aufgabe~B kann erst begonnen werden, wenn entweder Aufgabe~A~1 \textit{oder}
+Aufgabe~A~2 abgeschlossen ist\grqq{} -- direkt im System modellieren, anstatt sie nur informell
+in Beschreibungstexten festzuhalten.
+
+Über beide Zielgruppen hinweg liegt der zentrale Mehrwert von EffSync somit weniger in
+einzelnen Funktionen als in deren Integration: Die belastbare, um logische Abhängigkeiten
+erweiterte Task-Hierarchie, die kontextbasierte Berechtigungslogik und die native Echtzeit-
+kommunikation greifen so ineinander, dass Nutzer für ihre tägliche Projektarbeit nicht mehr
+zwischen mehreren getrennten Anwendungen wechseln müssen.

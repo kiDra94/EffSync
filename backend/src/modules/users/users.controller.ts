@@ -47,12 +47,7 @@ export class UsersController {
    */
   @Get("profile")
   getProfile(@Req() req) {
-    console.log('👤 Profile endpoint - returning req.user:', req.user);
-    // req.user enthält bereits: id, userId, username, role (von JwtStrategy)
-    return {
-      ...req.user,
-      // Zusätzliche Felder können hier hinzugefügt werden
-    };
+    return { ...req.user };
   }
 
   /**
@@ -78,6 +73,15 @@ export class UsersController {
   @Permissions('manage_users')
   async getUserPermissions(@Param("id") id: string) {
     return this.usersService.getUserPermissionsAndRoles(+id);
+  }
+
+  /**
+   * GET /users/for-chat
+   * Holt alle User mit minimalen Infos für den Chat (nur JWT erforderlich).
+   */
+  @Get('for-chat')
+  findAllForChat() {
+    return this.usersService.findAllForChat();
   }
 
   /**
@@ -208,10 +212,7 @@ export class UsersController {
     @Param('id') userId: string,
     @Body() dto: { role_id: number }
   ) {
-    console.log(`🔗 POST /users/:id/roles - userId=${userId}, roleId=${dto.role_id}`);
-    const result = await this.usersService.addRoleToUser(+userId, dto.role_id);
-    console.log(`  └─ ✅ Role assigned`);
-    return result;
+    return this.usersService.addRoleToUser(+userId, dto.role_id);
   }
 
   /**

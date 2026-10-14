@@ -1,19 +1,35 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ChatMessagesController } from "./chat-messages.controller";
 import { ChatMessagesService } from "./chat-messages.service";
-import { PrismaService } from "src/prisma/prisma.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
 describe("ChatMessagesController", () => {
   let controller: ChatMessagesController;
+
+  const mockChatMessagesService = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatMessagesController],
       providers: [
-        ChatMessagesService,
-        { provide: PrismaService, useValue: {} },
+        {
+          provide: ChatMessagesService,
+          useValue: mockChatMessagesService,
+        },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ChatMessagesController>(ChatMessagesController);
   });

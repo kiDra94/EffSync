@@ -40,7 +40,7 @@ const taskStatusClass = computed(() => {
 });
 
 const taskStatusIcon = computed(() => {
-  if (props.rule.type !== 'task') return '';
+    if (props.rule.type !== 'leaf') return '';
   const status = getTaskStatus(props.rule.task_id);
   const icons = {
     TODO: '○',

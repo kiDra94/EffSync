@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -23,34 +24,42 @@ import { Permissions } from "../auth/decorators/permissions.decorator";
 export class NotesController {
   constructor(private readonly notesService: NotesService) { }
 
+  private getUserId(req: any): number {
+    const userId = req?.user?.userId ?? req?.user?.id;
+    if (!userId) {
+      throw new BadRequestException('Missing authenticated user id');
+    }
+    return userId;
+  }
+
   @Post()
   @Permissions()
   create(@Body() createNoteDto: CreateNoteDto, @Req() req) {
-    return this.notesService.create(createNoteDto, req.user.userId);
+    return this.notesService.create(createNoteDto, this.getUserId(req));
   }
 
   @Get()
   @Permissions()
   findAll(@Req() req, @Query('subject_id') subjectId?: string) {
     const parsedId = subjectId ? parseInt(subjectId, 10) : undefined;
-    return this.notesService.findAll(req.user.userId, parsedId);
+    return this.notesService.findAll(this.getUserId(req), parsedId);
   }
 
   @Get(":id")
   @Permissions()
-  findOne(@Param("id", ParseIntPipe) noteId: number) {
-    return this.notesService.findOne(noteId);
+  findOne(@Param("id", ParseIntPipe) noteId: number, @Req() req) {
+    return this.notesService.findOne(noteId, this.getUserId(req));
   }
 
   @Patch(":id")
   @Permissions()
   update(@Param("id", ParseIntPipe) noteId: number, @Req() req, @Body() updateNoteDto: UpdateNoteDto) {
-    return this.notesService.update(noteId, req.user.userId, updateNoteDto);
+    return this.notesService.update(noteId, this.getUserId(req), updateNoteDto);
   }
 
   @Delete(":id")
   @Permissions()
   remove(@Param("id", ParseIntPipe) noteId: number, @Req() req) {
-    return this.notesService.remove(noteId, req.user.userId);
+    return this.notesService.remove(noteId, this.getUserId(req));
   }
 }

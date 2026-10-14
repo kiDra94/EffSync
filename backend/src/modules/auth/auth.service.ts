@@ -14,12 +14,25 @@ export class AuthService {
   async register(createUserDto: CreateUserDto) {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const { password, ...userWithoutPassword } = createUserDto;
-    return await this.prisma.users.create({
+    const user = await this.prisma.users.create({
       data: {
         ...userWithoutPassword,
         password_hash: hashedPassword,
       },
     });
+
+    // Assign default role: Student (role_id=2)
+    try {
+      const studentRole = await this.prisma.roles.findFirst({ where: { name: { in: ['Student', 'student'] } } });
+      const roleId = studentRole?.role_id ?? 2;
+      await this.prisma.user_roles.create({
+        data: { user_id: user.user_id, role_id: roleId },
+      });
+    } catch (error) {
+      console.error('Failed to assign default role during registration:', error);
+    }
+
+    return user;
   }
 
   async login(LoginDto: LoginDto) {
@@ -64,9 +77,26 @@ export class AuthService {
     };
   }
 
+  async generateJwtFromGoogleUser(googleUser: any) {
+    const payload = {
+      sub: googleUser.userId,
+      username: googleUser.username,
+      role: googleUser.role,
+    };
+    return this.jwtService.sign(payload);
+  }
+
   async validateUser(userId: number) {
     return await this.prisma.users.findUnique({
       where: { user_id: userId },
+    });
+  }
+
+  async setNewPassword(userId: number, newPassword: string) {
+    const hashed = await bcrypt.hash(newPassword, 10);
+    return await this.prisma.users.update({
+      where: { user_id: userId },
+      data: { password_hash: hashed },
     });
   }
 }

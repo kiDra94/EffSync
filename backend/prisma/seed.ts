@@ -21,7 +21,7 @@ async function main() {
     try {
         // --- CLEANUP ---
         const tableNames = [
-            'email_logs', 'email_preferences', 'task_comments', 'task_activity_log', 'task_documents',
+            'email_logs', 'email_preferences', 'comments', 'task_comments', 'task_activity_log', 'task_documents', 'task_members',
             'chat_messages', 'chat_room_users', 'chat_rooms', 'document_shares', 'note_documents',
             'notes_users', 'notes', 'documents', 'tasks', 'task_templates',
             'lesson_slots', 'classes_teachers', 'students', 'classes', 'user_roles',
@@ -60,7 +60,7 @@ async function main() {
             { name: 'manage_users', description: 'Benutzer verwalten', flags: 7 },                  // RWX
             { name: 'create_tasks', description: 'Aufgaben erstellen', flags: 7 },                  // RWX
             { name: 'edit_tasks', description: 'Aufgaben bearbeiten', flags: 6 },                   // RW
-            { name: 'delete_tasks', description: 'Aufgaben löschen', flags: 1 },                    // X
+            { name: 'delete_tasks', description: 'Aufgaben löschen', flags: 5 },                    // RX
             { name: 'view_grades', description: 'Noten einsehen', flags: 4 },                       // READ
             { name: 'edit_grades', description: 'Noten eintragen', flags: 6 },                      // RW
             { name: 'manage_classes', description: 'Klassen verwalten', flags: 7 },                 // RWX
@@ -121,28 +121,32 @@ async function main() {
         const passwordHash = await bcrypt.hash('password123', 10);
 
         const usersData = [
-            { firstname: 'Max', lastname: 'Mustermann', email: 'admin@htl.at', username: 'adminadmin' }, // ID 1 (Superuser)
-            { firstname: 'Anna', lastname: 'Lehrerin', email: 'anna.lehrerin@htl.at', username: 'alehrerin' }, // ID 2
-            { firstname: 'Peter', lastname: 'Schmidt', email: 'peter.schmidt@htl.at', username: 'pschmidt' }, // ID 3
-            { firstname: 'Maria', lastname: 'Huber', email: 'maria.huber@htl.at', username: 'mhuber' }, // ID 4
-            { firstname: 'Lukas', lastname: 'Wagner', email: 'lukas.wagner@htl.at', username: 'lwagner' }, // ID 5
-            { firstname: 'Julia', lastname: 'Bauer', email: 'julia.bauer@htl.at', username: 'jbauer' }, // ID 6
-            { firstname: 'Felix', lastname: 'Fuchs', email: 'felix.fuchs@student.htl.at', username: 'ffuchs' }, // ID 7 (Student)
-            { firstname: 'Laura', lastname: 'Gruber', email: 'laura.gruber@student.htl.at', username: 'lgruber' }, // ID 8
-            { firstname: 'David', lastname: 'Wolf', email: 'david.wolf@student.htl.at', username: 'dwolf' }, // ID 9
-            { firstname: 'Sarah', lastname: 'Schwaiger', email: 'sarah.schwaiger@student.htl.at', username: 'sschwaiger' }, // ID 10
-            { firstname: 'Tobias', lastname: 'Eder', email: 'tobias.eder@student.htl.at', username: 'teder' }, // ID 11
-            { firstname: 'Lena', lastname: 'Moser', email: 'lena.moser@student.htl.at', username: 'lmoser' }, // ID 12
-            { firstname: 'Simon', lastname: 'Pichler', email: 'simon.pichler@student.htl.at', username: 'spichler' }, // ID 13
-            { firstname: 'Mia', lastname: 'Steiner', email: 'mia.steiner@student.htl.at', username: 'msteiner' }, // ID 14
-            { firstname: 'Paul', lastname: 'Wallner', email: 'paul.wallner@student.htl.at', username: 'pwallner' }, // ID 15
-            { firstname: 'Emma', lastname: 'Auer', email: 'emma.auer@student.htl.at', username: 'eauer' } // ID 16
-        ].map(u => ({ ...u, password_hash: passwordHash }));
+            { firstname: 'Max', lastname: 'Mustermann', email: 'admin@htl.at', username: 'adminadmin', password_hash: passwordHash }, // ID 1 (Superuser)
+            { firstname: 'Anna', lastname: 'Lehrerin', email: 'anna.lehrerin@htl.at', username: 'alehrerin', password_hash: passwordHash }, // ID 2
+            { firstname: 'Peter', lastname: 'Schmidt', email: 'peter.schmidt@htl.at', username: 'pschmidt', password_hash: passwordHash }, // ID 3
+            { firstname: 'Maria', lastname: 'Huber', email: 'maria.huber@htl.at', username: 'mhuber', password_hash: passwordHash }, // ID 4
+            { firstname: 'Lukas', lastname: 'Wagner', email: 'lukas.wagner@htl.at', username: 'lwagner', password_hash: passwordHash }, // ID 5
+            { firstname: 'Julia', lastname: 'Bauer', email: 'julia.bauer@htl.at', username: 'jbauer', password_hash: passwordHash }, // ID 6
+            { firstname: 'Felix', lastname: 'Fuchs', email: 'felix.fuchs@student.htl.at', username: 'ffuchs', password_hash: passwordHash }, // ID 7 (Student)
+            { firstname: 'Laura', lastname: 'Gruber', email: 'laura.gruber@student.htl.at', username: 'lgruber', password_hash: passwordHash }, // ID 8
+            { firstname: 'David', lastname: 'Wolf', email: 'david.wolf@student.htl.at', username: 'dwolf', password_hash: passwordHash }, // ID 9
+            { firstname: 'Sarah', lastname: 'Schwaiger', email: 'sarah.schwaiger@student.htl.at', username: 'sschwaiger', password_hash: passwordHash }, // ID 10
+            { firstname: 'Tobias', lastname: 'Eder', email: 'tobias.eder@student.htl.at', username: 'teder', password_hash: passwordHash }, // ID 11
+            { firstname: 'Lena', lastname: 'Moser', email: 'lena.moser@student.htl.at', username: 'lmoser', password_hash: passwordHash }, // ID 12
+            { firstname: 'Simon', lastname: 'Pichler', email: 'simon.pichler@student.htl.at', username: 'spichler', password_hash: passwordHash }, // ID 13
+            { firstname: 'Mia', lastname: 'Steiner', email: 'mia.steiner@student.htl.at', username: 'msteiner', password_hash: passwordHash }, // ID 14
+            { firstname: 'Paul', lastname: 'Wallner', email: 'paul.wallner@student.htl.at', username: 'pwallner', password_hash: passwordHash }, // ID 15
+            { firstname: 'Emma', lastname: 'Auer', email: 'emma.auer@student.htl.at', username: 'eauer', password_hash: passwordHash }, // ID 16
+            // Google OAuth Test Users (keine password_hash)
+            { firstname: 'Google', lastname: 'Testuser', email: 'test@gmail.com', username: 'test@gmail.com', google_id: '123456789012345678901', password_hash: null }, // ID 17
+            { firstname: 'Max', lastname: 'Mustermann', email: 'max.mustermann@gmail.com', username: 'max.mustermann@gmail.com', google_id: '123456789012345678902', password_hash: null }, // ID 18
+            { firstname: 'Demo', lastname: 'User', email: 'demo.user@gmail.com', username: 'demo.user@gmail.com', google_id: '123456789012345678903', password_hash: null } // ID 19
+        ];
 
         await prisma.users.createMany({ data: usersData });
-        console.log(`✓ ${usersData.length} Einträge in users erstellt`);
+        console.log(`✓ ${usersData.length} Einträge in users erstellt (davon 3 mit Google OAuth)`);
 
-        const emailPreferencesData = Array.from({ length: 16 }).map((_, i) => ({
+        const emailPreferencesData = Array.from({ length: 19 }).map((_, i) => ({
             user_id: i + 1,
             email_on_deadline: true,
             email_on_mention: true,
@@ -151,7 +155,7 @@ async function main() {
             digest_frequency: 'weekly'
         }));
         await prisma.email_preferences.createMany({ data: emailPreferencesData });
-        console.log(`✓ 16 Einträge in email_preferences erstellt`);
+        console.log(`✓ ${emailPreferencesData.length} Einträge in email_preferences erstellt`);
 
         // --- PHASE 3: Teachers, Students ---
         const teachersData = [
@@ -164,12 +168,12 @@ async function main() {
         await prisma.teachers.createMany({ data: teachersData });
         console.log(`✓ 5 Einträge in teachers erstellt`);
 
-        const studentsData = Array.from({ length: 10 }).map((_, i) => ({
+        const studentsData = Array.from({ length: 13 }).map((_, i) => ({
             student_id: i + 7,
             class_id: null // Wird nach Erstellung der Klassen geupdated
         }));
         await prisma.students.createMany({ data: studentsData });
-        console.log(`✓ 10 Einträge in students erstellt`);
+        console.log(`✓ 13 Einträge in students erstellt (inkl. Google OAuth User)`);
 
         // --- PHASE 4: Classes, Roles & Permissions ---
         const classesData = [
@@ -188,7 +192,7 @@ async function main() {
         console.log(`✓ 10 Einträge in classes erstellt`);
 
         // Update Students with class_ids (aufteilen auf die ersten 5 Klassen)
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 13; i++) {
             await prisma.students.update({
                 where: { student_id: i + 7 },
                 data: { class_id: (i % 5) + 1 }
@@ -196,7 +200,7 @@ async function main() {
         }
 
         const userRolesData = [
-            // User 1: Todos Rollen (Superuser mit allen Rollen)
+            // User 1: Superuser-Rolle (deckt alle Superuser-Rechte ab)
             { user_id: 1, role_id: 1 },  // Superuser
             // User 2-6: Teachers
             { user_id: 2, role_id: 3 },
@@ -205,10 +209,14 @@ async function main() {
             { user_id: 5, role_id: 3 },
             { user_id: 6, role_id: 3 },
             // User 7-16: Students
-            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 }))
+            ...Array.from({ length: 10 }).map((_, i) => ({ user_id: i + 7, role_id: 2 })),
+            // User 17-19: Google OAuth Test Users (Students)
+            { user_id: 17, role_id: 2 },  // test@gmail.com -> Student
+            { user_id: 18, role_id: 2 },  // max.mustermann@gmail.com -> Student
+            { user_id: 19, role_id: 2 }   // demo.user@gmail.com -> Student
         ];
         await prisma.user_roles.createMany({ data: userRolesData });
-        console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt`);
+        console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt (inkl. Google OAuth User)`);
 
         // === ERWEITERTE USER-PERMISSIONS MIT VERSCHIEDENEN TESTSZENARIEN ===
         
@@ -430,7 +438,7 @@ async function main() {
             {
                 title: 'Sportfest',
                 description: 'Schulinternes Sportfest - Anmeldung erforderlich',
-                status: task_status.TODO,
+                status: task_status.ON_HOLD,
                 progress: 0,
                 created_by: 2,
                 assigned_to: 10,
@@ -442,8 +450,8 @@ async function main() {
             {
                 title: 'Chemie Versuchsprotokoll',
                 description: 'Laborversuch dokumentieren und analysieren',
-                status: task_status.TODO,
-                progress: 0,
+                status: task_status.IN_REVIEW,
+                progress: 85,
                 created_by: 2,
                 assigned_to: 11,
                 template_id: 5,
@@ -490,8 +498,8 @@ async function main() {
             {
                 title: 'Bio Test (Vergangenheit)',
                 description: 'Bereits abgelaufene Aufgabe',
-                status: task_status.COMPLETED,
-                progress: 100,
+                status: task_status.IN_PROGRESS,
+                progress: 40,
                 created_by: 2,
                 assigned_to: 15,
                 template_id: 9,
@@ -517,8 +525,8 @@ async function main() {
             parent_task_id: i + 1,
             title: `Teilaufgabe ${i + 1}`,
             description: `Teilschritt für Aufgabe ${i + 1}`,
-            status: task_status.TODO,
-            progress: 0,
+            status: i % 3 === 0 ? task_status.COMPLETED : i % 3 === 1 ? task_status.IN_PROGRESS : task_status.TODO,
+            progress: i % 3 === 0 ? 100 : i % 3 === 1 ? 45 : 0,
             created_by: 2,
             assigned_to: i + 7,
             priority_id: 3
@@ -626,6 +634,35 @@ async function main() {
             data: { parent_task_id: extraParent.task_id }
         });
 
+        // Task-Mitgliedschaften für realistische Berechtigungs-/Sichtbarkeitstests
+        const baseTaskMembersData = Array.from({ length: 20 }).flatMap((_, i) => {
+            const taskId = i + 1;
+            const assignedUserId = i < 10 ? i + 7 : i - 3; // Tasks 1-10 => 7..16, Tasks 11-20 => 7..16
+            return [
+                { task_id: taskId, user_id: 2 },
+                { task_id: taskId, user_id: assignedUserId },
+            ];
+        });
+
+        const extraTaskMembersData = [
+            { task_id: extraParent.task_id, user_id: 2 },
+            { task_id: extraParent.task_id, user_id: 7 },
+            { task_id: extraSub1.task_id, user_id: 2 },
+            { task_id: extraSub1.task_id, user_id: 7 },
+            { task_id: extraSub2.task_id, user_id: 2 },
+            { task_id: extraSub2.task_id, user_id: 7 },
+            { task_id: extraSub3.task_id, user_id: 2 },
+            { task_id: extraSub3.task_id, user_id: 7 },
+            { task_id: extraSub4.task_id, user_id: 2 },
+            { task_id: extraSub4.task_id, user_id: 7 },
+        ];
+
+        await prisma.task_members.createMany({
+            data: [...baseTaskMembersData, ...extraTaskMembersData],
+            skipDuplicates: true,
+        });
+        console.log(`✓ ${baseTaskMembersData.length + extraTaskMembersData.length} Einträge in task_members erstellt`);
+
         console.log(`✓ Extra Task "Server aufsetzen" mit completion_rule erstellt (ID: ${extraParent.task_id})`);
 
         // --- PHASE 7: Notes, Documents, Chat Rooms ---
@@ -639,13 +676,70 @@ async function main() {
         await prisma.notes.createMany({ data: notesData });
         console.log(`✓ 10 Einträge in notes erstellt`);
 
-        const documentsData = Array.from({ length: 10 }).map((_, i) => ({
-            name: `Skriptum_Teil${i + 1}.pdf`,
-            file_path: `/uploads/docs/skriptum_${i + 1}.pdf`,
-            file_size: 1024 * (i + 1),
-            mime_type: 'application/pdf',
-            added_by: 2
-        }));
+        const documentsData = [
+            // Unterrichtsmaterialien (Lehrer)
+            { name: 'Skriptum_Teil1.pdf', file_path: '/uploads/docs/skriptum_1.pdf', file_size: 1024, mime_type: 'application/pdf', added_by: 2 },
+            { name: 'Skriptum_Teil2.pdf', file_path: '/uploads/docs/skriptum_2.pdf', file_size: 2048, mime_type: 'application/pdf', added_by: 2 },
+            { name: 'Skriptum_Teil3.pdf', file_path: '/uploads/docs/skriptum_3.pdf', file_size: 3072, mime_type: 'application/pdf', added_by: 2 },
+            { name: 'Skriptum_Teil4.pdf', file_path: '/uploads/docs/skriptum_4.pdf', file_size: 4096, mime_type: 'application/pdf', added_by: 2 },
+            { name: 'Skriptum_Teil5.pdf', file_path: '/uploads/docs/skriptum_5.pdf', file_size: 5120, mime_type: 'application/pdf', added_by: 2 },
+            // Schülerabgaben (teilweise bewertet)
+            {
+                name: 'abgabe_felix_task1.pdf',
+                file_path: '/uploads/submissions/abgabe_felix_task1.pdf',
+                file_size: 1890,
+                mime_type: 'application/pdf',
+                added_by: 7,
+                grade: 'Sehr gut',
+                feedback: 'Saubere Lösung und gut dokumentiert.',
+                graded_by: 2,
+                graded_at: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000),
+            },
+            {
+                name: 'abgabe_laura_task2.pdf',
+                file_path: '/uploads/submissions/abgabe_laura_task2.pdf',
+                file_size: 1750,
+                mime_type: 'application/pdf',
+                added_by: 8,
+                grade: 'Gut',
+                feedback: 'Inhalt passt, bitte auf Formatierung achten.',
+                graded_by: 2,
+                graded_at: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
+            },
+            {
+                name: 'abgabe_david_task3.pdf',
+                file_path: '/uploads/submissions/abgabe_david_task3.pdf',
+                file_size: 2130,
+                mime_type: 'application/pdf',
+                added_by: 9,
+                grade: null,
+                feedback: null,
+                graded_by: null,
+                graded_at: null,
+            },
+            {
+                name: 'abgabe_sarah_task4.pdf',
+                file_path: '/uploads/submissions/abgabe_sarah_task4.pdf',
+                file_size: 2010,
+                mime_type: 'application/pdf',
+                added_by: 10,
+                grade: null,
+                feedback: null,
+                graded_by: null,
+                graded_at: null,
+            },
+            {
+                name: 'abgabe_tobias_task5.pdf',
+                file_path: '/uploads/submissions/abgabe_tobias_task5.pdf',
+                file_size: 1980,
+                mime_type: 'application/pdf',
+                added_by: 11,
+                grade: 'Befriedigend',
+                feedback: 'Grundidee korrekt, Details nachschärfen.',
+                graded_by: 2,
+                graded_at: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000),
+            },
+        ];
         await prisma.documents.createMany({ data: documentsData });
         console.log(`✓ 10 Einträge in documents erstellt`);
 
@@ -743,10 +837,18 @@ async function main() {
         await prisma.chat_messages.createMany({ data: chatMessagesData });
         console.log(`✓ ${chatMessagesData.length} Einträge in chat_messages erstellt`);
 
-        const documentSharesData = Array.from({ length: 10 }).map((_, i) => ({
-            document_id: i + 1,
-            user_id: i + 7
-        }));
+        const documentSharesData = [
+            { document_id: 1, user_id: 7 },
+            { document_id: 1, user_id: 8 },
+            { document_id: 2, user_id: 9 },
+            { document_id: 2, user_id: 10 },
+            { document_id: 3, user_id: 11 },
+            { document_id: 4, user_id: 12 },
+            { document_id: 5, user_id: 13 },
+            { document_id: 5, user_id: 14 },
+            { document_id: 5, user_id: 15 },
+            { document_id: 5, user_id: 16 },
+        ];
         await prisma.document_shares.createMany({ data: documentSharesData });
         console.log(`✓ 10 Einträge in document_shares erstellt`);
 
@@ -764,14 +866,31 @@ async function main() {
         await prisma.notes_users.createMany({ data: notesUsersData });
         console.log(`✓ 10 Einträge in notes_users erstellt`);
 
-        const notificationsData = Array.from({ length: 10 }).map((_, i) => ({
-            user_id: i + 7,
-            type: 'TASK_ASSIGNED',
-            text: `Dir wurde die Aufgabe ${i + 1} zugewiesen.`,
-            is_read: i % 2 === 0
-        }));
+        const notificationsData = [
+            { user_id: 7, type: 'TASK_ASSIGNED', text: 'Dir wurde die Aufgabe „Mathe Test“ zugewiesen.', is_read: false },
+            { user_id: 8, type: 'TASK_ASSIGNED', text: 'Dir wurde die Aufgabe „Englisch Vokabeln“ zugewiesen.', is_read: true },
+            { user_id: 9, type: 'TASK_REVIEW', text: 'Deine Abgabe zu „Informatik Projekt“ wartet auf Bewertung.', is_read: false },
+            { user_id: 10, type: 'TASK_ON_HOLD', text: 'Die Aufgabe „Sportfest“ wurde pausiert.', is_read: false },
+            { user_id: 11, type: 'TASK_PROGRESS', text: 'Status von „Chemie Versuchsprotokoll“: In Review.', is_read: true },
+            { user_id: 12, type: 'TASK_ASSIGNED', text: 'Dir wurde die Aufgabe „Deutsch Referat“ zugewiesen.', is_read: false },
+            { user_id: 13, type: 'TASK_ASSIGNED', text: 'Dir wurde die Aufgabe „Historieprojekt“ zugewiesen.', is_read: true },
+            { user_id: 14, type: 'TASK_DONE', text: 'Aufgabe „PhysikVerstehen Übungen“ wurde abgeschlossen.', is_read: true },
+            { user_id: 15, type: 'TASK_OVERDUE', text: 'Aufgabe „Bio Test (Vergangenheit)“ ist überfällig.', is_read: false },
+            { user_id: 16, type: 'TASK_ASSIGNED', text: 'Dir wurde die Aufgabe „GW Exkursion“ zugewiesen.', is_read: false },
+        ];
         await prisma.notifications.createMany({ data: notificationsData });
         console.log(`✓ 10 Einträge in notifications erstellt`);
+
+        const commentsData = [
+            { task_id: 1, created_by: 2, content: 'Bitte bis morgen die Übungsbeispiele 1-10 lösen.' },
+            { task_id: 1, created_by: 7, content: 'Verstanden, ich lade die Lösung heute Abend hoch.' },
+            { task_id: 3, created_by: 9, content: 'Kann ich für die API auch Fastify verwenden?' },
+            { task_id: 3, created_by: 2, content: 'Ja, aber dokumentiere die Entscheidung kurz im README.' },
+            { task_id: 5, created_by: 11, content: 'Versuchsaufbau ist fertig, Protokoll folgt.' },
+            { task_id: extraParent.task_id, created_by: 7, content: 'Nginx und SSL sind erledigt, ich arbeite an Docker.' },
+        ];
+        await prisma.comments.createMany({ data: commentsData });
+        console.log(`✓ ${commentsData.length} Einträge in comments erstellt`);
 
         const taskActivityLogData = Array.from({ length: 10 }).map((_, i) => ({
             task_id: i + 1,
@@ -789,10 +908,18 @@ async function main() {
         await prisma.task_comments.createMany({ data: taskCommentsData });
         console.log(`✓ 10 Einträge in task_comments erstellt`);
 
-        const taskDocumentsData = Array.from({ length: 10 }).map((_, i) => ({
-            task_id: i + 1,
-            document_id: i + 1
-        }));
+        const taskDocumentsData = [
+            { task_id: 1, document_id: 1 },
+            { task_id: 1, document_id: 6 },
+            { task_id: 2, document_id: 2 },
+            { task_id: 2, document_id: 7 },
+            { task_id: 3, document_id: 3 },
+            { task_id: 3, document_id: 8 },
+            { task_id: 4, document_id: 4 },
+            { task_id: 4, document_id: 9 },
+            { task_id: 5, document_id: 5 },
+            { task_id: 5, document_id: 10 },
+        ];
         await prisma.task_documents.createMany({ data: taskDocumentsData });
         console.log(`✓ 10 Einträge in task_documents erstellt`);
 

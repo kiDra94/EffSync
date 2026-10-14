@@ -1,0 +1,51 @@
+\authorchapter{Einleitung}{Ereny Micail}
+
+Wer kennt das nicht: In der Schule oder im Team läuft alles über verschiedene Apps.
+Aufgaben hier, Nachrichten dort, Dateien woanders.
+Nach ein paar Wochen weiß keiner mehr, was Sache ist.
+Das nennt man \textit{Context Switching} -- und es kostet nicht nur Zeit, sondern
+sorgt auch dafür, dass Infos verloren gehen und keiner mehr weiß, wer für was
+zuständig ist.
+
+Genau das wollten wir mit \textit{EffSync} lösen.
+\textit{EffSync} ist eine Webanwendung, die Aufgabenverwaltung und Chat in einem
+System zusammenbringt -- alles an einem Ort, kein Hin- und Herwechseln mehr.
+Nutzer können Tasks anlegen, zuweisen und verfolgen, und gleichzeitig direkt im
+Projekt-Kontext miteinander schreiben.
+Das Ziel der Arbeit war, genau das umzusetzen und zu zeigen, dass es funktioniert.
+Dabei haben wir drei Dinge in den Mittelpunkt gestellt: eine saubere Task-Struktur
+mit klaren Berechtigungen, Echtzeit-Kommunikation über WebSocket und eine ordentliche
+Qualitätssicherung durch Tests und einen Usability-Test.
+
+Wir haben uns auf bekannte Konzepte gestützt – etwa die Modularisierung nach
+Parnas~\cite{parnas1972criteria}, die Grundlagen der Softwarearchitektur nach
+Bass et al.\ \cite{bass2012software} sowie Scrum nach Schwaber und
+Sutherland~\cite{schwaber2020scrum} – und zusätzlich auf die Dokumentationen der verwendeten
+Technologien: REST, WebSocket, Prisma und PostgreSQL.
+Auch der Datenschutz spielte eine Rolle; dabei orientierten wir uns an der DSGVO~\cite{dsgvo2016}
+und den Empfehlungen der ENISA~\cite{enisa2019pseudonymisation}.
+Für die Projektdurchführung setzten wir auf Scrum: Vue.js im Frontend sowie NestJS mit
+Prisma und PostgreSQL im Backend.
+Zunächst entwickelten wir das Datenmodell und die zentrale Anwendungslogik, anschließend
+ergänzten wir Echtzeit-Funktionalitäten und Optimierungen der Bedienbarkeit.
+Die Qualität stellten wir durch Unit-Tests, End-to-End-Tests und einen moderierten
+Usability-Test sicher.
+Was diese Arbeit nicht macht: native Mobile-Apps, Mandantenfähigkeit für mehrere
+Organisationen, Hochskalierung für sehr viele Nutzer oder vollständige Offline-Nutzung.
+Das wäre alles wichtig für ein echtes Produkt, sprengt aber den Rahmen einer
+einsemestrigen Diplomarbeit.
+Diese Punkte haben wir in Kapitel~\ref{ch:ausblicke} als Ideen für die Zukunft notiert.
+
+So ist die Arbeit aufgebaut:
+Kapitel~\ref{ch:ausgangslage} erklärt, wo wir gestartet sind und was das Ziel war.
+Kapitel~\ref{ch:projektmanagement} und~\ref{ch:workflow} zeigen, wie wir das Projekt
+organisiert und mit Git gearbeitet haben.
+Kapitel~\ref{ch:projektbeschreibung} stellt \textit{EffSync} und die Anforderungen
+vor, bevor Kapitel~\ref{ch:systemarchitektur}
+und~\ref{ch:implementierung_kernfunktionen} erklären, wie das System aufgebaut ist
+und wie wir die wichtigsten Funktionen umgesetzt haben.
+Kapitel~\ref{ch:testing_quality} beschreibt, wie wir die Qualität gesichert haben.
+Kapitel~\ref{ch:ergebnisse} und~\ref{ch:ausblicke} zeigen, was rausgekommen ist
+und was man noch machen könnte.
+Am Ende steht in Kapitel~\ref{ch:reflexion} unsere Reflexion -- eine gemeinsame
+und zwei persönliche.

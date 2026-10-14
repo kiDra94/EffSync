@@ -16,6 +16,7 @@ const showResults = ref(false);
 // Dark Mode Logic
 watch(isDark, (val) => {
   document.body.classList.toggle("dark-mode", val);
+  localStorage.setItem('theme', val ? 'dark' : 'light');
 });
 
 // Click Outside Logic: Schließt das Menü, wenn man woanders klickt
@@ -32,12 +33,36 @@ const closeSearch = (e) => {
   }
 };
 
-onMounted(() => {
-  window.addEventListener('click', closeDropdown)
+onMounted(async () => {
+  // Restore theme preference reliably across reloads/views
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    isDark.value = savedTheme === 'dark';
+  } else {
+    isDark.value = document.body.classList.contains('dark-mode');
+  }
+  document.body.classList.toggle('dark-mode', isDark.value);
+
+  window.addEventListener('click', closeDropdown);
+
+  // Notifications laden und WebSocket-Listener starten
+  if (authStore.isAuthenticated) {
+    await notificationStore.fetchNotifications();
+    notificationStore.initSocketListeners();
+  }
 })
 
+// Wenn der User sich einloggt (nach Reload), Notifications nachladen
+watch(() => authStore.isAuthenticated, async (isAuth) => {
+  if (isAuth) {
+    await notificationStore.fetchNotifications();
+    notificationStore.initSocketListeners();
+  }
+});
+
 onUnmounted(() => {
-  window.removeEventListener('click', closeDropdown)
+  window.removeEventListener('click', closeDropdown);
+  notificationStore.destroySocketListeners();
 })
 
 const toggleDropdown = () => {
@@ -47,6 +72,13 @@ const toggleDropdown = () => {
 const handleLogout = async () => {
   await authStore.logout();
   showDropdown.value = false;
+};
+
+const navigateToNotification = async (n) => {
+  const id = n.notification_id || n.id;
+  await notificationStore.markAsRead(id);
+  showDropdown.value = false;
+  router.push({ name: 'UserProfile', params: { id: authStore.userId || 1 }, query: { tab: 'notifications' } });
 };
 
 const userInitial = computed(() => {
@@ -83,7 +115,7 @@ const navigateToResult = (result) => {
       <router-link :to="{ name: 'Dashboard' }" title="Dashboard">🏠</router-link>
       <router-link :to="{ name: 'Calendar' }" title="Kalender">🗓️</router-link>
       <router-link :to="{ name: 'DocumentList' }" title="Dokumente">📂</router-link>
-      <router-link :to="{ name: 'ClassList' }" title="Klassen">🏢</router-link>
+      <router-link v-if="authStore.isAdmin" :to="{ name: 'ClassList' }" title="Klassen">🏢</router-link>
       <router-link :to="{ name: 'TaskList' }" title="Aufgaben">📋</router-link>
       <router-link :to="{ name: 'TemplateLists' }" title="Vorlagen">📄</router-link>
       <router-link :to="{ name: 'NoteLists' }" title="Notizen">📝</router-link>
@@ -124,7 +156,7 @@ const navigateToResult = (result) => {
             </div>
 
             <transition name="fade">
-              <div v-if="showDropdown" class="dropdown-menu">
+              <div v-if="showDropdown" class="dropdown-menu" @click.stop>
                 <div class="dropdown-header">
                   <strong>{{ authStore.userDetails?.username }}</strong>
                   <small>{{ authStore.userRole }}</small>
@@ -134,8 +166,42 @@ const navigateToResult = (result) => {
                   @click="showDropdown = false">
                   👤 Mein Profil
                 </router-link>
-
                 <router-link :to="{name: 'Settings'}" class="dropdown-item" @click="showDropdown = false">⚙️ Einstellungen</router-link>
+
+                <hr>
+
+                <!-- Benachrichtigungen -->
+                <div class="dropdown-notifications">
+                  <div class="dropdown-notifications-header">
+                    <span>🔔 Benachrichtigungen</span>
+                    <button v-if="notificationStore.unreadCount > 0" class="mark-all-read-btn" @click.stop="notificationStore.markAllAsRead()">Alle gelesen</button>
+                  </div>
+                  <div v-if="notificationStore.unreadNotifications.length === 0" class="notification-empty">
+                    Keine neuen Benachrichtigungen
+                  </div>
+                  <div
+                    v-for="n in notificationStore.unreadNotifications.slice(0, 8)"
+                    :key="n.notification_id || n.id"
+                    class="notification-item"
+                    :class="{ unread: !n.is_read && !n.read }"
+                    @click.stop="navigateToNotification(n)"
+                  >
+                    <span class="notification-item-icon">
+                      {{ (n.type || '').includes('chat') ? '💬' : (n.type || '').includes('grade') ? '📝' : (n.type || '').includes('task') ? '📋' : '🔔' }}
+                    </span>
+                    <div class="notification-item-body">
+                      <span class="notification-text">{{ n.text || n.message }}</span>
+                      <span class="notification-time">{{ n.created_at ? new Date(n.created_at).toLocaleString('de-AT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '' }}</span>
+                    </div>
+                    <span v-if="!n.is_read && !n.read" class="notification-dot"></span>
+                  </div>
+                  <div class="notification-see-all">
+                    <router-link
+                      :to="{ name: 'UserProfile', params: { id: authStore.userId || 1 }, query: { tab: 'notifications' } }"
+                      @click="showDropdown = false"
+                    >Alle anzeigen →</router-link>
+                  </div>
+                </div>
 
                 <hr>
 
@@ -267,6 +333,121 @@ body.dark-mode .header input[type="search"] {
 .text-danger:hover {
   background-color: #fff5f5;
 }
+
+/* Notification Panel */
+.dropdown-notifications {
+  padding: 4px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.mark-all-read-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mark-all-read-btn:hover {
+  text-decoration: underline;
+}
+
+.notification-empty {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 4px;
+}
+
+.notification-item:hover {
+  background-color: #f0f4ff;
+}
+
+.notification-item.unread {
+  border-left-color: #e74c3c;
+  background-color: #fff8f8;
+}
+
+.notification-item-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notification-item-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-text {
+  color: #333;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-time {
+  font-size: 0.7rem;
+  color: #999;
+  margin-top: 2px;
+}
+
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e74c3c;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.notification-see-all {
+  text-align: center;
+  padding: 6px 0 2px;
+  font-size: 0.78rem;
+}
+
+.notification-see-all a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.notification-see-all a:hover {
+  text-decoration: underline;
+}
+
+:global(body.dark-mode) .dropdown-notifications-header { color: #aaa; }
+:global(body.dark-mode) .notification-item:hover { background-color: #2a2a3e; }
+:global(body.dark-mode) .notification-item.unread { background-color: #2d1a1a; border-left-color: #e74c3c; }
+:global(body.dark-mode) .notification-text { color: #ddd; }
+:global(body.dark-mode) .notification-empty { color: #777; }
+:global(body.dark-mode) .notification-see-all a { color: #7ab8f5; }
 
 :global(body.dark-mode) .text-danger:hover {
   background-color: #4a2c2c;
@@ -457,6 +638,11 @@ hr {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
+}
+
+:global(body.dark-mode) .content,
+.app-container.dark-mode .content {
+  background-color: #1e1e2f !important;
 }
 
 .content.login-mode {

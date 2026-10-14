@@ -178,3 +178,53 @@ const close = () => {
   background: #e5e7eb;
 }
 </style>
+
+<style>
+/* ── NoteDeleteDialog Dark Mode ── */
+body.dark-mode .modal-content {
+  background: #252536 !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+body.dark-mode .modal-header {
+  border-bottom-color: #3a3d52 !important;
+}
+
+body.dark-mode .modal-body {
+  border-bottom-color: #3a3d52 !important;
+}
+
+body.dark-mode .modal-body p {
+  color: #9094ad;
+}
+
+body.dark-mode .preview {
+  background: #1e1e2f !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .confirmation-input {
+  background: #2a1f2e !important;
+  border-bottom-color: #3a3d52 !important;
+}
+
+body.dark-mode .confirmation-input label {
+  color: #9094ad;
+}
+
+body.dark-mode .confirmation-input input {
+  background: #1e1e2f !important;
+  border-color: #3a3d52 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .modal-actions .btn-secondary {
+  background: #2e2e45;
+  border-color: #3a3d52;
+  color: #c8cde0;
+}
+
+body.dark-mode .modal-actions .btn-secondary:hover {
+  background: #3a3d52;
+}
+</style>
