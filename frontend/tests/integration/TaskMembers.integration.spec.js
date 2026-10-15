@@ -42,6 +42,7 @@ describe('Task Members Integration Tests', () => {
     taskMembersApi.addTaskMember.mockResolvedValue({ data: { user_id: 3, task_id: 1 } });
     taskMembersApi.removeTaskMember.mockResolvedValue({ status: 204 });
     taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    usersApi.getAllForSelection.mockResolvedValue({ data: { data: mockAllUsers } });
     usersApi.getAll.mockResolvedValue({ data: mockAllUsers });
   });
 
@@ -301,7 +302,7 @@ describe('Task Members Integration Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 150));
 
       expect(wrapper.vm.errorMessage).toBeTruthy();
-      expect(wrapper.vm.errorMessage).toContain('konnte nicht hinzugefügt werden');
+      expect(wrapper.vm.errorMessage).toContain('konnten nicht hinzugefügt werden');
       expect(wrapper.find('.toast-error').exists()).toBe(true);
     });
 

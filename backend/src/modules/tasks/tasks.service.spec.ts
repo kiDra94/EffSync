@@ -164,10 +164,12 @@ describe('TasksService', () => {
       parent_task_id: null,
     });
 
-    mockPrismaService.tasks.findMany
-      .mockResolvedValueOnce([{ task_id: 2 }, { task_id: 3 }])
-      .mockResolvedValueOnce([{ task_id: 4 }])
-      .mockResolvedValueOnce([]);
+    // Baum: 1 -> [2, 3], 2 -> [4]; alle anderen haben keine Kinder
+    mockPrismaService.tasks.findMany.mockImplementation(({ where }) =>
+      Promise.resolve(
+        ({ 1: [{ task_id: 2 }, { task_id: 3 }], 2: [{ task_id: 4 }] })[where.parent_task_id] ?? [],
+      ),
+    );
 
     mockPrismaService.tasks.updateMany.mockResolvedValue({ count: 3 });
 
