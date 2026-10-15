@@ -7,6 +7,10 @@ import { usersApi } from '@/api/usersService';
 import { useTaskStore } from '@/stores/entities/taskStore';
 
 vi.mock('@/api/taskMembers');
+// Eingeloggter User ist der Ersteller des Tasks (created_by: 1)
+vi.mock('@/stores/authStore', () => ({
+  useAuthStore: vi.fn(() => ({ userId: 1, userRole: 'student' }))
+}));
 vi.mock('@/api/usersService');
 vi.mock('@/stores/entities/taskStore', () => ({
   useTaskStore: vi.fn(() => ({

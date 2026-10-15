@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ChatMessagesService } from "./chat-messages.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 describe("ChatMessagesService", () => {
   let service: ChatMessagesService;
@@ -10,6 +11,7 @@ describe("ChatMessagesService", () => {
       providers: [
         ChatMessagesService,
         { provide: PrismaService, useValue: {} },
+        { provide: NotificationsService, useValue: {} },
       ],
     }).compile();
 
