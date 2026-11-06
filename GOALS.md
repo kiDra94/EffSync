@@ -216,7 +216,7 @@ Rules for all milestones:
 
 ### Foundation
 
-- [ ] **M1: Characterization tests for tasks and documents**
+- [x] **M1: Characterization tests for tasks and documents**
   - Why: the two largest services (`tasks.service.ts` 35 % covered, `documents.service.ts` 59 %) are the main refactor targets and contain the authorization rules. Without tests, the later milestones can't be verified.
   - Scope:
     - `TasksService`:
