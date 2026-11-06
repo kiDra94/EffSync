@@ -7,7 +7,7 @@ import { Socket } from "socket.io";
 export class WsJwtGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     try {
       const client: Socket = context.switchToWs().getClient();
       const token = client.handshake.auth?.token;

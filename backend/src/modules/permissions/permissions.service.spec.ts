@@ -5,8 +5,10 @@ import { PrismaService } from "../../prisma/prisma.service";
 describe("PermissionsService", () => {
   let service: PermissionsService;
   let prisma: PrismaService;
+  let userRolesFindFirst: jest.Mock;
 
   beforeEach(async () => {
+    userRolesFindFirst = jest.fn();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PermissionsService,
@@ -14,7 +16,7 @@ describe("PermissionsService", () => {
           provide: PrismaService,
           useValue: {
             user_roles: {
-              findFirst: jest.fn(),
+              findFirst: userRolesFindFirst,
               findMany: jest.fn(),
             },
             permissions: {
@@ -35,7 +37,7 @@ describe("PermissionsService", () => {
 
   describe("hasRole", () => {
     it("should return true if user has role", async () => {
-      (prisma.user_roles.findFirst as jest.Mock).mockResolvedValue({
+      userRolesFindFirst.mockResolvedValue({
         user_id: 1,
         role_id: 3,
         roles: { name: "Teacher" },
@@ -44,7 +46,7 @@ describe("PermissionsService", () => {
       const result = await service.hasRole(1, "Teacher");
 
       expect(result).toBe(true);
-      expect(prisma.user_roles.findFirst).toHaveBeenCalledWith({
+      expect(userRolesFindFirst).toHaveBeenCalledWith({
         where: {
           user_id: 1,
           roles: { name: "Teacher" },
@@ -54,7 +56,7 @@ describe("PermissionsService", () => {
     });
 
     it("should return false if user does not have role", async () => {
-      (prisma.user_roles.findFirst as jest.Mock).mockResolvedValue(null);
+      userRolesFindFirst.mockResolvedValue(null);
 
       const result = await service.hasRole(1, "Admin");
 

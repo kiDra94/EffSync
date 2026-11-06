@@ -46,10 +46,10 @@ export class AuthController {
 
   @UseGuards(GoogleAuthGuard)
   @Get("google/callback")
-  async googleAuthCallback(@Req() req, @Res() res) {
+  googleAuthCallback(@Req() req, @Res() res) {
     console.log("🔐 Google OAuth Callback - User:", req.user);
 
-    const token = await this.authService.generateJwtFromGoogleUser(req.user);
+    const token = this.authService.generateJwtFromGoogleUser(req.user);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const state = req.query?.state;
 
@@ -76,7 +76,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get("profile")
-  async getProfile(@Req() req) {
+  getProfile(@Req() req) {
     return req.user;
   }
 }

@@ -73,7 +73,7 @@ describe('Notifications Feature E2E Tests', () => {
   beforeEach(() => {
     // Cy Visit mit Fallback
     cy.visit('http://localhost:5173', {
-      onBeforeLoad: (win) => {
+      onBeforeLoad: () => {
         mockAuthSession();
       },
       onLoad: (win) => {
@@ -142,7 +142,7 @@ describe('Notifications Feature E2E Tests', () => {
     it('sollte "Alle lesen" Button anzeigen wenn unread Notifications existieren', () => {
       // Direkt zum Profil via URL
       cy.visit('http://localhost:5173/profile/1', {
-        onBeforeLoad: (win) => {
+        onBeforeLoad: () => {
           mockAuthSession();
         }
       });
@@ -217,8 +217,8 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Initial sollten Notifications existieren
-      const initialCount = cy.get('.notification-row').then(el => el.length);
+      // Initial sollten 4 Notifications da sein
+      cy.get('.notification-row').should('have.length', 4);
       
       // Close-Button klicken (X-Button)
       cy.get('.notification-row-close').first().click();
@@ -386,7 +386,7 @@ describe('Notifications Feature E2E Tests', () => {
     it('sollte verschiedene Notification Typen korrekt anzeigen', () => {
       // Refresh page mit fresh data
       cy.visit('http://localhost:5173', {
-        onBeforeLoad: (win) => {
+        onBeforeLoad: () => {
           mockAuthSession();
         }
       });

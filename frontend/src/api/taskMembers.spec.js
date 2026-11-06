@@ -146,7 +146,7 @@ describe('taskMembersApi', () => {
       const mockResponse = { status: 204 };
       apiClient.delete = vi.fn().mockResolvedValue(mockResponse);
 
-      const result = await taskMembersApi.removeTaskMember(mockTaskId, mockUserId);
+      await taskMembersApi.removeTaskMember(mockTaskId, mockUserId);
 
       expect(apiClient.delete).toHaveBeenCalledWith(
         `/api/tasks/${mockTaskId}/members/${mockUserId}`

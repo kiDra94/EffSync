@@ -4,13 +4,12 @@ import { AuthService } from "./auth.service";
 
 describe("AuthController", () => {
   let controller: AuthController;
-  let authService: jest.Mocked<AuthService>;
 
   const mockAuthService = {
     register: jest.fn(),
     login: jest.fn(),
     generateJwtFromGoogleUser: jest.fn(),
-  } as unknown as jest.Mocked<AuthService>;
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -24,7 +23,6 @@ describe("AuthController", () => {
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get(AuthService);
     jest.clearAllMocks();
   });
 
@@ -41,26 +39,26 @@ describe("AuthController", () => {
       lastname: "User",
     };
     const expected = { user_id: 1, ...dto };
-    authService.register.mockResolvedValue(expected as any);
+    mockAuthService.register.mockResolvedValue(expected);
 
     const result = await controller.register(dto as any);
 
-    expect(authService.register).toHaveBeenCalledWith(dto);
+    expect(mockAuthService.register).toHaveBeenCalledWith(dto);
     expect(result).toEqual(expected);
   });
 
   it("sollte login an AuthService weiterleiten", async () => {
     const dto = { username: "testuser", password: "password123" };
     const expected = { token: "jwt.token", user_id: 1 };
-    authService.login.mockResolvedValue(expected as any);
+    mockAuthService.login.mockResolvedValue(expected);
 
     const result = await controller.login(dto as any);
 
-    expect(authService.login).toHaveBeenCalledWith(dto);
+    expect(mockAuthService.login).toHaveBeenCalledWith(dto);
     expect(result).toEqual(expected);
   });
 
-  it("sollte im Google Callback ein JWT erzeugen und auf Frontend redirecten", async () => {
+  it("sollte im Google Callback ein JWT erzeugen und auf Frontend redirecten", () => {
     process.env.FRONTEND_URL = "http://localhost:5173";
     const req = {
       user: {
@@ -72,11 +70,13 @@ describe("AuthController", () => {
     const redirect = jest.fn();
     const res = { redirect };
 
-    authService.generateJwtFromGoogleUser.mockResolvedValue("google.jwt.token");
+    mockAuthService.generateJwtFromGoogleUser.mockReturnValue(
+      "google.jwt.token",
+    );
 
-    await controller.googleAuthCallback(req as any, res as any);
+    controller.googleAuthCallback(req as any, res as any);
 
-    expect(authService.generateJwtFromGoogleUser).toHaveBeenCalledWith(
+    expect(mockAuthService.generateJwtFromGoogleUser).toHaveBeenCalledWith(
       req.user,
     );
     expect(redirect).toHaveBeenCalledTimes(1);

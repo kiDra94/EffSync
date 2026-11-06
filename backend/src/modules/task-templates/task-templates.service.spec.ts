@@ -5,7 +5,6 @@ import { NotFoundException } from "@nestjs/common";
 
 describe("TaskTemplatesService", () => {
   let service: TaskTemplatesService;
-  let prisma: PrismaService;
 
   const mockTemplate = {
     template_id: 1,
@@ -51,7 +50,6 @@ describe("TaskTemplatesService", () => {
       ],
     }).compile();
     service = module.get<TaskTemplatesService>(TaskTemplatesService);
-    prisma = module.get<PrismaService>(PrismaService);
     jest.clearAllMocks();
   });
 
@@ -77,7 +75,7 @@ describe("TaskTemplatesService", () => {
 
       const result = await service.create(createDto, 1, true);
 
-      expect(prisma.task_templates.create).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.create).toHaveBeenCalledWith({
         data: {
           ...createDto,
           created_by: 1,
@@ -104,7 +102,7 @@ describe("TaskTemplatesService", () => {
 
       const result = await service.create(createDto, 1, false);
 
-      expect(prisma.task_templates.create).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.create).toHaveBeenCalledWith({
         data: {
           ...createDto,
           created_by: 1,
@@ -122,7 +120,7 @@ describe("TaskTemplatesService", () => {
 
       const result = await service.findAll(1, true);
 
-      expect(prisma.task_templates.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.findMany).toHaveBeenCalledWith({
         where: { created_by: 1 },
         include: expect.any(Object),
         orderBy: { created_at: "desc" },
@@ -137,7 +135,7 @@ describe("TaskTemplatesService", () => {
 
       const result = await service.findAll(undefined, false);
 
-      expect(prisma.task_templates.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.findMany).toHaveBeenCalledWith({
         where: undefined,
         include: undefined,
         orderBy: { created_at: "desc" },
@@ -154,7 +152,7 @@ describe("TaskTemplatesService", () => {
 
       const result = await service.findOne(1, true);
 
-      expect(prisma.task_templates.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.findUnique).toHaveBeenCalledWith({
         where: { template_id: 1 },
         include: expect.any(Object),
       });
@@ -188,11 +186,11 @@ describe("TaskTemplatesService", () => {
 
       const result = await service.update(1, updateDto, true);
 
-      expect(prisma.task_templates.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.findUnique).toHaveBeenCalledWith({
         where: { template_id: 1 },
         include: expect.any(Object),
       });
-      expect(prisma.task_templates.update).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.update).toHaveBeenCalledWith({
         where: { template_id: 1 },
         data: {
           ...updateDto,
@@ -224,10 +222,10 @@ describe("TaskTemplatesService", () => {
 
       const result = await service.remove(1);
 
-      expect(prisma.tasks.count).toHaveBeenCalledWith({
+      expect(mockPrismaService.tasks.count).toHaveBeenCalledWith({
         where: { template_id: 1 },
       });
-      expect(prisma.task_templates.delete).toHaveBeenCalledWith({
+      expect(mockPrismaService.task_templates.delete).toHaveBeenCalledWith({
         where: { template_id: 1 },
       });
       expect(result).toEqual({
@@ -246,7 +244,7 @@ describe("TaskTemplatesService", () => {
       await expect(service.remove(1)).rejects.toThrow(
         "Cannot delete template with 5 associated task(s)",
       );
-      expect(prisma.task_templates.delete).not.toHaveBeenCalled();
+      expect(mockPrismaService.task_templates.delete).not.toHaveBeenCalled();
     });
 
     it("sollte NotFoundException werfen wenn Template nicht existiert", async () => {

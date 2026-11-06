@@ -59,7 +59,6 @@ describe("TaskCommentsService - @mention Email Notifications", () => {
   describe("detectMentions", () => {
     it("should detect single @mention", () => {
       const text = "Hey @john please review this";
-      // @ts-ignore - accessing private method for testing
       const mentions = service["detectMentions"](text);
       expect(mentions).toContain("john");
       expect(mentions.length).toBe(1);
@@ -67,7 +66,6 @@ describe("TaskCommentsService - @mention Email Notifications", () => {
 
     it("should detect multiple @mentions", () => {
       const text = "@alice and @bob please check @charlie comment";
-      // @ts-ignore - accessing private method for testing
       const mentions = service["detectMentions"](text);
       expect(mentions).toContain("alice");
       expect(mentions).toContain("bob");
@@ -77,21 +75,18 @@ describe("TaskCommentsService - @mention Email Notifications", () => {
 
     it("should remove duplicate mentions", () => {
       const text = "@john @john please check";
-      // @ts-ignore - accessing private method for testing
       const mentions = service["detectMentions"](text);
       expect(mentions).toEqual(["john"]);
     });
 
     it("should return empty array for no mentions", () => {
       const text = "This is a comment without any mentions";
-      // @ts-ignore - accessing private method for testing
       const mentions = service["detectMentions"](text);
       expect(mentions).toEqual([]);
     });
 
     it("should handle special characters and numbers", () => {
       const text = "@user_123 @john-doe please help";
-      // @ts-ignore - accessing private method for testing
       const mentions = service["detectMentions"](text);
       expect(mentions).toContain("user_123");
       expect(mentions.length).toBe(2);
@@ -120,7 +115,6 @@ describe("TaskCommentsService - @mention Email Notifications", () => {
         digest_frequency: "daily",
       });
 
-      // @ts-ignore - accessing private method for testing
       await service["notifyMentionedUsers"](
         text,
         commenterName,
@@ -164,7 +158,6 @@ describe("TaskCommentsService - @mention Email Notifications", () => {
         digest_frequency: "daily",
       });
 
-      // @ts-ignore - accessing private method for testing
       await service["notifyMentionedUsers"](
         text,
         commenterName,
@@ -188,7 +181,6 @@ describe("TaskCommentsService - @mention Email Notifications", () => {
         email: "bob@example.com",
       });
 
-      // @ts-ignore - accessing private method for testing
       await service["notifyMentionedUsers"](
         text,
         commenterName,
@@ -227,7 +219,6 @@ describe("TaskCommentsService - @mention Email Notifications", () => {
           email_on_mention: true,
         });
 
-      // @ts-ignore - accessing private method for testing
       await service["notifyMentionedUsers"](
         text,
         commenterName,

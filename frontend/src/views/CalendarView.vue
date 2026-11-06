@@ -77,7 +77,7 @@ const loadCalendarData = async () => {
             const startTime = lesson.start_time ? formatTimeFromISO(lesson.start_time) : '08:00';
             const endTime = lesson.end_time ? formatTimeFromISO(lesson.end_time) : '08:50';
             return {
-                id: lesson.id,
+                id: lesson.slot_id,
                 dayOfWeek: lesson.day_of_week || 0,
                 startTime,
                 endTime,
@@ -864,8 +864,8 @@ const getTaskStyle = (task, index) => {
               <!-- Lessons überlagert -->
               <div class="lessons-layer">
                 <div 
-                  v-for="(lesson, idx) in getLessonsForDay(day.dayOfWeek)" 
-                  :key="idx"
+                  v-for="lesson in getLessonsForDay(day.dayOfWeek)" 
+                  :key="lesson.id"
                   class="lesson-card"
                   :style="[getLessonStyle(lesson), { backgroundColor: lesson.color }]"
                   :title="`${lesson.subject} - ${lesson.room}`"
@@ -963,6 +963,7 @@ const getTaskStyle = (task, index) => {
               <div class="lessons-layer">
                 <div 
                   v-for="lesson in getLessonsForDay(currentDayFormated.dayOfWeek)" 
+                  :key="lesson.id"
                   class="lesson-card"
                   :style="[getLessonStyle(lesson), { backgroundColor: lesson.color }]"
                   :title="`${lesson.subject} - ${lesson.room}`"

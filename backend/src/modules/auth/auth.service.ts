@@ -83,7 +83,7 @@ export class AuthService {
     };
   }
 
-  async generateJwtFromGoogleUser(googleUser: any) {
+  generateJwtFromGoogleUser(googleUser: any) {
     const payload = {
       sub: googleUser.userId,
       username: googleUser.username,

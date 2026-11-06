@@ -4,7 +4,6 @@ import TaskForm from './TaskForm.vue';
 import TaskMembersList from './TaskMembersList.vue';
 import { taskMembersApi } from '@/api/taskMembers';
 import { usersApi } from '@/api/usersService';
-import { useTaskStore } from '@/stores/entities/taskStore';
 
 vi.mock('@/api/taskMembers');
 // Eingeloggter User ist der Ersteller des Tasks (created_by: 1)
@@ -103,7 +102,6 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
     await wrapper.vm.$nextTick();
 
     // Check if TaskMembersList is rendered
-    const taskMembersSection = wrapper.find('.task-members-section');
     // Note: This would be present if TaskMembersList was properly stubbed
     expect(wrapper.html()).toContain('task-members');
   });

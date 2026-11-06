@@ -6,7 +6,6 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import NotificationsList from '@/components/notifications/NotificationsList.vue';
 import SecurityTab from '@/components/notifications/SecurityTab.vue';
 import EmailPreferences from '@/components/notifications/EmailPreferences.vue';
-import { emailPreferencesService } from '@/api/emailPreferences';
 
 const route = useRoute();
 const router = useRouter();

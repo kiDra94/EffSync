@@ -27,19 +27,6 @@ const calendarSettings = ref({
     hideCompleted: false
 })
 
-// ✅ Active Status Filter
-const activeStatuses = computed(() =>
-    Object.keys(calendarSettings.value.showTaskStatuses)
-        .filter(status => calendarSettings.value.showTaskStatuses[status])
-)
-
-// ✅ Active Priority Filter  
-const activePriorities = computed(() =>
-    Object.keys(calendarSettings.value.showTaskPriorities)
-        .filter(p => calendarSettings.value.showTaskPriorities[p])
-        .map(Number)
-)
-
 const timeSlots = computed(() => {
     const slots = []
     for (let h = calendarSettings.value.dayStartHour; h <= calendarSettings.value.dayEndHour; h++) {

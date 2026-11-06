@@ -37,7 +37,7 @@ const handleSelect = async (user) => {
             inviteToRoom
         );
         emit('created', room);
-    } catch (e) {
+    } catch {
         error.value = 'Fehler beim Erstellen der Direktnachricht.';
     } finally {
         isLoading.value = false;

@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue';
 import { useChat } from '@/composables/useChat';
-import { useChatStore } from '@/stores/entities/chatStore';
 
 const props = defineProps({
     roomId: { type: [String, Number], required: true },
@@ -10,7 +9,6 @@ const props = defineProps({
 
 const emit = defineEmits(['typing']);
 
-const chatStore = useChatStore();
 const { sendMessage } = useChat();
 
 const text = ref('');

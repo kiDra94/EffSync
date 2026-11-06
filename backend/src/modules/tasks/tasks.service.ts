@@ -483,7 +483,7 @@ export class TasksService {
     });
 
     console.log(
-      `✓ Task ${taskId} Deadline aktualisiert auf ${newDeadline} und entsperrt`,
+      `✓ Task ${taskId} Deadline aktualisiert auf ${String(newDeadline)} und entsperrt`,
     );
 
     // Log activity

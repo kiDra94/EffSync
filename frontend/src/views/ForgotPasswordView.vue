@@ -21,7 +21,7 @@ const handleReset = async () => {
   try {
     await authApi.forgotPassword(email.value)
     message.value = 'Falls diese E-Mail existiert, haben wir einen Link gesendet.'
-  } catch (error) {
+  } catch {
     errorMessage.value = 'Ein Fehler ist aufgetreten. Bitte versuche es später.'
   } finally {
     isLoading.value = false

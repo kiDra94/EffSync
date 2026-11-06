@@ -825,6 +825,8 @@ export class DocumentsService {
   private sanitizeFileName(fileName: string) {
     const baseName = basename(fileName || "upload.bin").trim();
     const safeName = baseName
+      // strips control characters from uploaded file names on purpose
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x00-\x1F\x7F]/g, "")
       .replace(/[^a-zA-Z0-9._\- ]+/g, "_")
       .replace(/\s+/g, " ")
@@ -995,7 +997,7 @@ export class DocumentsService {
       await this.notificationsService.create({
         user_id: document.added_by,
         type: "document_graded",
-        text: `Dein Dokument \"${documentTitle}\" wurde bewertet.${gradeSuffix}`,
+        text: `Dein Dokument "${documentTitle}" wurde bewertet.${gradeSuffix}`,
       });
     }
 

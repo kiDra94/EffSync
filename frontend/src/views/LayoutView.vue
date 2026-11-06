@@ -27,12 +27,6 @@ const closeDropdown = (e) => {
   }
 }
 
-const closeSearch = (e) => {
-  if (!e.target.closest('.search-wrapper')) {
-    showResults.value = false;
-  }
-};
-
 onMounted(async () => {
   // Restore theme preference reliably across reloads/views
   const savedTheme = localStorage.getItem('theme');

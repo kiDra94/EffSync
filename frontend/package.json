@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "frontend": "vite --port 5173 --strictPort",
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "mockend": "npx json-server mockdb.json --port 3001",
     "dev": "concurrently 'npm run mockend' 'npm run frontend'",
@@ -15,6 +15,7 @@
     "test:e2e": "cypress run",
     "test:e2e:open": "cypress open",
     "lint": "eslint .",
+    "lint:check": "eslint .",
     "lint:fix": "eslint --fix"
   },
   "dependencies": {

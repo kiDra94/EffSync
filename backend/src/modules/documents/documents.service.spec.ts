@@ -7,7 +7,9 @@ describe("DocumentsService", () => {
   let service: DocumentsService;
 
   const mockPrismaService = {
-    $transaction: jest.fn(async (callback) => callback(mockPrismaService)),
+    $transaction: jest.fn((callback) =>
+      Promise.resolve(callback(mockPrismaService)),
+    ),
     documents: {
       create: jest.fn(),
       findMany: jest.fn(),

@@ -86,7 +86,6 @@
 import { ref, onMounted } from 'vue';
 import { gradeDocument } from '@/api/documents';
 import { fetchDocuments } from '@/api/documents';
-import { useAuthStore } from '@/stores/authStore';
 
 export default {
   name: 'GradeModal',
@@ -98,7 +97,6 @@ export default {
   },
   emits: ['close', 'saved'],
   setup(props, { emit }) {
-    const authStore = useAuthStore();
     const form = ref({
       feedback: '',
       grade: ''

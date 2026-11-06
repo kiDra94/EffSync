@@ -569,10 +569,6 @@ const getGradeSummary = (document) => {
   return document.is_gradeable ? 'Noch offen' : 'Keine Bewertung';
 };
 
-const isPreviewable = (document) => {
-  return String(document.mime_type || '').includes('pdf') || String(document.mime_type || '').startsWith('image/');
-};
-
 const getFileNameFromResponse = (response, fallbackName) => {
   const disposition = response.headers?.['content-disposition'] || '';
   const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
@@ -580,7 +576,7 @@ const getFileNameFromResponse = (response, fallbackName) => {
     return decodeURIComponent(encodedMatch[1]);
   }
 
-  const plainMatch = disposition.match(/filename="?([^\"]+)"?/i);
+  const plainMatch = disposition.match(/filename="?([^"]+)"?/i);
   return plainMatch?.[1] || fallbackName;
 };
 

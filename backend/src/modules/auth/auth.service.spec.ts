@@ -9,7 +9,6 @@ jest.mock("bcrypt");
 
 describe("AuthService", () => {
   let service: AuthService;
-  let prisma: PrismaService;
   let jwtService: JwtService;
 
   const mockUser = {
@@ -50,7 +49,6 @@ describe("AuthService", () => {
       ],
     }).compile();
     service = module.get<AuthService>(AuthService);
-    prisma = module.get<PrismaService>(PrismaService);
     jwtService = module.get<JwtService>(JwtService);
     jest.clearAllMocks();
   });
@@ -77,7 +75,7 @@ describe("AuthService", () => {
       });
       const result = await service.register(createUserDto);
       expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
-      expect(prisma.users.create).toHaveBeenCalledWith({
+      expect(mockPrismaService.users.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           username: "newuser",
           email: "new@example.com",
@@ -156,7 +154,7 @@ describe("AuthService", () => {
       mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
       const result = await service.validateUser(1);
       expect(result).toEqual(mockUser);
-      expect(prisma.users.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaService.users.findUnique).toHaveBeenCalledWith({
         where: { user_id: 1 },
       });
     });
@@ -169,16 +167,16 @@ describe("AuthService", () => {
   });
 
   describe("generateJwtFromGoogleUser", () => {
-    it("sollte aus Google-Userdaten einen JWT erstellen", async () => {
+    it("sollte aus Google-Userdaten einen JWT erstellen", () => {
       const googleUser = {
         userId: 20,
         username: "oauth.user@gmail.com",
         role: "student",
       };
 
-      const token = await service.generateJwtFromGoogleUser(googleUser);
+      const token = service.generateJwtFromGoogleUser(googleUser);
 
-      expect(jwtService.sign).toHaveBeenCalledWith({
+      expect(mockJwtService.sign).toHaveBeenCalledWith({
         sub: 20,
         username: "oauth.user@gmail.com",
         role: "student",

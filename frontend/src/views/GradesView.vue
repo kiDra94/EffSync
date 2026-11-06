@@ -1,9 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { fetchMyGrades } from '@/api/documents';
-import { useAuthStore } from '@/stores/authStore';
 
-const authStore = useAuthStore();
 const grades = ref([]);
 const isLoading = ref(true);
 const errorMessage = ref('');

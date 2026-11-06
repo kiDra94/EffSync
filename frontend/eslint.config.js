@@ -1,9 +1,24 @@
 import js from "@eslint/js";
 import globals from "globals";
 import pluginVue from "eslint-plugin-vue";
-import { defineConfig } from "eslint/config";
+import pluginCypress from "eslint-plugin-cypress";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
+  globalIgnores(["dist/**", "coverage/**"]),
   { files: ["**/*.{js,mjs,cjs,vue}"], plugins: { js }, extends: ["js/recommended"], languageOptions: { globals: globals.browser } },
   pluginVue.configs["flat/essential"],
+  {
+    // single-word names of existing components; renaming them is out of scope
+    rules: { "vue/multi-word-component-names": ["error", { ignores: ["Badge", "Dashboard"] }] },
+  },
+  {
+    // Vitest runs with globals: true (vite.config.js)
+    files: ["**/*.{spec,test}.js", "tests/**/*.js", "vitest.setup.js"],
+    languageOptions: { globals: globals.vitest },
+  },
+  {
+    files: ["cypress/**/*.js", "cypress.config.js"],
+    extends: [pluginCypress.configs.globals],
+  },
 ]);

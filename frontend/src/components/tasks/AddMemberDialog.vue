@@ -98,10 +98,6 @@ const selectedUser = computed(() => {
   return props.availableUsers.find(u => u.user_id === selectedUserId.value);
 });
 
-const isMemberAlready = (userId) => {
-  return props.currentMembers?.some(m => m.user_id === userId);
-};
-
 const getInitials = (firstname, lastname) => {
   return `${(firstname || 'U')[0]}${(lastname || 'S')[0]}`.toUpperCase();
 };

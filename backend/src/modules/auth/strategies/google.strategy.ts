@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
-import { Strategy, Profile } from "passport-google-oauth20";
+import { Strategy, Profile, VerifyCallback } from "passport-google-oauth20";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 @Injectable()
@@ -20,7 +20,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
     accessToken: string,
     refreshToken: string,
     profile: Profile,
-    done: Function,
+    done: VerifyCallback,
   ) {
     console.log("🔐 Google OAuth Profile:", {
       id: profile.id,
@@ -104,7 +104,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
       });
     } catch (error) {
       console.error("❌ Google OAuth validation error:", error);
-      return done(error, null);
+      return done(error, false);
     }
   }
 }

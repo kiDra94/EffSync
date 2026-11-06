@@ -23,24 +23,6 @@ let themeObserver;
 
 const isDarkMode = () => document.body.classList.contains('dark-mode');
 
-const statusLabels = {
-  TODO: 'Offen',
-  IN_PROGRESS: 'In Bearbeitung',
-  IN_REVIEW: 'In Review',
-  COMPLETED: 'Abgeschlossen',
-  ON_HOLD: 'In Wartestellung',
-  OVERDUE: 'Überfällig',
-};
-
-const statusColors = {
-  TODO: '#3498db',
-  IN_PROGRESS: '#f39c12',
-  IN_REVIEW: '#9b59b6',
-  COMPLETED: '#2ecc71',
-  ON_HOLD: '#95a5a6',
-  OVERDUE: '#e74c3c',
-};
-
 onMounted(async () => {
   try {
     const token = localStorage.getItem('authToken');
@@ -115,12 +97,6 @@ const chartOptions = ref({
     }
   }
 });
-
-const closeModal = () => {
-  showModal.value = false;
-  selectedStatusTasks.value = null;
-  selectedStatusName.value = null;
-};
 
 onMounted(() => {
   themeObserver = new MutationObserver(() => {

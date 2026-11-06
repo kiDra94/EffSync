@@ -17,7 +17,6 @@ const classData = ref({
   schedule: null
 });
 
-const isLoading = ref(false);
 const activeTab = ref('overview');
 
 const STORAGE_KEY = 'effsync_classes';

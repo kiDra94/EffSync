@@ -5,8 +5,8 @@ afterEach(() => {
   cleanup()
 })
 
-vi.mock('@/stores/authStore', () => {
-  const { ref } = require('vue')
+vi.mock('@/stores/authStore', async () => {
+  const { ref } = await vi.importActual('vue')
   return {
     useAuthStore: vi.fn(() => ({
       token: ref('fake-token-123'),

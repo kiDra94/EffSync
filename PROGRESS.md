@@ -124,3 +124,51 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 
 **Failed / open:**
 - `prisma.service.ts:24` (`error.message` on `any`) is an existing `no-unsafe-member-access` error, handled per decision Q13 (M4). `mitgliederverwaltung.e2e-spec.ts` was already not Prettier-clean before M3; the M4 formatting commit fixes it.
+
+## 2026-11-06 – M4: Make lint and build usable and add them to CI
+
+**Done:**
+- Formatting-only commit `92e9ecb`: `eslint --fix` (with the prettier rule) on the backend. 108 files changed. tsc, the 307 unit tests and `nest build` were unchanged. The commit is listed in the new `.git-blame-ignore-revs` (`git config blame.ignoreRevsFile .git-blame-ignore-revs`). On the frontend, `eslint --fix` changed nothing; it has no Prettier setup.
+- `lint:check` scripts without `--fix` in both projects. The backend one runs with `--max-warnings 554` as a ratchet, so new unsafe code fails CI. Frontend `build` is now `vite build` (decision Q11).
+- Backend lint (decision Q13): `no-unsafe-member-access`, `no-unsafe-assignment`, `no-unsafe-return` and `no-unsafe-enum-comparison` are `warn`. The other 36 errors are fixed without behavior changes:
+  - `async` without `await` removed from `getProfile`, `googleAuthCallback`, `generateJwtFromGoogleUser` and `WsJwtGuard.canActivate`; the caller and the specs are adjusted.
+  - `Function` replaced by `VerifyCallback` in the Google strategy (`done(error, false)`).
+  - `no-control-regex` disabled with a reason on the file-name sanitizer; useless escapes removed.
+  - `String(newDeadline)` in a log template.
+  - Specs: `unbound-method` fixed by asserting on the mock objects; redundant `@ts-ignore` removed, since bracket access to private members needs none.
+- Frontend lint: Vitest globals for `*.spec.js`, `*.test.js`, `tests/` and `vitest.setup.js`, and the Cypress globals config for `cypress/`. Then the remaining 31 errors:
+  - Unused variables, imports and catch bindings removed.
+  - `Badge` and `Dashboard` added as exceptions to `multi-word-component-names` (renaming is out of scope).
+  - The calendar lesson cards get a real `:key`.
+  - `require('vue')` in `vitest.setup.js` replaced by `vi.importActual`.
+- The 4 `no-undef` hits in source files checked as possible bugs (Q13): none is a live bug. The three in `StatusDistributionChart.vue` were in an uncalled `closeModal` left over from a removed modal (deleted). `require` in `vitest.setup.js` worked at runtime. So no extra tests were needed.
+- CI: `lint:check` and `build` steps in the frontend and backend jobs.
+
+**Verified:**
+- `npm run lint:check` exits 0 in both projects. Frontend: 0 problems. Backend: 0 errors, **baseline 554 `no-unsafe-*` warnings** (290 member-access, 129 assignment, 108 argument, 24 return, 3 enum-comparison).
+- `npm run build` exits 0 in both projects.
+- Tests: backend 307/307, frontend 142/142. The Vitest results per test are identical with the old and the new `vitest.setup.js`.
+- `act`: `frontend-tests`, `backend-tests` (both with the new Lint and Build steps) and `backend-e2e` all succeeded.
+- `code-review` (high): no runtime behavior change in the lint fixes. 10 findings, fixed:
+  - `:key="lesson.id"` was always undefined, because the mapper copied the missing `lesson.id` while rows have `slot_id`. It now maps `slot_id`, and the week view uses the same key instead of the index.
+  - The Cypress close test asserts the initial count of 4.
+  - Added the `--max-warnings` ratchet.
+  - Finished the half-migrated mock handle in `permissions.service.spec.ts`.
+  - Removed dead `prisma` variables in two specs.
+  
+  Not done:
+  - Removing the `$transaction` mock in `documents.service.spec.ts`: the reviewer said it was dead, but 3 tests fail without it.
+  - Merging `lint` and `lint:check` on the frontend: both projects keep the same CI script name.
+  - The two findings listed under Learned.
+
+**Learned (for later milestones):**
+- `cypress/e2e/notifications.cy.js` (`:76`, `:145`, `:389`): `mockAuthSession()` calls `cy.window()` inside `onBeforeLoad`, so the auth seed is queued until after the page has loaded. It should write to `win.localStorage` directly. This is an existing bug, not caused by the lint fix (M25 or the next Cypress work).
+- Unfinished features found as unused code and removed:
+  - `LayoutView.closeSearch`: click-outside for the search results was never registered, so the dropdown stays open (M25/M26 UI work).
+  - `AddMemberDialog.isMemberAlready`: existing members aren't marked in the dialog.
+  - `DocumentView.isPreviewable`.
+  - `CalendarSettings.activeStatuses`/`activePriorities`: the filters are computed but not applied there.
+- The documents tests need a `$transaction` mock even though `documents.service.ts` doesn't call it directly; it's reached through a helper.
+
+**Failed / open:**
+- No new Vitest test for the calendar key fix: `CalendarView.vue` has no test yet, and the key only affects how Vue patches the list. It's covered when the calendar gets tests (M26).

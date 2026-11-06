@@ -255,7 +255,7 @@ Rules for all milestones:
   - Done when: `npm run test:e2e` runs all 3 E2E files twice in a row with identical results and never touches the dev DB. The CI E2E job is green; `mitgliederverwaltung` stays red only for documented thesis gaps (T130), which are marked `// THESIS:`.
   - Risk: medium. `mitgliederverwaltung.e2e-spec.ts` has never run against the real prefix and may need fixes.
 
-- [ ] **M4: Make lint and build usable and add them to CI**
+- [x] **M4: Make lint and build usable and add them to CI**
   - Why: `npm run lint` auto-fixes files and reports 441 backend and 306 frontend errors. Frontend `npm run build` fails (`vue-tsc` missing). The thesis says CI runs tests **and builds** (T22). Per decision Q4 this CI also fulfils the "CI/CD-Pipeline" of T17; the CD part is the deployment, which is future work (F1).
   - Steps:
     1. Add `lint:check` scripts without `--fix`.

@@ -76,7 +76,9 @@ describe('TaskStore', () => {
 
             try {
                 await store.addTask({});
-            } catch (e) {}
+            } catch {
+                // the rejection itself is not under test here
+            }
 
             expect(store.tasks).toContainEqual(existing);
         });
