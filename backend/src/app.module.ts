@@ -50,6 +50,9 @@ import { MetricsModule } from './modules/metrics/metrics.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ".env",
+      // E2E runs take their whole environment from .env.test
+      // (test/setup/test-env.ts); keys missing there must not come from .env
+      ignoreEnvFile: process.env.NODE_ENV === "test",
       cache: true,
     }),
     ThrottlerModule.forRootAsync({

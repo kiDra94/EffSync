@@ -8,5 +8,9 @@
   },
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/../src/$1"
-  }
+  },
+  "globalSetup": "<rootDir>/setup/global-setup.ts",
+  "setupFiles": ["<rootDir>/setup/setup-env.ts"],
+  "maxWorkers": 1,
+  "testTimeout": 30000
 }

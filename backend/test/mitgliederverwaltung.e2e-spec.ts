@@ -3,6 +3,11 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { createTestApp } from './setup/create-test-app';
+
+// THESIS: T130 – the controller prefix already contains `api/`, so with the global
+// prefix the member routes really are /api/api/tasks/... (flipped in M15)
+const MEMBERS_BASE = '/api/api/tasks';
 
 /**
  * E2E Tests für Mitgliederverwaltungs-Workflows
@@ -21,9 +26,8 @@ describe('Mitgliederverwaltung E2E', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = await createTestApp(moduleFixture);
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    await app.init();
 
     // Create test users first
     await createTestUsers();
@@ -159,7 +163,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should add member to task successfully', async () => {
       const response = await request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/members`)
+        .post(`${MEMBERS_BASE}/${taskId}/members`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .send({ user_id: studentId });
 
@@ -171,7 +175,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should not allow duplicate member', async () => {
       const response = await request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/members`)
+        .post(`${MEMBERS_BASE}/${taskId}/members`)
         .set('Authorization', `Bearer ${teacherToken}`)
         .send({ user_id: studentId });
 
@@ -181,7 +185,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should list all members of task', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/tasks/${taskId}/members`)
+        .get(`${MEMBERS_BASE}/${taskId}/members`)
         .set('Authorization', `Bearer ${teacherToken}`);
 
       // Should return list of members
@@ -191,7 +195,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should remove member from task', async () => {
       const response = await request(app.getHttpServer())
-        .delete(`/api/tasks/${taskId}/members/${studentId}`)
+        .delete(`${MEMBERS_BASE}/${taskId}/members/${studentId}`)
         .set('Authorization', `Bearer ${teacherToken}`);
 
       // Successful deletion returns 204
@@ -201,7 +205,7 @@ describe('Mitgliederverwaltung E2E', () => {
     it('should prevent non-creator from adding members', async () => {
       // Student trying to add member to a task created by teacher
       const response = await request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/members`)
+        .post(`${MEMBERS_BASE}/${taskId}/members`)
         .set('Authorization', `Bearer ${studentToken}`)
         .send({ user_id: studentId });
 
@@ -289,7 +293,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should check READ permission', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/tasks/${taskId}/members/check-permission`)
+        .get(`${MEMBERS_BASE}/${taskId}/members/check-permission`)
         .set('Authorization', `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
@@ -298,7 +302,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should check WRITE permission', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/tasks/${taskId}/members/check-permission`)
+        .get(`${MEMBERS_BASE}/${taskId}/members/check-permission`)
         .set('Authorization', `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
@@ -307,7 +311,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should check EXECUTE permission', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/tasks/${taskId}/members/check-permission`)
+        .get(`${MEMBERS_BASE}/${taskId}/members/check-permission`)
         .set('Authorization', `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
@@ -316,7 +320,7 @@ describe('Mitgliederverwaltung E2E', () => {
 
     it('should return correct permission flags for creator', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/tasks/${taskId}/members/check-permission`)
+        .get(`${MEMBERS_BASE}/${taskId}/members/check-permission`)
         .set('Authorization', `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);

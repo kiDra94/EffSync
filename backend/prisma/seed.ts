@@ -12,7 +12,7 @@ if (!connectionString) {
 
 // Prisma 7 Setup: Der Client benötigt zwingend den Adapter
 const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg(pool, { disposeExternalPool: true });
 const prisma = new PrismaClient({ adapter })
 
 async function main() {

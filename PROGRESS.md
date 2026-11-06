@@ -89,3 +89,38 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 
 **Failed / open:**
 - New spec files: 7 `no-unsafe-*` lint errors (typed-`any` Jest matchers, `mock.calls`), handled per decision Q13. The moved block in `task-members.service.spec.ts` keeps that file's existing single-quote style (9 more Prettier warnings on top of its 90); the formatting commit in M4 fixes the file as a whole.
+
+## 2026-11-06 – M3: Automated E2E setup with a separate test database and `test-seed.ts`
+
+**Done:**
+- Separate test database: `backend/docker-compose.test.yml` (postgres:17-alpine on port 5433, DB `effsync_test`, tmpfs) and `backend/.env.test` (test values only; `.gitignore` gets `!.env.test`).
+- `test/setup/test-env.ts` loads `.env.test` with `override: true` and refuses any database whose name doesn't end in `_test`. `ConfigModule` ignores `.env` when `NODE_ENV=test`, so keys missing from `.env.test` don't leak in from the developer's `.env`.
+- Jest `globalSetup` (`test/setup/global-setup.ts`): checks that the test DB is reachable (with a hint to start the container), then runs `prisma migrate reset --force` and `prisma/test-seed.ts` (T122, `08_…:105`). Prisma 7's reset no longer seeds on its own, so the seed runs explicitly. Jest runs with `maxWorkers: 1`.
+- `src/app.setup.ts` (`configureApp`) holds everything `main.ts` used to configure: helmet, CORS, the `api` prefix, the `ValidationPipe`, the `/api/uploads/` static route and Swagger. `main.ts` and `test/setup/create-test-app.ts` both call it, so E2E tests hit the real production routes (T130).
+- The three E2E files use `createTestApp`. `app.e2e-spec.ts` checks what production really serves at `/api` (the Swagger UI, see Learned), `/api-json` and a 404 outside the prefix. `auth-throttle` sends a valid `CreateUserDto`; the old body only passed because the old test app skipped the pipe. `mitgliederverwaltung` uses `MEMBERS_BASE = '/api/api/tasks'`, marked `// THESIS: T130`.
+- Open-handle warning fixed: `@prisma/adapter-pg` doesn't end a pool it was handed unless `disposeExternalPool: true` is set. It's now set in `PrismaService`, `prisma/test-seed.ts` and `prisma/seed.ts` (the seeds had the same leak). There's a new unit test for it, written first and mutation-checked.
+- CI: new `backend-e2e` job with a Postgres service container on port 5433.
+- README: seed warning (decision B1) and instructions for the E2E tests. `backend/uploads-test/` is gitignored.
+
+**Verified:**
+- `npm run test:e2e` twice in a row on a fresh container: 3 suites, 19 tests, both runs identical, no "Jest did not exit" warning, about 13 s per run. Afterwards the data was in `effsync_test` (11 users, 6 tasks); the dev DB (`devdb`, port 5432) was never used.
+- `act -j backend-e2e` and `act -j backend-tests`: both jobs succeeded (19 and 307 tests).
+- Backend unit suite: 51 suites, 307 tests pass. `npx tsc --noEmit` passes.
+- `code-review` (high) on the diff: 10 findings, 8 fixed:
+  - Swagger and the static route moved into `configureApp`, and the `/api` test fixed.
+  - `disposeExternalPool` instead of ending the pool by hand (this also covers the seeds and the missing try/finally).
+  - Env isolation through `ignoreEnvFile`.
+  - `uploads-test/` added to `.gitignore`.
+  - `createTestApp` returns `INestApplication<App>` (no more casts).
+  - Mocks are restored in `afterEach`.
+  
+  Not fixed: the double cleanup (`migrate reset` plus the seed's `TRUNCATE`), because the thesis names `migrate reset --force` and the extra cost is under a second on tmpfs. Also not fixed: the database settings repeated in `.env.test`, `docker-compose.test.yml` and `ci.yml`; a service container is the usual CI pattern, and the comment in `ci.yml` points to the other two files.
+
+**Learned (for later milestones):**
+- Swagger is registered at `api`, so it answers `GET /api` and `AppController.getHello` is unreachable in production. It's a candidate for M5 (unused code).
+- Prisma 7 blocks `migrate reset` when an AI agent runs it, unless `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` holds the user's consent. The user consented for the `effsync_test` DB on port 5433 for the #144 E2E tests. CI isn't affected.
+- `CommentsModule` and `EmailModule` each provide their own `PrismaService`, so the app opens three pools (log line "Database connected" several times). Clean this up when the modules move into the contexts (M11+).
+- `act` runs services with host networking, so the local test container must be stopped first (port 5433).
+
+**Failed / open:**
+- `prisma.service.ts:24` (`error.message` on `any`) is an existing `no-unsafe-member-access` error, handled per decision Q13 (M4). `mitgliederverwaltung.e2e-spec.ts` was already not Prettier-clean before M3; the M4 formatting commit fixes it.

@@ -140,12 +140,25 @@ npm run frontend
 
 The frontend runs at `http://localhost:5173`. After seeding you can log in, for example as admin with the username `adminadmin` and the password `password123`.
 
+> The seed data (`backend/prisma/seed.ts` and `backend/prisma/test-seed.ts`), including the demo login above, is for development, demos and tests only. Never seed a production database with it.
+
 ### Tests
 
 ```bash
-(cd backend  && npm test && npm run test:e2e)
+(cd backend  && npm test)
 (cd frontend && npm test && npm run test:e2e)
 ```
+
+The backend E2E tests run against their own disposable PostgreSQL database, never against the one in `backend/.env`. Before the suite starts, they reset that database with `prisma migrate reset --force` and fill it from `prisma/test-seed.ts`:
+
+```bash
+cd backend
+docker compose -f docker-compose.test.yml up -d   # test database on port 5433
+npm run test:e2e
+docker compose -f docker-compose.test.yml down
+```
+
+The connection is configured in `backend/.env.test`. The setup refuses to run against a database whose name doesn't end in `_test`.
 
 More details on the backend can be found in [`backend/README.md`](backend/README.md).
 

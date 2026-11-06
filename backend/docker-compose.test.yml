@@ -1,0 +1,21 @@
+# Disposable PostgreSQL for the E2E tests (GOALS.md M3).
+# Start: docker compose -f docker-compose.test.yml up -d
+# Stop:  docker compose -f docker-compose.test.yml down
+# The data lives in a tmpfs, so every container start is empty. The port
+# (5433) and the database name (effsync_test) differ from the dev database.
+services:
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: effsync_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d effsync_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15

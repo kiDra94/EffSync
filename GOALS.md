@@ -243,7 +243,7 @@ Rules for all milestones:
     - `users.service.ts` ≥ 60 %, `permissions.service.ts` ≥ 80 %.
   - Risk: low. Only test files and jest config change.
 
-- [ ] **M3: Automated E2E setup with a separate test database and `test-seed.ts`**
+- [x] **M3: Automated E2E setup with a separate test database and `test-seed.ts`**
   - Why: T122 (`08_…:105`): before the API suite the DB is reset with `prisma migrate reset --force` and refilled from `test-seed.ts`, automated through the Jest config. Today `test/jest-e2e.json` has no setup, `prisma/test-seed.ts` is unused (UNUSED_CODE.md: Planned/Keep), and `mitgliederverwaltung.e2e-spec.ts` writes to the dev DB (T04, T126).
   - Steps:
     1. Add `.env.test` with its own `DATABASE_URL`.

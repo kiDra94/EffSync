@@ -59,3 +59,43 @@ jobs:
 
       - name: Run Jest
         run: npm run test
+
+  backend-e2e:
+    name: Backend E2E Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    services:
+      # same database as backend/docker-compose.test.yml, configured in backend/.env.test
+      postgres-test:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: effsync_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d effsync_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run E2E tests (reset and seed the test database first)
+        run: npm run test:e2e

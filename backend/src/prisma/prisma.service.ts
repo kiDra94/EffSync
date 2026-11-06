@@ -10,7 +10,9 @@ export class PrismaService
 {
   constructor() {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const adapter = new PrismaPg(pool);
+    // without disposeExternalPool, $disconnect leaves the pool open and its
+    // idle clients keep the process alive (E2E open-handle warning, M3)
+    const adapter = new PrismaPg(pool, { disposeExternalPool: true });
     super({ adapter });
   }
 
