@@ -172,3 +172,46 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 
 **Failed / open:**
 - No new Vitest test for the calendar key fix: `CalendarView.vue` has no test yet, and the key only affects how Vue patches the list. It's covered when the calendar gets tests (M26).
+
+## 2026-11-07 – M5: Remove unused code
+
+**Done:**
+- `1c9b010`: deleted every item with recommendation "Delete" in UNUSED_CODE.md:
+  - backend: the 10 empty scaffold modules, the stub modules `templates` and `task-activity`, the unregistered `comments` module, `permission.guard.ts`, `auth/decorators/index.ts`, the 19 empty entities, `mark-as-read.dto.ts`, `create-document.dto.ts`, `generate_all.js`, `diplom_arbeit_postgres.sql`, the `test:permissions` script and `uuid`
+  - frontend: `UserProfile.vue`, `NotificationCenter.vue`, `NotificationToast.vue`, `DocumentUploadForm.vue`, the three empty stores, `AddMemberDialog.vue` with its spec (and its two integration tests), `api/index.js`, `@nestjs/swagger`, `uuid` and `happy-dom`
+- Repoints in the same commit: `api/taskTemplates.js` calls `/task-templates` (T110). `api/emailPreferences.js` uses `httpClient.js`, so it now gets the `/api` fallback base URL and the 401 → logout and 429 handling like every other API module. That is an intended behavior change in addition to the two route fixes.
+- knip: configs for both projects (`knip.jsonc`), a `knip` script and a CI step. knip found 11 more unused items, all removed and listed in UNUSED_CODE.md. Planned items stay as ignores with a pointer to their milestone: `passport-local` (M9), `RoleName` (M7), `GradesView.vue` and `fetchMyGrades` (M27), the lesson-slot CRUD in `api/lessonSlots.js` (M36). `@vitest/coverage-v8` is detected through `coverage.provider` in `vite.config.js`.
+- Docs: TESTS_README.md, the structure listings in `documents/` and one flow description updated. The long implementation guides (`mitgliederverwaltung-anleitung.md`, `Phase5a-…`) describe past work and were left as they are.
+- `852d7a2`: all German code comments translated to English (decision B2), in 79 files. UI strings and German data stay. The commit is in `.git-blame-ignore-revs` next to M4's formatting commit.
+- Decision E1 (2026-11-07): task templates are private (recorded in GOALS.md, applied in M18).
+
+**Verified:**
+- Tests first:
+  - `test/routes.e2e-spec.ts`: PATCH/DELETE `/api/task-activity/:id` and `/api/templates` gave 200 from the stubs before the deletion, and give 404 after it.
+  - `api/taskTemplates.spec.js` and `api/emailPreferences.spec.js` were red before the repoints.
+  - `router/router.spec.js`: every route resolves its component. It stands in for the manual click-through; a mutation check (a route pointing at a missing view) made it fail.
+- `GET /api-json` before and after: 134 → 124 routes. The diff is exactly the 10 stub routes (`/templates*`, PATCH/DELETE `/task-activity/{id}`); GET/POST `/task-activity` remain, now served by the real `TaskActivityLogController`.
+- `tsc --noEmit`, `npm run build`, lint (backend 0 errors, 541 warnings, ratchet lowered from 554) and knip pass in both projects. Tests: backend 303 unit (the 4 dropped ones were "should be defined" specs of deleted modules) and 23 E2E; frontend 150.
+- `act`: `frontend-tests`, `backend-tests` (both with the knip step) and `backend-e2e` succeeded.
+- Translation commit:
+  - A parser-based check confirms that every changed file is identical to its previous version once comments are stripped (`.vue` files: script blocks through the TypeScript printer, template and style without comments).
+  - Backend `tsc --removeComments` output: byte-identical (191 files).
+  - Frontend bundle: **not byte-identical, and it can't be**. `@vitejs/plugin-vue` computes the scoped-CSS id from the SFC source *including comments* in production. That changes the `data-v-…` ids, scoped keyframe names and asset hashes, and through the changed chunk the minifier's local names. After normalizing ids and hashes, a token comparison shows that every token type, string, number, property and export name is equal; only local identifiers differ. The Done-when's byte-identical condition is replaced by this check together with the source-level one.
+- `code-review` (high) on the deletion diff: no deletion still referenced at runtime; the lockfiles install with npm 10. 10 findings:
+  - fixed: the leftover Badge/Dashboard doc lines, the coverage provider instead of a knip ignore, and the hardcoded route count
+  - not done: moving the `@public` tags into `knip.jsonc` (knip's documented mechanism for single exports, each tag names its milestone), and lockfile churn with the local npm 11 (see Learned)
+  - the template findings went into M18 (see Learned)
+
+**Learned (for later milestones):**
+- The template API is broken end to end. Since M5 the frontend reaches it, but it never worked before either (the stub returned a placeholder string):
+  - `basicInclude` selects `first_name`/`last_name` and includes `task` (real names: `firstname`/`lastname`, `tasks`), so every query returns 500.
+  - The DTO and `TemplateForm` use `default_*` fields that aren't columns.
+  - The API has no owner check and exposes the creator's email.
+  
+  All of this is in M18 step 3, with decision E1. I deliberately did not fix the field names in M5: a working API without owner checks would expose every user's templates.
+- `TaskActivityLogController.findOne` reads `@Param("log_id")` on the route `:id`, so `GET /task-activity/:id` always fails validation (M15).
+- Lockfiles must be regenerated with npm 10 (`npx npm@10.9.2 install --package-lock-only`); npm 11 here drops entries that `npm ci` on CI's npm 10 needs (`@emnapi/*` for knip's native resolver).
+- ESLint and knip didn't notice a missing default export (`api/metrics.js`); only `vite build` did. Keep the build step in every verification.
+
+**Failed / open:**
+- Byte-identical frontend bundle for the translation commit: not achievable (see Verified), replaced by the source-level and token-level checks.

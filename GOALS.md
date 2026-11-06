@@ -268,7 +268,7 @@ Rules for all milestones:
   - Done when: `npm run lint:check` and `npm run build` exit 0 in both projects, the `no-unsafe-*` warning count is recorded in PROGRESS.md as the baseline, and CI is green with the new steps.
   - Risk: medium. The mass formatting commit touches most files; it is a separate commit so that `git blame` can skip it (`.git-blame-ignore-revs`). No coordination with Ereny is needed (decision Q12).
 
-- [ ] **M5: Remove unused code**
+- [x] **M5: Remove unused code**
   - Why: UNUSED_CODE.md. No effort should go into migrating code that gets deleted.
   - Scope: **every item with recommendation "Delete" in [UNUSED_CODE.md](UNUSED_CODE.md)**, including the newly found ones:
     - the stub modules `templates` and `task-activity`, with `frontend/src/api/taskTemplates.js` repointed to `/task-templates` in the same change. This fixes T110's endpoint and un-shadows T33's API.
@@ -474,7 +474,7 @@ Rules for all milestones:
     3. Add a "save as template" action in `TaskForm` that calls `/tasks/templates` (decision Q6). Make the template API work end to end; since M5 the frontend calls the real `/task-templates`, and found there:
        - `task-templates.service.ts` `basicInclude` selects `first_name`/`last_name` (the columns are `firstname`/`lastname`) and includes `task` (the relation is `tasks`), so every query returns 500 today.
        - `CreateTaskTemplateDto` accepts `default_title`, `default_description` and `default_status`, which are not columns of `task_templates` (only `name`, `description`); `TemplateForm.vue` also sends `default_priority_id` and `default_deadline_days` (400), and `TaskForm.applyTemplate` reads all `default_*` fields. Decide in M18 whether the template stores these defaults (schema change) or the UI drops them.
-       - Visibility and ownership: `GET /task-templates` returns every user's templates with the creator's email, and update/delete have no owner check. See the open question below; fix it before or together with the field names, so a working API never exposes other users' templates.
+       - Visibility and ownership (decision E1: private): `GET /task-templates` returns only the requester's templates, update/delete check the owner, and the creator's email is no longer returned. Fix this before or together with the field names, so a working API never exposes other users' templates.
     4. Add the tables `tags` and `task_tags` (approved, Q8e), set tags through the task create/update DTOs, add a tag input to `TaskForm` and tag chips to `TaskCard`. Deleting a task removes its `task_tags` rows.
   - Done when: `useTaskFilters` tests cover the new filters, a seed test checks the four priorities, E2E creates a template from a task and applies it, and E2E creates a task with two tags and reads them back.
   - Risk: medium. The data migration rewrites `priority_id` on existing tasks and notes; a migration test on a copy of the seeded DB checks the mapping. Notes resolve priorities by name (`notes.service.ts:142-158`) and keep working with the four names.
@@ -727,6 +727,7 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **C4 Planning files** (decided 2026-11-06): not committed for now. Affects: nothing.
 - **D1 School structure on the real API** (decided 2026-11-06, from a new audit finding): classes, departments and schedules move from localStorage to the existing APIs through stores, and subjects and rooms get a simple UI. New milestone M36 after M22. No schema change. Affects: T26, problem 19, M36, Definition of done.
 - **D2 Class membership** (decided 2026-11-06, answers UNUSED_CODE.md question 5): `GET /classes/:id` returns students, teachers and head teacher; `PUT /classes/:id/students` and `/teachers` assign them; admins for all classes, teachers for their own classes. The class chat (M21) uses this membership. No schema change. Affects: T26, T29, M21, M36.
+- **E1 Task template visibility** (decided 2026-11-07, found in M5): templates are private. Each user sees, edits and deletes only their own templates (`GET /task-templates` returns only the requester's, update/delete of someone else's gives 404 or 403), and responses no longer include the creator's email. Affects: T110, M18.
 - **Q8g Activity log on task delete** (decided 2026-11-06): no schema change. The delete transaction writes a "deleted" entry with the task title, sets `task_id = null` on the task's log rows, then deletes the task. Affects: T32, M15, M27, M33.
 
 ## Open questions
@@ -738,6 +739,5 @@ Each entry records an open question that was decided, and the parts of the plan 
 - *Are thesis code listings tied to source files?* The thesis is read-only (decision 3), and the mechanisms it names keep their names (Constraints).
 - *May `thesis/` and `documents/` be touched?* `thesis/` never (decision 3); `documents/` may be updated (decision 5).
 
-**Still open:**
-- *E1 Task templates: who sees and edits which templates?* (found in M5, needed by M18) Options: (a) private: each user sees and edits only their own; (b) own plus shared: teachers' templates are visible to all teachers, editable only by the creator; (c) everyone sees all, only the creator edits. The UI calls the page "Meine Templates". In every option the creator's email is no longer returned.
+**Still open:** none. Every question has been decided; see the Decisions log.
 
