@@ -3,6 +3,7 @@ import { ChatRoomsController } from "./chat-rooms.controller";
 import { ChatRoomsService } from "./chat-rooms.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { WebsocketGateway } from "../websocket/websocket.gateway";
 
 describe("ChatRoomsController", () => {
   let controller: ChatRoomsController;
@@ -21,6 +22,7 @@ describe("ChatRoomsController", () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatRoomsController],
       providers: [
+        { provide: WebsocketGateway, useValue: {} },
         {
           provide: ChatRoomsService,
           useValue: mockChatRoomsService,

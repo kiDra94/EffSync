@@ -1,8 +1,8 @@
 import { apiClient } from '@/api/httpClient';
 import { normalizeEntity, normalizeEntities } from '@/config/api.config';
 
-const ROOMS_ENDPOINT = '/chat/rooms';
-const MESSAGES_ENDPOINT = (roomId) => `/chat/rooms/${roomId}/messages`;
+const ROOMS_ENDPOINT = '/chat-rooms';
+const MESSAGES_ENDPOINT = (roomId) => `${ROOMS_ENDPOINT}/${roomId}/messages`;
 const ID_KEY = 'room_id';
 const MSG_ID_KEY = 'message_id';
 
@@ -29,12 +29,12 @@ export const sendMessageRest = async (roomId, content) => {
 };
 
 export const editMessage = async (messageId, content) => {
-    const response = await apiClient.patch(`/chat/messages/${messageId}`, { content });
+    const response = await apiClient.patch(`${ROOMS_ENDPOINT}/messages/${messageId}`, { message: content });
     return normalizeEntity(response.data, MSG_ID_KEY);
 };
 
 export const deleteMessage = async (messageId) => {
-    const response = await apiClient.delete(`/chat/messages/${messageId}`);
+    const response = await apiClient.delete(`${ROOMS_ENDPOINT}/messages/${messageId}`);
     return response.data;
 };
 

@@ -14,7 +14,7 @@ import { ChatRoomsModule } from "../chat-rooms/chat-rooms.module";
       }),
     }),
     forwardRef(() => ChatMessagesModule),
-    ChatRoomsModule,
+    forwardRef(() => ChatRoomsModule),
   ],
   providers: [WebsocketGateway, WsJwtGuard],
   exports: [WebsocketGateway],

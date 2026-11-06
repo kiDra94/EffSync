@@ -71,6 +71,10 @@ export class WebsocketGateway
     this.logger.log(`Client ${client.id}: disconnected!`);
   }
 
+  private userIdOf(client: Socket): number {
+    return Number((client.data as { user?: { userId?: number } }).user?.userId);
+  }
+
   emitTaskUpdated(userId: number, task: any) {
     this.server.to(`user_${userId}`).emit("task:updated", task);
   }
@@ -86,8 +90,9 @@ export class WebsocketGateway
   @SubscribeMessage("join:room")
   async handleJoinRoom(client: Socket, roomId: number) {
     try {
-      const userId = client.data.user?.userId;
-      await this.chatRoomsService.joinRoom(roomId, userId);
+      const userId = this.userIdOf(client);
+      // subscribing needs an existing membership; members are added by the creator (T96, Q14)
+      await this.chatRoomsService.assertIsMember(roomId, userId);
       client.join(`chat_${roomId}`);
       this.server
         .to(`chat_${roomId}`)
@@ -111,7 +116,8 @@ export class WebsocketGateway
     payload: { roomId: number; userId: number },
   ) {
     try {
-      const requesterId = client.data.user?.userId;
+      const requesterId = this.userIdOf(client);
+      await this.chatRoomsService.assertIsCreator(payload.roomId, requesterId);
       await this.chatRoomsService.joinRoom(payload.roomId, payload.userId);
 
       this.server
@@ -126,28 +132,22 @@ export class WebsocketGateway
     }
   }
 
+  // Unsubscribes this socket only (ChatView emits it when switching rooms).
+  // Leaving a room for good is DELETE /chat-rooms/:id/members/:ownId.
   @SubscribeMessage("leave:room")
-  async handleLeaveRoom(client: Socket, roomId: number) {
-    try {
-      const userId = client.data.user?.userId;
-      await this.chatRoomsService.leaveRoom(roomId, userId);
-      client.leave(`chat_${roomId}`);
-      this.server
-        .to(`chat_${roomId}`)
-        .emit("room:user-left", { userId, roomId });
-      this.logger.log(`Client ${client.id} left room ${roomId}`);
-    } catch {
-      this.logger.error(
-        `leave:room failed for client ${client.id} in room ${roomId}`,
-      );
-      client.emit("error", { message: "Failed to leave room" });
-    }
+  handleLeaveRoom(client: Socket, roomId: number) {
+    void client.leave(`chat_${roomId}`);
+    this.logger.log(`Client ${client.id} unsubscribed from room ${roomId}`);
+  }
+
+  unsubscribeUserFromRoom(userId: number, roomId: number) {
+    this.server.in(`user_${userId}`).socketsLeave(`chat_${roomId}`);
   }
 
   @SubscribeMessage("delete:room")
   async handleDeleteRoom(client: Socket, payload: { roomId: number }) {
     try {
-      const userId = Number(client.data.user?.userId);
+      const userId = this.userIdOf(client);
       const roomId = Number(payload.roomId);
       await this.chatRoomsService.deleteRoom(roomId, userId);
       this.server.to(`chat_${roomId}`).emit("delete:room", { roomId });
@@ -164,7 +164,7 @@ export class WebsocketGateway
     payload: { roomId: number; message: string },
   ) {
     try {
-      const userId = client.data.user?.userId;
+      const userId = this.userIdOf(client);
       const chatMessage = await this.chatMessagesService.createMsg({
         room_id: payload.roomId,
         user_id: userId,
@@ -186,19 +186,9 @@ export class WebsocketGateway
     payload: { messageId: number; message: string },
   ) {
     try {
-      const userId = client.data.user?.userId;
+      const userId = this.userIdOf(client);
       const messageId = Number(payload.messageId);
-      const isOwner = await this.chatMessagesService.isMsgOwner(
-        messageId,
-        userId,
-      );
-
-      if (!isOwner) {
-        client.emit("error", {
-          message: "You can only edit your own messages!",
-        });
-        return;
-      }
+      await this.chatMessagesService.assertCanModify(messageId, userId);
 
       const updated = await this.chatMessagesService.updateMsg(
         messageId,
@@ -217,24 +207,13 @@ export class WebsocketGateway
   @SubscribeMessage("chat:delete")
   async handleChatDeleteMsg(client: Socket, payload: { messageId: number }) {
     try {
-      const userId = client.data.user?.userId;
-
-      if (!userId) {
-        client.emit("error", {
-          message: "You can only delete your own messages!",
-        });
-        return;
-      }
-
-      const msg = await this.chatMessagesService.findOne(payload.messageId);
-      if (!msg) {
-        client.emit("error", { message: "Message not found!" });
-        return;
-      }
-
-      const deleted = await this.chatMessagesService.deleteMessage(
-        payload.messageId,
+      const userId = this.userIdOf(client);
+      const msg = await this.chatMessagesService.assertCanModify(
+        Number(payload.messageId),
+        userId,
       );
+
+      await this.chatMessagesService.deleteMessage(msg.message_id);
       this.server
         .to(`chat_${msg.room_id}`)
         .emit("chat:deleted", { messageId: payload.messageId });
@@ -243,17 +222,20 @@ export class WebsocketGateway
       this.logger.error(
         `Error handling chat:delete failed for client ${client.id}`,
       );
-      client.emit("error", { message: "Failed to edit message!" });
+      client.emit("error", { message: "Failed to delete message!" });
     }
   }
 
   @SubscribeMessage("chat:typing")
   handleChatTyping(client: Socket, data: { roomId: number }) {
     try {
-      const userId = client.data.user?.userId;
-      const username = client.data.user?.username;
+      const userId = this.userIdOf(client);
+      const username = (client.data as { user?: { username?: string } }).user
+        ?.username;
 
-      if (!userId || !data?.roomId) return;
+      // only a socket subscribed to the room (a member, see join:room) may signal typing
+      if (!userId || !data?.roomId || !client.rooms.has(`chat_${data.roomId}`))
+        return;
 
       client.broadcast
         .to(`chat_${data.roomId}`)

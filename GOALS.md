@@ -287,7 +287,7 @@ Rules for all milestones:
 
 ### Security alignment (before the restructuring, because these are exploitable today)
 
-- [ ] **M6: Chat-room authorization**
+- [x] **M6: Chat-room authorization**
   - Why: T02, T114, T96, T128.
     - `POST /chat/rooms/:id` and `POST /chat/rooms/:id/members` let anyone add anyone to any room.
     - `DELETE /chat/rooms/:id` (`leaveRoom`, `chat-rooms.controller.ts:48`) removes any user named in the request body, and it shadows the creator-checked `deleteRoom` (`:60`).

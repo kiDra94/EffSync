@@ -32,7 +32,7 @@ export class ChatRoomsService {
     const rooms = await this.prisma.chat_rooms.findMany({
       where: {
         chat_room_users: {
-          some: { user_id: userId },
+          some: { user_id: userId, left_at: null },
         },
       },
       include: {
@@ -139,6 +139,20 @@ export class ChatRoomsService {
         data: { left_at: new Date() },
       });
     });
+  }
+
+  async assertIsMember(roomId: number, userId: number) {
+    const room = await this.prisma.chat_rooms.findUnique({
+      where: { room_id: roomId },
+      select: { room_id: true },
+    });
+    if (!room) throw new NotFoundException("Room not found!");
+
+    const membership = await this.prisma.chat_room_users.findFirst({
+      where: { room_id: roomId, user_id: userId, left_at: null },
+    });
+    if (!membership)
+      throw new ForbiddenException("You are not a member of this room!");
   }
 
   async assertIsCreator(roomId: number, userId: number) {

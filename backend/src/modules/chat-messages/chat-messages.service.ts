@@ -1,4 +1,10 @@
-import { Injectable, Inject, forwardRef } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from "@nestjs/common";
 import { CreateChatMessageDto } from "./dto/create-chat-message.dto";
 import { UpdateChatMessageDto } from "./dto/update-chat-message.dto";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -58,15 +64,17 @@ export class ChatMessagesService {
     return message;
   }
 
-  findAll() {
-    return this.prisma.chat_messages.findMany();
-  }
-
   findOne(id: number) {
     return this.prisma.chat_messages.findUnique({ where: { message_id: id } });
   }
 
-  async findByRoom(roomId: number) {
+  async findByRoom(roomId: number, userId: number) {
+    const membership = await this.prisma.chat_room_users.findFirst({
+      where: { room_id: roomId, user_id: userId, left_at: null },
+    });
+    if (!membership)
+      throw new ForbiddenException("You are not a member of this room!");
+
     return this.prisma.chat_messages.findMany({
       where: { room_id: roomId },
       orderBy: { created_at: "asc" },
@@ -114,11 +122,20 @@ export class ChatMessagesService {
     if (count === 0) throw new Error("User not in Chatroom!");
   }
 
-  async isMsgOwner(messageId: number, userId: number) {
+  // T96: only the author, while still a member of the room, edits or deletes a message
+  async assertCanModify(messageId: number, userId: number) {
     const msg = await this.prisma.chat_messages.findUnique({
       where: { message_id: Number(messageId) },
-      select: { user_id: true },
     });
-    return !!msg && msg.user_id === Number(userId);
+    if (!msg) throw new NotFoundException("Message not found!");
+    if (msg.user_id !== Number(userId))
+      throw new ForbiddenException("Not your message!");
+
+    const membership = await this.prisma.chat_room_users.findFirst({
+      where: { room_id: msg.room_id, user_id: Number(userId), left_at: null },
+    });
+    if (!membership)
+      throw new ForbiddenException("You are not a member of this room!");
+    return msg;
   }
 }

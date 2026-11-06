@@ -215,3 +215,60 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 
 **Failed / open:**
 - Byte-identical frontend bundle for the translation commit: not achievable (see Verified), replaced by the source-level and token-level checks.
+
+## 2026-11-07 – M6: Chat-room authorization
+
+**Done:**
+- Route change (T88, decision Q6/T88). Everything under `/chat-rooms`; nothing is left under `/chat`:
+
+  | Before | After |
+  |---|---|
+  | `GET/POST /chat/rooms` | `GET/POST /chat-rooms` |
+  | `GET/PATCH /chat/rooms/:id` | `GET/PATCH /chat-rooms/:id` (GET: members only; PATCH: creator only) |
+  | `DELETE /chat/rooms/:id` → reached `leaveRoom` with a body `userId` | `DELETE /chat-rooms/:id` → `deleteRoom` (creator only) |
+  | `POST /chat/rooms/:id` (self-join with a body `userId`) | removed (decision Q14) |
+  | `POST /chat/rooms/:id/members` (anyone adds anyone) | `POST /chat-rooms/:id/members` (creator only, `AddChatMemberDto`) |
+  | `DELETE /chat/rooms/:id/members/:userId` | `DELETE /chat-rooms/:id/members/:userId`: leaving yourself, or removing someone else as the creator; the removed user's sockets leave the room |
+  | `GET/POST /chat/rooms/:id/messages` | `GET/POST /chat-rooms/:id/messages` (GET: members only) |
+  | `PATCH/DELETE /chat/messages/:id` | `PATCH/DELETE /chat-rooms/messages/:id` (author who is still a member) |
+  | `GET /chat` (every message of every room) | removed (T96; it would also collide with the room list) |
+
+  All `:id` and `:userId` params use `ParseIntPipe`, so a non-numeric id gives 400 instead of a Prisma error.
+- `findRoomsByUser` lists only rooms with `left_at: null` (T128); the socket connect joins only those.
+- Socket.io (same rules as REST):
+  - `join:room` subscribes only an existing member; it no longer creates a membership (it used to let anyone join any room, including other people's direct chats).
+  - `invite:room` requires the creator.
+  - `leave:room` only unsubscribes the socket. ChatView emits it on every room switch; leaving for good is the REST route.
+  - `chat:edit` and `chat:delete` require the author who is still a member (`chat:delete` had no owner check at all).
+  - `chat:typing` is relayed only from a socket subscribed to the room.
+- `AuthenticatedRequest` type for `req.user` in the chat controllers and a `userIdOf` helper in the gateway, which also removed 42 `no-unsafe-*` warnings. The lint ratchet goes from 541 to 499.
+- Frontend: `api/chat.js` follows the new routes, and `editMessage` now sends `message` (it sent `content`, which the DTO rejected with 400).
+
+**Verified:**
+- Tests first; all were red before the change:
+  - the flipped M2 route tests (`// THESIS: T02`, T114, T128) and new route tests for messages
+  - gateway tests for join, invite, leave, edit, delete, typing and unsubscribe
+  - `assertIsMember`/`assertCanModify` tests
+  - `frontend/src/api/chat.spec.js`
+  - `test/chat-rooms.e2e-spec.ts`, which covers leave, removal by the creator, removal by a non-creator (403), adding by the creator, adding by a non-creator member (403), deleting by a non-creator (403), no access to room, messages and own old messages after leaving, and 400 for `/chat-rooms/messages`
+- `GET /api-json`: no `/chat/` route; 14 chat routes became 12 (the self-join and `GET /chat` are gone, the rest renamed).
+- Backend 332 unit and 31 E2E tests, frontend 154; tsc, lint (0 errors, 499 warnings), knip and build pass. `act`: all three jobs succeeded.
+- `code-review` (high), 10 findings, 9 fixed:
+  1. Switching rooms in ChatView left the room for good. It emits `leave:room`, which set `left_at`, and `join:room` no longer re-created the membership. Fixed by making `leave:room` unsubscribe only.
+  2. `chat:delete` had no owner check.
+  3. Removed members kept receiving live messages.
+  4. `chat:typing` had no membership check.
+  5. Non-numeric ids reached Prisma.
+  6. Editing or deleting was still possible after leaving.
+  7. The REST edit payload was wrong.
+  8. The creator check on room delete ran twice.
+  9. The gateway helper was used only in some handlers.
+  
+  Not done: one shared membership helper for `ChatRoomsService`, `ChatMessagesService.findByRoom` and `validateTrans` (three copies of `left_at: null`; a room that doesn't exist gives 404 on `GET /:id` but 403 on `GET /:id/messages`). That belongs to the chat context in M21.
+
+**Learned (for later milestones):**
+- The frontend listens for `chat:typing` with a `roomId`, but the gateway sends only `{ userId, username }` (M21).
+- `useChat` and `ChatView` never offer a "leave room" action; with M6 the REST route exists (UI in M21 or M25).
+- Login is throttled to 3 per minute per app instance, so an E2E file can log in at most three users.
+
+**Failed / open:** none.

@@ -1,5 +1,5 @@
 /**
- * Characterization tests for ChatRoomsService (GOALS.md M2).
+ * Characterization tests for ChatRoomsService (GOALS.md M2, T128 flipped in M6).
  */
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { ChatRoomsService } from "./chat-rooms.service";
@@ -63,16 +63,50 @@ describe("ChatRoomsService (characterization, M2)", () => {
     });
   });
 
-  // THESIS: T128 – rooms the user has left are still listed; only the member list hides users who left
-  it("lists every room the user was ever a member of", async () => {
+  // THESIS: T128 (flipped in M6) – rooms the user has left are no longer listed
+  it("lists only the rooms the user is still an active member of", async () => {
     await service.findRoomsByUser(5);
 
     const args = prisma.chat_rooms.findMany.mock.calls[0][0] as {
       where: unknown;
       include: { chat_room_users: { where: unknown } };
     };
-    expect(args.where).toEqual({ chat_room_users: { some: { user_id: 5 } } });
+    expect(args.where).toEqual({
+      chat_room_users: { some: { user_id: 5, left_at: null } },
+    });
     expect(args.include.chat_room_users.where).toEqual({ left_at: null });
+  });
+
+  // T96: object-level check through chat_room_users
+  describe("assertIsMember", () => {
+    it("accepts an active member", async () => {
+      prisma.chat_rooms.findUnique.mockResolvedValue({ room_id: 1 });
+      prisma.chat_room_users.findFirst.mockResolvedValue({
+        room_id: 1,
+        user_id: 5,
+      });
+
+      await expect(service.assertIsMember(1, 5)).resolves.toBeUndefined();
+      expect(prisma.chat_room_users.findFirst).toHaveBeenCalledWith({
+        where: { room_id: 1, user_id: 5, left_at: null },
+      });
+    });
+
+    it("rejects someone who isn't (or no longer is) a member with 403", async () => {
+      prisma.chat_rooms.findUnique.mockResolvedValue({ room_id: 1 });
+
+      await expect(service.assertIsMember(1, 9)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it("throws 404 for an unknown room", async () => {
+      prisma.chat_rooms.findUnique.mockResolvedValue(null);
+
+      await expect(service.assertIsMember(1, 5)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
   describe("joinRoom", () => {
