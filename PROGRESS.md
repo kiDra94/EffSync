@@ -190,7 +190,7 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
   - `test/routes.e2e-spec.ts`: PATCH/DELETE `/api/task-activity/:id` and `/api/templates` gave 200 from the stubs before the deletion, and give 404 after it.
   - `api/taskTemplates.spec.js` and `api/emailPreferences.spec.js` were red before the repoints.
   - `router/router.spec.js`: every route resolves its component. It stands in for the manual click-through; a mutation check (a route pointing at a missing view) made it fail.
-- `GET /api-json` before and after: 134 → 124 routes. The diff is exactly the 10 stub routes (`/templates*`, PATCH/DELETE `/task-activity/{id}`); GET/POST `/task-activity` remain, now served by the real `TaskActivityLogController`.
+- `GET /api-json` before and after: 134 → 127 routes. The diff is exactly the 7 stub routes (5 under `/templates`, PATCH/DELETE `/task-activity/{id}`); GET/POST `/task-activity` remain, now served by the real `TaskActivityLogController`.
 - `tsc --noEmit`, `npm run build`, lint (backend 0 errors, 541 warnings, ratchet lowered from 554) and knip pass in both projects. Tests: backend 303 unit (the 4 dropped ones were "should be defined" specs of deleted modules) and 23 E2E; frontend 150.
 - `act`: `frontend-tests`, `backend-tests` (both with the knip step) and `backend-e2e` succeeded.
 - Translation commit:
