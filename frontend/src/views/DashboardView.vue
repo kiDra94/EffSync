@@ -15,7 +15,7 @@ const authStore = useAuthStore();
 const noteStore = useNoteStore();
 const taskStore = useTaskStore();
 
-// Schnelle Notiz
+// Quick note
 const quickNote = ref('');
 const noteInput = ref('');
 
@@ -36,7 +36,7 @@ const addQuickNote = async () => {
   }
 };
 
-// Dynamische Metriken
+// Dynamic metrics
 const metrics = ref([
   { 
     id: 1, 
@@ -104,9 +104,9 @@ const unwrapArray = (input) => {
   return [];
 };
 
-// Funktion zum Aktualisieren der Metriken
+// Updates the metrics
 const updateMetrics = async () => {
-  // Alle Zählungen parallel via API laden
+  // Load all counts in parallel through the API
   const [taskProgressRes, classesRes, documentsRes, slotsRes, departmentsRes] = await Promise.allSettled([
     fetchMetrics('task-progress'),
     apiClient.get('/classes'),
@@ -120,7 +120,7 @@ const updateMetrics = async () => {
       const data = directArray ? unwrapArray(result.value) : unwrapArray(result.value);
       return Array.isArray(data) ? data.length : 0;
     }
-    // Fallback: localStorage-Cache aus dem jeweiligen View
+    // Fallback: the localStorage cache of the respective view
     try {
       const cached = localStorage.getItem(`effsync_${fallbackKey}`);
       if (!cached) return 0;
@@ -205,7 +205,7 @@ const handleCardClick = (routeName) => {
     </div>
 
     <div class="content-section">
-      <!-- Stundenplan -->
+      <!-- Timetable -->
       <div class="placeholder-box clickable" @click="router.push({name: 'Schedules', query: { today: 'true' }})">
         <h3>📅 Heutiger Stundenplan</h3>
         <p class="schedule-subtitle">Deine heutigen Stunden anschauen...</p>
@@ -214,7 +214,7 @@ const handleCardClick = (routeName) => {
         </button>
       </div>
 
-      <!-- Schnelle Notizen -->
+      <!-- Quick notes -->
       <div class="placeholder-box">
         <h3>⚡ Schnelle Notiz erfassen</h3>
         <input
@@ -252,7 +252,7 @@ const handleCardClick = (routeName) => {
 
 .page-title {
   margin-bottom: 5px;
-  color: #23234c; /* Standard Hell */
+  color: #23234c; /* Default light */
 }
 
 .subtitle {
@@ -268,7 +268,7 @@ const handleCardClick = (routeName) => {
   margin-bottom: 40px;
 }
 
-/* --- KARTEN (Basis) --- */
+/* --- CARDS (base) --- */
 .metric-card {
   background: white;
   padding: 20px;

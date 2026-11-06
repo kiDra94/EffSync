@@ -1,4 +1,4 @@
-import 'dotenv/config'; // WICHTIG: Lädt die DATABASE_URL aus deiner .env
+import 'dotenv/config'; // IMPORTANT: loads DATABASE_URL from your .env
 import { PrismaClient, task_status } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -10,7 +10,7 @@ if (!connectionString) {
     throw new Error('DATABASE_URL ist nicht in der .env definiert!');
 }
 
-// Prisma 7 Setup: Der Client benötigt zwingend den Adapter
+// Prisma 7 setup: the client requires the adapter
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool, { disposeExternalPool: true });
 const prisma = new PrismaClient({ adapter })
@@ -137,7 +137,7 @@ async function main() {
             { firstname: 'Mia', lastname: 'Steiner', email: 'mia.steiner@student.htl.at', username: 'msteiner', password_hash: passwordHash }, // ID 14
             { firstname: 'Paul', lastname: 'Wallner', email: 'paul.wallner@student.htl.at', username: 'pwallner', password_hash: passwordHash }, // ID 15
             { firstname: 'Emma', lastname: 'Auer', email: 'emma.auer@student.htl.at', username: 'eauer', password_hash: passwordHash }, // ID 16
-            // Google OAuth Test Users (keine password_hash)
+            // Google OAuth test users (no password_hash)
             { firstname: 'Google', lastname: 'Testuser', email: 'test@gmail.com', username: 'test@gmail.com', google_id: '123456789012345678901', password_hash: null }, // ID 17
             { firstname: 'Max', lastname: 'Mustermann', email: 'max.mustermann@gmail.com', username: 'max.mustermann@gmail.com', google_id: '123456789012345678902', password_hash: null }, // ID 18
             { firstname: 'Demo', lastname: 'User', email: 'demo.user@gmail.com', username: 'demo.user@gmail.com', google_id: '123456789012345678903', password_hash: null } // ID 19
@@ -170,7 +170,7 @@ async function main() {
 
         const studentsData = Array.from({ length: 13 }).map((_, i) => ({
             student_id: i + 7,
-            class_id: null // Wird nach Erstellung der Klassen geupdated
+            class_id: null // Updated after the classes are created
         }));
         await prisma.students.createMany({ data: studentsData });
         console.log(`✓ 13 Einträge in students erstellt (inkl. Google OAuth User)`);
@@ -191,7 +191,7 @@ async function main() {
         await prisma.classes.createMany({ data: classesData });
         console.log(`✓ 10 Einträge in classes erstellt`);
 
-        // Update Students with class_ids (aufteilen auf die ersten 5 Klassen)
+        // Update students with class_ids (spread over the first 5 classes)
         for (let i = 0; i < 13; i++) {
             await prisma.students.update({
                 where: { student_id: i + 7 },
@@ -200,7 +200,7 @@ async function main() {
         }
 
         const userRolesData = [
-            // User 1: Superuser-Rolle (deckt alle Superuser-Rechte ab)
+            // User 1: Superuser role (covers all Superuser rights)
             { user_id: 1, role_id: 1 },  // Superuser
             // User 2-6: Teachers
             { user_id: 2, role_id: 3 },
@@ -218,55 +218,55 @@ async function main() {
         await prisma.user_roles.createMany({ data: userRolesData });
         console.log(`✓ ${userRolesData.length} Einträge in user_roles erstellt (inkl. Google OAuth User)`);
 
-        // === ERWEITERTE USER-PERMISSIONS MIT VERSCHIEDENEN TESTSZENARIEN ===
+        // === EXTENDED USER PERMISSIONS WITH DIFFERENT TEST SCENARIOS ===
         
-        // SZENARIO 1: Superadmin (User 1) - Alle Permissions unbegrenzt
+        // SCENARIO 1: superadmin (user 1) - all permissions, unlimited
         const superadminPermissions = Array.from({ length: 10 }).map((_, i) => ({
             user_id: 1,
             permission_id: i + 1,
             valid_from: new Date('2026-01-01'),
-            valid_to: null  // Unbegrenzt für Admin
+            valid_to: null  // Unlimited for admin
         }));
 
-        // SZENARIO 2: Direktor (User 2) - Manage_users und manage_classes gültig, manage_system abgelaufen
+        // SCENARIO 2: principal (user 2) - manage_users and manage_classes valid, manage_system expired
         const directorPermissions = [
             {
                 user_id: 2,
                 permission_id: 2,  // manage_users
                 valid_from: new Date('2026-01-01'),
-                valid_to: new Date('2026-12-31')  // Gültig
+                valid_to: new Date('2026-12-31')  // Valid
             },
             {
                 user_id: 2,
                 permission_id: 8,  // manage_classes
                 valid_from: new Date('2026-01-01'),
-                valid_to: new Date('2026-12-31')  // Gültig
+                valid_to: new Date('2026-12-31')  // Valid
             },
             {
                 user_id: 2,
                 permission_id: 10,  // manage_system
                 valid_from: new Date('2025-09-01'),
-                valid_to: new Date('2025-12-31')  // ABGELAUFEN
+                valid_to: new Date('2025-12-31')  // EXPIRED
             }
         ];
 
-        // SZENARIO 3: Abteilungsvorstand (User 3) - manage_classes, view_grades (zukunftsdatiert)
+        // SCENARIO 3: head of department (user 3) - manage_classes, view_grades (future-dated)
         const deptLeadPermissions = [
             {
                 user_id: 3,
                 permission_id: 8,  // manage_classes
                 valid_from: new Date('2026-01-01'),
-                valid_to: new Date('2026-12-31')  // Gültig
+                valid_to: new Date('2026-12-31')  // Valid
             },
             {
                 user_id: 3,
                 permission_id: 6,  // view_grades
-                valid_from: new Date('2026-04-01'),  // Zukunftsdatiert
+                valid_from: new Date('2026-04-01'),  // Future-dated
                 valid_to: new Date('2026-12-31')
             }
         ];
 
-        // SZENARIO 4: Klassenvorstand (User 4) - create_tasks, edit_tasks
+        // SCENARIO 4: class teacher (user 4) - create_tasks, edit_tasks
         const classLeadPermissions = [
             {
                 user_id: 4,
@@ -282,47 +282,47 @@ async function main() {
             }
         ];
 
-        // SZENARIO 5: Lehrer (User 5, 6) - create_tasks, edit_tasks, edit_grades (gültig bis Juli 2026)
+        // SCENARIO 5: teachers (users 5, 6) - create_tasks, edit_tasks, edit_grades (valid until July 2026)
         const teacherPermissions = [5, 6].flatMap(teacher_id =>
             [3, 4, 7].map(perm_id => ({  // create_tasks, edit_tasks, edit_grades
                 user_id: teacher_id,
                 permission_id: perm_id,
                 valid_from: new Date('2026-01-01'),
-                valid_to: new Date('2026-07-31')  // Gültig für Schuljahr
+                valid_to: new Date('2026-07-31')  // Valid for the school year
             }))
         );
 
-        // SZENARIO 6: Schüler - Permissions mit unterschiedlichen Gültigkeiten
+        // SCENARIO 6: students - permissions with different validity periods
         const studentPermissions = [
-            // Normaler Schüler (User 7) - view_dashboard gültig
+            // Regular student (user 7) - view_dashboard valid
             {
                 user_id: 7,
                 permission_id: 1,  // view_dashboard
                 valid_from: new Date('2026-02-01'),
-                valid_to: new Date('2026-06-30')  // Gültig
+                valid_to: new Date('2026-06-30')  // Valid
             },
-            // Schüler (User 8) - permission abgelaufen
+            // Student (user 8) - permission expired
             {
                 user_id: 8,
                 permission_id: 1,  // view_dashboard
                 valid_from: new Date('2025-12-01'),
-                valid_to: new Date('2026-01-31')  // ABGELAUFEN
+                valid_to: new Date('2026-01-31')  // EXPIRED
             },
-            // Schüler (User 9) - permission noch nicht gültig
+            // Student (user 9) - permission not yet valid
             {
                 user_id: 9,
                 permission_id: 1,  // view_dashboard
-                valid_from: new Date('2026-05-01'),  // Zukunft
+                valid_from: new Date('2026-05-01'),  // Future
                 valid_to: new Date('2026-08-31')
             },
-            // Schüler (User 10) - view_grades (normalerweise nicht für Schüler)
+            // Student (user 10) - view_grades (normally not for students)
             {
                 user_id: 10,
-                permission_id: 6,  // view_grades - Sonderfall
+                permission_id: 6,  // view_grades - special case
                 valid_from: new Date('2026-02-01'),
                 valid_to: new Date('2026-06-30')
             },
-            // Schüler (User 11-16) - Standard view_dashboard
+            // Students (users 11-16) - default view_dashboard
             ...Array.from({ length: 6 }).map((_, i) => ({
                 user_id: 11 + i,
                 permission_id: 1,  // view_dashboard
@@ -342,9 +342,9 @@ async function main() {
         await prisma.user_permissions.createMany({ data: allUserPermissions });
         console.log(`✓ ${allUserPermissions.length} Einträge in user_permissions erstellt (mit erweiterten Testszenarien)`);
 
-        // === ROLLEN-PERMISSION-MAPPINGS ===
+        // === ROLE-PERMISSION MAPPINGS ===
         const rolesPermissionsData = [
-            // Superuser (ID 1): Alle Permissions
+            // Superuser (ID 1): all permissions
             ...Array.from({ length: 10 }).map((_, i) => ({
                 roles_id: 1, permission_id: i + 1
             })),
@@ -376,7 +376,7 @@ async function main() {
             subject_id: i + 1,
             teacher_id: (i % 5) + 2,
             room_id: i + 1,
-            day_of_week: (i % 5) + 1, // Montag bis Freitag
+            day_of_week: (i % 5) + 1, // Monday to Friday
             lesson_number: (i % 8) + 1,
             start_time: new Date(`1970-01-01T08:00:00Z`),
             end_time: new Date(`1970-01-01T08:50:00Z`)
@@ -392,13 +392,13 @@ async function main() {
         await prisma.task_templates.createMany({ data: taskTemplatesData });
         console.log(`✓ 10 Einträge in task_templates erstellt`);
 
-        // --- PHASE 6: Tasks mit realistischen Daten für Kalender ---
+        // --- PHASE 6: tasks with realistic dates for the calendar ---
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        // Tasks für verschiedene Tage dieser Woche und nächste Woche
+        // Tasks on different days of this week and next week
         const parentTasksData = [
-            // Diese Woche Montag
+            // This week, Monday
             {
                 title: 'Mathe Test',
                 description: 'Vorbereitung auf Mathe Test - Integralrechnung',
@@ -407,10 +407,10 @@ async function main() {
                 created_by: 2,
                 assigned_to: 7,
                 template_id: 1,
-                priority_id: 5,  // Wichtig
-                deadline: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000)  // +1 Tag
+                priority_id: 5,  // Important
+                deadline: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000)  // +1 day
             },
-            // Diese Woche Mittwoch
+            // This week, Wednesday
             {
                 title: 'Englisch Vokabeln',
                 description: 'Unit 5 Vokabeln lernen für Quiz',
@@ -420,9 +420,9 @@ async function main() {
                 assigned_to: 8,
                 template_id: 2,
                 priority_id: 4,  // Normal
-                deadline: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)  // +3 Tage
+                deadline: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)  // +3 days
             },
-            // Diese Woche Freitag
+            // This week, Friday
             {
                 title: 'Informatik Projekt',
                 description: 'REST API für Schulverwaltung fertigstellen',
@@ -431,10 +431,10 @@ async function main() {
                 created_by: 2,
                 assigned_to: 9,
                 template_id: 3,
-                priority_id: 5,  // Wichtig
-                deadline: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000)  // +5 Tage
+                priority_id: 5,  // Important
+                deadline: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000)  // +5 days
             },
-            // Nächste Woche Montag
+            // Next week, Monday
             {
                 title: 'Sportfest',
                 description: 'Schulinternes Sportfest - Anmeldung erforderlich',
@@ -444,9 +444,9 @@ async function main() {
                 assigned_to: 10,
                 template_id: 4,
                 priority_id: 3,  // Normal
-                deadline: new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000)  // +8 Tage
+                deadline: new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000)  // +8 days
             },
-            // Nächste Woche Mittwoch
+            // Next week, Wednesday
             {
                 title: 'Chemie Versuchsprotokoll',
                 description: 'Laborversuch dokumentieren und analysieren',
@@ -456,9 +456,9 @@ async function main() {
                 assigned_to: 11,
                 template_id: 5,
                 priority_id: 4,  // Normal
-                deadline: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000)  // +10 Tage
+                deadline: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000)  // +10 days
             },
-            // Nächste Woche Freitag
+            // Next week, Friday
             {
                 title: 'Deutsch Referat',
                 description: 'Präsentation über Literatur der Klassik halten',
@@ -467,10 +467,10 @@ async function main() {
                 created_by: 2,
                 assigned_to: 12,
                 template_id: 6,
-                priority_id: 5,  // Wichtig
-                deadline: new Date(today.getTime() + 12 * 24 * 60 * 60 * 1000)  // +12 Tage
+                priority_id: 5,  // Important
+                deadline: new Date(today.getTime() + 12 * 24 * 60 * 60 * 1000)  // +12 days
             },
-            // In zwei Wochen
+            // In two weeks
             {
                 title: 'Historieprojekt',
                 description: 'Zeitzeugenbefragung durchführen',
@@ -480,9 +480,9 @@ async function main() {
                 assigned_to: 13,
                 template_id: 7,
                 priority_id: 3,  // Normal
-                deadline: new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000)  // +15 Tage
+                deadline: new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000)  // +15 days
             },
-            // In zwei Wochen + 2 Tage
+            // In two weeks + 2 days
             {
                 title: 'PhysikVerstehen Übungen',
                 description: 'Kapitel 7-8 Aufgaben 1-42 lösen',
@@ -491,10 +491,10 @@ async function main() {
                 created_by: 2,
                 assigned_to: 14,
                 template_id: 8,
-                priority_id: 2,  // Niedrig
-                deadline: new Date(today.getTime() + 17 * 24 * 60 * 60 * 1000)  // +17 Tage
+                priority_id: 2,  // Low
+                deadline: new Date(today.getTime() + 17 * 24 * 60 * 60 * 1000)  // +17 days
             },
-            // OberflächenTest - abgelaufen (Vergangenheit)
+            // UI test - overdue (in the past)
             {
                 title: 'Bio Test (Vergangenheit)',
                 description: 'Bereits abgelaufene Aufgabe',
@@ -503,8 +503,8 @@ async function main() {
                 created_by: 2,
                 assigned_to: 15,
                 template_id: 9,
-                priority_id: 1,  // Niedrig
-                deadline: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)  // -3 Tage
+                priority_id: 1,  // Low
+                deadline: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)  // -3 days
             },
             // Extra Task
             {
@@ -516,7 +516,7 @@ async function main() {
                 assigned_to: 16,
                 template_id: 10,
                 priority_id: 3,  // Normal
-                deadline: new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000)  // +20 Tage
+                deadline: new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000)  // +20 days
             }
         ];
         await prisma.tasks.createMany({ data: parentTasksData });
@@ -589,7 +589,7 @@ async function main() {
             }
         });
 
-        // Jetzt den Parent-Task mit echten Subtask-IDs erstellen
+        // Now create the parent task with the real subtask IDs
         const extraParent = await prisma.tasks.create({
             data: {
                 title: 'Server aufsetzen',
@@ -628,13 +628,13 @@ async function main() {
             }
         });
 
-        // Subtasks dem Parent zuweisen
+        // Assign the subtasks to the parent
         await prisma.tasks.updateMany({
             where: { task_id: { in: [extraSub1.task_id, extraSub2.task_id, extraSub3.task_id, extraSub4.task_id] } },
             data: { parent_task_id: extraParent.task_id }
         });
 
-        // Task-Mitgliedschaften für realistische Berechtigungs-/Sichtbarkeitstests
+        // Task memberships for realistic permission/visibility tests
         const baseTaskMembersData = Array.from({ length: 20 }).flatMap((_, i) => {
             const taskId = i + 1;
             const assignedUserId = i < 10 ? i + 7 : i - 3; // Tasks 1-10 => 7..16, Tasks 11-20 => 7..16
@@ -677,13 +677,13 @@ async function main() {
         console.log(`✓ 10 Einträge in notes erstellt`);
 
         const documentsData = [
-            // Unterrichtsmaterialien (Lehrer)
+            // Teaching materials (teachers)
             { name: 'Skriptum_Teil1.pdf', file_path: '/uploads/docs/skriptum_1.pdf', file_size: 1024, mime_type: 'application/pdf', added_by: 2 },
             { name: 'Skriptum_Teil2.pdf', file_path: '/uploads/docs/skriptum_2.pdf', file_size: 2048, mime_type: 'application/pdf', added_by: 2 },
             { name: 'Skriptum_Teil3.pdf', file_path: '/uploads/docs/skriptum_3.pdf', file_size: 3072, mime_type: 'application/pdf', added_by: 2 },
             { name: 'Skriptum_Teil4.pdf', file_path: '/uploads/docs/skriptum_4.pdf', file_size: 4096, mime_type: 'application/pdf', added_by: 2 },
             { name: 'Skriptum_Teil5.pdf', file_path: '/uploads/docs/skriptum_5.pdf', file_size: 5120, mime_type: 'application/pdf', added_by: 2 },
-            // Schülerabgaben (teilweise bewertet)
+            // Student submissions (partly graded)
             {
                 name: 'abgabe_felix_task1.pdf',
                 file_path: '/uploads/submissions/abgabe_felix_task1.pdf',
@@ -756,16 +756,16 @@ async function main() {
         // Group Rooms (is_private: false)
         // Room IDs 4-6
         const groupRoomsData = [
-            { name: 'Lehrerkonferenz', is_private: false, created_by: 2 },                      // alle Lehrer + Admin
-            { name: '5AHITM Klassenchat', is_private: false, class_id: 5, created_by: 6 },      // KV + Klasse 5
-            { name: 'Diplomarbeit Gruppe', is_private: false, created_by: 3 },                  // Peter + ein paar Schüler
+            { name: 'Lehrerkonferenz', is_private: false, created_by: 2 },                      // all teachers + admin
+            { name: '5AHITM Klassenchat', is_private: false, class_id: 5, created_by: 6 },      // class teacher + class 5
+            { name: 'Diplomarbeit Gruppe', is_private: false, created_by: 3 },                  // Peter + a few students
         ];
         await prisma.chat_rooms.createMany({ data: groupRoomsData });
         console.log(`✓ 3 Group Chat Rooms erstellt (IDs 4–6)`);
 
         // --- PHASE 8: Junction & Log Tables ---
         // --- Chat Room Users ---
-        // Klasse 5 Schüler: user_id 11 (Tobias) und 16 (Emma) → class_id = (i%5)+1 für i=4 und i=9
+        // Class 5 students: user_id 11 (Tobias) and 16 (Emma) → class_id = (i%5)+1 for i=4 and i=9
         const chatRoomUsersData = [
             // Room 1 – Direct: Admin (1) <-> Anna (2)
             { room_id: 1, user_id: 1 },
@@ -776,7 +776,7 @@ async function main() {
             // Room 3 – Direct: Anna (2) <-> Peter (3)
             { room_id: 3, user_id: 2 },
             { room_id: 3, user_id: 3 },
-            // Room 4 – Lehrerkonferenz: Admin + alle Lehrer
+            // Room 4 – staff meeting: admin + all teachers
             { room_id: 4, user_id: 1 },
             { room_id: 4, user_id: 2 },
             { room_id: 4, user_id: 3 },
@@ -813,14 +813,14 @@ async function main() {
             { room_id: 3, user_id: 3, message: 'Bin gerade dabei, dauert noch bis morgen Abend.' },
             { room_id: 3, user_id: 2, message: 'Kein Stress, Deadline ist erst Freitag. 👍' },
 
-            // Room 4 – Lehrerkonferenz (Group)
+            // Room 4 – staff meeting (group)
             { room_id: 4, user_id: 2, message: 'Guten Morgen alle! Erinnerung: Zeugnisnoten bis Donnerstag ins System einpflegen.' },
             { room_id: 4, user_id: 4, message: 'Danke für die Erinnerung! Mache ich heute Nachmittag.' },
             { room_id: 4, user_id: 5, message: 'Gilt das auch für die Nachtragsbeurteilungen?' },
             { room_id: 4, user_id: 2, message: 'Ja, alles was noch offen ist bitte bis Donnerstag.' },
             { room_id: 4, user_id: 1, message: 'Ich schick euch noch eine offizielle Erinnerungsmail raus.' },
 
-            // Room 5 – 5AHITM Klassenchat (Group)
+            // Room 5 – 5AHITM class chat (group)
             { room_id: 5, user_id: 6, message: 'Hallo 5AHITM! Die Schularbeit am Freitag findet im EDV 1 statt, nicht im Klassenzimmer.' },
             { room_id: 5, user_id: 11, message: 'Danke für die Info! Welche Themen kommen dran?' },
             { room_id: 5, user_id: 6, message: 'Kapitel 3 bis 6 aus dem Skriptum, wie besprochen.' },
@@ -934,7 +934,7 @@ async function main() {
         await prisma.email_logs.createMany({ data: emailLogsData });
         console.log(`✓ 10 Einträge in email_logs erstellt`);
 
-        // --- ZUSAMMENFASSUNG ---
+        // --- SUMMARY ---
         console.log('\n=============================================');
         console.log('SEEDING ERFOLGREICH ABGESCHLOSSEN!');
         console.log('Daten für Schulverwaltungssystem generiert.');

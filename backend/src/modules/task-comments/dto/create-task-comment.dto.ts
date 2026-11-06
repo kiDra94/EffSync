@@ -7,7 +7,7 @@ export class CreateTaskCommentDto {
 
   @IsInt()
   @IsNotEmpty()
-  user_id: number; // In einer echten App nimmst du die ID oft aus dem JWT-Token
+  user_id: number; // A real app usually takes this ID from the JWT
 
   @IsString()
   @IsNotEmpty()

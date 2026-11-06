@@ -23,14 +23,14 @@ const STORAGE_KEY = 'effsync_classes';
 
 onMounted(async () => {
   try {
-    // Versuche Daten aus localStorage zu laden
+    // Try to load the data from localStorage
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const classes = JSON.parse(stored);
       const found = classes.find(c => c.class_id === parseInt(classId.value));
       if (found) {
         classData.value = { ...found };
-        // Füge Mock-Daten für Students/Teachers hinzu
+        // Add mock data for students/teachers
         classData.value.students = [
           { student_id: 1, firstname: 'Max', lastname: 'Mustermann' },
           { student_id: 2, firstname: 'Anna', lastname: 'Schmidt' },
@@ -48,7 +48,7 @@ onMounted(async () => {
       }
     }
     
-    // Fallback: Mock-Daten
+    // Fallback: mock data
     classData.value = {
       class_id: classId.value,
       name: '3AKIFT',
@@ -95,7 +95,7 @@ onMounted(async () => {
     </div>
 
     <div class="tab-content">
-      <!-- Übersicht Tab -->
+      <!-- Overview tab -->
       <div v-if="activeTab === 'overview'" class="content-section">
         <div class="info-card">
           <h2>Klassninformationen</h2>
@@ -120,7 +120,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Schüler Tab -->
+      <!-- Students tab -->
       <div v-if="activeTab === 'students'" class="content-section">
         <h2>Schüler ({{ classData.students.length }})</h2>
         <div v-if="classData.students.length > 0" class="list">
@@ -131,7 +131,7 @@ onMounted(async () => {
         <div v-else class="empty-message">Keine Schüler in dieser Klasse.</div>
       </div>
 
-      <!-- Lehrer Tab -->
+      <!-- Teachers tab -->
       <div v-if="activeTab === 'teachers'" class="content-section">
         <h2>Unterrichtende Lehrer</h2>
         <div v-if="classData.teachers.length > 0" class="list">
@@ -142,7 +142,7 @@ onMounted(async () => {
         <div v-else class="empty-message">Keine Lehrer zugeordnet.</div>
       </div>
 
-      <!-- Stundenplan Tab -->
+      <!-- Timetable tab -->
       <div v-if="activeTab === 'schedule'" class="content-section">
         <h2>Stundenplan</h2>
         <div v-if="classData.schedule" class="schedule-info">

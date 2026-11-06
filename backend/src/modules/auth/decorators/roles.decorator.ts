@@ -3,20 +3,20 @@ import { SetMetadata } from "@nestjs/common";
 /**
  * @Roles() Decorator
  *
- * Wird verwendet in Kombination mit RolesGuard.
- * Definiert die erforderlichen Rollen für einen Endpoint.
+ * Used together with RolesGuard.
+ * Defines the roles an endpoint requires.
  *
- * Beispiele:
+ * Examples:
  * @Roles('Teacher')
  * @Roles('Admin', 'Manager')
- * @Roles()  // Leerer Array = kein RolesGuard-Schutz
+ * @Roles()  // empty array = no RolesGuard protection
  *
- * Verwendung im Controller:
+ * Usage in a controller:
  * @Get()
  * @UseGuards(JwtAuthGuard, RolesGuard)
  * @Roles('Teacher', 'Admin')
  * async findAll() {
- *   // Nur User mit Rolle Teacher ODER Admin können diesen Endpoint aufrufen
+ *   // Only users with the role Teacher OR Admin can call this endpoint
  * }
  */
 export const Roles = (...roles: string[]) => SetMetadata("roles", roles);

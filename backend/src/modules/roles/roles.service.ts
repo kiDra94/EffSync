@@ -6,7 +6,7 @@ export class RolesService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Hole alle verfügbaren Rollen
+   * Returns all available roles
    */
   async findAll() {
     return this.prisma.roles.findMany({
@@ -21,7 +21,7 @@ export class RolesService {
   }
 
   /**
-   * Hole eine Rolle mit ihren Permissions
+   * Returns one role with its permissions
    */
   async findOne(roleId: number) {
     return this.prisma.roles.findUnique({

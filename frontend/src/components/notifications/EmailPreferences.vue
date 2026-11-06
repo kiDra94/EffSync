@@ -201,12 +201,12 @@ onMounted(async () => {
 
 .checkbox-group small {
   margin-left: 2rem;
-  color: #6b7280;  /* ← Grau wie security-card p */
+  color: #6b7280;  /* ← grey like security-card p */
   font-size: 0.85rem;
 }
 
 .form-select {
-  padding: 10px 12px;  /* ← Gleich wie form-input */
+  padding: 10px 12px;  /* ← same as form-input */
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 1rem;
@@ -230,7 +230,7 @@ onMounted(async () => {
 }
 
 .loading-text {
-  color: #6b7280;  /* ← Grau wie security-card p */
+  color: #6b7280;  /* ← grey like security-card p */
   font-style: italic;
   margin: 1rem 0;
   padding: 10px 12px;
@@ -265,7 +265,7 @@ button:disabled:hover {
 </style>
 
 <style>
-/* Dark Mode - konsistent mit Security */
+/* Dark mode - consistent with Security */
 body.dark-mode .security-card {
   background-color: #232330 !important;
   border-color: #444 !important;

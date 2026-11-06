@@ -8,11 +8,11 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { CreateTaskMemberDto } from "./dto/create-task-member.dto";
 
 /**
- * Permission-Flags (bitweise):
- * READ:    0b100 = 4   (Daten lesen)
- * WRITE:   0b010 = 2   (Daten ändern)
- * EXECUTE: 0b001 = 1   (Aktion ausführen)
- * RWX:     0b111 = 7   (Vollzugriff)
+ * Permission flags (bitwise):
+ * READ:    0b100 = 4   (read data)
+ * WRITE:   0b010 = 2   (change data)
+ * EXECUTE: 0b001 = 1   (run an action)
+ * RWX:     0b111 = 7   (full access)
  */
 export const TaskPermissionFlags = {
   READ: 4,
@@ -26,15 +26,15 @@ export class TaskMembersService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Fügt einen Benutzer zu einer Task hinzu.
+   * Adds a user to a task.
    *
    * Guard-Checks:
-   * - Requester ist Task-Owner ODER hat WRITE-Permission
-   * - Ziel-User existiert
-   * - User ist nicht bereits Mitglied
+   * - the requester is the task owner OR has WRITE permission
+   * - the target user exists
+   * - the user isn't a member yet
    */
   async addMember(taskId: number, userId: number, requesterId: number) {
-    // Task existiert?
+    // Does the task exist?
     const task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
     });
@@ -43,7 +43,7 @@ export class TaskMembersService {
       throw new NotFoundException(`Task ${taskId} nicht gefunden`);
     }
 
-    // Requester darf hinzufügen? (Owner oder WRITE-Permission)
+    // May the requester add? (owner or WRITE permission)
     const isOwner = task.created_by === requesterId;
     const hasWritePermission = await this.checkPermission(
       requesterId,
@@ -57,7 +57,7 @@ export class TaskMembersService {
       );
     }
 
-    // Ziel-User existiert?
+    // Does the target user exist?
     const targetUser = await this.prisma.users.findUnique({
       where: { user_id: userId },
     });
@@ -66,7 +66,7 @@ export class TaskMembersService {
       throw new NotFoundException(`Benutzer ${userId} nicht gefunden`);
     }
 
-    // Nicht bereits Mitglied?
+    // Not a member yet?
     const existingMember = await this.prisma.task_members.findUnique({
       where: {
         task_id_user_id: {
@@ -82,7 +82,7 @@ export class TaskMembersService {
       );
     }
 
-    // Hinzufügen
+    // Add
     return await this.prisma.task_members.create({
       data: {
         task_id: taskId,
@@ -92,11 +92,11 @@ export class TaskMembersService {
   }
 
   /**
-   * Entfernt einen Benutzer von einer Task.
+   * Removes a user from a task.
    *
    * Guard-Checks:
-   * - Requester ist Task-Owner ODER hat WRITE-Permission
-   * - Nicht der Task-Creator selbst (implizit Mitglied)
+   * - the requester is the task owner OR has WRITE permission
+   * - not the task creator (an implicit member)
    */
   async removeMember(
     taskId: number,
@@ -111,7 +111,7 @@ export class TaskMembersService {
       throw new NotFoundException(`Task ${taskId} nicht gefunden`);
     }
 
-    // Requester darf entfernen?
+    // May the requester remove?
     const isOwner = task.created_by === requesterId;
     const hasWritePermission = await this.checkPermission(
       requesterId,
@@ -125,21 +125,21 @@ export class TaskMembersService {
       );
     }
 
-    // Nicht den Creator entfernen
+    // Don't remove the creator
     if (task.created_by === userId) {
       throw new BadRequestException(
         "Der Task-Creator kann nicht als Mitglied entfernt werden",
       );
     }
 
-    // Nicht den Zugewiesenen entfernen
+    // Don't remove the assignee
     if (task.assigned_to === userId) {
       throw new BadRequestException(
         "Der zugewiesene Benutzer kann nicht als Mitglied entfernt werden",
       );
     }
 
-    // Entfernen
+    // Remove
     await this.prisma.task_members.delete({
       where: {
         task_id_user_id: {
@@ -151,18 +151,18 @@ export class TaskMembersService {
   }
 
   /**
-   * Listet alle Mitglieder einer Task auf.
+   * Lists all members of a task.
    *
    * Guard-Checks:
-   * - Requester ist Mitglied ODER hat READ-Permission
+   * - the requester is a member OR has READ permission
    */
   /**
-   * Feature: Holt ALLE Mitglieder einer Task (explizite + implizite)
-   * - Explizite: task_members Tabelle
-   * - Implizite: Task Creator + Assigned-to User
+   * Feature: returns ALL members of a task (explicit + implicit)
+   * - explicit: the task_members table
+   * - implicit: the task creator + the assignee
    */
   async findByTaskIncludingImplicit(taskId: number) {
-    // Task mit Beziehungen laden
+    // Load the task with its relations
     const task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
       include: {
@@ -191,10 +191,10 @@ export class TaskMembersService {
       return [];
     }
 
-    // Erstelle ein Set für unique User-IDs
+    // A set for unique user IDs
     const memberMap = new Map();
 
-    // 1. Task Creator (implizit)
+    // 1. Task creator (implicit)
     if (task.created_by && task.users_tasks_created_byTousers) {
       memberMap.set(task.created_by, {
         task_id: taskId,
@@ -205,7 +205,7 @@ export class TaskMembersService {
       });
     }
 
-    // 2. Assigned-to User (implizit)
+    // 2. Assignee (implicit)
     if (task.assigned_to && task.users_tasks_assigned_toTousers) {
       memberMap.set(task.assigned_to, {
         task_id: taskId,
@@ -216,7 +216,7 @@ export class TaskMembersService {
       });
     }
 
-    // 3. Explizite Task Members
+    // 3. Explicit task members
     const explicitMembers = await this.prisma.task_members.findMany({
       where: { task_id: taskId },
       include: {
@@ -233,7 +233,7 @@ export class TaskMembersService {
     });
 
     for (const member of explicitMembers) {
-      // Überschreibe nicht bereits vorhandene implizite Mitglieder
+      // Don't overwrite implicit members that are already there
       if (!memberMap.has(member.user_id)) {
         memberMap.set(member.user_id, {
           task_id: member.task_id,
@@ -266,10 +266,10 @@ export class TaskMembersService {
   }
 
   /**
-   * Prüft, ob ein User Mitglied einer Task ist.
+   * Checks whether a user is a member of a task.
    */
   async isMember(taskId: number, userId: number): Promise<boolean> {
-    // Implizite Mitgliedschaften
+    // Implicit memberships
     const task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
       select: { created_by: true, assigned_to: true },
@@ -277,12 +277,12 @@ export class TaskMembersService {
 
     if (!task) return false;
 
-    // Creator oder Assigned sind implizit Mitgleider
+    // Creator and assignee are implicit members
     if (task.created_by === userId || task.assigned_to === userId) {
       return true;
     }
 
-    // Explizite Mitgliedschaft
+    // Explicit membership
     const member = await this.prisma.task_members.findUnique({
       where: {
         task_id_user_id: {
@@ -296,21 +296,21 @@ export class TaskMembersService {
   }
 
   /**
-   * Prüft bitweise, ob ein User die nötige Permission für eine Task hat.
+   * Checks bitwise whether a user has the required permission on a task.
    *
-   * Beispiele:
-   * - checkPermission(123, 42, 4)  → User 123 kann Task 42 LESEN?
-   * - checkPermission(123, 42, 2)  → User 123 kann Task 42 ÄNDERN?
-   * - checkPermission(123, 42, 1)  → User 123 kann Task 42 AUSFÜHREN?
+   * Examples:
+   * - checkPermission(123, 42, 4)  → can user 123 READ task 42?
+   * - checkPermission(123, 42, 2)  → can user 123 CHANGE task 42?
+   * - checkPermission(123, 42, 1)  → can user 123 EXECUTE task 42?
    *
-   * Rückgabe: true wenn (flags & requiredFlags) === requiredFlags
+   * Returns: true if (flags & requiredFlags) === requiredFlags
    */
   async checkPermission(
     userId: number,
     taskId: number,
-    requiredFlags: number, // 1, 2, 4 oder Kombinationen (3, 5, 6, 7)
+    requiredFlags: number, // 1, 2, 4 or combinations (3, 5, 6, 7)
   ): Promise<boolean> {
-    // Task-Creator hat immer RWX
+    // The task creator always has RWX
     const task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
       select: { created_by: true },
@@ -319,29 +319,29 @@ export class TaskMembersService {
     if (!task) return false;
 
     if (task.created_by === userId) {
-      return true; // Creator hat alle Rechte
+      return true; // The creator has all rights
     }
 
-    // Permissions aus der Datenbank abrufen
+    // Load the permissions from the database
     const userPerms = await this.prisma.user_permissions.findMany({
       where: { user_id: userId },
       include: { permissions: true },
     });
 
-    // Prüfe zeitliche Gültigkeit und bitweise Flags
+    // Check the validity period and the bitwise flags
     for (const perm of userPerms) {
       const now = new Date();
 
-      // Gültig?
+      // Valid?
       if (perm.valid_from && perm.valid_from > now) {
-        continue; // Noch nicht gültig
+        continue; // Not valid yet
       }
 
       if (perm.valid_to && perm.valid_to < now) {
-        continue; // Abgelaufen
+        continue; // Expired
       }
 
-      // Hat Permission die erforderlichen Flags?
+      // Does the permission have the required flags?
       const hasFlags =
         (perm.permissions.flags & requiredFlags) === requiredFlags;
 
@@ -354,9 +354,9 @@ export class TaskMembersService {
   }
 
   /**
-   * Extrahiert rwx Permissions aus den bitweisen Flags.
+   * Extracts the rwx permissions from the bitwise flags.
    *
-   * Beispiel:
+   * Example:
    * Input: 7 (0b111)
    * Output: { read: true, write: true, execute: true }
    */
@@ -373,9 +373,9 @@ export class TaskMembersService {
   }
 
   /**
-   * Berechnet bitweise Flags aus rwx.
+   * Computes the bitwise flags from rwx.
    *
-   * Beispiel:
+   * Example:
    * Input: { read: true, write: true, execute: false }
    * Output: 6 (0b110)
    */

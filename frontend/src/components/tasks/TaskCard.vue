@@ -207,10 +207,10 @@ const getStatusColor = (status) => {
 
 const getPriorityColor = (prio_id) => {
   const colors = {
-    1: '#27ae60', // niedrig (Grün)
-    2: '#f39c12', // mittel (Gelb/Orange)
-    3: '#e74c3c', // hoch (Rot)
-    4: '#c0392b'  // dringend (Dunkelrot)
+    1: '#27ae60', // low (green)
+    2: '#f39c12', // medium (yellow/orange)
+    3: '#e74c3c', // high (red)
+    4: '#c0392b'  // urgent (dark red)
   };
   return colors[prio_id] || '#6b7280';
 };

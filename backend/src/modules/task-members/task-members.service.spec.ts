@@ -52,7 +52,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
 
       jest.spyOn(prisma.tasks, "findUnique").mockResolvedValue({
         task_id: taskId,
-        created_by: 999, // Nicht der User
+        created_by: 999, // Not the user
         assigned_to: null,
       } as any);
 
@@ -97,7 +97,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
           permissions: {
             permission_id: 5,
             name: "read_task",
-            flags: TaskPermissionFlags.READ, // 4 (nur READ)
+            flags: TaskPermissionFlags.READ, // 4 (READ only)
           },
         } as any,
       ]);
@@ -129,7 +129,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
           permissions: {
             permission_id: 5,
             name: "read_task",
-            flags: TaskPermissionFlags.READ, // 4 (nur READ)
+            flags: TaskPermissionFlags.READ, // 4 (READ only)
           },
         } as any,
       ]);
@@ -227,7 +227,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
           permissions: {
             permission_id: 6,
             name: "edit_task",
-            flags: 6, // READ + WRITE, keine EXECUTE
+            flags: 6, // READ + WRITE, no EXECUTE
           },
         } as any,
       ]);
@@ -299,7 +299,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
         assigned_to: null,
       } as any);
 
-      // Keine Permissions nötig, Creator hat implizit alles
+      // No permissions needed, the creator implicitly has everything
       jest.spyOn(prisma.user_permissions, "findMany").mockResolvedValue([]);
 
       expect(
@@ -344,7 +344,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
           user_id: userId,
           permission_id: 5,
           valid_from: new Date(Date.now() - 1000000),
-          valid_to: yesterday, // Abgelaufen!
+          valid_to: yesterday, // Expired!
           permissions: {
             permission_id: 5,
             name: "read_task",
@@ -379,7 +379,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
         {
           user_id: userId,
           permission_id: 5,
-          valid_from: tomorrow, // Noch nicht gültig!
+          valid_from: tomorrow, // Not valid yet!
           valid_to: new Date(Date.now() + 1000000),
           permissions: {
             permission_id: 5,

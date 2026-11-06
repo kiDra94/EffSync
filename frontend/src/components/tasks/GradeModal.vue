@@ -109,13 +109,13 @@ export default {
     const selectedDocumentId = ref(null);
     const isLoadingDocuments = ref(true);
 
-    // Laden der für diesen Task verknüpften Dokumente
+    // Load the documents linked to this task
     const loadLinkedDocuments = async () => {
       try {
         isLoadingDocuments.value = true;
         const allDocs = await fetchDocuments();
         
-        // Filter: Nur Dokumente die mit dem Task verknüpft sind
+        // Filter: only documents linked to the task
         linkedDocuments.value = allDocs.filter(doc => 
           doc.task_documents?.some(td => td.task_id === props.task.task_id)
         );
@@ -148,8 +148,8 @@ export default {
       try {
         isSubmitting.value = true;
 
-        // Sende die Bewertung zum Backend - das freizeigibt oder sperrt
-        // automatisch den Task basierend auf der Bewertung
+        // Send the grade to the backend, which releases or locks
+        // the task automatically based on the grade
         await gradeDocument(selectedDocumentId.value, {
           grade: form.value.grade.trim() || null,
           feedback: form.value.feedback.trim() || null,

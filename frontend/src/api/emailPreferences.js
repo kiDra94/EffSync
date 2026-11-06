@@ -3,7 +3,7 @@ import { apiClient } from './httpClient';
 
 export const emailPreferencesService = {
   /**
-   * Hole Email-Preferences des aktuellen Benutzers
+   * Returns the current user's e-mail preferences
    */
   async getPreferences() {
     try {
@@ -16,7 +16,7 @@ export const emailPreferencesService = {
   },
 
   /**
-   * Aktualisiere Email-Preferences
+   * Updates the e-mail preferences
    */
   async updatePreferences(preferences) {
     try {

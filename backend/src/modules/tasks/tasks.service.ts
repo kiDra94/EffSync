@@ -105,7 +105,7 @@ export class TasksService {
       includeRelations = false,
     } = queryDto;
 
-    const where: any = {}; // muss so heissen da prisma where erwartet!
+    const where: any = {}; // must be named like this because Prisma expects `where`!
 
     if (status) where.status = status;
     if (priority_id) where.priority_id = priority_id;
@@ -123,9 +123,9 @@ export class TasksService {
       ];
     }
 
-    // **SICHERHEIT**: Filtere Tasks nach User-Berechtigung
+    // **SECURITY**: filter tasks by the user's permissions
     if (userId) {
-      // Überprüfe ob der User ein Teacher/Admin ist
+      // Check whether the user is a teacher/admin
       const userRoles = await this.prisma.user_roles.findMany({
         where: { user_id: userId },
         include: { roles: true },
@@ -138,15 +138,15 @@ export class TasksService {
           ur.roles.name === "Superuser",
       );
 
-      // Wenn NICHT Teacher → Nur eigene Tasks zeigen
+      // NOT a teacher → show only their own tasks
       if (!isTeacher) {
         where.OR = [
-          { created_by: userId }, // User hat Task erstellt
-          { assigned_to: userId }, // Task ist User zugeordnet
-          { task_members: { some: { user_id: userId } } }, // User ist Mitglied
+          { created_by: userId }, // The user created the task
+          { assigned_to: userId }, // The task is assigned to the user
+          { task_members: { some: { user_id: userId } } }, // The user is a member
         ];
       }
-      // Wenn Teacher → Zeige ALLE Tasks zum Bewerten
+      // Teacher → show ALL tasks for grading
     }
 
     const skip = (page - 1) * limit;
@@ -274,9 +274,9 @@ export class TasksService {
   }
 
   /**
-   * Feature #27: Hole einen Task pro Schüler mit Info ob sein Dokument bewertet wurde
-   * Wenn ein Schüler sein Dokument eingereicht hat und es wurde bewertet,
-   * zeige den Task als für DIESEN Schüler gesperrt (nicht global)
+   * Feature #27: returns a task for one student, with whether their document was graded
+   * If a student submitted their document and it was graded,
+   * show the task as locked for THIS student (not globally)
    */
   async findOneForStudent(
     taskId: number,
@@ -285,13 +285,13 @@ export class TasksService {
   ) {
     const task = await this.findOne(taskId, includeRelations);
 
-    // Prüfe: Hat dieser Schüler Dokumente zu diesem Task eingereicht?
+    // Check: did this student submit documents for this task?
     const submissions = await this.prisma.documents.findMany({
       where: {
         task_documents: {
           some: { task_id: taskId },
         },
-        added_by: userId, // Von DIESEM Schüler
+        added_by: userId, // From THIS student
       },
       select: {
         document_id: true,
@@ -301,7 +301,7 @@ export class TasksService {
       },
     });
 
-    // Wenn mindestens ein Dokument bewertet wurde, sperr den Task FÜR DIESEN SCHÜLER
+    // If at least one document was graded, lock the task FOR THIS STUDENT
     const hasGradedSubmission = submissions.some(
       (doc) => doc.graded_at !== null,
     );
@@ -318,7 +318,7 @@ export class TasksService {
             .map((doc) => doc.grade)
             .pop() || null,
       },
-      // Überschreibe is_locked für Frontend: Nur wenn DAS SCHÜLER-DOKUMENT bewertet wurde
+      // Override is_locked for the frontend: only if THE STUDENT'S DOCUMENT was graded
       is_student_submission_locked: hasGradedSubmission,
     };
   }
@@ -410,7 +410,7 @@ export class TasksService {
       include: this.basicInclude(),
     });
 
-    // Wenn Task auf COMPLETED gesetzt wird, müssen auch alle Subtasks abgeschlossen werden
+    // When a task is set to COMPLETED, all subtasks must be completed as well
     if (updateTaskDto.status === "COMPLETED") {
       const descendantIds = await this.getAllDescendantIds(taskId);
       if (descendantIds.length > 0) {
@@ -452,15 +452,15 @@ export class TasksService {
   }
 
   /**
-   * Aktualisiert das Deadline eines Tasks und entsperrt ihn automatisch
-   * wenn der Task nach einer Bewertung gesperrt war.
+   * Updates a task's deadline and unlocks it automatically
+   * if the task was locked after grading.
    *
-   * Diese Methode wird von Lehrern verwendet um einen Task nach Bewertung
-   * neu freizugeben indem sie ein neues Deadline-Datum setzen.
+   * Teachers use this method to release a task again after grading
+   * by setting a new deadline.
    *
-   * @param taskId - Die Task ID
-   * @param newDeadline - Das neue Deadline-Datum
-   * @returns Der aktualisierte Task mit entsperrt Status
+   * @param taskId - the task ID
+   * @param newDeadline - the new deadline
+   * @returns the updated, unlocked task
    */
   async updateDeadlineAndUnlockIfNeeded(taskId: number, newDeadline: Date) {
     const task = await this.findOne(taskId, false);
@@ -473,7 +473,7 @@ export class TasksService {
       where: { task_id: taskId },
       data: {
         deadline: new Date(newDeadline),
-        // Entsperre den Task automatisch wenn er nach Bewertung gesperrt war
+        // Unlock the task automatically if it was locked after grading
         is_locked: false,
         locked_reason: null,
         locked_until: null,
@@ -508,8 +508,8 @@ export class TasksService {
   async remove(taskId: number, requesterId?: number) {
     const task = await this.findOne(taskId, false);
 
-    // Ersteller darf eigenen Task immer löschen.
-    // Alle anderen benötigen delete_task(s)-Permission.
+    // The creator may always delete their own task.
+    // Everyone else needs the delete_task(s) permission.
     if (requesterId && task.created_by !== requesterId) {
       const now = new Date();
       const READ_FLAG = 4;
@@ -585,12 +585,12 @@ export class TasksService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      // FK NoAction auf mehreren Relationen -> abhängige Daten zuerst bereinigen
+      // FK NoAction on several relations -> clean up dependent data first
       await tx.task_activity_log.deleteMany({ where: { task_id: taskId } });
       await tx.task_comments.deleteMany({ where: { task_id: taskId } });
       await tx.task_documents.deleteMany({ where: { task_id: taskId } });
 
-      // Referenzen lösen, statt Fremddaten hart zu löschen
+      // Detach references instead of hard-deleting other data
       await tx.comments.updateMany({
         where: { task_id: taskId },
         data: { task_id: null },
@@ -717,11 +717,11 @@ export class TasksService {
   }
 
   /**
-   * Rückwirkende Vervollständigung:
-   * Wenn alle studentischen Teilnehmer eines Tasks mindestens eine bewertete
-   * Abgabe zu diesem Task haben, wird der Task auf COMPLETED gesetzt.
+   * Retroactive completion:
+   * If every student participant of a task has at least one graded
+   * submission for this task, the task is set to COMPLETED.
    *
-   * @returns true, wenn Status in diesem Lauf auf COMPLETED geändert wurde.
+   * @returns true if this run changed the status to COMPLETED.
    */
   private async recalculateTaskCompletionFromGrades(
     taskId: number,
@@ -984,7 +984,7 @@ export class TasksService {
     );
   }
   /**
-   * Feature #27: Sperrt eine Aufgabe automatisch wenn sie überfällig ist
+   * Feature #27: locks a task automatically when it is overdue
    */
   async lockOverdueTask(
     taskId: number,
@@ -1001,18 +1001,18 @@ export class TasksService {
       data: {
         is_locked: true,
         locked_reason: reason,
-        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Tage
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
     });
 
-    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    // 🚨 Feature #27: send a WebSocket notification to the user
     if (task.assigned_to) {
       this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
     }
   }
 
   /**
-   * Feature #27: Manuelles Sperren einer Aufgabe (Creator/Admin only)
+   * Feature #27: locks a task manually (creator/admin only)
    */
   async lockTask(
     taskId: number,
@@ -1033,18 +1033,18 @@ export class TasksService {
       data: {
         is_locked: true,
         locked_reason: reason,
-        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Tage
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
     });
 
-    // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
+    // 🚨 Feature #27: send a WebSocket notification to the user
     if (task.assigned_to) {
       this.websocketGateway.emitTaskLocked(task.assigned_to, taskId, reason);
     }
   }
 
   /**
-   * Feature #27: Entsperrt eine Aufgabe (Creator/Admin only)
+   * Feature #27: unlocks a task (creator/admin only)
    */
   async unlockTask(taskId: number, userId: number): Promise<void> {
     const task = await this.prisma.tasks.findUnique({
@@ -1067,7 +1067,7 @@ export class TasksService {
   }
 
   /**
-   * Prüfe ob Task bearbeitet werden darf
+   * Checks whether the task may be edited
    */
   async canEditTask(taskId: number, userId: number): Promise<boolean> {
     const task = await this.prisma.tasks.findUnique({
@@ -1075,8 +1075,8 @@ export class TasksService {
     });
 
     if (!task) return false;
-    if (task.is_locked) return false; // Gesperrt = keine Änderungen
-    if (task.created_by !== userId) return false; // Nur Creator darf ändern
+    if (task.is_locked) return false; // Locked = no changes
+    if (task.created_by !== userId) return false; // Only the creator may change it
 
     return true;
   }

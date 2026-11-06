@@ -2,9 +2,9 @@ import { IsNumber, Min } from "class-validator";
 import { Type } from "class-transformer";
 
 /**
- * DTO zum Hinzufügen eines Benutzers zu einer Task.
+ * DTO for adding a user to a task.
  *
- * Beispiel:
+ * Example:
  * {
  *   "user_id": 123
  * }

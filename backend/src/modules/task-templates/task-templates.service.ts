@@ -57,7 +57,7 @@ export class TaskTemplatesService {
       include: includeRelations ? this.basicInclude() : undefined,
     });
   }
-  //TODO: eventuelles refactorn das man templates losschen kann obwohl es task gibt die damti gemacht worden sind
+  //TODO: maybe refactor so that templates can be deleted even when tasks were created from them
   async remove(templateId: number) {
     await this.findOne(templateId);
     const tasksCount = await this.prisma.tasks.count({

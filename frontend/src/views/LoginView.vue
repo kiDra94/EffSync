@@ -10,11 +10,11 @@ const credentials = reactive({ username: '', password: '' })
 const errorMessage = ref('')
 const isLoading = ref(false)
 
-// Dark Mode Status
+// Dark mode state
 const isDark = ref(false)
 
 onMounted(() => {
-  // Beim Laden prüfen, ob DarkMode schon an ist
+  // On load, check whether dark mode is already on
   isDark.value = document.body.classList.contains('dark-mode')
 })
 
@@ -111,7 +111,7 @@ const handleGoogleLogin = () => {
 </template>
 
 <style scoped>
-/* Nur Layout & Basis-Styling hier */
+/* Only layout & base styling here */
 .top-right-actions {
   position: absolute;
   top: 20px;
@@ -125,7 +125,7 @@ const handleGoogleLogin = () => {
   align-items: center;
   height: 100vh;
   background-color: #f4f4f9;
-  /* Standard Hell */
+  /* Default light */
   transition: background-color 0.3s;
 }
 
@@ -220,7 +220,7 @@ button:hover {
   border-color: #ccc;
 }
 
-/* Dark Mode für Google Button */
+/* Dark mode for the Google button */
 :global(body.dark-mode) .btn-google {
   background-color: #31364d;
   color: #edf0fa;
@@ -308,7 +308,7 @@ button:hover {
   color: #ccc;
 }
 
-/* Dark Mode Anpassung für Links */
+/* Dark mode adjustment for links */
 :global(body.dark-mode) .link-text {
   color: #aaa;
 }

@@ -3,12 +3,12 @@ import { apiClient } from './httpClient';
 /**
  * Task-Members API Service
  * 
- * Verwaltet Task-Mitgliedschaften mit Permission-Checks
- * und Timeout-Handling.
+ * Manages task memberships with permission checks
+ * and timeout handling.
  */
 export const taskMembersApi = {
   /**
-   * Holt alle Mitglieder einer Task
+   * Returns all members of a task
    * GET /api/tasks/:taskId/members
    */
   getTaskMembers(taskId) {
@@ -16,7 +16,7 @@ export const taskMembersApi = {
   },
 
   /**
-   * Fügt einen Benutzer zu einer Task hinzu
+   * Adds a user to a task
    * POST /api/tasks/:taskId/members
    * Body: { user_id: number }
    */
@@ -25,7 +25,7 @@ export const taskMembersApi = {
   },
 
   /**
-   * Entfernt einen Benutzer von einer Task
+   * Removes a user from a task
    * DELETE /api/tasks/:taskId/members/:userId
    */
   removeTaskMember(taskId, userId) {
@@ -33,7 +33,7 @@ export const taskMembersApi = {
   },
 
   /**
-   * Prüft die Berechtigungen des aktuellen Users für eine Task
+   * Checks the current user's permissions on a task
    * GET /api/tasks/:taskId/members/check-permission
    * 
    * Response: {

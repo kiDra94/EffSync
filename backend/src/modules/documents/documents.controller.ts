@@ -107,7 +107,7 @@ export class DocumentsController {
 
   /**
    * GET /documents/my-grades
-   * Holt alle Bewertungen des aktuellen Schülers
+   * Returns all grades of the current student
    */
   @Get("my-grades")
   @Permissions()
@@ -117,8 +117,8 @@ export class DocumentsController {
 
   /**
    * GET /documents/by-task/:taskId
-   * Holt alle Dokumente, die zu einem Task verknüpft sind
-   * Nur für Lehrer/Admin des Tasks oder Hochlader des Dokuments
+   * Returns all documents linked to a task
+   * Only for the task's teacher/admin or the document's uploader
    */
   @Get("by-task/:taskId")
   @Permissions()
@@ -193,8 +193,8 @@ export class DocumentsController {
 
   /**
    * PATCH /documents/:id/allow-resubmit
-   * Erlaubt Schüler erneut hochzuladen - entsperrt den Task
-   * Nur Lehrer darf das tun
+   * Lets the student upload again - unlocks the task
+   * Only a teacher may do this
    */
   @Patch(":id/allow-resubmit")
   @Permissions()

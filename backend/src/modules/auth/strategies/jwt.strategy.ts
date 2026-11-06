@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
 
-    // Hole die erste Rolle des Benutzers
+    // Take the user's first role
     const primaryRole =
       user.user_roles && user.user_roles.length > 0
         ? user.user_roles[0].roles?.name?.toLowerCase()
@@ -41,7 +41,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: user.email,
       firstname: user.firstname,
       lastname: user.lastname,
-      role: payload.role || primaryRole, // Nutze JWT-Rolle oder DB-Rolle
+      role: payload.role || primaryRole, // Use the JWT role or the DB role
     };
 
     return result;

@@ -13,10 +13,10 @@ export const apiClient = axios.create({
     }
 });
 
-// Request Interceptor - Token hinzufügen
+// Request interceptor - adds the token
 apiClient.interceptors.request.use(
     config => {
-        // ✅ Token aus localStorage holen und mitsenden
+        // ✅ Read the token from localStorage and send it along
         const token = localStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;

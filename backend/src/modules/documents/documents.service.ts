@@ -391,21 +391,21 @@ export class DocumentsService {
   }
 
   private canEditDocument(document: any, userId: number, role?: string) {
-    // Priviligierte (Admin/Superuser) können alles bearbeiten
+    // Privileged users (Admin/Superuser) can edit everything
     if (this.isPrivileged(role)) {
       return true;
     }
 
-    // Lehrer können Dokumente von ihren Tasks bearbeiten
+    // Teachers can edit documents of their tasks
     if (this.isTeacher(role)) {
       const linkedTasks = document.task_documents || [];
-      // Prüf ob Lehrer den Task erstellt hat, der dieses Dokument verknüpft hat
+      // Check whether the teacher created the task this document is linked to
       return linkedTasks.some(
         (td: any) => Number(td.tasks?.created_by) === Number(userId),
       );
     }
 
-    // Schüler können nur eigene UNBEWERTETE Dokumente bearbeiten
+    // Students can edit only their own UNGRADED documents
     return (
       this.canStudentManageOwnDocument(document, userId, role) &&
       !document.graded_at
@@ -413,14 +413,14 @@ export class DocumentsService {
   }
 
   private canDeleteDocument(document: any, userId: number, role?: string) {
-    // Priviligierte (Admin/Superuser) können alles löschen
+    // Privileged users (Admin/Superuser) can delete everything
     if (this.isPrivileged(role)) {
       return true;
     }
 
-    // Schüler können nur ihre eigenen UNBEWERTETEN Dokumente löschen
+    // Students can delete only their own UNGRADED documents
     if (this.canStudentManageOwnDocument(document, userId, role)) {
-      // Wenn das Dokument bewertet wurde, darf Schüler es NICHT löschen
+      // Once the document is graded, the student may NOT delete it
       if (document.graded_at) {
         return false;
       }
@@ -431,7 +431,7 @@ export class DocumentsService {
   }
 
   private canResubmitTask(document: any, userId: number, role?: string) {
-    // Nur Lehrer darf dem Schüler neues Upload erlauben
+    // Only a teacher may allow the student a new upload
     return this.isTeacher(role) && this.documentBelongsToStudent(document);
   }
 
@@ -971,9 +971,9 @@ export class DocumentsService {
       },
     });
 
-    // ℹ️ HINWEIS: Task wird NICHT mehr global gesperrt
-    // Stattdessen: Schüler prüft ob SEIN Dokument bewertet wurde
-    // Die Sperrlogik ist jetzt pro-Schüler im Frontend
+    // ℹ️ NOTE: the task is NO LONGER locked globally
+    // Instead: the student checks whether THEIR document was graded
+    // The lock logic is now per student in the frontend
 
     const linkedTaskIds = Array.isArray(document.task_documents)
       ? Array.from(
@@ -1006,15 +1006,15 @@ export class DocumentsService {
   }
 
   /**
-   * Holt alle Bewertungen (graded documents) des aktuellen Schülers
-   * @param studentId - Die Student User ID
-   * @returns Array von bewerteten Dokumenten mit Noten und Feedback
+   * Returns all grades (graded documents) of the current student
+   * @param studentId - the student's user ID
+   * @returns array of graded documents with grades and feedback
    */
   async getMyGrades(studentId: number) {
     const grades = await this.prisma.documents.findMany({
       where: {
         added_by: studentId,
-        graded_at: { not: null }, // Nur bewertete Dokumente
+        graded_at: { not: null }, // Only graded documents
       },
       include: {
         graded_by_user: {
@@ -1128,11 +1128,11 @@ export class DocumentsService {
   }
 
   /**
-   * Holt alle Dokumente, die zu einem Task verknüpft sind
-   * Nur Lehrer des Tasks oder Admin darf das
+   * Returns all documents linked to a task
+   * Only the task's teacher or an admin may do this
    */
   async getDocumentsByTask(taskId: number, userId: number, role?: string) {
-    // Berechtigungsprüfung: Teacher/Admin oder Student der hochgeladen hat
+    // Permission check: teacher/admin or the student who uploaded
     const task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
     });
@@ -1141,7 +1141,7 @@ export class DocumentsService {
       throw new NotFoundException("Task nicht gefunden");
     }
 
-    // Nur Teacher/Admin oder der Student selbst darf Documents sehen
+    // Only teacher/admin or the student themselves may see documents
     const isTeacher = this.isTeacher(role);
     const isPrivileged = this.isPrivileged(role);
     const isTaskCreator = task.created_by === userId;
@@ -1152,7 +1152,7 @@ export class DocumentsService {
       );
     }
 
-    // Hol alle Dokumente für diesen Task
+    // Get all documents for this task
     const documents = await this.prisma.documents.findMany({
       where: {
         task_documents: {
@@ -1186,7 +1186,7 @@ export class DocumentsService {
       orderBy: { created_at: "desc" },
     });
 
-    // Map mit Permissions und Task-Kontext
+    // Map with permissions and task context
     return documents.map((doc) => ({
       document_id: doc.document_id,
       name: doc.name,
@@ -1202,17 +1202,17 @@ export class DocumentsService {
       graded_at: doc.graded_at,
       task_id: taskId,
       permissions: {
-        can_download: true, // Teacher/Admin darf immer downloaden
+        can_download: true, // Teacher/admin may always download
         can_grade: isTeacher || isPrivileged,
-        can_delete: isPrivileged, // Nur Admin darf löschen
+        can_delete: isPrivileged, // Only an admin may delete
         can_edit: isTeacher || isPrivileged,
       },
     }));
   }
 
   /**
-   * Erlaubt Schüler erneut hochzuladen - entsperrt linked Task
-   * Nur für Lehrer nach Bewertung
+   * Lets the student upload again - unlocks the linked task
+   * Only for teachers, after grading
    */
   async allowResubmit(
     documentId: number,
@@ -1220,7 +1220,7 @@ export class DocumentsService {
     teacherId?: number,
     role?: string,
   ) {
-    // Berechtigungsprüfung: Nur Teacher/Admin
+    // Permission check: teacher/admin only
     if (!this.isTeacher(role)) {
       throw new ForbiddenException(
         "Nur Lehrer dürfen Wiedereinreichung erlauben",
@@ -1232,14 +1232,14 @@ export class DocumentsService {
       throw new NotFoundException("Dokument nicht gefunden");
     }
 
-    // Nur bewertete Arbeiten können freigegeben werden
+    // Only graded work can be released
     if (!document.graded_at) {
       throw new BadRequestException(
         "Nur bewertete Dokumente können für Wiedereinreichung freigegeben werden",
       );
     }
 
-    // Finde den verknüpften Task
+    // Find the linked task
     const taskDoc = await this.prisma.task_documents.findFirst({
       where: { document_id: documentId },
       include: { tasks: true },
@@ -1251,7 +1251,7 @@ export class DocumentsService {
 
     const task = taskDoc.tasks;
 
-    // Entsperre den Task
+    // Unlock the task
     await this.prisma.tasks.update({
       where: { task_id: task.task_id },
       data: {
@@ -1262,7 +1262,7 @@ export class DocumentsService {
       },
     });
 
-    // Benachrichtige den Schüler
+    // Notify the student
     const studentId = document.added_by;
     if (studentId) {
       await this.notificationsService.create({
@@ -1272,7 +1272,7 @@ export class DocumentsService {
       });
     }
 
-    // Lösche grading-Status nicht – Schüler darf neu hochladen
+    // Keep the grading status – the student may upload again
     return {
       message: "Wiedereinreichung freigegeben - Student kann nun neu hochladen",
       task_id: task.task_id,

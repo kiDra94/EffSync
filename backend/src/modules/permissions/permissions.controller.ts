@@ -13,10 +13,10 @@ export class PermissionsController {
 
   /**
    * GET /permissions
-   * Holt alle verfügbaren Permissions.
+   * Returns all available permissions.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Get()
   @UseGuards(PermissionsGuard)
@@ -27,10 +27,10 @@ export class PermissionsController {
 
   /**
    * GET /permissions/:id
-   * Holt eine spezifische Permission mit ihren Details.
+   * Returns one permission with its details.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Get(":id")
   @UseGuards(PermissionsGuard)

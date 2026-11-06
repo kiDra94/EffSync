@@ -3,13 +3,13 @@ import { apiClient } from './httpClient';
 /**
  * Users API Service
  * 
- * Verwaltet Benutzer, Rollen und Permissions
+ * Manages users, roles and permissions
  */
 export const usersApi = {
-  // ============ Profil & Permissions ============
+  // ============ Profile & permissions ============
 
   /**
-   * Holt das Profil des aktuellen Benutzers
+   * Returns the current user's profile
    * GET /users/profile
    */
   getProfile() {
@@ -17,7 +17,7 @@ export const usersApi = {
   },
 
   /**
-   * Holt alle Rollen und Permissions des aktuellen Benutzers
+   * Returns all roles and permissions of the current user
    * GET /users/me/permissions
    */
   getMyPermissions() {
@@ -25,7 +25,7 @@ export const usersApi = {
   },
 
   /**
-   * Holt Rollen und Permissions eines spezifischen Benutzers
+   * Returns the roles and permissions of a given user
    * GET /users/:id/permissions
    */
   getUserPermissions(userId) {
@@ -35,7 +35,7 @@ export const usersApi = {
   // ============ User Management ============
 
   /**
-   * Holt alle Benutzer
+   * Returns all users
    * GET /users
    */
   getAll() {
@@ -43,7 +43,7 @@ export const usersApi = {
   },
 
   /**
-   * Holt alle Benutzer für Auswahl/Dropdown ohne Permissions-Anforderung
+   * Returns all users for a selection/dropdown, without a permission requirement
    * GET /users/for-chat
    */
   getAllForSelection() {
@@ -51,7 +51,7 @@ export const usersApi = {
   },
 
   /**
-   * Holt einen spezifischen Benutzer
+   * Returns one user
    * GET /users/:id
    */
   getUser(id) {
@@ -59,7 +59,7 @@ export const usersApi = {
   },
 
   /**
-   * Aktualisiert einen Benutzer
+   * Updates a user
    * PATCH /users/:id
    */
   updateUser(id, data) {
@@ -67,7 +67,7 @@ export const usersApi = {
   },
 
   /**
-   * Löscht einen Benutzer
+   * Deletes a user
    * DELETE /users/:id
    */
   deleteUser(id) {
@@ -77,15 +77,15 @@ export const usersApi = {
   // ============ Permission Management ============
 
   /**
-   * Holt alle verfügbaren Permissions
-   * GET /permissions (oder ähnlich)
+   * Returns all available permissions
+   * GET /permissions (or similar)
    */
   getAllPermissions() {
     return apiClient.get('/permissions');
   },
 
   /**
-   * Fügt eine Permission zu einem User hinzu
+   * Adds a permission to a user
    * POST /users/:id/permissions
    * Body: { permission_id: number, valid_from?: string, valid_to?: string }
    */
@@ -94,7 +94,7 @@ export const usersApi = {
   },
 
   /**
-   * Entfernt eine Permission von einem User
+   * Removes a permission from a user
    * DELETE /users/:id/permissions/:permissionId
    */
   removePermissionFromUser(userId, permissionId) {
@@ -104,15 +104,15 @@ export const usersApi = {
   // ============ Role Management ============
 
   /**
-   * Holt alle verfügbaren Rollen
-   * GET /roles (oder ähnlich)
+   * Returns all available roles
+   * GET /roles (or similar)
    */
   getAllRoles() {
     return apiClient.get('/roles');
   },
 
   /**
-   * Weist eine Rolle zu einem User zu
+   * Assigns a role to a user
    * POST /users/:id/roles
    * Body: { role_id: number }
    */
@@ -121,7 +121,7 @@ export const usersApi = {
   },
 
   /**
-   * Entfernt eine Rolle von einem User
+   * Removes a role from a user
    * DELETE /users/:id/roles/:roleId
    */
   removeRoleFromUser(userId, roleId) {

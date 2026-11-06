@@ -30,7 +30,7 @@ export class EmailPreferencesController {
 
   /**
    * GET /email-preferences
-   * Hole Email-Präferenzen des aktuellen Benutzers
+   * Returns the current user's e-mail preferences
    */
   @Get()
   async getPreferences(@Req() req: Request) {
@@ -48,7 +48,7 @@ export class EmailPreferencesController {
         where: { user_id: userId },
       });
 
-      // Wenn keine Preferences existieren: Erstelle defaults
+      // If no preferences exist: create the defaults
       if (!preferences) {
         preferences = await this.prisma.email_preferences.create({
           data: {
@@ -75,7 +75,7 @@ export class EmailPreferencesController {
 
   /**
    * PUT /email-preferences
-   * Aktualisiere Email-Präferenzen des aktuellen Benutzers
+   * Updates the current user's e-mail preferences
    */
   @Put()
   @HttpCode(HttpStatus.OK)
@@ -93,7 +93,7 @@ export class EmailPreferencesController {
         };
       }
 
-      // Überprüfe ob Preferences existieren, sonst erstelle sie
+      // Check whether preferences exist, otherwise create them
       let preferences = await this.prisma.email_preferences.findUnique({
         where: { user_id: userId },
       });

@@ -16,7 +16,7 @@ const route = useRoute();
 const taskStore = useTaskStore();
 const authStore = useAuthStore();
 
-// Bestimme ob User ein Lehrer ist
+// Determine whether the user is a teacher
 const isTeacher = computed(() => {
   const roles = ['teacher', 'admin', 'superuser'];
   return roles.includes((authStore.userRole || '').toLowerCase());
@@ -51,7 +51,7 @@ onMounted(async () => {
   applyStatusFilter();
 });
 
-// Watcher für URL-Änderungen
+// Watcher for URL changes
 watch(() => route.query.status, () => {
   applyStatusFilter();
 });

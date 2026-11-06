@@ -31,7 +31,7 @@ const filteredClasses = computed(() => {
   );
 });
 
-// localStorage Funktionen
+// localStorage functions
 const loadFromStorage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);

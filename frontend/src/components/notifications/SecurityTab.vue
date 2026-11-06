@@ -1,10 +1,10 @@
 <script setup>
-// Kein State, keine API-Calls - nur statische Security-Features
+// No state, no API calls - only static security features
 </script>
 
 <template>
   <div class="content-section">
-    <!-- Passwort ändern -->
+    <!-- Change password -->
     <div class="security-card">
       <h2>Passwort ändern</h2>
       <form class="security-form">

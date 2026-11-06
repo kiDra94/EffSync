@@ -26,6 +26,6 @@ export class ConditionNodeDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ConditionNodeDto)
-  @ArrayMinSize(1) // mind. 1 für NOT, mind. 2 für den Rest
+  @ArrayMinSize(1) // at least 1 for NOT, at least 2 for the others
   operands?: ConditionNodeDto[];
 }

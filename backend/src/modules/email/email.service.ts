@@ -12,9 +12,9 @@ export class EmailService {
   }
 
   private initializeTransporter() {
-    // Konfiguriere Nodemailer basierend auf Environment
-    // Bei Entwicklung: Ethereal Email (kostenlos, kein echter Server nötig)
-    // Bei Produktion: Echter SMTP Server (Gmail, SendGrid, etc.)
+    // Configure Nodemailer depending on the environment
+    // Development: Ethereal Email (free, no real server needed)
+    // Production: a real SMTP server (Gmail, SendGrid, etc.)
 
     if (process.env.NODE_ENV === "production") {
       // Production: SendGrid, Gmail, etc.
@@ -42,7 +42,7 @@ export class EmailService {
   }
 
   /**
-   * Sende E-Mail für Task-Fälligkeit
+   * Sends the e-mail for a task that is due
    */
   async sendDeadlineEmail(
     userId: number,
@@ -86,7 +86,7 @@ export class EmailService {
   }
 
   /**
-   * Sende E-Mail für @Mentions in Kommentaren
+   * Sends the e-mail for @mentions in comments
    */
   async sendMentionEmail(
     mentionedUserId: number,
@@ -131,7 +131,7 @@ export class EmailService {
   }
 
   /**
-   * Sende E-Mail für Kommentare
+   * Sends the e-mail for comments
    */
   async sendCommentEmail(
     userId: number,
@@ -167,7 +167,7 @@ export class EmailService {
   }
 
   /**
-   * Generische Methode zum Versenden von E-Mails
+   * Generic method for sending e-mails
    */
   private async sendEmail(to: string, subject: string, html: string) {
     const mailOptions = {
@@ -183,7 +183,7 @@ export class EmailService {
   }
 
   /**
-   * Protokolliere E-Mail-Versand
+   * Logs a sent e-mail
    */
   private async logEmail(
     userId: number,
@@ -211,7 +211,7 @@ export class EmailService {
   }
 
   /**
-   * HTML-Template für Fälligkeits-E-Mail
+   * HTML template for the due-date e-mail
    */
   private generateDeadlineEmailHtml(
     taskTitle: string,
@@ -267,7 +267,7 @@ export class EmailService {
   }
 
   /**
-   * HTML-Template für Mention-E-Mail
+   * HTML template for the mention e-mail
    */
   private generateMentionEmailHtml(
     mentionerName: string,
@@ -319,7 +319,7 @@ export class EmailService {
   }
 
   /**
-   * HTML-Template für Kommentar-E-Mail
+   * HTML template for the comment e-mail
    */
   private generateCommentEmailHtml(
     commenterName: string,
@@ -371,7 +371,7 @@ export class EmailService {
   }
 
   /**
-   * Hilfsfunktion: Berechne Tage bis Deadline
+   * Helper: computes the days until the deadline
    */
   private getDaysUntil(date: Date): number {
     const now = new Date();

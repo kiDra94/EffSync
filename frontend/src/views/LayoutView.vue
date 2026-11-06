@@ -7,10 +7,10 @@ import { useSearchStore } from "@/stores/searchStore";
 
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
-const searchStore = useSearchStore();  // ← neu
+const searchStore = useSearchStore();  // ← new
 const router = useRouter();
 const isDark = ref(false);
-const showDropdown = ref(false); // Neuer State für das Menü
+const showDropdown = ref(false); // New state for the menu
 const showResults = ref(false);
 
 // Dark Mode Logic
@@ -19,9 +19,9 @@ watch(isDark, (val) => {
   localStorage.setItem('theme', val ? 'dark' : 'light');
 });
 
-// Click Outside Logic: Schließt das Menü, wenn man woanders klickt
+// Click-outside logic: closes the menu when clicking elsewhere
 const closeDropdown = (e) => {
-  // Wenn der Klick NICHT innerhalb des User-Menüs war, schließen
+  // Close if the click was NOT inside the user menu
   if (!e.target.closest('.user-menu')) {
     showDropdown.value = false;
   }
@@ -39,14 +39,14 @@ onMounted(async () => {
 
   window.addEventListener('click', closeDropdown);
 
-  // Notifications laden und WebSocket-Listener starten
+  // Load the notifications and start the WebSocket listener
   if (authStore.isAuthenticated) {
     await notificationStore.fetchNotifications();
     notificationStore.initSocketListeners();
   }
 })
 
-// Wenn der User sich einloggt (nach Reload), Notifications nachladen
+// When the user logs in (after a reload), load the notifications
 watch(() => authStore.isAuthenticated, async (isAuth) => {
   if (isAuth) {
     await notificationStore.fetchNotifications();
@@ -164,7 +164,7 @@ const navigateToResult = (result) => {
 
                 <hr>
 
-                <!-- Benachrichtigungen -->
+                <!-- Notifications -->
                 <div class="dropdown-notifications">
                   <div class="dropdown-notifications-header">
                     <span>🔔 Benachrichtigungen</span>
@@ -223,7 +223,7 @@ const navigateToResult = (result) => {
 </template>
 
 <style>
-/* GLOBALE STYLES (Unverändert) */
+/* GLOBAL STYLES (unchanged) */
 body.dark-mode .header {
   background-color: #1e2132 !important;
   border-bottom: 1px solid #434963 !important;
@@ -242,16 +242,16 @@ body.dark-mode .header input[type="search"] {
 </style>
 
 <style scoped>
-/* --- NEU: Dropdown Styles --- */
+/* --- NEW: dropdown styles --- */
 .user-menu {
   position: relative;
-  /* Wichtig für absolute Positionierung des Dropdowns */
+  /* Needed for the dropdown's absolute positioning */
 }
 
 .dropdown-menu {
   position: absolute;
   top: 50px;
-  /* Abstand von oben */
+  /* Distance from the top */
   right: 0;
   width: 200px;
   background-color: white;
@@ -264,7 +264,7 @@ body.dark-mode .header input[type="search"] {
   flex-direction: column;
 }
 
-/* Dark Mode für Dropdown */
+/* Dark mode for the dropdown */
 :global(body.dark-mode) .dropdown-menu {
   background-color: #2c2c3e;
   border: 1px solid #444;
@@ -281,7 +281,7 @@ body.dark-mode .header input[type="search"] {
 
 :global(body.dark-mode) .dropdown-header {
   background-color: #23234c;
-  /* Etwas dunkler als die Karte */
+  /* Slightly darker than the card */
 }
 
 .dropdown-header strong {
@@ -468,7 +468,7 @@ hr {
   opacity: 0;
 }
 
-/* Restliche Styles (Sidebar etc.) */
+/* Remaining styles (sidebar etc.) */
 .sidebar.disabled {
   pointer-events: none;
   opacity: 0.5;

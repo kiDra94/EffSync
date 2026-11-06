@@ -3,26 +3,26 @@ import { SetMetadata } from "@nestjs/common";
 /**
  * @Permissions() Decorator
  *
- * Wird verwendet in Kombination mit PermissionsGuard.
- * Definiert die erforderlichen Permissions für einen Endpoint.
+ * Used together with PermissionsGuard.
+ * Defines the permissions an endpoint requires.
  *
- * Beispiele:
+ * Examples:
  * @Permissions('create_tasks')
  * @Permissions('edit_tasks', 'delete_tasks')
- * @Permissions()  // Leerer Array = kein PermissionsGuard-Schutz
+ * @Permissions()  // empty array = no PermissionsGuard protection
  *
- * Verwendung im Controller:
+ * Usage in a controller:
  * @Post()
  * @UseGuards(JwtAuthGuard, PermissionsGuard)
  * @Permissions('create_tasks', 'edit_tasks')
  * async create(@Body() dto: CreateTaskDto) {
- *   // Nur User mit ALLEN Permissions (create_tasks UND edit_tasks) können diesen Endpoint aufrufen
- *   // Zeitlimits werden automatisch validiert!
+ *   // Only users with ALL permissions (create_tasks AND edit_tasks) can call this endpoint
+ *   // Validity periods are checked automatically!
  * }
  *
- * WICHTIG:
- * - Auch abgelaufene Permissions (valid_to < NOW) werden als ungültig behandelt
- * - Noch nicht gültige Permissions (valid_from > NOW) werden als ungültig behandelt
+ * IMPORTANT:
+ * - Expired permissions (valid_to < NOW) are treated as invalid
+ * - Permissions that are not yet valid (valid_from > NOW) are treated as invalid
  */
 export const Permissions = (...permissions: string[]) =>
   SetMetadata("permissions", permissions);

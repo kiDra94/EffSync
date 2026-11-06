@@ -1,12 +1,12 @@
 import { apiClient } from './httpClient';
 
 /**
- * Admin Service für die Verwaltung von Benutzern, Rollen und Permissions
+ * Admin service for managing users, roles and permissions
  */
 
 export const adminService = {
   /**
-   * Holt alle Benutzer
+   * Returns all users
    */
   async getAllUsers() {
     const response = await apiClient.get('/users');
@@ -14,7 +14,7 @@ export const adminService = {
   },
 
   /**
-   * Holt einen spezifischen Benutzer mit seinen Permissions und Rollen
+   * Returns one user with their permissions and roles
    */
   async getUserWithPermissions(userId) {
     const response = await apiClient.get(`/users/${userId}/permissions`);
@@ -22,7 +22,7 @@ export const adminService = {
   },
 
   /**
-   * Holt alle verfügbaren Rollen
+   * Returns all available roles
    */
   async getAllRoles() {
     const response = await apiClient.get('/roles');
@@ -30,7 +30,7 @@ export const adminService = {
   },
 
   /**
-   * Holt alle verfügbaren Permissions
+   * Returns all available permissions
    */
   async getAllPermissions() {
     const response = await apiClient.get('/permissions');
@@ -38,7 +38,7 @@ export const adminService = {
   },
 
   /**
-   * Weist eine Rolle einem Benutzer zu
+   * Assigns a role to a user
    */
   async assignRoleToUser(userId, roleId) {
     const response = await apiClient.post(`/users/${userId}/roles`, {
@@ -48,7 +48,7 @@ export const adminService = {
   },
 
   /**
-   * Entfernt eine Rolle von einem Benutzer
+   * Removes a role from a user
    */
   async removeRoleFromUser(userId, roleId) {
     const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`);
@@ -56,7 +56,7 @@ export const adminService = {
   },
 
   /**
-   * Weist eine Permission einem Benutzer zu
+   * Assigns a permission to a user
    */
   async assignPermissionToUser(userId, permissionId, validFrom = null, validTo = null) {
     const response = await apiClient.post(`/users/${userId}/permissions`, {
@@ -68,7 +68,7 @@ export const adminService = {
   },
 
   /**
-   * Entfernt eine Permission von einem Benutzer
+   * Removes a permission from a user
    */
   async removePermissionFromUser(userId, permissionId) {
     const response = await apiClient.delete(`/users/${userId}/permissions/${permissionId}`);

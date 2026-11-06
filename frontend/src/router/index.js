@@ -131,46 +131,46 @@ const router = createRouter({
     routes,
 })
 
-// --- Optimierter Navigation Guard ---
+// --- Optimized navigation guard ---
 router.beforeEach(async (to) => {
     const authStore = useAuthStore()
 
-    // isAuthenticated ist ein Boolean, token ist der String.
-    // Wir prüfen hier auf den Token im State (oder LocalStorage durch initDevMode)
+    // isAuthenticated is a boolean, token is the string.
+    // Here we check for the token in the state (or in localStorage through initDevMode)
     const hasToken = authStore.isAuthenticated
 
     const routeRequiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
-    // 1. Nicht eingeloggt & Route braucht Auth -> Login
+    // 1. Not logged in & route needs auth -> login
     if (!hasToken && routeRequiresAuth) {
         return { name: 'Login' }
     }
 
-    // 2. Eingeloggt & will zu Login/Register -> Dashboard
+    // 2. Logged in & going to login/register -> dashboard
     if (hasToken && (to.name === 'Login' || to.name === 'Register')) {
         return { name: 'Dashboard' }
     }
 
-    // 3. User Daten laden (für F5 Refresh), falls Token da ist, aber User leer
+    // 3. Load the user data (for an F5 refresh) if there is a token but no user
     if (hasToken && !authStore.userDetails) {
         try {
             await authStore.loadUser()
         } catch (error) {
-            // Falls Token ungültig war -> Logout passiert im Store, hier Redirect
+            // If the token was invalid -> the store logs out, here we redirect
             console.error('Fehler beim Laden der Benutzerdaten:', error)
             return { name: 'Login' }
         }
     }
 
-    // 4. Rollen-Check (erst NACHDEM User geladen wurde)
+    // 4. Role check (only AFTER the user has been loaded)
     if (hasToken && to.meta.roles) {
-        // Jetzt ist userRole sicher verfügbar
+        // Now userRole is guaranteed to be available
         console.log('🔐 Router Guard - Route requires roles:', to.meta.roles)
         console.log('🔐 Router Guard - User role:', authStore.userRole)
         console.log('🔐 Router Guard - Has required role:', to.meta.roles.includes(authStore.userRole))
         
         if (!to.meta.roles.includes(authStore.userRole)) {
-            // Optional: Redirect zu einer "Unauthorized" Seite oder zurück zum Dashboard
+            // Optional: redirect to an "Unauthorized" page or back to the dashboard
             console.warn('⚠️ Zugriff verweigert: Fehlende Rolle', authStore.userRole, 'benötigt:', to.meta.roles)
             return { name: 'Dashboard' }
         }

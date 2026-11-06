@@ -10,9 +10,9 @@ import { createTestApp } from "./setup/create-test-app";
 const MEMBERS_BASE = "/api/api/tasks";
 
 /**
- * E2E Tests für Mitgliederverwaltungs-Workflows
+ * E2E tests for the member management workflows
  *
- * Testet die kompletten Workflows von der API bis zur Datenbank
+ * Tests the complete workflows from the API down to the database
  */
 describe("Mitgliederverwaltung E2E", () => {
   let app: INestApplication;

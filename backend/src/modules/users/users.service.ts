@@ -17,7 +17,7 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const saltRound = 10; // standard wert fuer web 2^10 Rounds
+    const saltRound = 10; // default for web apps: 2^10 rounds
     const salt = await genSalt(saltRound);
     const hashPassword = await hash(createUserDto.password, salt);
     const { password, ...userWithoutPassword } = createUserDto;
@@ -103,17 +103,17 @@ export class UsersService {
   async getUserPermissions(userId: number) {
     const today = new Date();
 
-    // User Permissions mit Zeitvalidierung
+    // User permissions with validity periods
     const userPermissions = await this.prisma.user_permissions.findMany({
       where: { user_id: userId },
       include: { permissions: true },
     });
 
-    // Filtern nach Gültigkeitsdatum
+    // Filter by validity date
     const validPermissions = userPermissions
       .filter((up) => {
-        if (up.valid_from && new Date(up.valid_from) > today) return false; // Noch nicht gültig
-        if (up.valid_to && new Date(up.valid_to) < today) return false; // Abgelaufen
+        if (up.valid_from && new Date(up.valid_from) > today) return false; // Not valid yet
+        if (up.valid_to && new Date(up.valid_to) < today) return false; // Expired
         return true;
       })
       .map((up) => ({
@@ -166,12 +166,12 @@ export class UsersService {
   }
 
   /**
-   * Fügt eine neue Permission für einen User hinzu (mit optionalen Zeitlimits).
+   * Adds a new permission for a user (with optional validity period).
    *
-   * @param userId - Die User ID
-   * @param permissionId - Die Permission ID
-   * @param validFrom - Ab wann gültig (optional, null = sofort)
-   * @param validTo - Bis wann gültig (optional, null = unbegrenzt)
+   * @param userId - the user ID
+   * @param permissionId - the permission ID
+   * @param validFrom - valid from (optional, null = immediately)
+   * @param validTo - valid until (optional, null = unlimited)
    */
   async addPermissionToUser(
     userId: number,
@@ -179,7 +179,7 @@ export class UsersService {
     validFrom?: Date | null,
     validTo?: Date | null,
   ) {
-    // Prüfe: User existiert
+    // Check: the user exists
     const user = await this.prisma.users.findUnique({
       where: { user_id: userId },
     });
@@ -188,7 +188,7 @@ export class UsersService {
       throw new NotFoundException(`User ${userId} nicht gefunden`);
     }
 
-    // Prüfe: Permission existiert
+    // Check: the permission exists
     const permission = await this.prisma.permissions.findUnique({
       where: { permission_id: permissionId },
     });
@@ -197,7 +197,7 @@ export class UsersService {
       throw new NotFoundException(`Permission ${permissionId} nicht gefunden`);
     }
 
-    // Prüfe: User hat diese Permission nicht bereits
+    // Check: the user doesn't have this permission yet
     const existing = await this.prisma.user_permissions.findUnique({
       where: {
         user_id_permission_id: {
@@ -211,7 +211,7 @@ export class UsersService {
       throw new BadRequestException("User hat diese Permission bereits");
     }
 
-    // Hinzufügen
+    // Add
     return await this.prisma.user_permissions.create({
       data: {
         user_id: userId,
@@ -224,10 +224,10 @@ export class UsersService {
   }
 
   /**
-   * Entfernt eine Permission von einem User.
+   * Removes a permission from a user.
    *
-   * @param userId - Die User ID
-   * @param permissionId - Die Permission ID
+   * @param userId - the user ID
+   * @param permissionId - the permission ID
    */
   async removePermissionFromUser(userId: number, permissionId: number) {
     const userPerm = await this.prisma.user_permissions.findUnique({
@@ -254,11 +254,11 @@ export class UsersService {
   }
 
   /**
-   * Weist eine Rolle einem User zu.
-   * Wichtig: Automatisch werden auch alle Standard-Permissions der Rolle hinzugefügt!
+   * Assigns a role to a user.
+   * Important: all default permissions of the role are added automatically as well!
    *
-   * @param userId - Die User ID
-   * @param roleId - Die Role ID
+   * @param userId - the user ID
+   * @param roleId - the role ID
    */
   async addRoleToUser(userId: number, roleId: number) {
     const user = await this.prisma.users.findUnique({
@@ -290,7 +290,7 @@ export class UsersService {
       throw new BadRequestException("User hat diese Rolle bereits");
     }
 
-    // 1. Rolle zuweisen
+    // 1. Assign the role
     const result = await this.prisma.user_roles.create({
       data: {
         user_id: userId,
@@ -307,7 +307,7 @@ export class UsersService {
       },
     });
 
-    // 2. Automatisch Standard-Permissions der Rolle hinzufügen
+    // 2. Add the role's default permissions automatically
     try {
       if (role.name) {
         await this.rolePermissionsService.assignDefaultPermissionsForRole(
@@ -323,22 +323,22 @@ export class UsersService {
         "Fehler beim Hinzufügen der Standard-Permissions:",
         errorMessage,
       );
-      // Nicht fehlschlagen, falls Permissions nicht hinzufügbar sind
-      // Die Rolle wurde bereits zugewiesen
+      // Don't fail if the permissions can't be added
+      // The role is already assigned
     }
 
     return result;
   }
 
   /**
-   * Entfernt eine Rolle von einem User.
+   * Removes a role from a user.
    *
-   * Sicherheit:
-   * - Es muss mindestens 1 Superuser/Admin existieren
-   * - Wenn das der letzte ist, kann die Rolle nicht entfernt werden
+   * Safety:
+   * - at least 1 Superuser/Admin must remain
+   * - if this is the last one, the role can't be removed
    *
-   * @param userId - Die User ID
-   * @param roleId - Die Role ID
+   * @param userId - the user ID
+   * @param roleId - the role ID
    */
   async removeRoleFromUser(userId: number, roleId: number) {
     const role = await this.prisma.roles.findUnique({

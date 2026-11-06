@@ -14,7 +14,7 @@ export const authApi = {
   },
 
   register(userData) {
-    // Erwartet: { email, password, username?, firstname?, lastname? }
+    // Expects: { email, password, username?, firstname?, lastname? }
     return apiClient.post('/auth/register', userData)
   },
   

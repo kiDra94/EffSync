@@ -22,7 +22,7 @@ onMounted(() => {
   if (!token.value) {
     errorMessage.value = 'Ungültiger oder abgelaufener Link. Bitte starte den Vorgang erneut.'
   } else {
-    // Token im Store und localStorage setzen, damit authApi-Calls funktionieren
+    // Put the token into the store and localStorage so authApi calls work
     authStore.token = token.value
     localStorage.setItem('authToken', token.value)
   }

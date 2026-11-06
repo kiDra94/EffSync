@@ -13,10 +13,10 @@ export class RolesController {
 
   /**
    * GET /roles
-   * Holt alle verfügbaren Rollen.
+   * Returns all available roles.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Get()
   @UseGuards(PermissionsGuard)
@@ -27,10 +27,10 @@ export class RolesController {
 
   /**
    * GET /roles/:id
-   * Holt eine spezifische Rolle mit ihren Permissions.
+   * Returns one role with its permissions.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Get(":id")
   @UseGuards(PermissionsGuard)

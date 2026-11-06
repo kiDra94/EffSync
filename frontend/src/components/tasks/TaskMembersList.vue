@@ -51,7 +51,7 @@
             </div>
           </div>
 
-          <!-- Remove Button (nur für normale Members, nicht Creator/Assigned) -->
+          <!-- Remove button (only for regular members, not creator/assignee) -->
           <button
             v-if="canManageMembers && member.role === 'member'"
             @click.stop.prevent="openRemoveDialog(member)"
@@ -70,7 +70,7 @@
       <p>Keine Mitglieder hinzugefügt (nur Creator und Assigned-to)</p>
     </div>
 
-    <!-- Add Member Section (Creator oder WRITE-Permission) -->
+    <!-- Add member section (creator or WRITE permission) -->
     <div v-if="canManageMembers" class="add-member-section">
       <h4>Mitglieder hinzufügen</h4>
       <div class="add-member-form">
@@ -291,7 +291,7 @@ const openRemoveDialog = (member) => {
 };
 
 const handleOverlayClick = (event) => {
-  // Nur schließen wenn direkt auf dem Overlay-Hintergrund geklickt wurde
+  // Close only when the overlay background itself was clicked
   if (event.target === event.currentTarget) {
     closeRemoveDialog();
   }
@@ -336,7 +336,7 @@ const confirmRemove = async () => {
     console.log('🔄 Lade Mitglieder neu...');
     await loadMembers();
     
-    // Modal schließen
+    // Close the modal
     closeRemoveDialog();
     console.log('✓ Dialog geschlossen');
   } catch (error) {

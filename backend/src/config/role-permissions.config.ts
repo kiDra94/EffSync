@@ -1,7 +1,7 @@
 /**
- * Standard-Permissions für Rollen
- * Diese Konfiguration definiert, welche Permissions automatisch
- * mit einer Rolle zugewiesen werden
+ * Default permissions per role
+ * This configuration defines which permissions are assigned
+ * automatically with a role
  */
 
 /**
@@ -15,14 +15,14 @@ export enum RoleName {
 }
 
 /**
- * Definierte Permissions pro Rolle
+ * Permissions defined per role
  * Format: {
  *   [RoleName]: ['permission_name_1', 'permission_name_2', ...]
  * }
  */
 export const ROLE_PERMISSIONS_CONFIG: Record<RoleName, string[]> = {
   // ============ SUPERUSER ============
-  // Hat ALLE Permissions
+  // Has ALL permissions
   [RoleName.SUPERUSER]: [
     "view_dashboard",
     "manage_users",
@@ -37,7 +37,7 @@ export const ROLE_PERMISSIONS_CONFIG: Record<RoleName, string[]> = {
   ],
 
   // ============ ADMIN ============
-  // Administrative Funktionen
+  // Administrative functions
   [RoleName.ADMIN]: [
     "view_dashboard",
     "manage_users",
@@ -48,7 +48,7 @@ export const ROLE_PERMISSIONS_CONFIG: Record<RoleName, string[]> = {
   ],
 
   // ============ TEACHER ============
-  // Lehrerkünfte
+  // Teacher functions
   [RoleName.TEACHER]: [
     "view_dashboard",
     "create_tasks",
@@ -60,14 +60,14 @@ export const ROLE_PERMISSIONS_CONFIG: Record<RoleName, string[]> = {
   ],
 
   // ============ STUDENT ============
-  // Schülerfunktionen
+  // Student functions
   [RoleName.STUDENT]: ["view_dashboard", "view_grades", "view_schedules"],
 };
 
 /**
- * Helper-Funktion um Permissions zu einer Rolle zu bekommen
- * @param roleName - Der Name der Rolle
- * @returns Array von Permission-Namen
+ * Helper that returns the permissions of a role
+ * @param roleName - the name of the role
+ * @returns array of permission names
  */
 export function getPermissionsForRole(roleName: string): string[] {
   const role = Object.values(RoleName).find((r) => r === roleName);

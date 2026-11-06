@@ -14,7 +14,7 @@ export class SchedulesService {
   async create(createScheduleDto: CreateScheduleDto) {
     const { name, valid_from, valid_to } = createScheduleDto;
 
-    // Validierung: valid_from sollte vor valid_to liegen
+    // Validation: valid_from must be before valid_to
     if (valid_from && valid_to && new Date(valid_from) > new Date(valid_to)) {
       throw new BadRequestException(
         "Startdatum (valid_from) muss vor Enddatum (valid_to) liegen",
@@ -87,7 +87,7 @@ export class SchedulesService {
 
     const { name, valid_from, valid_to } = updateScheduleDto;
 
-    // Validierung: valid_from sollte vor valid_to liegen
+    // Validation: valid_from must be before valid_to
     const fromDate = valid_from ? new Date(valid_from) : schedule.valid_from;
     const toDate = valid_to ? new Date(valid_to) : schedule.valid_to;
 
@@ -123,7 +123,7 @@ export class SchedulesService {
       throw new NotFoundException(`Stundenplan mit ID ${id} nicht gefunden`);
     }
 
-    // Prüfe ob der Stundenplan noch verwendet wird
+    // Check whether the schedule is still in use
     const lessonSlotsCount = await this.prisma.lesson_slots.count({
       where: { schedule_id: id },
     });

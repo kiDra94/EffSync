@@ -152,7 +152,7 @@ export const useTaskStore = defineStore('task', () => {
 
         socket_on('task:updated', (updatedTask) => {
             const index = tasks.value.findIndex(task => task.task_id === updatedTask.task_id);
-            if(index !== -1) { // findIndex gibt -1 zurueck wenn es nix findet!
+            if(index !== -1) { // findIndex returns -1 when it finds nothing!
                 tasks.value[index] = updatedTask;
                 console.log(`Task ${updatedTask.title} was updated automatically!`)
             }
@@ -213,8 +213,8 @@ export const useTaskStore = defineStore('task', () => {
         try {
             const normalizedTaskId = String(task_id);
 
-            // Erst alle direkten Subtasks rekursiv löschen,
-            // da das Backend Parent-Tasks mit Subtasks blockiert.
+            // First delete all direct subtasks recursively,
+            // because the backend blocks parent tasks that have subtasks.
             const directSubtasks = tasks.value.filter(
                 (task) => String(task.parent_task_id) === normalizedTaskId
             );
@@ -320,11 +320,11 @@ export const useTaskStore = defineStore('task', () => {
             const updatedSubtasks = [];
             for (const subtask of subtasks) {
                 if (subtask.task_id) {
-                    // Bestehenden Subtask aktualisieren
+                    // Update an existing subtask
                     await editTask(subtask.task_id, subtask);
                     updatedSubtasks.push(subtask);
                 } else if (subtask.title && subtask.title.trim()) {
-                    // Neuen Subtask erstellen
+                    // Create a new subtask
                     const subtaskData = buildSubtaskPayload(subtask, task_id, taskData);
                     const newSubtask = await createTask(subtaskData);
                     const createdSub = newSubtask.data || newSubtask;

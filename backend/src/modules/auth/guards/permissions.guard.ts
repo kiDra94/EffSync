@@ -9,18 +9,18 @@ import { PermissionsService } from "../../permissions/permissions.service";
 import { PermissionFlag } from "../../permissions/permissions.service";
 
 /**
- * PermissionsGuard - Permission-basierte Zugriffskontrolle (mit Flags & Zeitvalidierung)
+ * PermissionsGuard - permission-based access control (with flags and validity periods)
  *
- * Wird in Kombination mit dem @Permissions() Decorator verwendet.
+ * Used together with the @Permissions() decorator.
  *
- * Beispiel:
+ * Example:
  * @Post()
  * @UseGuards(JwtAuthGuard, PermissionsGuard)
  * @Permissions('edit_tasks')
  * async create(@Body() dto: CreateTaskDto) { ... }
  *
- * Diese Methode ist nur für User mit der Permission 'edit_tasks' zugreifbar.
- * Die Permission wird auch auf zeitliche Gültigkeit geprüft (valid_from, valid_to).
+ * Only users with the permission 'edit_tasks' can access this method.
+ * The permission's validity period is checked as well (valid_from, valid_to).
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -30,18 +30,18 @@ export class PermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Hole die erforderlichen Permissions aus dem @Permissions() Decorator
+    // Read the required permissions from the @Permissions() decorator
     const requiredPermissions = this.reflector.get<string[]>(
       "permissions",
       context.getHandler(),
     );
 
-    // Wenn keine Permissions definiert sind, erlauben (kein Schutz)
+    // No permissions defined: allow (no protection)
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
 
-    // Hole den Request und den aktuellen User
+    // Get the request and the current user
     const request = context.switchToHttp().getRequest();
     const userId = request.user?.id;
 
@@ -50,8 +50,8 @@ export class PermissionsGuard implements CanActivate {
     }
 
     for (const permissionExpression of requiredPermissions) {
-      // Unterstützt Aliase via "perm_a|perm_b" (OR innerhalb eines Eintrags)
-      // Mehrere @Permissions-Einträge bleiben weiterhin AND-verknüpft.
+      // Supports aliases via "perm_a|perm_b" (OR within one entry)
+      // Several @Permissions entries are still combined with AND.
       const alternatives = permissionExpression
         .split("|")
         .map((p) => p.trim())

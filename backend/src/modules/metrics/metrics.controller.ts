@@ -11,7 +11,7 @@ export class MetricsController {
 
   /**
    * GET /metrics/status-distribution
-   * Gibt die Verteilung der Task-Status zurück
+   * Returns the distribution of task statuses
    */
   @Permissions()
   @Get("status-distribution")
@@ -21,7 +21,7 @@ export class MetricsController {
 
   /**
    * GET /metrics/task-progress
-   * Gibt Fortschrittsmetriken zurück
+   * Returns progress metrics
    */
   @Permissions()
   @Get("task-progress")
@@ -31,7 +31,7 @@ export class MetricsController {
 
   /**
    * GET /metrics/tasks-by-status
-   * Gibt alle Tasks gruppiert nach Status zurück
+   * Returns all tasks grouped by status
    */
   @Permissions()
   @Get("tasks-by-status")

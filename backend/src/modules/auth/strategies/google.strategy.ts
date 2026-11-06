@@ -29,7 +29,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
     });
 
     try {
-      // Versuche, den User zu finden
+      // Try to find the user
       let user = await this.prisma.users.findUnique({
         where: { username: profile.emails?.[0]?.value || profile.id },
         include: {
@@ -39,14 +39,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
         },
       });
 
-      // Wenn User nicht existiert, erstelle ihn
+      // If the user doesn't exist, create them
       if (!user) {
         console.log("👤 Creating new user from Google OAuth...");
 
         const email =
           profile.emails?.[0]?.value || `${profile.id}@google.oauth`;
 
-        // Erstelle User ohne Rollen zunächst
+        // Create the user without roles first
         const newUser = await this.prisma.users.create({
           data: {
             username: email,
@@ -57,7 +57,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
           },
         });
 
-        // Finde student rolle - auf Basis der vorhandenen Rollen
+        // Find the student role among the existing roles
         try {
           const roles = await this.prisma.roles.findMany();
           const studentRole = roles.find(
@@ -76,7 +76,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
           console.warn("⚠️ Fehler beim Zuweisen der Student-Rolle:", roleError);
         }
 
-        // Reload user mit Rollen
+        // Reload the user with roles
         user = await this.prisma.users.findUnique({
           where: { user_id: newUser.user_id },
           include: {

@@ -26,7 +26,7 @@
 
 Cypress.Commands.add('cleanUpTask', (taskId) => {
   if (taskId) {
-    // Der Befehl ist jetzt zentral gespeichert
+    // The command is now defined in one central place
     cy.request('DELETE', `http://localhost:3000/tasks/${taskId}`);
   }
 });

@@ -96,16 +96,16 @@ async function main() {
 
         console.log('✓ Base-Daten erstellt');
 
-        // --- PHASE 2: Users für Rollen ---
+        // --- PHASE 2: users for the roles ---
         const passwordHash = await bcrypt.hash('password123', 10);
 
         const usersData = [
             // Admin / Superuser
             { firstname: 'Max', lastname: 'Mustermann', email: 'admin@htl.at', username: 'adminadmin', password_hash: passwordHash }, // ID 1
-            // Lehrer
+            // Teachers
             { firstname: 'Anna', lastname: 'Lehrerin', email: 'anna@htl.at', username: 'alehrerin', password_hash: passwordHash }, // ID 2
-            { firstname: 'Peter', lastname: 'Schmidt', email: 'peter@htl.at', username: 'pschmidt', password_hash: passwordHash }, // ID 3 (für Test)
-            // Schüler
+            { firstname: 'Peter', lastname: 'Schmidt', email: 'peter@htl.at', username: 'pschmidt', password_hash: passwordHash }, // ID 3 (for tests)
+            // Students
             { firstname: 'Felix', lastname: 'Fuchs', email: 'felix@student.htl.at', username: 'ffuchs', password_hash: passwordHash }, // ID 4
             { firstname: 'Laura', lastname: 'Gruber', email: 'laura@student.htl.at', username: 'lgruber', password_hash: passwordHash }, // ID 5
             { firstname: 'David', lastname: 'Wolf', email: 'david@student.htl.at', username: 'dwolf', password_hash: passwordHash }, // ID 6
@@ -116,7 +116,7 @@ async function main() {
         await prisma.users.createMany({ data: usersData });
         console.log('✓ 8 Users erstellt');
 
-        // --- PHASE 3: Teachers (vor Classes, da head_teacher_id benötigt) ---
+        // --- PHASE 3: teachers (before classes, because head_teacher_id needs them) ---
         const teachersData = [
             { teacher_id: 2 },
             { teacher_id: 3 }
@@ -149,7 +149,7 @@ async function main() {
 
         console.log('✓ Schüler & Klassen-Lehrer zugewiesen');
 
-        // --- PHASE 5: Rollen & Permissions ---
+        // --- PHASE 5: roles & permissions ---
         const userRolesData = [
             { user_id: 1, role_id: 1 }, // Max = Superuser
             { user_id: 2, role_id: 3 }, // Anna = Teacher
@@ -163,7 +163,7 @@ async function main() {
         await prisma.user_roles.createMany({ data: userRolesData });
 
         const rolesPermissionsData = [
-            // Superuser: Alle Permissions
+            // Superuser: all permissions
             { roles_id: 1, permission_id: 1 },
             { roles_id: 1, permission_id: 2 },
             { roles_id: 1, permission_id: 3 },
@@ -190,12 +190,12 @@ async function main() {
 
         console.log('✓ Rollen & Permissions zugewiesen');
 
-        // --- PHASE 6: TASKS für Test-Szenarien ---
+        // --- PHASE 6: TASKS for the test scenarios ---
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const testsTasksData = [
-            // Für Schüler-Aufgabe 1: "Mathe Test"
+            // For student task 1: "Mathe Test"
             {
                 title: 'Mathe Test',
                 description: 'Schreiben Sie eine Klausur über Integralrechnung. Kapitel 5-7 werden abgefragt.',
@@ -204,9 +204,9 @@ async function main() {
                 created_by: 2,
                 assigned_to: 4,
                 priority_id: 3,
-                deadline: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000) // +2 Tage
+                deadline: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000) // +2 days
             },
-            // Für Schüler-Aufgabe 2: "Englisch Vokabeln" (mit Chat)
+            // For student task 2: "Englisch Vokabeln" (with chat)
             {
                 title: 'Englisch Vokabeln',
                 description: 'Unit 5 Vokabeln lernen. Quiz nächste Woche.',
@@ -215,9 +215,9 @@ async function main() {
                 created_by: 2,
                 assigned_to: 5,
                 priority_id: 2,
-                deadline: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) // +3 Tage
+                deadline: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) // +3 days
             },
-            // Für Schüler-Aufgabe 3: "Abgabe Task 1" (mit Bewertung)
+            // For student task 3: "Abgabe Task 1" (with grading)
             {
                 title: 'Abgabe Task 1',
                 description: 'Bearbeitete Aufgabenserie zu Algebra.',
@@ -226,27 +226,27 @@ async function main() {
                 created_by: 2,
                 assigned_to: 4,
                 priority_id: 2,
-                deadline: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000) // -2 Tage (past)
+                deadline: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000) // -2 days (past)
             },
-            // Für Lehrer-Aufgabe 1: Neuer Task erstellen
+            // For teacher task 1: create a new task
             {
                 title: 'Biologie Projekt – Ökosysteme',
                 description: 'Recherchiert über lokale Ökosysteme und präsentiert ein Beispiel.',
                 status: task_status.TODO,
                 progress: 0,
                 created_by: 2,
-                assigned_to: 1, // ganze Klasse (represented by first user)
+                assigned_to: 1, // whole class (represented by the first user)
                 priority_id: 3,
-                deadline: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000) // +10 Tage
+                deadline: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000) // +10 days
             }
         ];
 
         await prisma.tasks.createMany({ data: testsTasksData });
         console.log('✓ 4 Test-Tasks erstellt');
 
-        // --- PHASE 7: Documents für Schüler (mit Bewertung) ---
+        // --- PHASE 7: documents for students (with grading) ---
         const docsData = [
-            // Bewertete Abgabe zu "Abgabe Task 1"
+            // Graded submission for "Abgabe Task 1"
             {
                 name: 'abgabe_felix_task1.pdf',
                 file_path: '/uploads/submissions/abgabe_felix_task1.pdf',
@@ -258,7 +258,7 @@ async function main() {
                 graded_by: 2, // Anna
                 graded_at: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000)
             },
-            // Unbewertete Abgabe zu "Mathe Test"
+            // Ungraded submission for "Mathe Test"
             {
                 name: 'mathe_test_felix.pdf',
                 file_path: '/uploads/submissions/mathe_test_felix.pdf',
@@ -277,8 +277,8 @@ async function main() {
 
         // --- PHASE 8: Document-Task Relationships ---
         const taskDocsData = [
-            { task_id: 3, document_id: 1 }, // "Abgabe Task 1" -> bewertetes Doc
-            { task_id: 1, document_id: 2 }  // "Mathe Test" -> unbenotigtes Doc
+            { task_id: 3, document_id: 1 }, // "Abgabe Task 1" -> graded document
+            { task_id: 1, document_id: 2 }  // "Mathe Test" -> ungraded document
         ];
         await prisma.task_documents.createMany({ data: taskDocsData });
 
@@ -290,7 +290,7 @@ async function main() {
             // "Englisch Vokabeln" Members
             { task_id: 2, user_id: 2 },
             { task_id: 2, user_id: 5 },
-            // "Biologie Projekt" für ganze Klasse
+            // "Biologie Projekt" for the whole class
             { task_id: 4, user_id: 2 }, // Teacher
             { task_id: 4, user_id: 4 }, // Students
             { task_id: 4, user_id: 5 },
@@ -305,7 +305,7 @@ async function main() {
         });
         console.log('✓ Task Members zugewiesen');
 
-        // --- PHASE 10: Chat Rooms für Kommunikation ---
+        // --- PHASE 10: chat rooms for communication ---
         const chatRoomsData = [
             {
                 name: null,
@@ -326,7 +326,7 @@ async function main() {
             // Direct Chat
             { room_id: 1, user_id: 2 },
             { room_id: 1, user_id: 4 },
-            // Klassenchat
+            // Class chat
             { room_id: 2, user_id: 2 }, // Teacher Anna
             { room_id: 2, user_id: 3 }, // Teacher Peter
             { room_id: 2, user_id: 4 }, // Felix
@@ -399,7 +399,7 @@ async function main() {
         }));
         await prisma.email_preferences.createMany({ data: emailPrefsData });
 
-        // --- PHASE 13: Notizen (Notes) ---
+        // --- PHASE 13: notes ---
         const notesData = [
             {
                 title: 'Prüfungsvorbereitung Mathe',
@@ -433,7 +433,7 @@ async function main() {
         await prisma.notes.createMany({ data: notesData });
         console.log('✓ Notizen erstellt');
 
-        // --- PHASE 14: Task Comments mit mehr Bewertungen ---
+        // --- PHASE 14: task comments with more grading ---
         const moreCommentsData = [
             {
                 task_id: 2,
@@ -525,7 +525,7 @@ async function main() {
         await prisma.notifications.createMany({ data: notificationsData });
         console.log('✓ Benachrichtigungen erstellt');
 
-        // --- ZUSAMMENFASSUNG ---
+        // --- SUMMARY ---
         console.log('\n=============================================');
         console.log('✅ TEST-SEED ERFOLGREICH ABGESCHLOSSEN!');
         console.log('=============================================\n');

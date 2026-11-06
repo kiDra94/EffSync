@@ -27,7 +27,7 @@ export class ChatMessagesService {
       });
     });
 
-    // Notifications an alle anderen Room-Mitglieder senden
+    // Send notifications to all other room members
     try {
       const sender = await this.prisma.users.findUnique({
         where: { user_id: createChatMessageDto.user_id },

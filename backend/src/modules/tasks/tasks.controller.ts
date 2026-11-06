@@ -44,7 +44,7 @@ export class TasksController {
   @Get(":id")
   @Permissions()
   findOne(@Param("id") id: string, @Req() req) {
-    // Feature #27: Nutze Pro-Schüler-Methode um zu zeigen ob nur dieser Schüler gesperrt ist
+    // Feature #27: use the per-student method to show whether only this student is locked
     return this.tasksService.findOneForStudent(+id, req.user.userId);
   }
 
@@ -60,8 +60,8 @@ export class TasksController {
 
   /**
    * PATCH /tasks/:id/deadline-unlock
-   * Aktualisiert das Deadline und entsperrt einen Task nach Bewertung
-   * Nur Lehrer dürfen diese Aktion nutzen
+   * Updates the deadline and unlocks a task after grading
+   * Only teachers may use this action
    */
   @Patch(":id/deadline-unlock")
   @Permissions()

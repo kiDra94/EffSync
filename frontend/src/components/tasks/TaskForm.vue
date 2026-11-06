@@ -156,7 +156,7 @@
           </div>
         </div>
 
-        <!-- Task Members Section (nur wenn Task bereits existiert) -->
+        <!-- Task members section (only if the task already exists) -->
         <TaskMembersList
           v-if="task?.task_id && canManageTaskStructure"
           :taskId="task.task_id"
@@ -216,15 +216,15 @@ const {
 } = useTaskValidation(props.existingTasks)
 
 /**
- * Feature #27: Task-Sperrung - Pro Schüler individuell, nicht global
- * Ein Task wird nur FÜR DIESEN SCHÜLER gesperrt wenn SEIN Dokument bewertet wurde
+ * Feature #27: task locking - per student, not global
+ * A task is locked only FOR THIS STUDENT once THEIR document was graded
  */
 const isTaskLocked = computed(() => {
-  // Nutze die neue Pro-Schüler-Lock-Info vom Backend
+  // Use the new per-student lock info from the backend
   if (props.task?.is_student_submission_locked) {
     return true;
   }
-  // Fallback auf globales Lock (für Creator/Lehrer die Task manuell sperren)
+  // Fall back to the global lock (for creators/teachers who lock the task manually)
   return props.task?.is_locked && props.task?.created_by === authStore.userId;
 });
 
@@ -251,22 +251,22 @@ const lockedReason = computed(() => {
   return props.task.locked_reason;
 });
 
-// State für Unlock-Dialog
+// State for the unlock dialog
 const showUnlockDialog = ref(false);
 const newDeadlineForUnlock = ref('');
 
 function formatForInput(isoString) {
   if (!isoString) return '';
-  // Konvertiere ISO-String zu datetime-local Format (YYYY-MM-DDTHH:mm)
-  // ohne lokale Zeitzonenverschiebung
+  // Convert an ISO string to the datetime-local format (YYYY-MM-DDTHH:mm)
+  // without a local time zone shift
   const date = new Date(isoString);
   return date.toISOString().slice(0, 16);
 }
 
 function formatForSubmit(datetimeLocal) {
   if (!datetimeLocal) return null;
-  // Konvertiere datetime-local Format zu ISO-String mit Timezone
-  // datetime-local Format ist YYYY-MM-DDTHH:mm und wird als UTC interpretiert
+  // Convert the datetime-local format to an ISO string with time zone
+  // the datetime-local format is YYYY-MM-DDTHH:mm and is read as UTC
   const date = new Date(`${datetimeLocal}:00.000Z`);
   return date.toISOString();
 }
@@ -367,7 +367,7 @@ const close = () => {
 };
 
 /**
- * Feature #27: Entsperre einen gesperrten Task mit neuem Deadline
+ * Feature #27: unlocks a locked task with a new deadline
  */
 const unlockTask = async () => {
   if (!props.task?.task_id || !newDeadlineForUnlock.value) {
@@ -383,14 +383,14 @@ const unlockTask = async () => {
     await updateDeadlineAndUnlock(props.task.task_id, isoDeadline);
     alert('✓ Task wurde erfolgreich entsperrt und das neue Deadline wurde gesetzt!');
     
-    // Aktualisiere den Task Store
+    // Update the task store
     await taskStore.getTasks();
     
-    // Schließe den Dialog
+    // Close the dialog
     showUnlockDialog.value = false;
     newDeadlineForUnlock.value = '';
     
-    // Schließe das Task-Form Modal
+    // Close the task form modal
     close();
   } catch (error) {
     console.error('Fehler beim Entsperren des Tasks:', error);
@@ -405,7 +405,7 @@ const handleMembersUpdated = (members) => {
 };
 
 /**
- * Zeige die ausgewählten Mitglieder als Chips
+ * Shows the selected members as chips
  */
 const selectedMembersForDisplay = computed(() => {
   return creationMembers.value
@@ -929,7 +929,7 @@ const removeMember = (userId) => {
   transform: scale(1.2);
 }
 
-/* Dark Mode für Member Chips */
+/* Dark mode for member chips */
 :global(body.dark-mode) .selected-members-chips,
 :global(.app-container.dark-mode) .selected-members-chips {
   background-color: #0e2f47 !important;

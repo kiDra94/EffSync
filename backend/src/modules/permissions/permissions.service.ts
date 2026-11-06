@@ -4,9 +4,9 @@ import { PrismaService } from "../../prisma/prisma.service";
 /**
  * PermissionChecker Service
  *
- * Unterscheide zwischen:
- * - ROLLE: Binär, kein Zeitlimit (z.B. "Lehrer", "Admin")
- * - PERMISSION: Binär mit Flags (READ=4, WRITE=2, EXECUTE=1), mit Zeitlimit
+ * Distinguishes between:
+ * - ROLE: binary, no validity period (e.g. "Teacher", "Admin")
+ * - PERMISSION: binary with flags (READ=4, WRITE=2, EXECUTE=1), with a validity period
  */
 
 export enum PermissionFlag {
@@ -20,8 +20,8 @@ export class PermissionsService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Prüfe, ob User eine ROLLE hat (einfach & schnell)
-   * Rollen haben KEINE Zeitlimits!
+   * Checks whether the user has a ROLE (simple and fast)
+   * Roles have NO validity periods!
    */
   async hasRole(userId: number, roleName: string): Promise<boolean> {
     const userRole = await this.prisma.user_roles.findFirst({
@@ -36,7 +36,7 @@ export class PermissionsService {
   }
 
   /**
-   * Hole alle Rollen eines Users
+   * Returns all roles of a user
    */
   async getUserRoles(userId: number): Promise<string[]> {
     const userRoles = await this.prisma.user_roles.findMany({
@@ -48,20 +48,20 @@ export class PermissionsService {
   }
 
   /**
-   * Prüfe, ob User eine PERMISSION hat (mit Zeit- & Flag-Validierung)
-   * Prüft DIREKTE Permissions UND Permissions über Rollen
+   * Checks whether the user has a PERMISSION (validity period and flags checked)
+   * Checks DIRECT permissions AND permissions through roles
    *
    * @param userId - User ID
-   * @param permissionName - z.B. 'create_task', 'edit_grades'
-   * @param requiredFlag - Benötigte Flag (READ, WRITE, EXECUTE)
-   * @returns true wenn Permission aktiv und Flag vorhanden
+   * @param permissionName - e.g. 'create_task', 'edit_grades'
+   * @param requiredFlag - the required flag (READ, WRITE, EXECUTE)
+   * @returns true if the permission is active and has the flag
    */
   async hasPermission(
     userId: number,
     permissionName: string,
     requiredFlag: PermissionFlag = PermissionFlag.READ,
   ): Promise<boolean> {
-    // Unterstütze Alias-Namen wie delete_task <-> delete_tasks
+    // Support alias names such as delete_task <-> delete_tasks
     const permissionNames = Array.from(
       new Set([
         permissionName,
@@ -72,7 +72,7 @@ export class PermissionsService {
     ).filter(Boolean);
 
     for (const name of permissionNames) {
-      // 1. Prüfe DIREKTE Permissions
+      // 1. Check DIRECT permissions
       const userPermission = await this.prisma.user_permissions.findFirst({
         where: {
           user_id: userId,
@@ -88,7 +88,7 @@ export class PermissionsService {
           (!userPermission.valid_to || now <= userPermission.valid_to);
 
         if (isTimeValid) {
-          // Prüfe Flags (wie Unix: bitweises AND)
+          // Check the flags (like Unix: bitwise AND)
           const hasFlagBits =
             (userPermission.permissions.flags & requiredFlag) === requiredFlag;
           if (hasFlagBits) {
@@ -97,7 +97,7 @@ export class PermissionsService {
         }
       }
 
-      // 2. Prüfe Permissions über ROLLEN
+      // 2. Check permissions through ROLES
       const rolePermission = await this.prisma.user_roles.findFirst({
         where: {
           user_id: userId,
@@ -135,7 +135,7 @@ export class PermissionsService {
   }
 
   /**
-   * Prüfe mehrere Permissions (OR Logik - min. eine muss wahr sein)
+   * Checks several permissions (OR logic - at least one must hold)
    */
   async hasAnyPermission(
     userId: number,
@@ -151,7 +151,7 @@ export class PermissionsService {
   }
 
   /**
-   * Prüfe mehrere Permissions (AND Logik - alle müssen wahr sein)
+   * Checks several permissions (AND logic - all must hold)
    */
   async hasAllPermissions(
     userId: number,
@@ -167,7 +167,7 @@ export class PermissionsService {
   }
 
   /**
-   * Hole alle aktiven Permissions des Users (mit Zeitprüfung)
+   * Returns all active permissions of the user (validity period checked)
    */
   async getActivePermissions(userId: number): Promise<
     Array<{
@@ -195,7 +195,7 @@ export class PermissionsService {
   }
 
   /**
-   * Gebe expirierte Permissions aus (für Benachrichtigungen)
+   * Returns expired permissions (for notifications)
    */
   async getExpiringPermissions(
     userId: number,
@@ -232,7 +232,7 @@ export class PermissionsService {
   }
 
   /**
-   * Hole alle verfügbaren Permissions
+   * Returns all available permissions
    */
   async findAll() {
     return this.prisma.permissions.findMany({
@@ -249,7 +249,7 @@ export class PermissionsService {
   }
 
   /**
-   * Hole eine Permission mit ihren Details
+   * Returns one permission with its details
    */
   async findOne(permissionId: number) {
     return this.prisma.permissions.findUnique({

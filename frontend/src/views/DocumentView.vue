@@ -148,7 +148,7 @@
                   </button>
                 </td>
               </tr>
-              <!-- Bewertungs-Notiz Row -->
+              <!-- Grade note row -->
               <tr v-if="doc.grade || doc.feedback" class="grade-detail-row">
                 <td colspan="6">
                   <div class="grade-detail-card">

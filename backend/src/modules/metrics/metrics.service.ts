@@ -26,7 +26,7 @@ export class MetricsService {
   }
 
   /**
-   * Statusverteilung: Anzahl Tasks pro Status
+   * Status distribution: number of tasks per status
    */
   async getStatusDistribution(user: any) {
     const where = this.buildTaskVisibilityFilter(user);
@@ -79,7 +79,7 @@ export class MetricsService {
   }
 
   /**
-   * Fortschrittsmetriken: Completion-Rate
+   * Progress metrics: completion rate
    */
   async getTaskProgress(user: any) {
     const where = this.buildTaskVisibilityFilter(user);
@@ -97,7 +97,7 @@ export class MetricsService {
     const completionRate =
       tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
-    // Durchschnittlicher Fortschritt aller Tasks
+    // Average progress of all tasks
     const avgProgress =
       tasks.length > 0
         ? Math.round(
@@ -105,7 +105,7 @@ export class MetricsService {
           )
         : 0;
 
-    // Überfällige Tasks
+    // Overdue tasks
     const now = new Date();
     const overdueCount = tasks.filter(
       (t) =>
@@ -127,7 +127,7 @@ export class MetricsService {
   }
 
   /*
-   * Tasks pro Status
+   * Tasks per status
    */
   async getTasksByStatus(user: any) {
     const where = this.buildTaskVisibilityFilter(user);

@@ -63,22 +63,22 @@ export class AuthService {
       throw new UnauthorizedException("Passwort ist ungültig");
     }
 
-    // Hole die erste Rolle des Benutzers (Primary Role)
+    // Take the user's first role (primary role)
     const primaryRole =
       user.user_roles && user.user_roles.length > 0
         ? user.user_roles[0].roles?.name?.toLowerCase()
-        : "user"; // Default Rolle
+        : "user"; // Default role
 
     const { password_hash, ...userWithNoPassword } = user;
     const payload = {
       sub: user.user_id,
       username: user.username,
-      role: primaryRole, // Rolle hinzufügen!
+      role: primaryRole, // Add the role!
     };
     // const dummyToken = 'TEST_TOKEN_123456';
     return {
       ...userWithNoPassword,
-      role: primaryRole, // Rolle auch in Response mitgeben
+      role: primaryRole, // Also return the role in the response
       token: this.jwtService.sign(payload),
     };
   }

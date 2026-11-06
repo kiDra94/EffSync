@@ -5,7 +5,7 @@ import { fetchAllNotifications, markNotificationAsRead, deleteNotification as ap
 
 let notificationSocket = null;
 
-// Toast-Benachrichtigungen speichern (für DeadlineToast Component)
+// Stores toast notifications (for the DeadlineToast component)
 const activeToasts = ref([]);
 
 export const useNotificationStore = defineStore('notification', () => {
@@ -73,7 +73,7 @@ export const useNotificationStore = defineStore('notification', () => {
     async function markAllAsRead() {
         const unread = unreadNotifications.value;
 
-        // Optimistisch lokal auf gelesen setzen, damit der Zähler sofort auf 0 springt
+        // Mark as read locally right away, so the counter drops to 0 immediately
         notifications.value = notifications.value.map((notification) => ({
             ...notification,
             is_read: true,
@@ -84,7 +84,7 @@ export const useNotificationStore = defineStore('notification', () => {
             await Promise.all(unread.map(n => markAsRead(n.notification_id || n.id)));
         } catch (error) {
             console.error('Fehler beim Markieren aller Benachrichtigungen als gelesen:', error);
-            // Im Fehlerfall neu laden, damit der lokale Zustand wieder zur DB passt
+            // On error, reload so the local state matches the DB again
             await fetchNotifications();
         }
     }
@@ -130,13 +130,13 @@ export const useNotificationStore = defineStore('notification', () => {
         return notifications.value.filter(n => n.type === type);
     }
 
-    // Feature #27: Toast Notifications für Deadlines/Overdue
+    // Feature #27: toast notifications for deadlines/overdue
     function addToast(notification) {
         const toastId = Date.now();
         const toast = { ...notification, toastId };
         activeToasts.value.push(toast);
         
-        // Auto-remove nach 5 Sekunden
+        // Auto-remove after 5 seconds
         setTimeout(() => {
             activeToasts.value = activeToasts.value.filter(t => t.toastId !== toastId);
         }, 5000);
@@ -164,7 +164,7 @@ export const useNotificationStore = defineStore('notification', () => {
             if (!exists) {
                 notifications.value.unshift(newNotification);
                 
-                // Zeige Toast für kritische Notifications
+                // Show a toast for critical notifications
                 if (newNotification.type === 'task_deadline' || newNotification.type === 'task_overdue') {
                     addToast(newNotification);
                 }

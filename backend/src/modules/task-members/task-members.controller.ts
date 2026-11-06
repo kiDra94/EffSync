@@ -22,9 +22,9 @@ import { CreateTaskMemberDto } from "./dto/create-task-member.dto";
 import { TaskMemberEntity } from "./entities/task-member.entity";
 
 /**
- * API-Endpoints für Task-Member-Verwaltung
+ * API endpoints for managing task members
  *
- * Alle Endpoints erfordern Authentifizierung (JwtAuthGuard)
+ * All endpoints require authentication (JwtAuthGuard)
  */
 @Controller("api/tasks/:taskId/members")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -33,14 +33,14 @@ export class TaskMembersController {
 
   /**
    * POST /api/tasks/:taskId/members
-   * Fügt einen Benutzer zu einer Task hinzu.
+   * Adds a user to a task.
    *
    * Body: { "user_id": 123 }
    * Response: { task_id, user_id, joined_at, user: {...} }
    *
-   * Berechtigungen:
-   * - Requester ist Task-Owner ODER
-   * - Requester hat WRITE-Permission auf dieser Task
+   * Permissions:
+   * - the requester is the task owner OR
+   * - the requester has WRITE permission on this task
    */
   @Post()
   @Permissions()
@@ -55,7 +55,7 @@ export class TaskMembersController {
 
     await this.taskMembersService.addMember(taskIdNum, userId, currentUser.id);
 
-    // Mit User-Details zurückgeben
+    // Return it with the user details
     const member = await this.taskMembersService.findByTask(taskIdNum);
     const memberWithUser = member.find((m) => m.user_id === userId);
 
@@ -73,13 +73,13 @@ export class TaskMembersController {
 
   /**
    * GET /api/tasks/:taskId/members
-   * Listet alle Mitglieder einer Task auf.
+   * Lists all members of a task.
    *
    * Response: [{ task_id, user_id, joined_at, user: {...} }, ...]
    *
-   * Berechtigungen:
-   * - Requester ist Mitglied der Task ODER
-   * - Requester hat READ-Permission auf dieser Task
+   * Permissions:
+   * - the requester is a member of the task OR
+   * - the requester has READ permission on this task
    */
   @Get()
   @Permissions()
@@ -90,7 +90,7 @@ export class TaskMembersController {
     const taskIdNum = this.parseId(taskId);
     const currentUser = req.user;
 
-    // Permission-Check: Ist Requester Mitglied oder hat read-Permission?
+    // Permission check: is the requester a member or has read permission?
     const isMember = await this.taskMembersService.isMember(
       taskIdNum,
       currentUser.id,
@@ -115,23 +115,23 @@ export class TaskMembersController {
       user_id: m.user_id,
       joined_at: m.joined_at,
       user: m.users,
-      role: m.role, // 'creator', 'assigned', oder 'member'
+      role: m.role, // 'creator', 'assigned' or 'member'
     }));
   }
 
   /**
    * DELETE /api/tasks/:taskId/members/:userId
-   * Entfernt einen Benutzer von einer Task.
+   * Removes a user from a task.
    *
    * Response: { success: true, message: "..." }
    *
-   * Berechtigungen:
-   * - Requester ist Task-Owner ODER
-   * - Requester hat WRITE-Permission auf dieser Task
+   * Permissions:
+   * - the requester is the task owner OR
+   * - the requester has WRITE permission on this task
    *
-   * Hindernis:
-   * - Nicht den Task-Creator selbst entfernen
-   * - Nicht den zugewiesenen Benutzer entfernen
+   * Restrictions:
+   * - the task creator can't be removed
+   * - the assignee can't be removed
    */
   @Delete(":userId")
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -154,10 +154,10 @@ export class TaskMembersController {
 
   /**
    * GET /api/tasks/:taskId/members/check-permission?flag=2
-   * Prüft, ob der aktuelle User eine bestimmte Permission hat.
+   * Checks whether the current user has a given permission.
    *
    * Query Parameter:
-   * - flag: 1 (EXECUTE), 2 (WRITE), 4 (READ) oder Kombination (6=RW, 7=RWX)
+   * - flag: 1 (EXECUTE), 2 (WRITE), 4 (READ) or a combination (6=RW, 7=RWX)
    *
    * Response:
    * {
@@ -212,7 +212,7 @@ export class TaskMembersController {
   }
 
   /**
-   * Hilfsfunktion: Parse String zu Nummer mit Validierung
+   * Helper: parses a string to a number, with validation
    */
   private parseId(id: string): number {
     const parsed = parseInt(id, 10);

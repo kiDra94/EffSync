@@ -69,7 +69,7 @@ const loadUserProfile = () => {
 
     if (stored) {
       const storedUser = JSON.parse(stored);
-      // Lokale Präferenzen beibehalten, aber Auth-Daten priorisieren
+      // Keep local preferences, but prefer the auth data
       user.value = {
         ...storedUser,
         ...base,
@@ -118,7 +118,7 @@ const goBack = () => {
 onMounted(() => {
   loadUserProfile();
   notificationStore.initFromStorage();
-  // Tab aus Query-Parameter setzen (z.B. ?tab=notifications)
+  // Set the tab from the query parameter (e.g. ?tab=notifications)
   if (route.query.tab) {
     if (route.query.tab === 'notifications' && !isOwnProfile.value) {
       activeTab.value = 'profile';
@@ -174,7 +174,7 @@ onMounted(() => {
     </div>
 
     <div class="tab-content">
-      <!-- Profil Tab -->
+      <!-- Profile tab -->
       <div v-if="activeTab === 'profile'" class="content-section">
         <div class="form-group">
           <label>Vorname</label>
@@ -240,16 +240,16 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Sicherheit Tab - mit neuen Komponenten -->
+      <!-- Security tab - with the new components -->
       <div v-if="activeTab === 'security'" class="content-section">
-        <!-- 1. Security Features (Passwort + 2FA) -->
+        <!-- 1. Security features (password + 2FA) -->
         <SecurityTab />
         
         <!-- 2. Email Preferences -->
         <EmailPreferences />
       </div>
 
-      <!-- Aktivität Tab -->
+      <!-- Activity tab -->
       <div v-if="activeTab === 'activity'" class="content-section">
         <div class="activity-card">
           <h2>Anmeldungshistorie</h2>
@@ -270,7 +270,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Benachrichtigungen Tab -->
+      <!-- Notifications tab -->
       <div v-if="activeTab === 'notifications'" class="content-section">
         <NotificationsList />
       </div>
@@ -537,7 +537,7 @@ onMounted(() => {
 </style>
 
 <style>
-/* Dark Mode Styles für UserProfileView */
+/* Dark mode styles for UserProfileView */
 body.dark-mode .profile-view {
   background-color: #1a1a2e !important;
   color: white !important;

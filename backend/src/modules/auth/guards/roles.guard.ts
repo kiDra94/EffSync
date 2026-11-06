@@ -8,17 +8,17 @@ import { Reflector } from "@nestjs/core";
 import { PermissionsService } from "../../permissions/permissions.service";
 
 /**
- * RolesGuard - Rolle-basierte Zugriffskontrolle
+ * RolesGuard - role-based access control
  *
- * Wird in Kombination mit dem @Roles() Decorator verwendet.
+ * Used together with the @Roles() decorator.
  *
- * Beispiel:
+ * Example:
  * @Get()
  * @UseGuards(JwtAuthGuard, RolesGuard)
  * @Roles('Teacher', 'Admin')
  * async findAll() { ... }
  *
- * Diese Methode ist nur für User mit Rolle "Teacher" ODER "Admin" zugreifbar.
+ * Only users with the role "Teacher" OR "Admin" can access this method.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -28,18 +28,18 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Hole die erforderlichen Rollen aus dem @Roles() Decorator
+    // Read the required roles from the @Roles() decorator
     const requiredRoles = this.reflector.get<string[]>(
       "roles",
       context.getHandler(),
     );
 
-    // Wenn keine Rollen definiert sind, erlauben (kein Schutz)
+    // No roles defined: allow (no protection)
     if (!requiredRoles) {
       return true;
     }
 
-    // Hole den Request und den aktuellen User
+    // Get the request and the current user
     const request = context.switchToHttp().getRequest();
     const userId = request.user?.id;
 
@@ -47,15 +47,15 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException("No user ID found in request");
     }
 
-    // Prüfe: Hat User MINDESTENS EINE der erforderlichen Rollen?
+    // Check: does the user have AT LEAST ONE of the required roles?
     for (const role of requiredRoles) {
       const hasRole = await this.permissionsService.hasRole(userId, role);
       if (hasRole) {
-        return true; // Hat eine der erforderlichen Rollen → Zugriff erlaubt
+        return true; // Has one of the required roles → access granted
       }
     }
 
-    // User hat keine der erforderlichen Rollen
+    // The user has none of the required roles
     throw new ForbiddenException(
       `Insufficient role. Required: ${requiredRoles.join(" OR ")}`,
     );

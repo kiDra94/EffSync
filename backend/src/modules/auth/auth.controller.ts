@@ -35,13 +35,13 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @Get("google")
   async googleAuth() {
-    // Trigger für Google OAuth Flow
+    // Starts the Google OAuth flow
   }
 
   @UseGuards(GoogleResetAuthGuard)
   @Get("google/reset-password")
   async googleResetPassword() {
-    // Trigger für Google OAuth mit state=reset-password
+    // Starts Google OAuth with state=reset-password
   }
 
   @UseGuards(GoogleAuthGuard)

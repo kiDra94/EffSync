@@ -441,7 +441,7 @@ describe("DocumentsService", () => {
         user_roles: [{ roles: { name: "Student" } }],
       },
     ]);
-    // Nur assigned student ist bewertet, creator (21) noch nicht
+    // Only the assigned student is graded, the creator (21) isn't yet
     mockPrismaService.documents.findMany.mockResolvedValue([{ added_by: 22 }]);
 
     await service.grade(30, { grade: "2", feedback: "gut" }, 4, "teacher");

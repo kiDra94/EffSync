@@ -17,15 +17,15 @@ export class EmailCronService {
   ) {}
 
   /**
-   * Täglich um 08:00 Uhr: Prüfe auf fällige Aufgaben
-   * Versendet E-Mails an Benutzer deren Aufgaben heute oder morgen fällig sind
+   * Daily at 08:00: check for tasks that are due
+   * Sends e-mails to users whose tasks are due today or tomorrow
    */
   @Cron(CronExpression.EVERY_DAY_AT_8AM)
   async checkDeadlines() {
     this.logger.log("🔔 Starting deadline check...");
 
     try {
-      // Finde alle Aufgaben die heute oder in den nächsten Tagen fällig sind
+      // Find all tasks due today or in the next days
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -40,7 +40,7 @@ export class EmailCronService {
             lte: inThreeDays,
           },
           status: { not: "COMPLETED" },
-          assigned_to: { not: null }, // Nur Aufgaben mit zugewiesener Person
+          assigned_to: { not: null }, // Only tasks with an assignee
         },
         include: {
           users_tasks_assigned_toTousers: true,
@@ -51,13 +51,13 @@ export class EmailCronService {
         `Found ${upcomingTasks.length} tasks with upcoming deadlines`,
       );
 
-      // Für jede Aufgabe: Sende E-Mail an den zugewiesenen Benutzer
+      // For each task: send an e-mail to the assignee
       for (const task of upcomingTasks) {
         const assignedUser = task.users_tasks_assigned_toTousers;
 
         if (!assignedUser) continue;
 
-        // 1️⃣ E-Mail senden
+        // 1️⃣ Send the e-mail
         const userPreferences = await this.prisma.email_preferences.findUnique({
           where: { user_id: assignedUser.user_id },
         });
@@ -79,7 +79,7 @@ export class EmailCronService {
           }
         }
 
-        // 2️⃣ Feature #27: In-App Notification erstellen
+        // 2️⃣ Feature #27: create the in-app notification
         const daysUntil = Math.ceil(
           ((task.deadline || new Date()).getTime() - Date.now()) /
             (24 * 60 * 60 * 1000),
@@ -104,8 +104,8 @@ export class EmailCronService {
   }
 
   /**
-   * Stündlich: Prüfe auf überfällige Aufgaben
-   * Sperrt überf ällige Aufgaben und sendet Benachrichtigungen
+   * Hourly: check for overdue tasks
+   * Locks overdue tasks and sends notifications
    */
   @Cron(CronExpression.EVERY_HOUR)
   async checkOverdueDeadlines() {
@@ -114,7 +114,7 @@ export class EmailCronService {
     try {
       const now = new Date();
 
-      // Feature #27: Finde alle überfälligen Tasks die noch nicht gesperrt sind
+      // Feature #27: find all overdue tasks that aren't locked yet
       const overdueTasks = await this.prisma.tasks.findMany({
         where: {
           deadline: {
@@ -122,7 +122,7 @@ export class EmailCronService {
           },
           status: { not: "COMPLETED" },
           assigned_to: { not: null },
-          is_locked: false, // ✅ Feature #27: Nur noch nicht gesperrte Tasks
+          is_locked: false, // ✅ Feature #27: only tasks that aren't locked yet
         },
         include: {
           users_tasks_assigned_toTousers: true,
@@ -137,18 +137,18 @@ export class EmailCronService {
 
           if (!assignedUser) continue;
 
-          // 1️⃣ Feature #27: Task automatisch sperren
+          // 1️⃣ Feature #27: lock the task automatically
           await this.prisma.tasks.update({
             where: { task_id: task.task_id },
             data: {
               is_locked: true,
               locked_reason: "OVERDUE",
-              locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Tage
+              locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
             },
           });
           this.logger.warn(`🔒 Locked task ${task.task_id}: ${task.title}`);
 
-          // 2️⃣ E-Mail senden
+          // 2️⃣ Send the e-mail
           const userPreferences =
             await this.prisma.email_preferences.findUnique({
               where: { user_id: assignedUser.user_id },
@@ -168,7 +168,7 @@ export class EmailCronService {
             );
           }
 
-          // 3️⃣ Feature #27: In-App Notification (URGENT)
+          // 3️⃣ Feature #27: in-app notification (URGENT)
           await this.notificationsService.create({
             user_id: assignedUser.user_id,
             type: "task_overdue",
@@ -189,7 +189,7 @@ export class EmailCronService {
   }
 
   /**
-   * Manuelle Methode um E-Mail-Test auszulösen
+   * Manual method to trigger a test e-mail
    */
   async sendTestEmail(userId: number, userEmail: string): Promise<boolean> {
     this.logger.log(`Sending test email to ${userEmail}`);

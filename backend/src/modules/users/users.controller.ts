@@ -27,10 +27,10 @@ export class UsersController {
 
   /**
    * POST /users
-   * Erstellt einen neuen Benutzer.
+   * Creates a new user.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Post()
   @UseGuards(PermissionsGuard)
@@ -41,9 +41,9 @@ export class UsersController {
 
   /**
    * GET /users/profile
-   * Holt das Profil des aktuellen Benutzers mit Rolle.
+   * Returns the current user's profile with role.
    *
-   * Keine speziellen Berechtigungen erforderlich (nur JWT erforderlich).
+   * No special permissions required (only a JWT).
    */
   @Get("profile")
   getProfile(@Req() req) {
@@ -52,9 +52,9 @@ export class UsersController {
 
   /**
    * GET /users/me/permissions
-   * Holt alle Rollen und Permissions des aktuellen Benutzers.
+   * Returns all roles and permissions of the current user.
    *
-   * Keine speziellen Berechtigungen erforderlich (nur JWT erforderlich).
+   * No special permissions required (only a JWT).
    */
   @Get("me/permissions")
   async getMyPermissions(@Req() req) {
@@ -63,10 +63,10 @@ export class UsersController {
 
   /**
    * GET /users/:id/permissions
-   * Holt alle Rollen und Permissions eines spezifischen Benutzers.
+   * Returns all roles and permissions of a given user.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Get(":id/permissions")
   @UseGuards(PermissionsGuard)
@@ -77,7 +77,7 @@ export class UsersController {
 
   /**
    * GET /users/for-chat
-   * Holt alle User mit minimalen Infos für den Chat (nur JWT erforderlich).
+   * Returns all users with minimal info for the chat (only a JWT required).
    */
   @Get("for-chat")
   findAllForChat() {
@@ -86,10 +86,10 @@ export class UsersController {
 
   /**
    * GET /users
-   * Holt alle Benutzer.
+   * Returns all users.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Get()
   @UseGuards(PermissionsGuard)
@@ -100,10 +100,10 @@ export class UsersController {
 
   /**
    * GET /users/:id
-   * Holt einen spezifischen Benutzer.
+   * Returns one user.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Get(":id")
   @UseGuards(PermissionsGuard)
@@ -114,10 +114,10 @@ export class UsersController {
 
   /**
    * PATCH /users/:id
-   * Aktualisiert einen Benutzer.
+   * Updates a user.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Patch(":id")
   @UseGuards(PermissionsGuard)
@@ -128,10 +128,10 @@ export class UsersController {
 
   /**
    * DELETE /users/:id
-   * Löscht einen Benutzer.
+   * Deletes a user.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Delete(":id")
   @UseGuards(PermissionsGuard)
@@ -142,7 +142,7 @@ export class UsersController {
 
   /**
    * POST /users/:id/permissions
-   * Fügt eine neue Permission zu einem User hinzu.
+   * Adds a new permission to a user.
    *
    * Body:
    * {
@@ -151,8 +151,8 @@ export class UsersController {
    *   "valid_to": "2026-07-31"     // Optional
    * }
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Post(":id/permissions")
   @UseGuards(PermissionsGuard)
@@ -179,10 +179,10 @@ export class UsersController {
 
   /**
    * DELETE /users/:id/permissions/:permissionId
-   * Entfernt eine Permission von einem User.
+   * Removes a permission from a user.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Delete(":id/permissions/:permissionId")
   @UseGuards(PermissionsGuard)
@@ -196,15 +196,15 @@ export class UsersController {
 
   /**
    * POST /users/:id/roles
-   * Weist eine Rolle zu einem User zu.
+   * Assigns a role to a user.
    *
    * Body:
    * {
    *   "role_id": 3
    * }
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Post(":id/roles")
   @UseGuards(PermissionsGuard)
@@ -218,10 +218,10 @@ export class UsersController {
 
   /**
    * DELETE /users/:id/roles/:roleId
-   * Entfernt eine Rolle von einem User.
+   * Removes a role from a user.
    *
-   * Berechtigungen:
-   * - Muss Permission 'manage_users' haben
+   * Permissions:
+   * - requires the permission 'manage_users'
    */
   @Delete(":id/roles/:roleId")
   @UseGuards(PermissionsGuard)

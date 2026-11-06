@@ -33,13 +33,13 @@ onMounted(async () => {
   }
 });
 
-// Events (Tasks von API)
+// Events (tasks from the API)
 const events = ref([]);
 
-// Lessons (Stundenplan von API)
+// Lessons (timetable from the API)
 const lessons = ref([]);
 
-// Farb-Palette für Tasks
+// Color palette for tasks
 const calendarColors = [
     '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
     '#1abc9c', '#e67e22', '#34495e', '#c0392b', '#16a085'
@@ -49,12 +49,12 @@ const calendarColors = [
 
   const activeStoreTasks = computed(() => taskStore.tasks.filter((task) => !isCompletedTask(task)));
 
-// Funktion zum Laden der Daten von der API
+// Loads the data from the API
 const loadCalendarData = async () => {
     loading.value = true;
     error.value = null;
     try {
-        // Lade Tasks
+        // Load the tasks
         const tasksData = await fetchTasks();
         events.value = tasksData
           .filter((task) => !isCompletedTask(task))
@@ -71,7 +71,7 @@ const loadCalendarData = async () => {
             };
             });
 
-        // Lade Lesson Slots
+        // Load the lesson slots
         const lessonsData = await fetchAllLessonSlots();
         lessons.value = lessonsData.map(lesson => {
             const startTime = lesson.start_time ? formatTimeFromISO(lesson.start_time) : '08:00';
@@ -97,7 +97,7 @@ const loadCalendarData = async () => {
     }
 };
 
-// Helper: Zeit aus ISO-Format konvertieren
+// Helper: convert the time from ISO format
 function formatTimeFromISO(isoTime) {
     if (!isoTime) return '08:00';
     try {
@@ -143,7 +143,7 @@ const scrollDayToDefaultTime = async () => {
   dayTimetableRef.value.scrollTop = targetScrollTop;
 };
 
-// 2. LIFECYCLE - Lade Daten beim Component Mount
+// 2. LIFECYCLE - load the data when the component mounts
 onMounted(() => {
     loadCalendarData();
 });
@@ -156,7 +156,7 @@ watch(viewMode, async (mode) => {
   }
 });
 
-// 2. KALENDER LOGIK
+// 2. CALENDAR LOGIC
 const currentYear = computed(() => currentDate.value.getFullYear());
 const currentMonth = computed(() => currentDate.value.getMonth());
 
@@ -259,7 +259,7 @@ const weekLabel = computed(() => {
     return `${weekStart.toLocaleDateString('de-DE')} - ${weekEnd.toLocaleDateString('de-DE')}`;
 });
 
-// Berechnet alle Tage für das Gitter
+// Computes all days for the grid
 const calendarDays = computed(() => {
     const year = currentYear.value;
     const month = currentMonth.value;
@@ -293,7 +293,7 @@ const calendarDays = computed(() => {
     return days;
 });
 
-// Wochentage für die aktuelle Woche
+// Weekdays of the current week
 const weekDaysWithDates = computed(() => {
     const weekStart = getWeekStart(currentDate.value);
     const days = [];
@@ -312,14 +312,14 @@ const weekDaysWithDates = computed(() => {
     return days;
 });
 
-// Lessons für einen bestimmten Tag
+// Lessons for a given day
 const getLessonsForDay = (dayOfWeek) => {
     return lessons.value
         .filter(l => l.dayOfWeek === dayOfWeek)
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
 };
 
-// Tasks für einen bestimmten Tag
+// Tasks for a given day
 const getTasksForDay = (dateStr) => {
   return activeStoreTasks.value
     .filter(task => task.deadline && String(task.deadline).startsWith(dateStr))
@@ -387,8 +387,8 @@ const onDropOnDate = async (targetDateStr) => {
       throw new Error('Ungültige Task-ID beim Verschieben');
     }
 
-    // Nur blockieren wenn Task gesperrt ist UND der Benutzer nicht der Creator ist
-    // Feature #27: Prüfe STUDENT_SUBMISSION_LOCKED statt globalem is_locked
+    // Block only if the task is locked AND the user isn't the creator
+    // Feature #27: check STUDENT_SUBMISSION_LOCKED instead of the global is_locked
     const isCreator = matchedTask?.created_by === authStore.userId;
     const isStudentSubmissionLocked = matchedTask?.is_student_submission_locked;
     
@@ -447,7 +447,7 @@ const onDropOnDate = async (targetDateStr) => {
   }
 };
 
-// Helper Funktionen
+// Helper functions
 function getWeekStart(date) {
     const d = new Date(date);
     const day = d.getDay();
@@ -504,7 +504,7 @@ const goToToday = () => {
     currentDate.value = new Date();
 };
 
-// Lesson Position berechnen
+// Compute the lesson position
 const getLessonStyle = (lesson) => {
     const startHour = parseInt(lesson.startTime.split(':')[0]);
     const startMin = parseInt(lesson.startTime.split(':')[1]);
@@ -634,18 +634,18 @@ const handleSaveWithSubtasks = async ({ taskData, subtasks }) => {
 };
 
 const priorityColors = {
-  1: '#34a853', // Grün
-  2: '#fbbc04', // Gelb
-  3: '#ea4335', // Rot
-  4: '#a142f4', // Lila
-  COMPLETED: '#9ca3af' // Grau
+  1: '#34a853', // Green
+  2: '#fbbc04', // Yellow
+  3: '#ea4335', // Red
+  4: '#a142f4', // Purple
+  COMPLETED: '#9ca3af' // Grey
 };
 
 const getTaskStyle = (task, index) => {
     //if (!task.deadline) return { display: 'none' };
-    const HEADEROFFSET = 60; // Höhe des Headers
-    const HEGIHTOFFSET = 35; // Höhe eines Task-Blocks
-    const MAXIMALMINS = 24 * 60; // 1440 Minuten pro Tag
+    const HEADEROFFSET = 60; // Header height
+    const HEGIHTOFFSET = 35; // Height of one task block
+    const MAXIMALMINS = 24 * 60; // 1440 minutes per day
     
     const d = new Date(task.deadline);
     const deadlineMins = d.getHours() * 60 + d.getMinutes();
@@ -710,7 +710,7 @@ const getTaskStyle = (task, index) => {
     </div>
 
     <div v-if="!loading">
-    <!-- MONATSANSICHT -->
+    <!-- MONTH VIEW -->
 <div v-if="viewMode === 'month'" class="calendar-card">
   <div class="cal-header">
     <button @click="prevMonth" class="nav-btn">&lt;</button>
@@ -758,7 +758,7 @@ const getTaskStyle = (task, index) => {
   </div>
 </div>
 
-    <!-- JAHRESANSICHT -->
+    <!-- YEAR VIEW -->
     <div v-if="viewMode === 'year'" class="calendar-card">
       <div class="cal-header">
         <button @click="prevYear" class="nav-btn">&lt;</button>
@@ -823,7 +823,7 @@ const getTaskStyle = (task, index) => {
     </div>
  
 
-    <!-- WOCHENANSICHT MIT STUNDENPLAN -->
+    <!-- WEEK VIEW WITH TIMETABLE -->
     <div v-if="viewMode === 'week'" class="week-card">
       <div class="week-header">
         <button @click="prevWeek" class="nav-btn">&lt;</button>
@@ -832,7 +832,7 @@ const getTaskStyle = (task, index) => {
       </div>
 
       <div ref="weekTimetableRef" class="timetable-container">
-        <!-- Time Slots (linke Spalte) -->
+        <!-- Time slots (left column) -->
         <div class="time-column">
           <div class="time-header">Zeit</div>
           <div v-for="time in timeSlots" :key="time" class="time-slot">
@@ -840,9 +840,9 @@ const getTaskStyle = (task, index) => {
           </div>
         </div>
 
-        <!-- Wochentage mit Lessons -->
+        <!-- Weekdays with lessons -->
         <div class="days-column">
-          <!-- Header mit Wochentagen -->
+          <!-- Header with weekdays -->
           <div class="days-header">
             <div 
               v-for="day in weekDaysWithDates" 
@@ -855,13 +855,13 @@ const getTaskStyle = (task, index) => {
             </div>
           </div>
 
-          <!-- Grid mit Lessons -->
+          <!-- Grid with lessons -->
           <div class="grid-wrapper">
             <div v-for="day in weekDaysWithDates" :key="day.dayOfWeek" class="day-column-grid">
-              <!-- Time Slot Hintergrund -->
+              <!-- Time slot background -->
               <div v-for="time in timeSlots" :key="time" class="grid-cell"></div>
 
-              <!-- Lessons überlagert -->
+              <!-- Lessons overlaid -->
               <div class="lessons-layer">
                 <div 
                   v-for="lesson in getLessonsForDay(day.dayOfWeek)" 
@@ -878,7 +878,7 @@ const getTaskStyle = (task, index) => {
             </div>
           </div>
 
-          <!-- Tasks unterhalb des Stundenplans -->
+          <!-- Tasks below the timetable -->
           <div class="tasks-row">
             <div
               v-for="day in weekDaysWithDates"
@@ -908,7 +908,7 @@ const getTaskStyle = (task, index) => {
       </div>
     </div>
 
-    <!-- TAGESANSICHT MIT STUNDENPLAN -->
+    <!-- DAY VIEW WITH TIMETABLE -->
     <div v-if="viewMode === 'day'" class="week-card">
       <div class="week-header">
         <button
@@ -931,7 +931,7 @@ const getTaskStyle = (task, index) => {
       </div>
 
       <div ref="dayTimetableRef" class="timetable-container">
-        <!-- Time Slots (linke Spalte) -->
+        <!-- Time slots (left column) -->
         <div class="time-column">
           <div class="time-header">Zeit</div>
           <div v-for="time in timeSlots" :key="time" class="time-slot">
@@ -939,9 +939,9 @@ const getTaskStyle = (task, index) => {
           </div>
         </div>
 
-        <!-- Heute mit Lessons -->
+        <!-- Today with lessons -->
         <div class="days-column">
-          <!-- Header mit heute -->
+          <!-- Header with today -->
           <div class="days-header days-header--day">
             <div 
               :key="currentDate.dayOfWeek"
@@ -953,13 +953,13 @@ const getTaskStyle = (task, index) => {
             </div>
           </div>
 
-          <!-- Grid mit Lessons -->
+          <!-- Grid with lessons -->
           <div class="grid-wrapper grid-wrapper--day">
             <div class="day-column-grid">
-              <!-- Time Slot Hintergrund -->
+              <!-- Time slot background -->
               <div v-for="time in timeSlots" :key="time" class="grid-cell"></div>
 
-              <!-- Lessons überlagert -->
+              <!-- Lessons overlaid -->
               <div class="lessons-layer">
                 <div 
                   v-for="lesson in getLessonsForDay(currentDayFormated.dayOfWeek)" 

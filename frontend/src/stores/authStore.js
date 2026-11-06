@@ -105,7 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
                 return
             }
             const response = await authApi.getUserProfile()
-            // Anpassung je nach Backend-Antwortstruktur (oft response.data oder response.data.user)
+            // Adjust to the backend's response shape (often response.data or response.data.user)
             const user = response.data.user || response.data
             console.log('📋 Full Response:', JSON.stringify(response, null, 2))
             console.log('📋 LoadUser Response:', user)
@@ -121,7 +121,7 @@ export const useAuthStore = defineStore('auth', () => {
         } catch (error) {
             console.error('Failed to load user profile:', error)
             await logout()
-            throw error // Fehler weiterwerfen, falls die UI darauf reagieren soll
+            throw error // Rethrow the error in case the UI needs to react
         }
     }
 

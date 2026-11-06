@@ -215,7 +215,7 @@ onMounted(() => {
   opacity: 0;
 }
 
-/* Mehrere Toasts übereinander */
+/* Several toasts stacked */
 @media (max-width: 600px) {
   .toast {
     min-width: 90vw;

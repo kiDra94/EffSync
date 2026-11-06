@@ -15,7 +15,7 @@
     </div>
 
     <div v-else class="admin-content">
-      <!-- Benutzer Liste -->
+      <!-- User list -->
       <div class="users-section">
         <h2>📌 Benutzer</h2>
         <div class="user-search-wrap">
@@ -54,7 +54,7 @@
       <div v-if="selectedUser" class="details-section">
         <h2>⚙️ Verwaltung für: {{ selectedUser.firstname }} {{ selectedUser.lastname }}</h2>
 
-        <!-- Rollen Management -->
+        <!-- Role management -->
         <div class="management-card">
           <h3>🎯 Rollen ({{ selectedUser.user_roles?.length || 0 }})</h3>
 
@@ -73,7 +73,7 @@
           </div>
           <p v-else class="no-items">Noch keine Rollen zugewiesen</p>
 
-          <!-- Rolle hinzufügen -->
+          <!-- Add role -->
           <div class="add-role-section">
             <label for="role-select">Neue Rolle zuweisen:</label>
             <select v-model="newRoleId" id="role-select" class="select-field">
@@ -117,7 +117,7 @@
           </div>
           <p v-else class="no-items">Noch keine direkten Permissions</p>
 
-          <!-- Permission hinzufügen -->
+          <!-- Add permission -->
           <div class="add-permission-section">
             <label for="permission-select">Neue Permission zuweisen:</label>
             <select v-model="newPermissionId" id="permission-select" class="select-field">
@@ -199,7 +199,7 @@ export default {
     const newPermissionValidFrom = ref('');
     const newPermissionValidTo = ref('');
 
-    // Für später: wenn Backend Endpoints für getAllRoles/getAllPermissions bereitstellt
+    // For later: once the backend provides endpoints for getAllRoles/getAllPermissions
     const availableRoles = ref([
       { role_id: 1, name: 'Admin' },
       { role_id: 2, name: 'Teacher' },
@@ -223,12 +223,12 @@ export default {
         loading.value = true;
         error.value = null;
         
-        // Erst Benutzer laden
+        // Load the users first
         console.log('📥 AdminView: Loading users...');
         users.value = await adminService.getAllUsers();
         console.log(`✅ AdminView: Loaded ${users.value?.length || 0} users`);
         
-        // Dann Rollen und Permissions nacheinander (nicht parallel)
+        // Then roles and permissions one after the other (not in parallel)
         try {
           console.log('📥 AdminView: Loading roles...');
           availableRoles.value = await adminService.getAllRoles();
@@ -236,7 +236,7 @@ export default {
         } catch (err) {
           console.error('❌ Fehler beim Laden der Rollen:', err?.response?.status, err?.response?.data || err?.message);
           availableRoles.value = [];
-          // Fallback auf default Rollen
+          // Fall back to the default roles
         }
         
         try {
@@ -246,7 +246,7 @@ export default {
         } catch (err) {
           console.error('❌ Fehler beim Laden der Permissions:', err?.response?.status, err?.response?.data || err?.message);
           availablePermissions.value = [];
-          // Fallback auf default Permissions
+          // Fall back to the default permissions
         }
       } catch (err) {
         error.value = err.message || 'Fehler beim Laden der Benutzer';
@@ -272,7 +272,7 @@ export default {
       try {
         isAdding.value = true;
         await adminService.assignRoleToUser(selectedUser.value.user_id, parseInt(newRoleId.value));
-        // Benutzer neu laden
+        // Reload the users
         await selectUser(selectedUser.value);
         newRoleId.value = '';
       } catch (err) {
@@ -289,7 +289,7 @@ export default {
       try {
         isRemoving.value = true;
         await adminService.removeRoleFromUser(selectedUser.value.user_id, roleId);
-        // Benutzer neu laden
+        // Reload the users
         await selectUser(selectedUser.value);
       } catch (err) {
         error.value = err.message || 'Fehler beim Entfernen der Rolle';
@@ -310,7 +310,7 @@ export default {
           newPermissionValidFrom.value || null,
           newPermissionValidTo.value || null
         );
-        // Benutzer neu laden
+        // Reload the users
         await selectUser(selectedUser.value);
         newPermissionId.value = '';
         newPermissionValidFrom.value = '';
@@ -329,7 +329,7 @@ export default {
       try {
         isRemoving.value = true;
         await adminService.removePermissionFromUser(selectedUser.value.user_id, permissionId);
-        // Benutzer neu laden
+        // Reload the users
         await selectUser(selectedUser.value);
       } catch (err) {
         error.value = err.message || 'Fehler beim Entfernen der Permission';
@@ -346,16 +346,16 @@ export default {
     };
 
     const canRemoveRole = (role) => {
-      // Kritische Rollen (Superuser/Admin) können nicht entfernt werden wenn nur noch 1 existiert
+      // Critical roles (Superuser/Admin) can't be removed if only 1 is left
       const criticalRoles = ['Superuser', 'Admin'];
       
       if (criticalRoles.includes(role.roles?.name)) {
-        // Zähle wie viele User diese Rolle haben
+        // Count how many users have this role
         const countInAllUsers = users.value.filter(u => 
           u.user_roles?.some(ur => ur.role_id === role.role_id)
         ).length;
         
-        // Wenn nur noch ein User diese Rolle hat - nicht entfernen!
+        // If only one user still has this role - don't remove it!
         if (countInAllUsers <= 1) {
           return false;
         }
@@ -365,7 +365,7 @@ export default {
     };
 
     onMounted(() => {
-      // Prüfe, ob der Benutzer admin ist (admin oder superuser)
+      // Check whether the user is an admin (admin or superuser)
       if (!authStore.isAdmin) {
         error.value = '⛔ Sie haben keine Berechtigung, diese Seite zu besuchen.';
         loading.value = false;
