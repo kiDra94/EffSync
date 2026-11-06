@@ -231,7 +231,7 @@ Rules for all milestones:
   - Done when: `npx jest --coverage` shows ≥ 70 % lines for both files, all tests pass, and every thesis contradiction touched has its `// THESIS:` marker.
   - Risk: low. Only test files are added.
 
-- [ ] **M2: Characterization tests for permissions, task members, users, auth and chat rooms**
+- [x] **M2: Characterization tests for permissions, task members, users, auth and chat rooms**
   - Why: `permissions.service.ts` (68 %), `users.service.ts` (8 %), `task-members.service.ts` (44 %), the `PermissionsGuard` and the chat-room controller back the RBAC that M6–M9 change. `backend/test/task-members.service.spec.ts` never runs (T127, UNUSED_CODE.md: Keep and move).
   - Done when:
     - The orphaned spec is moved under `src/` and runs, merged with the existing one.

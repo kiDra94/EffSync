@@ -468,4 +468,81 @@ describe('TaskMembersService - Bitwise Permission Checks (rwx-Modell)', () => {
       expect(result).toBe(false);
     });
   });
+
+  // Moved from backend/test/task-members.service.spec.ts, which no jest config picked up (GOALS.md M2, T127).
+  describe('addMember', () => {
+    const taskId = 10;
+    const userId = 8;
+    const requesterId = 5;
+
+    it('should add member if requester is task creator', async () => {
+      (prisma.tasks.findUnique as jest.Mock).mockResolvedValue({
+        task_id: taskId,
+        created_by: requesterId, // Requester is creator
+      });
+
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue({
+        user_id: userId,
+        firstname: 'John',
+      });
+
+      (prisma.task_members.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const createSpy = jest.spyOn(prisma.task_members, 'create').mockResolvedValue({
+        task_id: taskId,
+        user_id: userId,
+      } as any);
+
+      const result = await service.addMember(taskId, userId, requesterId);
+
+      expect(result).toEqual({ task_id: taskId, user_id: userId });
+      expect(createSpy).toHaveBeenCalledWith({ data: { task_id: taskId, user_id: userId } });
+    });
+
+    it('should throw NotFoundException if task does not exist', async () => {
+      (prisma.tasks.findUnique as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.addMember(taskId, userId, requesterId)
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if requester has no permission', async () => {
+      (prisma.tasks.findUnique as jest.Mock).mockResolvedValue({
+        task_id: taskId,
+        created_by: 99, // Different creator
+      });
+
+      (prisma.user_permissions.findMany as jest.Mock).mockResolvedValue([]);
+
+      const findUserSpy = jest.spyOn(prisma.users, 'findUnique');
+
+      await expect(
+        service.addMember(taskId, userId, requesterId)
+      ).rejects.toThrow('Sie haben keine Berechtigung, Mitglieder hinzuzufügen');
+      // the permission check runs before the target user is looked up
+      expect(findUserSpy).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if user is already member', async () => {
+      (prisma.tasks.findUnique as jest.Mock).mockResolvedValue({
+        task_id: taskId,
+        created_by: requesterId,
+      });
+
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue({
+        user_id: userId,
+      });
+
+      // User already exists
+      (prisma.task_members.findUnique as jest.Mock).mockResolvedValue({
+        task_id: taskId,
+        user_id: userId,
+      });
+
+      await expect(
+        service.addMember(taskId, userId, requesterId)
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 });
