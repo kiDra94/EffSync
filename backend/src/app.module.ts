@@ -4,8 +4,6 @@ import { AppService } from "./app.service";
 import { AuthModule } from "./modules/auth/auth.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { TaskCommentsModule } from "./modules/task-comments/task-comments.module";
-import { TaskActivityModule } from "./modules/task-activity/task-activity.module";
-import { TemplatesModule } from "./modules/templates/templates.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { ChatRoomsModule } from "./modules/chat-rooms/chat-rooms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
@@ -23,23 +21,13 @@ import {
 } from "@nestjs/throttler";
 import { UsersModule } from "./modules/users/users.module";
 import { ChatMessagesModule } from "./modules/chat-messages/chat-messages.module";
-import { ClassesTeachersModule } from "./modules/classes-teachers/classes-teachers.module";
-import { DocumentSharesModule } from "./modules/document-shares/document-shares.module";
 import { RoomsModule } from "./modules/rooms/room.module";
 import { LessonSlotsModule } from "./modules/lesson-slots/lesson-slots.module";
-import { NoteDocumentsModule } from "./modules/note-documents/note-documents.module";
-import { NotesUsersModule } from "./modules/notes-users/notes-users.module";
 import { PermissionsModule } from "./modules/permissions/permissions.module";
-import { PrioritiesModule } from "./modules/priorities/priorities.module";
 import { RolesModule } from "./modules/roles/roles.module";
-import { StudentsModule } from "./modules/students/students.module";
 import { TaskActivityLogModule } from "./modules/task-activity-log/task-activity-log.module";
-import { TaskDocumentsModule } from "./modules/task-documents/task-documents.module";
 import { TaskMembersModule } from "./modules/task-members/task-members.module";
 import { TaskTemplatesModule } from "./modules/task-templates/task-templates.module";
-import { TeachersModule } from "./modules/teachers/teachers.module";
-import { UserPermissionsModule } from "./modules/user-permissions/user-permissions.module";
-import { UserRolesModule } from "./modules/user-roles/user-roles.module";
 import { APP_GUARD } from "@nestjs/core";
 import { SubjectsModule } from "./modules/subjects/subjects.module";
 import { WebsocketModule } from "./modules/websocket/websocket.module";
@@ -71,8 +59,6 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     UsersModule,
     TasksModule,
     TaskCommentsModule,
-    TaskActivityModule,
-    TemplatesModule,
     DocumentsModule,
     ChatRoomsModule,
     ChatMessagesModule,
@@ -83,23 +69,13 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     ClassesModule,
     DepartmentsModule,
     PrismaModule,
-    ClassesTeachersModule,
-    DocumentSharesModule,
     LessonSlotsModule,
-    NoteDocumentsModule,
-    NotesUsersModule,
     PermissionsModule,
-    PrioritiesModule,
     RolesModule,
     RoomsModule,
-    StudentsModule,
     TaskActivityLogModule,
-    TaskDocumentsModule,
     TaskMembersModule,
     TaskTemplatesModule,
-    TeachersModule,
-    UserPermissionsModule,
-    UserRolesModule,
     SubjectsModule,
     WebsocketModule,
     MetricsModule,

@@ -4,6 +4,9 @@
  * mit einer Rolle zugewiesen werden
  */
 
+/**
+ * @public used by RolesGuard and @Roles() in GOALS.md M7
+ */
 export enum RoleName {
   SUPERUSER = "Superuser",
   ADMIN = "Admin",
@@ -59,22 +62,6 @@ export const ROLE_PERMISSIONS_CONFIG: Record<RoleName, string[]> = {
   // ============ STUDENT ============
   // Schülerfunktionen
   [RoleName.STUDENT]: ["view_dashboard", "view_grades", "view_schedules"],
-};
-
-/**
- * Beschreibungen für Permissions (für bessere Lesbarkeit)
- */
-export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
-  view_dashboard: "Kann das Dashboard anschauen",
-  manage_users: "Kann Benutzer verwalten (erstellen, bearbeiten, löschen)",
-  manage_classes: "Kann Klassen verwalten",
-  create_tasks: "Kann neue Aufgaben erstellen",
-  edit_tasks: "Kann Aufgaben bearbeiten",
-  delete_tasks: "Kann Aufgaben löschen",
-  view_grades: "Kann Noten anschauen",
-  edit_grades: "Kann Noten bearbeiten",
-  view_schedules: "Kann Stundenplan anschauen",
-  manage_system: "Kann Systemeinstellungen verwalten",
 };
 
 /**

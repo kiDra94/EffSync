@@ -1,4 +1,4 @@
-import httpClient from './httpClient';
+import { apiClient as httpClient } from './httpClient';
 
 export const fetchMetrics = async (metricType) => {
   try {

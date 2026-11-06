@@ -16,10 +16,10 @@
     "test:e2e:open": "cypress open",
     "lint": "eslint .",
     "lint:check": "eslint .",
+    "knip": "knip",
     "lint:fix": "eslint --fix"
   },
   "dependencies": {
-    "@nestjs/swagger": "^11.2.5",
     "@popperjs/core": "^2.11.8",
     "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
@@ -27,15 +27,12 @@
     "pinia": "^3.0.4",
     "sass": "^1.94.2",
     "socket.io-client": "^4.8.3",
-    "uuid": "^13.0.0",
     "vue": "^3.5.24",
     "vue-chartjs": "^5.3.3",
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@faker-js/faker": "^10.2.0",
-    "@pinia/testing": "^1.0.3",
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vitest/coverage-v8": "^4.0.17",
@@ -46,12 +43,11 @@
     "cypress": "^15.9.0",
     "eslint": "^9.39.2",
     "eslint-plugin-cypress": "^5.2.1",
-    "eslint-plugin-vitest": "^0.5.4",
     "eslint-plugin-vue": "^10.7.0",
     "globals": "^17.0.0",
-    "happy-dom": "^20.3.1",
     "jsdom": "^27.4.0",
     "json-server": "^1.0.0-beta.3",
+    "knip": "5.88.1",
     "vite": "^7.2.4",
     "vitest": "^4.0.17"
   }

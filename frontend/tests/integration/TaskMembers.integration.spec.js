@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
-import AddMemberDialog from '@/components/tasks/AddMemberDialog.vue';
 import { taskMembersApi } from '@/api/taskMembers';
 import { usersApi } from '@/api/usersService';
 
@@ -188,56 +187,6 @@ describe('Task Members Integration Tests', () => {
       const removeButton = assignedCard.find('.btn-remove');
 
       expect(removeButton.exists()).toBe(false);
-    });
-  });
-
-  describe('Dialog Integration', () => {
-    it('should work with AddMemberDialog component', async () => {
-      const dialog = mount(AddMemberDialog, {
-        props: {
-          taskId: mockTask.task_id,
-          currentMembers: mockMembers,
-          availableUsers: mockAllUsers
-        }
-      });
-
-      // Dialog should render
-      expect(dialog.find('.dialog').exists()).toBe(true);
-
-      // Select a user
-      const select = dialog.find('.user-select');
-      await select.setValue(3);
-
-      // Click add
-      const addBtn = dialog.find('.btn-primary');
-      await addBtn.trigger('click');
-
-      // Should emit member-added
-      expect(dialog.emitted('member-added')).toBeTruthy();
-    });
-
-    it('should pass correct data through dialog to API', async () => {
-      const dialog = mount(AddMemberDialog, {
-        props: {
-          taskId: mockTask.task_id,
-          currentMembers: mockMembers,
-          availableUsers: mockAllUsers
-        }
-      });
-
-      const select = dialog.find('.user-select');
-      await select.setValue(4);
-
-      const addBtn = dialog.find('.btn-primary');
-      await addBtn.trigger('click');
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Verify API call with correct data
-      expect(taskMembersApi.addTaskMember).toHaveBeenCalledWith(
-        mockTask.task_id,
-        { user_id: 4 }
-      );
     });
   });
 

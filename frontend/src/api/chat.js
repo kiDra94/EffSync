@@ -12,11 +12,6 @@ export const fetchRooms = async () => {
     return normalizeEntities(rooms, ID_KEY);
 };
 
-export const fetchRoomById = async (roomId) => {
-    const response = await apiClient.get(`${ROOMS_ENDPOINT}/${roomId}`);
-    return normalizeEntity(response.data, ID_KEY);
-};
-
 export const fetchMessages = async (roomId) => {
     const response = await apiClient.get(MESSAGES_ENDPOINT(roomId));
     const messages = response.data?.data ?? response.data;

@@ -1,7 +1,7 @@
 import { apiClient } from '@/api/httpClient';
 import { normalizeEntity, normalizeEntities, serializeEntity } from '@/config/api.config';
 
-const ENDPOINT = '/templates';
+const ENDPOINT = '/task-templates';
 const ID_KEY = 'template_id';
 
 export const fetchTaskTemplates = async () => {

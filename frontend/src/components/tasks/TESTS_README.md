@@ -33,33 +33,7 @@ it('should allow adding a member to a task', async () => {
 
 ---
 
-#### 2. **AddMemberDialog.spec.js** (16 Tests)
-Tests für den Dialog zum Hinzufügen von Mitgliedern.
-
-**Getestete Features:**
-- ✅ Dialog öffnen/schließen
-- ✅ User-Auswahl mit Dropdown
-- ✅ User-Preview mit Avatar
-- ✅ Add-Button Enable/Disable
-- ✅ API-Aufrufe mit korrekten Daten
-- ✅ Fehlerbehandlung & Fehlermeldungen
-- ✅ Loading-States
-
-**Beispiel-Test:**
-```javascript
-it('should emit member-added event on success', async () => {
-  const wrapper = mount(AddMemberDialog, {...});
-  const select = wrapper.find('.user-select');
-  await select.setValue(1);
-  const addBtn = wrapper.find('.btn-primary');
-  await addBtn.trigger('click');
-  expect(wrapper.emitted('member-added')).toBeTruthy();
-});
-```
-
----
-
-#### 3. **TaskForm.spec.js** (19 Tests)
+#### 2. **TaskForm.spec.js** (19 Tests)
 Tests für die Task-Details-Form mit integrierter TaskMembersList.
 
 **Getestete Features:**
@@ -83,7 +57,7 @@ it('should show TaskMembersList for existing task', async () => {
 
 ---
 
-#### 4. **taskMembers.js (API Service Tests)** (20+ Tests)
+#### 3. **taskMembers.js (API Service Tests)** (20+ Tests)
 Tests für die API Service Funktionen.
 
 **Getestete Features:**
@@ -106,7 +80,7 @@ it('calls correct endpoint', async () => {
 
 ### Integration Tests
 
-#### 5. **TaskMembers.integration.spec.js** (15+ Integration Tests)
+#### 4. **TaskMembers.integration.spec.js** (15+ Integration Tests)
 End-to-End Test für komplette Workflows.
 
 **Getestete Workflows:**
@@ -168,14 +142,13 @@ npm run test -- --watch
 frontend/src/
 ├── components/tasks/
 │   ├── TaskMembersList.spec.js          (17 Tests)
-│   ├── AddMemberDialog.spec.js          (16 Tests)
 │   ├── TaskForm.spec.js                 (19 Tests)
 │   └── TaskMembers.integration.spec.js  (15+ Tests)
 └── api/
     └── taskMembers.spec.js              (20+ Tests)
 ```
 
-**Total: 87+ Tests**
+**Total: 71+ Tests**
 
 ---
 
@@ -269,7 +242,6 @@ const mockAllUsers = [
 | Komponente | Status | Coverage |
 |-----------|--------|----------|
 | TaskMembersList.vue | ✅ | ~95% |
-| AddMemberDialog.vue | ✅ | ~95% |
 | TaskForm.vue | ✅ | 85% |
 | taskMembers.js | ✅ | ~99% |
 | Integration | ✅ | ~90% |

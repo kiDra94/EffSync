@@ -471,7 +471,10 @@ Rules for all milestones:
   - Steps:
     1. Add priority and due-date filters to `useTaskFilters`/`TaskFilters.vue`.
     2. Seed exactly the four priorities with the names the UI shows. A data migration (decision Q15) renames IDs 1–4 to Niedrig, Mittel, Hoch, Dringend (what users selected in `TaskForm`), maps tasks and notes with IDs 5–10 by name (Sehr Wichtig, Hoch → 3; Sehr Hoch, Dringend, Kritisch, Blocker → 4), then deletes IDs 5–10. Update `seed.ts` (e.g. `:410`) and `test-seed.ts`.
-    3. Add a "save as template" action in `TaskForm` that calls `/tasks/templates` (decision Q6).
+    3. Add a "save as template" action in `TaskForm` that calls `/tasks/templates` (decision Q6). Make the template API work end to end; since M5 the frontend calls the real `/task-templates`, and found there:
+       - `task-templates.service.ts` `basicInclude` selects `first_name`/`last_name` (the columns are `firstname`/`lastname`) and includes `task` (the relation is `tasks`), so every query returns 500 today.
+       - `CreateTaskTemplateDto` accepts `default_title`, `default_description` and `default_status`, which are not columns of `task_templates` (only `name`, `description`); `TemplateForm.vue` also sends `default_priority_id` and `default_deadline_days` (400), and `TaskForm.applyTemplate` reads all `default_*` fields. Decide in M18 whether the template stores these defaults (schema change) or the UI drops them.
+       - Visibility and ownership: `GET /task-templates` returns every user's templates with the creator's email, and update/delete have no owner check. See the open question below; fix it before or together with the field names, so a working API never exposes other users' templates.
     4. Add the tables `tags` and `task_tags` (approved, Q8e), set tags through the task create/update DTOs, add a tag input to `TaskForm` and tag chips to `TaskCard`. Deleting a task removes its `task_tags` rows.
   - Done when: `useTaskFilters` tests cover the new filters, a seed test checks the four priorities, E2E creates a template from a task and applies it, and E2E creates a task with two tags and reads them back.
   - Risk: medium. The data migration rewrites `priority_id` on existing tasks and notes; a migration test on a copy of the seeded DB checks the mapping. Notes resolve priorities by name (`notes.service.ts:142-158`) and keep working with the four names.
@@ -735,5 +738,6 @@ Each entry records an open question that was decided, and the parts of the plan 
 - *Are thesis code listings tied to source files?* The thesis is read-only (decision 3), and the mechanisms it names keep their names (Constraints).
 - *May `thesis/` and `documents/` be touched?* `thesis/` never (decision 3); `documents/` may be updated (decision 5).
 
-**Still open:** none. Every question has been decided; see the Decisions log.
+**Still open:**
+- *E1 Task templates: who sees and edits which templates?* (found in M5, needed by M18) Options: (a) private: each user sees and edits only their own; (b) own plus shared: teachers' templates are visible to all teachers, editable only by the creator; (c) everyone sees all, only the creator edits. The UI calls the page "Meine Templates". In every option the creator's email is no longer returned.
 

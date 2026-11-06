@@ -387,6 +387,26 @@ Analysis date: 2026-11-06 (branch `development`, commit `e484b02`). Companion to
 
 ---
 
+## Found by knip in GOALS.md M5 (removed there)
+
+`knip` (added in M5) reported these in addition to the items above. Each was checked by grep and `git log -S` before removal; none was ever imported.
+
+| Item | Evidence | Action |
+|---|---|---|
+| backend `cookie-parser` + `@types/cookie-parser` | installed in `cda564d`/`02b887a` (#19), never imported; auth stays cookie-free (decision Q3) | Deleted |
+| backend `file-type` | added in `20453a6` (#21), never imported | Deleted |
+| backend `@prisma/config` | `prisma.config.ts` imports `prisma/config`, which ships it | Deleted |
+| backend `swagger-ui-express` | `@nestjs/swagger` 11 serves the UI itself; the E2E test for `GET /api` still passes | Deleted |
+| backend `@eslint/eslintrc`, `source-map-support`, `ts-loader` | Nest template leftovers; no FlatCompat, no webpack build | Deleted |
+| `PERMISSION_DESCRIPTIONS` in `config/role-permissions.config.ts` | added in `f1d108e` (#115), never read; `permissions.description` is the column for this | Deleted |
+| `frontend/src/components/Dashboard.vue` | static prototype from `eda940b` (2025-12-02, #9), replaced by `views/DashboardView.vue` | Deleted |
+| `frontend/src/components/Badge.vue` | permission validity badge from `cceb9c1` (#24), never imported | Deleted |
+| `fetchRoomById` in `frontend/src/api/chat.js`; default export of `api/httpClient.js` | never used (the one default import in `api/metrics.js` now uses the named export) | Deleted |
+| frontend `@faker-js/faker`, `@pinia/testing`, `eslint-plugin-vitest` | never imported | Deleted |
+| `RoleName` export, `fetchMyGrades`, lesson-slot CRUD in `api/lessonSlots.js`, `GradesView.vue`, `passport-local` | Planned | Kept as knip ignores (`@public` tag or `knip.jsonc`) with a pointer to M7, M27, M36 and M9 |
+
+---
+
 ## Summary table
 
 | File | Category | Recommendation |

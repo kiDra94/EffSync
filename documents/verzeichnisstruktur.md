@@ -60,8 +60,6 @@ src/
 │   │   ├── TaskForm.spec.js ⭐
 │   │   ├── TaskMembersList.vue
 │   │   ├── TaskMembersList.spec.js ⭐
-│   │   ├── AddMemberDialog.vue
-│   │   ├── AddMemberDialog.spec.js ⭐
 │   │   └── TaskDetail.vue
 │   ├── auth/
 │   │   ├── LoginForm.vue
@@ -98,7 +96,7 @@ src/
 - **Zweck:** Isolierte Testung von Components und API Services
 - **Umfang:** 
   - API Service Tests: `taskMembers.spec.js` (23 Tests)
-  - Component Tests: `TaskMembersList.spec.js`, `AddMemberDialog.spec.js`, `TaskForm.spec.js`
+  - Component Tests: `TaskMembersList.spec.js`, `TaskForm.spec.js`
   
 **Beispiel strukturelle Dateien:**
 ```
@@ -234,7 +232,6 @@ src/
 prisma/
 ├── schema.prisma            # Datenbankschema Definition
 ├── prisma.config.ts         # Prisma Konfiguration
-├── diplom_arbeit_postgres.sql  # SQL Dump (Backup)
 ├── seed.ts                  # Datenbankinitialisierung (Test-Daten)
 │
 └── migrations/
@@ -666,11 +663,9 @@ Feature: Task-Mitglieder hinzufügen/entfernen
 
 Frontend Implementation:
   ├── src/components/tasks/TaskMembersList.vue
-  ├── src/components/tasks/AddMemberDialog.vue
   ├── src/api/taskMembers.js
   └── Tests:
       ├── TaskMembersList.spec.js
-      ├── AddMemberDialog.spec.js
       └── tests/integration/TaskMembers.integration.spec.js
 
 Backend Implementation:

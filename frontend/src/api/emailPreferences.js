@@ -1,5 +1,5 @@
 // Email Preferences API Service
-import { apiClient } from './index';
+import { apiClient } from './httpClient';
 
 export const emailPreferencesService = {
   /**

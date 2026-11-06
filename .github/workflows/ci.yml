@@ -35,6 +35,9 @@ jobs:
       - name: Lint
         run: npm run lint:check
 
+      - name: Unused code (knip)
+        run: npm run knip
+
       - name: Run Vitest
         run: npm run test
 
@@ -65,6 +68,9 @@ jobs:
 
       - name: Lint
         run: npm run lint:check
+
+      - name: Unused code (knip)
+        run: npm run knip
 
       - name: Run Jest
         run: npm run test

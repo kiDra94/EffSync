@@ -9,10 +9,6 @@ export default defineConfig([
   { files: ["**/*.{js,mjs,cjs,vue}"], plugins: { js }, extends: ["js/recommended"], languageOptions: { globals: globals.browser } },
   pluginVue.configs["flat/essential"],
   {
-    // single-word names of existing components; renaming them is out of scope
-    rules: { "vue/multi-word-component-names": ["error", { ignores: ["Badge", "Dashboard"] }] },
-  },
-  {
     // Vitest runs with globals: true (vite.config.js)
     files: ["**/*.{spec,test}.js", "tests/**/*.js", "vitest.setup.js"],
     languageOptions: { globals: globals.vitest },
