@@ -6,7 +6,7 @@ import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { Permissions } from "../auth/decorators/permissions.decorator";
 
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth('bearer')
+@ApiBearerAuth("bearer")
 @Controller("permissions")
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
@@ -14,13 +14,13 @@ export class PermissionsController {
   /**
    * GET /permissions
    * Holt alle verfügbaren Permissions.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Get()
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   async findAll() {
     return this.permissionsService.findAll();
   }
@@ -28,13 +28,13 @@ export class PermissionsController {
   /**
    * GET /permissions/:id
    * Holt eine spezifische Permission mit ihren Details.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Get(":id")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   async findOne(@Param("id") id: string) {
     return this.permissionsService.findOne(+id);
   }

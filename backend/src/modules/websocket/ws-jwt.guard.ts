@@ -5,30 +5,30 @@ import { Socket } from "socket.io";
 
 @Injectable()
 export class WsJwtGuard implements CanActivate {
-    constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService) {}
 
-    async canActivate(context: ExecutionContext): Promise<boolean> {
-        try {
-            const client: Socket = context.switchToWs().getClient();
-            const token = client.handshake.auth?.token;
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    try {
+      const client: Socket = context.switchToWs().getClient();
+      const token = client.handshake.auth?.token;
 
-            if(!token) {
-                throw new WsException('You do not have a Token!!!')
-            }
+      if (!token) {
+        throw new WsException("You do not have a Token!!!");
+      }
 
-            const payload = this.jwtService.verify(token, {
-                secret: process.env.JWT_SECRET,
-            })
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
 
-            client.data.user = {
-                userId: payload.sub,
-                username: payload.username,
-                role: payload.role,
-            };
+      client.data.user = {
+        userId: payload.sub,
+        username: payload.username,
+        role: payload.role,
+      };
 
-            return true;
-        } catch {
-            throw new WsException('Invalid Token!!!')
-        }
+      return true;
+    } catch {
+      throw new WsException("Invalid Token!!!");
     }
+  }
 }

@@ -8,6 +8,6 @@ import { WebsocketModule } from "../websocket/websocket.module";
   imports: [PrismaModule, forwardRef(() => WebsocketModule)],
   controllers: [NotificationsController],
   providers: [NotificationsService],
-  exports: [NotificationsService]
+  exports: [NotificationsService],
 })
 export class NotificationsModule {}

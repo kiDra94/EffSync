@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable, Logger } from "@nestjs/common";
+import * as nodemailer from "nodemailer";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
-  private logger = new Logger('EmailService');
+  private logger = new Logger("EmailService");
 
   constructor(private prisma: PrismaService) {
     this.initializeTransporter();
@@ -16,12 +16,12 @@ export class EmailService {
     // Bei Entwicklung: Ethereal Email (kostenlos, kein echter Server nötig)
     // Bei Produktion: Echter SMTP Server (Gmail, SendGrid, etc.)
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       // Production: SendGrid, Gmail, etc.
       this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASSWORD,
@@ -30,14 +30,14 @@ export class EmailService {
     } else {
       // Development: Ethereal Email (test service)
       this.transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
+        host: "smtp.ethereal.email",
         port: 587,
         auth: {
-          user: process.env.ETHEREAL_USER || 'test@ethereal.email',
-          pass: process.env.ETHEREAL_PASSWORD || 'test-password',
+          user: process.env.ETHEREAL_USER || "test@ethereal.email",
+          pass: process.env.ETHEREAL_PASSWORD || "test-password",
         },
       });
-      this.logger.debug('✉️  Using Ethereal Email for testing');
+      this.logger.debug("✉️  Using Ethereal Email for testing");
     }
   }
 
@@ -65,17 +65,20 @@ export class EmailService {
       );
 
       await this.sendEmail(userEmail, subject, html);
-      await this.logEmail(userId, userEmail, subject, 'deadline', 'sent');
+      await this.logEmail(userId, userEmail, subject, "deadline", "sent");
 
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send deadline email to ${userEmail}:`, error);
+      this.logger.error(
+        `Failed to send deadline email to ${userEmail}:`,
+        error,
+      );
       await this.logEmail(
         userId,
         userEmail,
         `Deadline: ${taskTitle}`,
-        'deadline',
-        'failed',
+        "deadline",
+        "failed",
         error.message,
       );
       return false;
@@ -105,8 +108,8 @@ export class EmailService {
         mentionedUserId,
         mentionedUserEmail,
         subject,
-        'mention',
-        'sent',
+        "mention",
+        "sent",
       );
 
       return true;
@@ -119,8 +122,8 @@ export class EmailService {
         mentionedUserId,
         mentionedUserEmail,
         `Mention: ${taskTitle}`,
-        'mention',
-        'failed',
+        "mention",
+        "failed",
         error.message,
       );
       return false;
@@ -146,7 +149,7 @@ export class EmailService {
       );
 
       await this.sendEmail(userEmail, subject, html);
-      await this.logEmail(userId, userEmail, subject, 'comment', 'sent');
+      await this.logEmail(userId, userEmail, subject, "comment", "sent");
 
       return true;
     } catch (error) {
@@ -155,8 +158,8 @@ export class EmailService {
         userId,
         userEmail,
         `Comment: ${taskTitle}`,
-        'comment',
-        'failed',
+        "comment",
+        "failed",
         error.message,
       );
       return false;
@@ -175,9 +178,7 @@ export class EmailService {
     };
 
     const info = await this.transporter.sendMail(mailOptions);
-    this.logger.log(
-      `Email sent successfully: ${info.messageId} to ${to}`,
-    );
+    this.logger.log(`Email sent successfully: ${info.messageId} to ${to}`);
     return info;
   }
 
@@ -201,11 +202,11 @@ export class EmailService {
           email_type: emailType,
           status,
           error_message: errorMessage,
-          sent_at: status === 'sent' ? new Date() : null,
+          sent_at: status === "sent" ? new Date() : null,
         },
       });
     } catch (error) {
-      this.logger.error('Failed to log email:', error);
+      this.logger.error("Failed to log email:", error);
     }
   }
 
@@ -217,14 +218,14 @@ export class EmailService {
     deadline: Date,
     daysUntilDeadline: number,
   ): string {
-    const formattedDate = deadline.toLocaleDateString('de-DE', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    const formattedDate = deadline.toLocaleDateString("de-DE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
 
-    const icon = daysUntilDeadline <= 0 ? '🚨' : '⏰';
+    const icon = daysUntilDeadline <= 0 ? "🚨" : "⏰";
 
     return `
       <!DOCTYPE html>
@@ -243,17 +244,17 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h2>${icon} ${daysUntilDeadline <= 0 ? 'Aufgabe ist überfällig!' : 'Aufgabe Erinnerung'}</h2>
+            <h2>${icon} ${daysUntilDeadline <= 0 ? "Aufgabe ist überfällig!" : "Aufgabe Erinnerung"}</h2>
           </div>
           <div class="content">
             <p>Hallo,</p>
-            <p>deine Aufgabe <strong>"${taskTitle}"</strong> ${daysUntilDeadline <= 0 ? 'ist überfällig!' : `ist fällig am <strong>${formattedDate}</strong>`}.</p>
+            <p>deine Aufgabe <strong>"${taskTitle}"</strong> ${daysUntilDeadline <= 0 ? "ist überfällig!" : `ist fällig am <strong>${formattedDate}</strong>`}.</p>
             
             ${daysUntilDeadline > 0 ? `<p>Es bleiben noch <strong>${daysUntilDeadline} Tag(e)</strong> bis zur Deadline.</p>` : `<p><strong>Bitte kümmere dich um diese Aufgabe!</strong></p>`}
             
             <p>Melde dich in EffSync an, um mehr Details zu sehen und die Aufgabe zu bearbeiten.</p>
             
-            <a href="${process.env.APP_URL || 'http://localhost:5173'}/tasks" class="button">Zur Aufgabe</a>
+            <a href="${process.env.APP_URL || "http://localhost:5173"}/tasks" class="button">Zur Aufgabe</a>
           </div>
           <div class="footer">
             <p>Dies ist eine automatische E-Mail. Bitte antworte nicht auf diese E-Mail.</p>
@@ -305,7 +306,7 @@ export class EmailService {
             
             <p>Schau vorbei, um die vollständige Diskussion zu sehen!</p>
             
-            <a href="${process.env.APP_URL || 'http://localhost:5173'}/tasks" class="button">Zum Kommentar</a>
+            <a href="${process.env.APP_URL || "http://localhost:5173"}/tasks" class="button">Zum Kommentar</a>
           </div>
           <div class="footer">
             <p>Dies ist eine automatische E-Mail. Bitte antworte nicht auf diese E-Mail.</p>
@@ -357,7 +358,7 @@ export class EmailService {
             
             <p>Schau vorbei, um zu antworten!</p>
             
-            <a href="${process.env.APP_URL || 'http://localhost:5173'}/tasks" class="button">Zum Kommentar</a>
+            <a href="${process.env.APP_URL || "http://localhost:5173"}/tasks" class="button">Zum Kommentar</a>
           </div>
           <div class="footer">
             <p>Dies ist eine automatische E-Mail. Bitte antworte nicht auf diese E-Mail.</p>

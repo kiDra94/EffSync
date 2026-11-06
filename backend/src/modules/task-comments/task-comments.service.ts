@@ -19,11 +19,11 @@ export class TaskCommentsService {
     const mentionRegex = /@(\w+)/g;
     const mentions: string[] = [];
     let match;
-    
+
     while ((match = mentionRegex.exec(text)) !== null) {
       mentions.push(match[1]); // Extract username without @
     }
-    
+
     return [...new Set(mentions)]; // Remove duplicates
   }
 
@@ -38,7 +38,7 @@ export class TaskCommentsService {
     commenterUserId: number,
   ) {
     const mentionedUsernames = this.detectMentions(text);
-    
+
     if (mentionedUsernames.length === 0) return;
 
     // Find user IDs for mentioned usernames
@@ -49,10 +49,7 @@ export class TaskCommentsService {
           select: { user_id: true, email: true },
         });
 
-        if (
-          mentionedUser &&
-          mentionedUser.user_id !== commenterUserId
-        ) {
+        if (mentionedUser && mentionedUser.user_id !== commenterUserId) {
           // Check user's email preferences
           const preferences = await this.prisma.email_preferences.findUnique({
             where: { user_id: mentionedUser.user_id },
@@ -71,16 +68,15 @@ export class TaskCommentsService {
           }
         }
       } catch (error) {
-        console.error(
-          `Error notifying mentioned user ${username}:`,
-          error,
-        );
+        console.error(`Error notifying mentioned user ${username}:`, error);
         // Continue with other mentions even if one fails
       }
     }
   }
 
-  async create(createTaskCommentDto: CreateTaskCommentDto & { user_id: number }) {
+  async create(
+    createTaskCommentDto: CreateTaskCommentDto & { user_id: number },
+  ) {
     // Create the comment
     const comment = await this.prisma.task_comments.create({
       data: {

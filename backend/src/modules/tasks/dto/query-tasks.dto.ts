@@ -6,10 +6,10 @@ import {
   Max,
   IsString,
   IsBoolean,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { task_status } from '@prisma/client';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { task_status } from "@prisma/client";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 export class QueryTasksDto {
   @ApiPropertyOptional({ enum: task_status })
@@ -35,7 +35,9 @@ export class QueryTasksDto {
   @IsInt()
   created_by?: number;
 
-  @ApiPropertyOptional({ description: '0 for root tasks, ID for specific parent' })
+  @ApiPropertyOptional({
+    description: "0 for root tasks, ID for specific parent",
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -46,15 +48,15 @@ export class QueryTasksDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ default: 'created_at' })
+  @ApiPropertyOptional({ default: "created_at" })
   @IsOptional()
   @IsString()
   sortBy?: string;
 
-  @ApiPropertyOptional({ enum: ['asc', 'desc'], default: 'desc' })
+  @ApiPropertyOptional({ enum: ["asc", "desc"], default: "desc" })
   @IsOptional()
-  @IsEnum(['asc', 'desc'])
-  sortOrder?: 'asc' | 'desc';
+  @IsEnum(["asc", "desc"])
+  sortOrder?: "asc" | "desc";
 
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()

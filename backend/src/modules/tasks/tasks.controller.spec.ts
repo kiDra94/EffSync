@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TasksController } from './tasks.controller';
-import { TasksService } from './tasks.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { TasksController } from "./tasks.controller";
+import { TasksService } from "./tasks.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('TasksController', () => {
+describe("TasksController", () => {
   let controller: TasksController;
 
   const mockTasksService = {
@@ -34,7 +34,7 @@ describe('TasksController', () => {
     controller = module.get<TasksController>(TasksController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

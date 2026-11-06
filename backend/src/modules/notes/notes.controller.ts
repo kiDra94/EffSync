@@ -22,12 +22,12 @@ import { Permissions } from "../auth/decorators/permissions.decorator";
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("notes")
 export class NotesController {
-  constructor(private readonly notesService: NotesService) { }
+  constructor(private readonly notesService: NotesService) {}
 
   private getUserId(req: any): number {
     const userId = req?.user?.userId ?? req?.user?.id;
     if (!userId) {
-      throw new BadRequestException('Missing authenticated user id');
+      throw new BadRequestException("Missing authenticated user id");
     }
     return userId;
   }
@@ -40,7 +40,7 @@ export class NotesController {
 
   @Get()
   @Permissions()
-  findAll(@Req() req, @Query('subject_id') subjectId?: string) {
+  findAll(@Req() req, @Query("subject_id") subjectId?: string) {
     const parsedId = subjectId ? parseInt(subjectId, 10) : undefined;
     return this.notesService.findAll(this.getUserId(req), parsedId);
   }
@@ -53,7 +53,11 @@ export class NotesController {
 
   @Patch(":id")
   @Permissions()
-  update(@Param("id", ParseIntPipe) noteId: number, @Req() req, @Body() updateNoteDto: UpdateNoteDto) {
+  update(
+    @Param("id", ParseIntPipe) noteId: number,
+    @Req() req,
+    @Body() updateNoteDto: UpdateNoteDto,
+  ) {
     return this.notesService.update(noteId, this.getUserId(req), updateNoteDto);
   }
 

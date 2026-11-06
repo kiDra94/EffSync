@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { UpdateSubjectDto } from './dto/update-subject.dto';
+import { Injectable } from "@nestjs/common";
+import { CreateSubjectDto } from "./dto/create-subject.dto";
+import { UpdateSubjectDto } from "./dto/update-subject.dto";
 
 @Injectable()
 export class SubjectsService {
   create(createSubjectDto: CreateSubjectDto) {
-    return 'This action adds a new subject';
+    return "This action adds a new subject";
   }
 
   findAll() {

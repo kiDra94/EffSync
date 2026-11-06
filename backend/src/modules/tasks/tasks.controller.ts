@@ -21,7 +21,7 @@ import { QueryTasksDto } from "./dto/query-tasks.dto";
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("tasks")
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) { }
+  constructor(private readonly tasksService: TasksService) {}
 
   @Post()
   @Permissions()
@@ -50,7 +50,11 @@ export class TasksController {
 
   @Patch(":id")
   @Permissions()
-  update(@Param("id") id: string, @Body() updateTaskDto: UpdateTaskDto, @Req() req) {
+  update(
+    @Param("id") id: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @Req() req,
+  ) {
     return this.tasksService.update(+id, updateTaskDto, req.user.userId);
   }
 
@@ -68,7 +72,10 @@ export class TasksController {
     if (!body.deadline) {
       throw new Error("deadline erforderlich im Body");
     }
-    return this.tasksService.updateDeadlineAndUnlockIfNeeded(+id, new Date(body.deadline));
+    return this.tasksService.updateDeadlineAndUnlockIfNeeded(
+      +id,
+      new Date(body.deadline),
+    );
   }
 
   @Delete(":id")
@@ -79,7 +86,11 @@ export class TasksController {
 
   @Post(":id/subtasks")
   @Permissions("create_tasks|create_task")
-  createSubTask(@Param("id") id: string, @Body() createTaskDto: CreateTaskDto, @Req() req) {
+  createSubTask(
+    @Param("id") id: string,
+    @Body() createTaskDto: CreateTaskDto,
+    @Req() req,
+  ) {
     return this.tasksService.createSubTask(+id, createTaskDto, req.user.userId);
   }
 
@@ -115,7 +126,7 @@ export class TasksController {
   lockTask(
     @Param("id") id: string,
     @Body() { reason }: { reason?: string },
-    @Req() req
+    @Req() req,
   ) {
     return this.tasksService.lockTask(+id, reason || "MANUAL", req.user.userId);
   }

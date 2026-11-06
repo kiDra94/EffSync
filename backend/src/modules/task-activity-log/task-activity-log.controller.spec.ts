@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TaskActivityLogService } from './task-activity-log.service';
-import { TaskActivityLogController } from './task-activity-log.controller';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { TaskActivityLogService } from "./task-activity-log.service";
+import { TaskActivityLogController } from "./task-activity-log.controller";
+import { PrismaService } from "../../prisma/prisma.service";
 
-describe('TaskActivityLogController', () => {
+describe("TaskActivityLogController", () => {
   let controller: TaskActivityLogController;
 
   const mockPrismaService = {
@@ -27,7 +27,6 @@ describe('TaskActivityLogController', () => {
     },
   };
 
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TaskActivityLogController],
@@ -40,10 +39,12 @@ describe('TaskActivityLogController', () => {
       ],
     }).compile();
 
-    controller = module.get<TaskActivityLogController>(TaskActivityLogController);
+    controller = module.get<TaskActivityLogController>(
+      TaskActivityLogController,
+    );
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

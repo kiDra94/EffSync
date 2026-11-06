@@ -8,6 +8,6 @@ import { NotificationsModule } from "../notifications/notifications.module";
   imports: [PrismaModule, forwardRef(() => NotificationsModule)],
   controllers: [ChatMessagesController],
   providers: [ChatMessagesService],
-  exports: [ChatMessagesService]
+  exports: [ChatMessagesService],
 })
 export class ChatMessagesModule {}

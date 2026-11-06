@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DocumentsService } from './documents.service';
-import { DocumentsController } from './documents.controller';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { DocumentsService } from "./documents.service";
+import { DocumentsController } from "./documents.controller";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('DocumentsController', () => {
+describe("DocumentsController", () => {
   let controller: DocumentsController;
 
   const mockDocumentsService = {
@@ -16,7 +16,6 @@ describe('DocumentsController', () => {
     remove: jest.fn(),
     getDownloadPayload: jest.fn(),
   };
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,27 +36,27 @@ describe('DocumentsController', () => {
     controller = module.get<DocumentsController>(DocumentsController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 
-  it('uses the authenticated user for uploads', async () => {
+  it("uses the authenticated user for uploads", async () => {
     mockDocumentsService.create.mockResolvedValue({ document_id: 1 });
 
     await controller.uploadFile(
       {
-        originalname: 'arbeit.pdf',
-        mimetype: 'application/pdf',
+        originalname: "arbeit.pdf",
+        mimetype: "application/pdf",
       } as Express.Multer.File,
       {},
-      { user: { userId: 17, role: 'student' } },
+      { user: { userId: 17, role: "student" } },
     );
 
     expect(mockDocumentsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ originalname: 'arbeit.pdf' }),
+      expect.objectContaining({ originalname: "arbeit.pdf" }),
       17,
-      'application/pdf',
-      'student',
+      "application/pdf",
+      "student",
       undefined,
     );
   });

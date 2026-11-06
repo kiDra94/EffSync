@@ -21,18 +21,18 @@ import { Permissions } from "../auth/decorators/permissions.decorator";
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("chat")
 export class ChatMessagesController {
-  constructor(private readonly chatMessagesService: ChatMessagesService) { }
+  constructor(private readonly chatMessagesService: ChatMessagesService) {}
 
-  @Post('rooms/:id/messages')
+  @Post("rooms/:id/messages")
   @Permissions()
   create(
-    @Param('id') roomId: string,
+    @Param("id") roomId: string,
     @Body() body: Partial<CreateChatMessageDto> & { content?: string },
     @Req() req,
   ) {
     const message = body?.message ?? body?.content;
     if (!message) {
-      throw new BadRequestException('Message is required');
+      throw new BadRequestException("Message is required");
     }
 
     return this.chatMessagesService.createMsg({
@@ -49,32 +49,41 @@ export class ChatMessagesController {
     return this.chatMessagesService.findAll();
   }
 
-  @Get('rooms/:id/messages')
+  @Get("rooms/:id/messages")
   @Permissions()
-  getMessages(@Param('id') roomId: number) {
+  getMessages(@Param("id") roomId: number) {
     return this.chatMessagesService.findByRoom(+roomId);
   }
 
-  @Patch('messages/:id')
+  @Patch("messages/:id")
   @Permissions()
   async update(
     @Param("id") id: string,
     @Body() updateChatMessageDto: UpdateChatMessageDto,
-    @Req() req
+    @Req() req,
   ) {
     if (!updateChatMessageDto.message) {
-      throw new Error('Message is required');
+      throw new Error("Message is required");
     }
-    const isOwner = await this.chatMessagesService.isMsgOwner(+id, req.user.userId);
-    if (!isOwner) throw new ForbiddenException('Not your message!');
-    return this.chatMessagesService.updateMsg(+id, updateChatMessageDto.message);
+    const isOwner = await this.chatMessagesService.isMsgOwner(
+      +id,
+      req.user.userId,
+    );
+    if (!isOwner) throw new ForbiddenException("Not your message!");
+    return this.chatMessagesService.updateMsg(
+      +id,
+      updateChatMessageDto.message,
+    );
   }
 
-  @Delete('messages/:id')
+  @Delete("messages/:id")
   @Permissions()
   async remove(@Param("id") id: string, @Req() req) {
-    const isOwner = await this.chatMessagesService.isMsgOwner(+id, req.user.userId);
-    if (!isOwner) throw new ForbiddenException('Not your message!')
+    const isOwner = await this.chatMessagesService.isMsgOwner(
+      +id,
+      req.user.userId,
+    );
+    if (!isOwner) throw new ForbiddenException("Not your message!");
     return this.chatMessagesService.deleteMessage(+id);
   }
 }

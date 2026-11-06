@@ -20,7 +20,7 @@ import { Permissions } from "../auth/decorators/permissions.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth('bearer')
+@ApiBearerAuth("bearer")
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -28,13 +28,13 @@ export class UsersController {
   /**
    * POST /users
    * Erstellt einen neuen Benutzer.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Post()
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -42,7 +42,7 @@ export class UsersController {
   /**
    * GET /users/profile
    * Holt das Profil des aktuellen Benutzers mit Rolle.
-   * 
+   *
    * Keine speziellen Berechtigungen erforderlich (nur JWT erforderlich).
    */
   @Get("profile")
@@ -53,7 +53,7 @@ export class UsersController {
   /**
    * GET /users/me/permissions
    * Holt alle Rollen und Permissions des aktuellen Benutzers.
-   * 
+   *
    * Keine speziellen Berechtigungen erforderlich (nur JWT erforderlich).
    */
   @Get("me/permissions")
@@ -64,13 +64,13 @@ export class UsersController {
   /**
    * GET /users/:id/permissions
    * Holt alle Rollen und Permissions eines spezifischen Benutzers.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Get(":id/permissions")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   async getUserPermissions(@Param("id") id: string) {
     return this.usersService.getUserPermissionsAndRoles(+id);
   }
@@ -79,7 +79,7 @@ export class UsersController {
    * GET /users/for-chat
    * Holt alle User mit minimalen Infos für den Chat (nur JWT erforderlich).
    */
-  @Get('for-chat')
+  @Get("for-chat")
   findAllForChat() {
     return this.usersService.findAllForChat();
   }
@@ -87,13 +87,13 @@ export class UsersController {
   /**
    * GET /users
    * Holt alle Benutzer.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Get()
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   findAll() {
     return this.usersService.findAll();
   }
@@ -101,13 +101,13 @@ export class UsersController {
   /**
    * GET /users/:id
    * Holt einen spezifischen Benutzer.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Get(":id")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   findOne(@Param("id") id: string) {
     return this.usersService.findOne(+id);
   }
@@ -115,13 +115,13 @@ export class UsersController {
   /**
    * PATCH /users/:id
    * Aktualisiert einen Benutzer.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Patch(":id")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(+id, updateUserDto);
   }
@@ -129,13 +129,13 @@ export class UsersController {
   /**
    * DELETE /users/:id
    * Löscht einen Benutzer.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
   @Delete(":id")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   remove(@Param("id") id: string) {
     return this.usersService.remove(+id);
   }
@@ -143,27 +143,28 @@ export class UsersController {
   /**
    * POST /users/:id/permissions
    * Fügt eine neue Permission zu einem User hinzu.
-   * 
+   *
    * Body:
    * {
    *   "permission_id": 4,
    *   "valid_from": "2026-03-25",  // Optional
    *   "valid_to": "2026-07-31"     // Optional
    * }
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
-  @Post(':id/permissions')
+  @Post(":id/permissions")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   async addPermissionToUser(
-    @Param('id') userId: string,
-    @Body() dto: { 
-      permission_id: number; 
-      valid_from?: string; 
-      valid_to?: string; 
-    }
+    @Param("id") userId: string,
+    @Body()
+    dto: {
+      permission_id: number;
+      valid_from?: string;
+      valid_to?: string;
+    },
   ) {
     const validFrom = dto.valid_from ? new Date(dto.valid_from) : null;
     const validTo = dto.valid_to ? new Date(dto.valid_to) : null;
@@ -172,23 +173,23 @@ export class UsersController {
       +userId,
       dto.permission_id,
       validFrom,
-      validTo
+      validTo,
     );
   }
 
   /**
    * DELETE /users/:id/permissions/:permissionId
    * Entfernt eine Permission von einem User.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
-  @Delete(':id/permissions/:permissionId')
+  @Delete(":id/permissions/:permissionId")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   async removePermissionFromUser(
-    @Param('id') userId: string,
-    @Param('permissionId') permissionId: string
+    @Param("id") userId: string,
+    @Param("permissionId") permissionId: string,
   ) {
     return this.usersService.removePermissionFromUser(+userId, +permissionId);
   }
@@ -196,21 +197,21 @@ export class UsersController {
   /**
    * POST /users/:id/roles
    * Weist eine Rolle zu einem User zu.
-   * 
+   *
    * Body:
    * {
    *   "role_id": 3
    * }
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
-  @Post(':id/roles')
+  @Post(":id/roles")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   async addRoleToUser(
-    @Param('id') userId: string,
-    @Body() dto: { role_id: number }
+    @Param("id") userId: string,
+    @Body() dto: { role_id: number },
   ) {
     return this.usersService.addRoleToUser(+userId, dto.role_id);
   }
@@ -218,16 +219,16 @@ export class UsersController {
   /**
    * DELETE /users/:id/roles/:roleId
    * Entfernt eine Rolle von einem User.
-   * 
+   *
    * Berechtigungen:
    * - Muss Permission 'manage_users' haben
    */
-  @Delete(':id/roles/:roleId')
+  @Delete(":id/roles/:roleId")
   @UseGuards(PermissionsGuard)
-  @Permissions('manage_users')
+  @Permissions("manage_users")
   async removeRoleFromUser(
-    @Param('id') userId: string,
-    @Param('roleId') roleId: string
+    @Param("id") userId: string,
+    @Param("roleId") roleId: string,
   ) {
     return this.usersService.removeRoleFromUser(+userId, +roleId);
   }

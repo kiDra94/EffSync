@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsInt } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsInt } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateTaskActivityLogDto {
   @ApiProperty({ example: 1 })
@@ -7,7 +7,7 @@ export class CreateTaskActivityLogDto {
   @IsNotEmpty()
   task_id: number;
 
-  @ApiProperty({ example: 'status_changed' })
+  @ApiProperty({ example: "status_changed" })
   @IsString()
   @IsNotEmpty()
   action: string;

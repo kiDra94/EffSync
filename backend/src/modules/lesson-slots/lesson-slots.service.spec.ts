@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { LessonSlotService } from './lesson-slots.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { LessonSlotService } from "./lesson-slots.service";
+import { PrismaService } from "../../prisma/prisma.service";
 
-describe('LessonSlotService', () => {
+describe("LessonSlotService", () => {
   let service: LessonSlotService;
 
   const mockPrismaService = {
@@ -16,7 +16,6 @@ describe('LessonSlotService', () => {
       count: jest.fn(),
     },
   };
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,7 +31,7 @@ describe('LessonSlotService', () => {
     service = module.get<LessonSlotService>(LessonSlotService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

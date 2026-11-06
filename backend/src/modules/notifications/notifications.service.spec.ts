@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationsService } from './notifications.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { Test, TestingModule } from "@nestjs/testing";
+import { NotificationsService } from "./notifications.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { WebsocketGateway } from "../websocket/websocket.gateway";
 
-describe('NotificationsService', () => {
+describe("NotificationsService", () => {
   let service: NotificationsService;
 
   const mockPrismaService = {
@@ -18,7 +18,6 @@ describe('NotificationsService', () => {
     },
   };
 
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -31,7 +30,7 @@ describe('NotificationsService', () => {
     service = module.get<NotificationsService>(NotificationsService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

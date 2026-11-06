@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -7,8 +12,10 @@ import { evaluateCondition, ConditionNode } from "./task.evaluator.completion";
 import { Prisma } from "@prisma/client";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { TaskActivityLogService } from "../task-activity-log/task-activity-log.service";
-import { PermissionFlag, PermissionsService } from "../permissions/permissions.service";
-
+import {
+  PermissionFlag,
+  PermissionsService,
+} from "../permissions/permissions.service";
 
 @Injectable()
 export class TasksService {
@@ -17,30 +24,30 @@ export class TasksService {
     private readonly websocketGateway: WebsocketGateway,
     private readonly activityLogService: TaskActivityLogService,
     private readonly permissionsService: PermissionsService,
-  ) { }
+  ) {}
 
   async create(createTaskDto: CreateTaskDto, userId: number) {
-    const {
-      parent_task_id,
-      created_by,
-      priority_id,
-      ...taskData
-    } = createTaskDto;
+    const { parent_task_id, created_by, priority_id, ...taskData } =
+      createTaskDto;
 
     if (parent_task_id) {
       const parentTaskId = await this.prisma.tasks.findUnique({
-        where: { task_id: parent_task_id }
+        where: { task_id: parent_task_id },
       });
       if (!parentTaskId) {
-        throw new NotFoundException(`Parent task with ID ${parent_task_id} not found!`)
+        throw new NotFoundException(
+          `Parent task with ID ${parent_task_id} not found!`,
+        );
       }
     }
     if (priority_id) {
       const priorityId = await this.prisma.priorities.findUnique({
-        where: { priority_id }
+        where: { priority_id },
       });
       if (!priorityId) {
-        throw new NotFoundException(`Priority task with ID ${priorityId} not found!`)
+        throw new NotFoundException(
+          `Priority task with ID ${priorityId} not found!`,
+        );
       }
     }
 
@@ -57,12 +64,16 @@ export class TasksService {
 
     // Log activity
     try {
-      await this.activityLogService.create({
-        task_id: task.task_id,
-        action: `Task created: "${task.title}"`,
-      }, userId, false);
+      await this.activityLogService.create(
+        {
+          task_id: task.task_id,
+          action: `Task created: "${task.title}"`,
+        },
+        userId,
+        false,
+      );
     } catch (error) {
-      console.error('Failed to log task creation activity:', error);
+      console.error("Failed to log task creation activity:", error);
     }
 
     // Auto-add creator as task member
@@ -73,7 +84,7 @@ export class TasksService {
         create: { task_id: task.task_id, user_id: userId },
       });
     } catch (error) {
-      console.error('Failed to add creator as task member:', error);
+      console.error("Failed to add creator as task member:", error);
     }
 
     return task;
@@ -87,8 +98,8 @@ export class TasksService {
       created_by,
       parent_task_id,
       search,
-      sortBy = 'created_at',
-      sortOrder = 'desc',
+      sortBy = "created_at",
+      sortOrder = "desc",
       page = 1,
       limit = 50,
       includeRelations = false,
@@ -107,8 +118,8 @@ export class TasksService {
 
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -120,15 +131,18 @@ export class TasksService {
         include: { roles: true },
       });
 
-      const isTeacher = userRoles.some(ur => 
-        ur.roles.name === 'Teacher' || ur.roles.name === 'Admin' || ur.roles.name === 'Superuser'
+      const isTeacher = userRoles.some(
+        (ur) =>
+          ur.roles.name === "Teacher" ||
+          ur.roles.name === "Admin" ||
+          ur.roles.name === "Superuser",
       );
 
       // Wenn NICHT Teacher → Nur eigene Tasks zeigen
       if (!isTeacher) {
         where.OR = [
-          { created_by: userId },                    // User hat Task erstellt
-          { assigned_to: userId },                   // Task ist User zugeordnet
+          { created_by: userId }, // User hat Task erstellt
+          { assigned_to: userId }, // Task ist User zugeordnet
           { task_members: { some: { user_id: userId } } }, // User ist Mitglied
         ];
       }
@@ -155,13 +169,21 @@ export class TasksService {
         include: { roles: true },
       });
 
-      return userRoles.some(ur =>
-        ur.roles.name === 'Teacher' || ur.roles.name === 'Admin' || ur.roles.name === 'Superuser'
+      return userRoles.some(
+        (ur) =>
+          ur.roles.name === "Teacher" ||
+          ur.roles.name === "Admin" ||
+          ur.roles.name === "Superuser",
       );
     })();
 
-    const collectDescendants = async (parentIds: number[], visited = new Set<number>()): Promise<any[]> => {
-      const uniqueParentIds = parentIds.filter((id) => Number.isFinite(id) && !visited.has(id));
+    const collectDescendants = async (
+      parentIds: number[],
+      visited = new Set<number>(),
+    ): Promise<any[]> => {
+      const uniqueParentIds = parentIds.filter(
+        (id) => Number.isFinite(id) && !visited.has(id),
+      );
       if (uniqueParentIds.length === 0) return [];
 
       uniqueParentIds.forEach((id) => visited.add(id));
@@ -172,7 +194,9 @@ export class TasksService {
         orderBy: { [sortBy]: sortOrder },
       });
 
-      const childIds = children.map((child) => Number(child.task_id)).filter((id) => Number.isFinite(id));
+      const childIds = children
+        .map((child) => Number(child.task_id))
+        .filter((id) => Number.isFinite(id));
       const deeperChildren = await collectDescendants(childIds, visited);
 
       return [...children, ...deeperChildren];
@@ -180,7 +204,9 @@ export class TasksService {
 
     let visibleTasks = tasks;
     if (userId && !isTeacher) {
-      const descendants = await collectDescendants(tasks.map((task) => Number(task.task_id)));
+      const descendants = await collectDescendants(
+        tasks.map((task) => Number(task.task_id)),
+      );
       const merged = new Map<number, any>();
       for (const task of [...tasks, ...descendants]) {
         merged.set(Number(task.task_id), task);
@@ -190,15 +216,13 @@ export class TasksService {
 
     const recalculatedTasks = await Promise.all(
       visibleTasks.map(async (task) => {
-        const changedToCompleted = await this.recalculateTaskCompletionFromGrades(
-          task.task_id,
-          task,
-        );
+        const changedToCompleted =
+          await this.recalculateTaskCompletionFromGrades(task.task_id, task);
 
         if (changedToCompleted) {
           return {
             ...task,
-            status: 'COMPLETED',
+            status: "COMPLETED",
             progress: 100,
           };
         }
@@ -213,7 +237,9 @@ export class TasksService {
         total: userId && !isTeacher ? recalculatedTasks.length : total,
         page,
         limit,
-        totalPages: Math.ceil((userId && !isTeacher ? recalculatedTasks.length : total) / limit),
+        totalPages: Math.ceil(
+          (userId && !isTeacher ? recalculatedTasks.length : total) / limit,
+        ),
       },
     };
   }
@@ -225,7 +251,7 @@ export class TasksService {
     });
 
     if (!task) {
-      throw new NotFoundException(`Task with ID ${taskId} not found!`)
+      throw new NotFoundException(`Task with ID ${taskId} not found!`);
     }
 
     const changedToCompleted = await this.recalculateTaskCompletionFromGrades(
@@ -252,14 +278,18 @@ export class TasksService {
    * Wenn ein Schüler sein Dokument eingereicht hat und es wurde bewertet,
    * zeige den Task als für DIESEN Schüler gesperrt (nicht global)
    */
-  async findOneForStudent(taskId: number, userId: number, includeRelations = true) {
+  async findOneForStudent(
+    taskId: number,
+    userId: number,
+    includeRelations = true,
+  ) {
     const task = await this.findOne(taskId, includeRelations);
 
     // Prüfe: Hat dieser Schüler Dokumente zu diesem Task eingereicht?
     const submissions = await this.prisma.documents.findMany({
       where: {
         task_documents: {
-          some: { task_id: taskId }
+          some: { task_id: taskId },
         },
         added_by: userId, // Von DIESEM Schüler
       },
@@ -268,11 +298,13 @@ export class TasksService {
         graded_at: true,
         grade: true,
         feedback: true,
-      }
+      },
     });
 
     // Wenn mindestens ein Dokument bewertet wurde, sperr den Task FÜR DIESEN SCHÜLER
-    const hasGradedSubmission = submissions.some((doc) => doc.graded_at !== null);
+    const hasGradedSubmission = submissions.some(
+      (doc) => doc.graded_at !== null,
+    );
 
     return {
       ...task,
@@ -280,10 +312,11 @@ export class TasksService {
         has_submitted: submissions.length > 0,
         has_graded_submission: hasGradedSubmission,
         submission_count: submissions.length,
-        latest_grade: submissions
-          .filter((doc) => doc.graded_at)
-          .map((doc) => doc.grade)
-          .pop() || null,
+        latest_grade:
+          submissions
+            .filter((doc) => doc.graded_at)
+            .map((doc) => doc.grade)
+            .pop() || null,
       },
       // Überschreibe is_locked für Frontend: Nur wenn DAS SCHÜLER-DOKUMENT bewertet wurde
       is_student_submission_locked: hasGradedSubmission,
@@ -292,11 +325,11 @@ export class TasksService {
 
   async findeOneWithSubtasks(taskId: number, includeRelations = true) {
     const rootTask = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId }
+      where: { task_id: taskId },
     });
     if (!rootTask) {
-      throw new NotFoundException(`Task with ID ${taskId} not found!`)
-    };
+      throw new NotFoundException(`Task with ID ${taskId} not found!`);
+    }
 
     const allTasks = await this.prisma.tasks.findMany({
       where: { created_by: rootTask.created_by },
@@ -319,7 +352,7 @@ export class TasksService {
     // If task is locked, only allow the creator to edit it
     if (task.is_locked && userId && task.created_by !== userId) {
       throw new BadRequestException(
-        'Task ist gesperrt und kann nicht bearbeitet werden. Nur der Task-Ersteller kann einen gesperrten Task ändern.'
+        "Task ist gesperrt und kann nicht bearbeitet werden. Nur der Task-Ersteller kann einen gesperrten Task ändern.",
       );
     }
 
@@ -335,7 +368,7 @@ export class TasksService {
 
     if (parent_task_id !== undefined) {
       if (parent_task_id === taskId) {
-        throw new BadRequestException('Task cannot be its own parent');
+        throw new BadRequestException("Task cannot be its own parent");
       }
 
       if (parent_task_id) {
@@ -370,22 +403,24 @@ export class TasksService {
         priority_id,
         deadline: taskData.deadline ? new Date(taskData.deadline) : undefined,
         updated_at: new Date(),
-        completion_rule: completion_rule ? (completion_rule as unknown as Prisma.InputJsonValue) : undefined,
+        completion_rule: completion_rule
+          ? (completion_rule as unknown as Prisma.InputJsonValue)
+          : undefined,
       },
       include: this.basicInclude(),
     });
 
     // Wenn Task auf COMPLETED gesetzt wird, müssen auch alle Subtasks abgeschlossen werden
-    if (updateTaskDto.status === 'COMPLETED') {
+    if (updateTaskDto.status === "COMPLETED") {
       const descendantIds = await this.getAllDescendantIds(taskId);
       if (descendantIds.length > 0) {
         await this.prisma.tasks.updateMany({
           where: {
             task_id: { in: descendantIds },
-            status: { not: 'COMPLETED' },
+            status: { not: "COMPLETED" },
           },
           data: {
-            status: 'COMPLETED',
+            status: "COMPLETED",
             progress: 100,
             updated_at: new Date(),
           },
@@ -396,13 +431,17 @@ export class TasksService {
     // Log activity
     try {
       if (updated.created_by) {
-        await this.activityLogService.create({
-          task_id: updated.task_id,
-          action: `Task updated: "${updated.title}"`,
-        }, updated.created_by, false);
+        await this.activityLogService.create(
+          {
+            task_id: updated.task_id,
+            action: `Task updated: "${updated.title}"`,
+          },
+          updated.created_by,
+          false,
+        );
       }
     } catch (error) {
-      console.error('Failed to log task update activity:', error);
+      console.error("Failed to log task update activity:", error);
     }
 
     if (updated.parent_task_id) {
@@ -415,10 +454,10 @@ export class TasksService {
   /**
    * Aktualisiert das Deadline eines Tasks und entsperrt ihn automatisch
    * wenn der Task nach einer Bewertung gesperrt war.
-   * 
+   *
    * Diese Methode wird von Lehrern verwendet um einen Task nach Bewertung
    * neu freizugeben indem sie ein neues Deadline-Datum setzen.
-   * 
+   *
    * @param taskId - Die Task ID
    * @param newDeadline - Das neue Deadline-Datum
    * @returns Der aktualisierte Task mit entsperrt Status
@@ -443,18 +482,24 @@ export class TasksService {
       include: this.basicInclude(),
     });
 
-    console.log(`✓ Task ${taskId} Deadline aktualisiert auf ${newDeadline} und entsperrt`);
+    console.log(
+      `✓ Task ${taskId} Deadline aktualisiert auf ${newDeadline} und entsperrt`,
+    );
 
     // Log activity
     try {
       if (task.created_by) {
-        await this.activityLogService.create({
-          task_id: updated.task_id,
-          action: `Task deadline updated to ${newDeadline.toISOString().split('T')[0]} and unlocked`,
-        }, task.created_by, false);
+        await this.activityLogService.create(
+          {
+            task_id: updated.task_id,
+            action: `Task deadline updated to ${newDeadline.toISOString().split("T")[0]} and unlocked`,
+          },
+          task.created_by,
+          false,
+        );
       }
     } catch (error) {
-      console.error('Failed to log task deadline update activity:', error);
+      console.error("Failed to log task deadline update activity:", error);
     }
 
     return updated;
@@ -468,7 +513,7 @@ export class TasksService {
     if (requesterId && task.created_by !== requesterId) {
       const now = new Date();
       const READ_FLAG = 4;
-      const permissionNames = ['delete_tasks', 'delete_task'];
+      const permissionNames = ["delete_tasks", "delete_task"];
 
       const directPermission = await this.prisma.user_permissions.findFirst({
         where: {
@@ -482,7 +527,8 @@ export class TasksService {
 
       if (directPermission) {
         const isTimeValid =
-          (!directPermission.valid_from || now >= directPermission.valid_from) &&
+          (!directPermission.valid_from ||
+            now >= directPermission.valid_from) &&
           (!directPermission.valid_to || now <= directPermission.valid_to);
 
         canDelete =
@@ -517,14 +563,14 @@ export class TasksService {
         });
 
         if (rolePermission?.roles?.roles_permissions?.length) {
-          canDelete = rolePermission.roles.roles_permissions.some((rp) =>
-            (rp.permissions.flags & READ_FLAG) === READ_FLAG,
+          canDelete = rolePermission.roles.roles_permissions.some(
+            (rp) => (rp.permissions.flags & READ_FLAG) === READ_FLAG,
           );
         }
       }
 
       if (!canDelete) {
-        throw new ForbiddenException('Missing permission: delete_tasks');
+        throw new ForbiddenException("Missing permission: delete_tasks");
       }
     }
 
@@ -560,14 +606,21 @@ export class TasksService {
     });
 
     return {
-      message: 'Task deleted successfully',
-      task_id: taskId
+      message: "Task deleted successfully",
+      task_id: taskId,
     };
   }
 
-  async createSubTask(parentTaskID: number, createTaskDto: CreateTaskDto, userId: number) {
+  async createSubTask(
+    parentTaskID: number,
+    createTaskDto: CreateTaskDto,
+    userId: number,
+  ) {
     await this.findOne(parentTaskID, false);
-    return this.create({ ...createTaskDto, parent_task_id: parentTaskID }, userId)
+    return this.create(
+      { ...createTaskDto, parent_task_id: parentTaskID },
+      userId,
+    );
   }
 
   async getSubtasksOfTask(parentID: number, includeRelations = true) {
@@ -575,8 +628,8 @@ export class TasksService {
     return this.prisma.tasks.findMany({
       where: { parent_task_id: parentID },
       include: includeRelations ? this.basicInclude() : undefined,
-      orderBy: { created_at: 'asc' }
-    })
+      orderBy: { created_at: "asc" },
+    });
   }
 
   async changeTaskParent(taskId: number, newParentId: number | null) {
@@ -586,7 +639,7 @@ export class TasksService {
       await this.findOne(newParentId, false);
       await this.validateNoCircularReference(taskId, newParentId);
       if (taskId === newParentId) {
-        throw new BadRequestException('Task cannot be its own parent');
+        throw new BadRequestException("Task cannot be its own parent");
       }
     }
 
@@ -608,7 +661,7 @@ export class TasksService {
         documents: true,
       },
     });
-    return taskDocuments.map(td => td.documents);
+    return taskDocuments.map((td) => td.documents);
   }
 
   async getComments(taskId: number, includeRelations = true) {
@@ -617,7 +670,7 @@ export class TasksService {
     return this.prisma.task_comments.findMany({
       where: { task_id: taskId },
       include: includeRelations ? this.userSelectInclude() : undefined,
-      orderBy: { created_at: 'asc' },
+      orderBy: { created_at: "asc" },
     });
   }
 
@@ -627,7 +680,7 @@ export class TasksService {
     return this.prisma.task_activity_log.findMany({
       where: { task_id: taskId },
       include: includeRelations ? this.userSelectInclude() : undefined,
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
   }
 
@@ -638,22 +691,25 @@ export class TasksService {
       if (!parent.auto_complete) continue;
 
       const doneTasks = await this.prisma.tasks.findMany({
-        where: { parent_task_id: parent.task_id, status: 'COMPLETED' },
-        select: { task_id: true},
+        where: { parent_task_id: parent.task_id, status: "COMPLETED" },
+        select: { task_id: true },
       });
-      const completedIds = new Set(doneTasks.map(t => String(t.task_id)));
-      const isFulfilled = evaluateCondition(parent.completion_rule as ConditionNode, completedIds);
+      const completedIds = new Set(doneTasks.map((t) => String(t.task_id)));
+      const isFulfilled = evaluateCondition(
+        parent.completion_rule as ConditionNode,
+        completedIds,
+      );
 
-      if (isFulfilled && parent.status !== 'COMPLETED') {
+      if (isFulfilled && parent.status !== "COMPLETED") {
         const updated = await this.prisma.tasks.update({
           where: { task_id: parent.task_id },
-          data: { status: 'COMPLETED', progress: 100 }
+          data: { status: "COMPLETED", progress: 100 },
         });
         this.notifyTaskUpdate(parent, updated);
-      } else if (!isFulfilled && parent.status === 'COMPLETED') {
+      } else if (!isFulfilled && parent.status === "COMPLETED") {
         const updated = await this.prisma.tasks.update({
           where: { task_id: parent.task_id },
-          data: { status: 'IN_PROGRESS' }
+          data: { status: "IN_PROGRESS" },
         });
         this.notifyTaskUpdate(parent, updated);
       }
@@ -667,18 +723,23 @@ export class TasksService {
    *
    * @returns true, wenn Status in diesem Lauf auf COMPLETED geändert wurde.
    */
-  private async recalculateTaskCompletionFromGrades(taskId: number, taskSnapshot?: any): Promise<boolean> {
-    const task = taskSnapshot ?? await this.prisma.tasks.findUnique({
-      where: { task_id: taskId },
-      select: {
-        task_id: true,
-        status: true,
-        created_by: true,
-        assigned_to: true,
-      },
-    });
+  private async recalculateTaskCompletionFromGrades(
+    taskId: number,
+    taskSnapshot?: any,
+  ): Promise<boolean> {
+    const task =
+      taskSnapshot ??
+      (await this.prisma.tasks.findUnique({
+        where: { task_id: taskId },
+        select: {
+          task_id: true,
+          status: true,
+          created_by: true,
+          assigned_to: true,
+        },
+      }));
 
-    if (!task || task.status === 'COMPLETED') {
+    if (!task || task.status === "COMPLETED") {
       return false;
     }
 
@@ -732,7 +793,7 @@ export class TasksService {
         const hasStudentProfile = Boolean(user.students?.student_id);
         const hasStudentRole = Array.isArray(user.user_roles)
           ? user.user_roles.some(
-              (entry) => entry.roles?.name?.toLowerCase?.() === 'student',
+              (entry) => entry.roles?.name?.toLowerCase?.() === "student",
             )
           : false;
         return hasStudentProfile || hasStudentRole;
@@ -775,7 +836,7 @@ export class TasksService {
     await this.prisma.tasks.update({
       where: { task_id: taskId },
       data: {
-        status: 'COMPLETED',
+        status: "COMPLETED",
         progress: 100,
         updated_at: new Date(),
       },
@@ -793,7 +854,10 @@ export class TasksService {
     }
   }
 
-  private async getAllDescendantIds(parentTaskId: number, visited = new Set<number>()): Promise<number[]> {
+  private async getAllDescendantIds(
+    parentTaskId: number,
+    visited = new Set<number>(),
+  ): Promise<number[]> {
     if (visited.has(parentTaskId)) return [];
     visited.add(parentTaskId);
 
@@ -802,10 +866,15 @@ export class TasksService {
       select: { task_id: true },
     });
 
-    let allDescendants: number[] = children.map((child) => Number(child.task_id));
+    let allDescendants: number[] = children.map((child) =>
+      Number(child.task_id),
+    );
 
     for (const child of children) {
-      const deeperDescendants = await this.getAllDescendantIds(Number(child.task_id), visited);
+      const deeperDescendants = await this.getAllDescendantIds(
+        Number(child.task_id),
+        visited,
+      );
       allDescendants = allDescendants.concat(deeperDescendants);
     }
 
@@ -856,19 +925,22 @@ export class TasksService {
   private buildTree(allTasks: any[], taskId: number) {
     const taskMap = new Map();
 
-    allTasks.forEach(task => {
+    allTasks.forEach((task) => {
       taskMap.set(task.task_id, { ...task, subtasks: [] });
-    })
-    taskMap.forEach(task => {
+    });
+    taskMap.forEach((task) => {
       const currentTaskId = taskMap.get(task.task_id);
       const parentTaskId = taskMap.get(task.parent_task_id);
       parentTaskId?.subtasks.push(currentTaskId);
-    })
+    });
 
     return taskMap.get(taskId);
   }
 
-  private async validateNoCircularReference(taskId: number, parentTaskId: number,): Promise<void> {
+  private async validateNoCircularReference(
+    taskId: number,
+    parentTaskId: number,
+  ): Promise<void> {
     let currentTask = await this.prisma.tasks.findUnique({
       where: { task_id: parentTaskId },
       select: { task_id: true, parent_task_id: true },
@@ -879,7 +951,7 @@ export class TasksService {
     while (currentTask) {
       if (visited.has(currentTask.task_id)) {
         throw new BadRequestException(
-          'Circular reference detected: Task cannot be ancestor of itself',
+          "Circular reference detected: Task cannot be ancestor of itself",
         );
       }
       visited.add(currentTask.task_id);
@@ -893,28 +965,33 @@ export class TasksService {
 
   private ruleContainsTask(rule: ConditionNode, taskId: string): boolean {
     if (!rule) return false;
-    if (rule.type === 'leaf') return String(rule.task_id) === String(taskId);
-    if (rule.type === 'operator') {
-      return rule.operands.some(op => this.ruleContainsTask(op, taskId));
+    if (rule.type === "leaf") return String(rule.task_id) === String(taskId);
+    if (rule.type === "operator") {
+      return rule.operands.some((op) => this.ruleContainsTask(op, taskId));
     }
     return false;
   }
 
-
   private async findAffectedParents(childTaskId: number) {
     const allTasksWithRule = await this.prisma.tasks.findMany({
-      where: { completion_rule: { not: Prisma.JsonNull } }
+      where: { completion_rule: { not: Prisma.JsonNull } },
     });
-    return allTasksWithRule.filter(task =>
-      this.ruleContainsTask(task.completion_rule as ConditionNode, String(childTaskId))
+    return allTasksWithRule.filter((task) =>
+      this.ruleContainsTask(
+        task.completion_rule as ConditionNode,
+        String(childTaskId),
+      ),
     );
   }
   /**
    * Feature #27: Sperrt eine Aufgabe automatisch wenn sie überfällig ist
    */
-  async lockOverdueTask(taskId: number, reason: string = 'OVERDUE'): Promise<void> {
+  async lockOverdueTask(
+    taskId: number,
+    reason: string = "OVERDUE",
+  ): Promise<void> {
     const task = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId }
+      where: { task_id: taskId },
     });
 
     if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
@@ -924,8 +1001,8 @@ export class TasksService {
       data: {
         is_locked: true,
         locked_reason: reason,
-        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
-      }
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Tage
+      },
     });
 
     // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
@@ -937,14 +1014,18 @@ export class TasksService {
   /**
    * Feature #27: Manuelles Sperren einer Aufgabe (Creator/Admin only)
    */
-  async lockTask(taskId: number, reason: string = 'MANUAL', userId: number): Promise<void> {
+  async lockTask(
+    taskId: number,
+    reason: string = "MANUAL",
+    userId: number,
+  ): Promise<void> {
     const task = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId }
+      where: { task_id: taskId },
     });
 
     if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
     if (task.created_by !== userId) {
-      throw new BadRequestException('Only task creator can lock this task');
+      throw new BadRequestException("Only task creator can lock this task");
     }
 
     await this.prisma.tasks.update({
@@ -952,8 +1033,8 @@ export class TasksService {
       data: {
         is_locked: true,
         locked_reason: reason,
-        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 Tage
-      }
+        locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Tage
+      },
     });
 
     // 🚨 Feature #27: WebSocket Benachrichtigung an User senden
@@ -967,12 +1048,12 @@ export class TasksService {
    */
   async unlockTask(taskId: number, userId: number): Promise<void> {
     const task = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId }
+      where: { task_id: taskId },
     });
 
     if (!task) throw new NotFoundException(`Task with ID ${taskId} not found`);
     if (task.created_by !== userId) {
-      throw new BadRequestException('Only task creator can unlock this task');
+      throw new BadRequestException("Only task creator can unlock this task");
     }
 
     await this.prisma.tasks.update({
@@ -980,8 +1061,8 @@ export class TasksService {
       data: {
         is_locked: false,
         locked_reason: null,
-        locked_until: null
-      }
+        locked_until: null,
+      },
     });
   }
 
@@ -990,7 +1071,7 @@ export class TasksService {
    */
   async canEditTask(taskId: number, userId: number): Promise<boolean> {
     const task = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId }
+      where: { task_id: taskId },
     });
 
     if (!task) return false;

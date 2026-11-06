@@ -10,6 +10,6 @@ import { TaskActivityLogModule } from "../task-activity-log/task-activity-log.mo
   imports: [PrismaModule, AuthModule, WebsocketModule, TaskActivityLogModule],
   controllers: [TasksController],
   providers: [TasksService],
-  exports: [TasksService]
+  exports: [TasksService],
 })
 export class TasksModule {}

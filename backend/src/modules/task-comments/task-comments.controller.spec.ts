@@ -1,12 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TaskCommentsService } from './task-comments.service';
-import { TaskCommentsController } from './task-comments.controller';
-import { PrismaService } from '../../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { TaskCommentsService } from "./task-comments.service";
+import { TaskCommentsController } from "./task-comments.controller";
+import { PrismaService } from "../../prisma/prisma.service";
+import { EmailService } from "../email/email.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('TaskCommentsController', () => {
+describe("TaskCommentsController", () => {
   let controller: TaskCommentsController;
 
   const mockPrismaService = {
@@ -20,7 +20,10 @@ describe('TaskCommentsController', () => {
       count: jest.fn(),
     },
   };
-  const mockEmailService = { sendMentionEmail: jest.fn(), sendEmail: jest.fn() };
+  const mockEmailService = {
+    sendMentionEmail: jest.fn(),
+    sendEmail: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -46,7 +49,7 @@ describe('TaskCommentsController', () => {
     controller = module.get<TaskCommentsController>(TaskCommentsController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

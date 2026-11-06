@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { UsersService } from "./users.service";
+import { UsersController } from "./users.controller";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('UsersController', () => {
+describe("UsersController", () => {
   let controller: UsersController;
 
   const mockUsersService = {
@@ -14,7 +14,6 @@ describe('UsersController', () => {
     update: jest.fn(),
     remove: jest.fn(),
   };
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -35,7 +34,7 @@ describe('UsersController', () => {
     controller = module.get<UsersController>(UsersController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

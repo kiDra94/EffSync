@@ -122,7 +122,12 @@ export class DocumentsService {
     if (bytes.length < 4) return null;
 
     // PDF: 25 50 44 46 -> "%PDF"
-    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+    if (
+      bytes[0] === 0x25 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x44 &&
+      bytes[3] === 0x46
+    ) {
       return "application/pdf";
     }
 
@@ -243,7 +248,9 @@ export class DocumentsService {
           .filter((value): value is string => Boolean(value))
       : [];
 
-    return roleNames.some((name) => ["teacher", "admin", "superuser"].includes(name));
+    return roleNames.some((name) =>
+      ["teacher", "admin", "superuser"].includes(name),
+    );
   }
 
   private async isStudentContext(userId: number, role?: string) {
@@ -335,8 +342,13 @@ export class DocumentsService {
 
   private toStoredRelativePath(filePath: string) {
     const absolutePath = resolve(filePath);
-    const relativePath = relative(this.getUploadRoot(), absolutePath).replace(/\\/g, "/");
-    return relativePath.startsWith("..") ? basename(absolutePath) : relativePath;
+    const relativePath = relative(this.getUploadRoot(), absolutePath).replace(
+      /\\/g,
+      "/",
+    );
+    return relativePath.startsWith("..")
+      ? basename(absolutePath)
+      : relativePath;
   }
 
   private resolveDocumentPath(filePath?: string | null) {
@@ -368,8 +380,14 @@ export class DocumentsService {
     return Boolean(document?.users?.students?.student_id);
   }
 
-  private canStudentManageOwnDocument(document: any, userId: number, role?: string) {
-    return this.isStudent(role) && Number(document?.added_by) === Number(userId);
+  private canStudentManageOwnDocument(
+    document: any,
+    userId: number,
+    role?: string,
+  ) {
+    return (
+      this.isStudent(role) && Number(document?.added_by) === Number(userId)
+    );
   }
 
   private canEditDocument(document: any, userId: number, role?: string) {
@@ -377,16 +395,21 @@ export class DocumentsService {
     if (this.isPrivileged(role)) {
       return true;
     }
-    
+
     // Lehrer können Dokumente von ihren Tasks bearbeiten
     if (this.isTeacher(role)) {
       const linkedTasks = document.task_documents || [];
       // Prüf ob Lehrer den Task erstellt hat, der dieses Dokument verknüpft hat
-      return linkedTasks.some((td: any) => Number(td.tasks?.created_by) === Number(userId));
+      return linkedTasks.some(
+        (td: any) => Number(td.tasks?.created_by) === Number(userId),
+      );
     }
-    
+
     // Schüler können nur eigene UNBEWERTETE Dokumente bearbeiten
-    return this.canStudentManageOwnDocument(document, userId, role) && !document.graded_at;
+    return (
+      this.canStudentManageOwnDocument(document, userId, role) &&
+      !document.graded_at
+    );
   }
 
   private canDeleteDocument(document: any, userId: number, role?: string) {
@@ -490,7 +513,7 @@ export class DocumentsService {
         const hasStudentProfile = Boolean(user.students?.student_id);
         const hasStudentRole = Array.isArray(user.user_roles)
           ? user.user_roles.some(
-              (entry) => entry.roles?.name?.toLowerCase?.() === 'student',
+              (entry) => entry.roles?.name?.toLowerCase?.() === "student",
             )
           : false;
         return hasStudentProfile || hasStudentRole;
@@ -526,14 +549,14 @@ export class DocumentsService {
       gradedStudentIds.has(Number(id)),
     );
 
-    if (!allParticipantsGraded || task.status === 'COMPLETED') {
+    if (!allParticipantsGraded || task.status === "COMPLETED") {
       return;
     }
 
     await this.prisma.tasks.update({
       where: { task_id: taskId },
       data: {
-        status: 'COMPLETED',
+        status: "COMPLETED",
         progress: 100,
         updated_at: new Date(),
       },
@@ -543,7 +566,8 @@ export class DocumentsService {
   private mapPerson(person: any) {
     if (!person) return null;
 
-    const primaryRole = person.user_roles?.[0]?.roles?.name?.toLowerCase?.() ?? null;
+    const primaryRole =
+      person.user_roles?.[0]?.roles?.name?.toLowerCase?.() ?? null;
     return {
       user_id: person.user_id,
       firstname: person.firstname,
@@ -610,8 +634,15 @@ export class DocumentsService {
     return document;
   }
 
-  private async canUserAccessDocument(documentId: number, userId: number, role?: string) {
-    const canReadAllDocuments = await this.canUserReadAllDocumentsContext(userId, role);
+  private async canUserAccessDocument(
+    documentId: number,
+    userId: number,
+    role?: string,
+  ) {
+    const canReadAllDocuments = await this.canUserReadAllDocumentsContext(
+      userId,
+      role,
+    );
     if (canReadAllDocuments) return true;
 
     const isStudentContext = await this.isStudentContext(userId, role);
@@ -645,8 +676,27 @@ export class DocumentsService {
         OR: [
           { added_by: userId },
           { document_shares: { some: { user_id: userId } } },
-          { task_documents: { some: { tasks: { OR: [{ assigned_to: userId }, { created_by: userId }] } } } },
-          { note_documents: { some: { notes: { OR: [{ created_by: userId }, { notes_users: { some: { user_id: userId } } }] } } } },
+          {
+            task_documents: {
+              some: {
+                tasks: {
+                  OR: [{ assigned_to: userId }, { created_by: userId }],
+                },
+              },
+            },
+          },
+          {
+            note_documents: {
+              some: {
+                notes: {
+                  OR: [
+                    { created_by: userId },
+                    { notes_users: { some: { user_id: userId } } },
+                  ],
+                },
+              },
+            },
+          },
         ],
       },
     });
@@ -654,7 +704,11 @@ export class DocumentsService {
     return count > 0;
   }
 
-  private async canUserLinkToTask(taskId: number, userId: number, role?: string) {
+  private async canUserLinkToTask(
+    taskId: number,
+    userId: number,
+    role?: string,
+  ) {
     const task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
       select: {
@@ -669,7 +723,9 @@ export class DocumentsService {
     });
 
     if (!task) {
-      throw new NotFoundException("Task für Dokument-Verknüpfung nicht gefunden");
+      throw new NotFoundException(
+        "Task für Dokument-Verknüpfung nicht gefunden",
+      );
     }
 
     if (this.isTeacher(role)) {
@@ -678,10 +734,13 @@ export class DocumentsService {
 
     const isOwner = Number(task.created_by) === Number(userId);
     const isAssignee = Number(task.assigned_to) === Number(userId);
-    const isMember = Array.isArray(task.task_members) && task.task_members.length > 0;
+    const isMember =
+      Array.isArray(task.task_members) && task.task_members.length > 0;
 
     if (!isOwner && !isAssignee && !isMember) {
-      throw new ForbiddenException("Du darfst nur Dokumente zu deinen eigenen Tasks verknüpfen");
+      throw new ForbiddenException(
+        "Du darfst nur Dokumente zu deinen eigenen Tasks verknüpfen",
+      );
     }
 
     return task;
@@ -776,25 +835,48 @@ export class DocumentsService {
 
   async findAll(userId: number, role?: string) {
     const isStudentContext = await this.isStudentContext(userId, role);
-    const canReadAllDocuments = await this.canUserReadAllDocumentsContext(userId, role);
+    const canReadAllDocuments = await this.canUserReadAllDocumentsContext(
+      userId,
+      role,
+    );
 
-    const where = canReadAllDocuments && !isStudentContext
-      ? undefined
-      : isStudentContext
-        ? {
-            OR: [
-              { added_by: userId },
-              { document_shares: { some: { user_id: userId } } },
-            ],
-          }
-      : {
-          OR: [
-            { added_by: userId },
-            { document_shares: { some: { user_id: userId } } },
-            { task_documents: { some: { tasks: { OR: [{ assigned_to: userId }, { created_by: userId }] } } } },
-            { note_documents: { some: { notes: { OR: [{ created_by: userId }, { notes_users: { some: { user_id: userId } } }] } } } },
-          ],
-        };
+    const where =
+      canReadAllDocuments && !isStudentContext
+        ? undefined
+        : isStudentContext
+          ? {
+              OR: [
+                { added_by: userId },
+                { document_shares: { some: { user_id: userId } } },
+              ],
+            }
+          : {
+              OR: [
+                { added_by: userId },
+                { document_shares: { some: { user_id: userId } } },
+                {
+                  task_documents: {
+                    some: {
+                      tasks: {
+                        OR: [{ assigned_to: userId }, { created_by: userId }],
+                      },
+                    },
+                  },
+                },
+                {
+                  note_documents: {
+                    some: {
+                      notes: {
+                        OR: [
+                          { created_by: userId },
+                          { notes_users: { some: { user_id: userId } } },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            };
 
     const documents = await this.prisma.documents.findMany({
       where,
@@ -803,10 +885,14 @@ export class DocumentsService {
     });
 
     const visibleDocuments = isStudentContext
-      ? documents.filter((document) => this.shouldStudentSeeDocument(document, userId))
+      ? documents.filter((document) =>
+          this.shouldStudentSeeDocument(document, userId),
+        )
       : documents;
 
-    return visibleDocuments.map((document) => this.mapDocumentForUi(document, userId, role));
+    return visibleDocuments.map((document) =>
+      this.mapDocumentForUi(document, userId, role),
+    );
   }
 
   async findOne(id: string, userId: number, role?: string) {
@@ -902,7 +988,8 @@ export class DocumentsService {
     }
 
     if (document.added_by && Number(document.added_by) !== Number(graderId)) {
-      const documentTitle = document.name || `Dokument #${document.document_id}`;
+      const documentTitle =
+        document.name || `Dokument #${document.document_id}`;
       const gradeSuffix = grade ? ` Note: ${grade}.` : "";
 
       await this.notificationsService.create({
@@ -948,10 +1035,10 @@ export class DocumentsService {
           },
         },
       },
-      orderBy: { graded_at: 'desc' },
+      orderBy: { graded_at: "desc" },
     });
 
-    return grades.map(doc => ({
+    return grades.map((doc) => ({
       document_id: doc.document_id,
       name: doc.name,
       file_size: doc.file_size,
@@ -1094,11 +1181,11 @@ export class DocumentsService {
           },
         },
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
     });
 
     // Map mit Permissions und Task-Kontext
-    return documents.map(doc => ({
+    return documents.map((doc) => ({
       document_id: doc.document_id,
       name: doc.name,
       file_size: doc.file_size,
@@ -1157,9 +1244,7 @@ export class DocumentsService {
     });
 
     if (!taskDoc) {
-      throw new NotFoundException(
-        "Kein Task zu diesem Dokument verknüpft",
-      );
+      throw new NotFoundException("Kein Task zu diesem Dokument verknüpft");
     }
 
     const task = taskDoc.tasks;
@@ -1180,8 +1265,8 @@ export class DocumentsService {
     if (studentId) {
       await this.notificationsService.create({
         user_id: studentId,
-        type: 'RESUBMIT_ALLOWED',
-        text: `Wiedereinreichung erlaubt für Task: ${task.title}. Neuer Abgabetermin: ${newDeadline ? newDeadline.toLocaleDateString('de-AT') : 'unverändert'}`,
+        type: "RESUBMIT_ALLOWED",
+        text: `Wiedereinreichung erlaubt für Task: ${task.title}. Neuer Abgabetermin: ${newDeadline ? newDeadline.toLocaleDateString("de-AT") : "unverändert"}`,
       });
     }
 

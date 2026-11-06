@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TaskActivityLogService } from './task-activity-log.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { TaskActivityLogService } from "./task-activity-log.service";
+import { PrismaService } from "../../prisma/prisma.service";
 
-describe('TaskActivityLogService', () => {
+describe("TaskActivityLogService", () => {
   let service: TaskActivityLogService;
 
   const mockPrismaService = {
@@ -26,7 +26,6 @@ describe('TaskActivityLogService', () => {
     },
   };
 
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -41,7 +40,7 @@ describe('TaskActivityLogService', () => {
     service = module.get<TaskActivityLogService>(TaskActivityLogService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

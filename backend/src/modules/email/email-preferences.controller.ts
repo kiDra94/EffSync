@@ -8,23 +8,23 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { Request } from 'express';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PrismaService } from "../../prisma/prisma.service";
+import type { Request } from "express";
 
 interface EmailPreferencesDto {
   email_on_deadline?: boolean;
   email_on_mention?: boolean;
   email_on_comment?: boolean;
   email_digest?: boolean;
-  digest_frequency?: 'daily' | 'weekly' | 'monthly';
+  digest_frequency?: "daily" | "weekly" | "monthly";
 }
 
-@Controller('email-preferences')
+@Controller("email-preferences")
 @UseGuards(JwtAuthGuard)
 export class EmailPreferencesController {
-  private logger = new Logger('EmailPreferencesController');
+  private logger = new Logger("EmailPreferencesController");
 
   constructor(private prisma: PrismaService) {}
 
@@ -40,7 +40,7 @@ export class EmailPreferencesController {
       if (!userId) {
         return {
           statusCode: HttpStatus.UNAUTHORIZED,
-          message: 'User not found',
+          message: "User not found",
         };
       }
 
@@ -57,18 +57,18 @@ export class EmailPreferencesController {
             email_on_mention: true,
             email_on_comment: true,
             email_digest: false,
-            digest_frequency: 'daily',
+            digest_frequency: "daily",
           },
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Email preferences retrieved',
+        message: "Email preferences retrieved",
         data: preferences,
       };
     } catch (error) {
-      this.logger.error('Error fetching email preferences:', error);
+      this.logger.error("Error fetching email preferences:", error);
       throw error;
     }
   }
@@ -89,7 +89,7 @@ export class EmailPreferencesController {
       if (!userId) {
         return {
           statusCode: HttpStatus.UNAUTHORIZED,
-          message: 'User not found',
+          message: "User not found",
         };
       }
 
@@ -116,11 +116,11 @@ export class EmailPreferencesController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Email preferences updated successfully',
+        message: "Email preferences updated successfully",
         data: preferences,
       };
     } catch (error) {
-      this.logger.error('Error updating email preferences:', error);
+      this.logger.error("Error updating email preferences:", error);
       throw error;
     }
   }

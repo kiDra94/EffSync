@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TaskTemplatesService } from './task-templates.service';
-import { TaskTemplatesController } from './task-templates.controller';
-import { PrismaService } from '../../prisma/prisma.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { TaskTemplatesService } from "./task-templates.service";
+import { TaskTemplatesController } from "./task-templates.controller";
+import { PrismaService } from "../../prisma/prisma.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('TaskTemplatesController', () => {
+describe("TaskTemplatesController", () => {
   let controller: TaskTemplatesController;
 
   const mockPrismaService = {
@@ -19,7 +19,6 @@ describe('TaskTemplatesController', () => {
       count: jest.fn(),
     },
   };
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -41,7 +40,7 @@ describe('TaskTemplatesController', () => {
     controller = module.get<TaskTemplatesController>(TaskTemplatesController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

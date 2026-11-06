@@ -1,17 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
 
 /**
  * PermissionChecker Service
- * 
+ *
  * Unterscheide zwischen:
  * - ROLLE: Binär, kein Zeitlimit (z.B. "Lehrer", "Admin")
  * - PERMISSION: Binär mit Flags (READ=4, WRITE=2, EXECUTE=1), mit Zeitlimit
  */
 
 export enum PermissionFlag {
-  READ = 4,    // 100
-  WRITE = 2,   // 010
+  READ = 4, // 100
+  WRITE = 2, // 010
   EXECUTE = 1, // 001
 }
 
@@ -27,9 +27,9 @@ export class PermissionsService {
     const userRole = await this.prisma.user_roles.findFirst({
       where: {
         user_id: userId,
-        roles: { name: roleName }
+        roles: { name: roleName },
       },
-      include: { roles: true }
+      include: { roles: true },
     });
 
     return !!userRole;
@@ -41,16 +41,16 @@ export class PermissionsService {
   async getUserRoles(userId: number): Promise<string[]> {
     const userRoles = await this.prisma.user_roles.findMany({
       where: { user_id: userId },
-      include: { roles: true }
+      include: { roles: true },
     });
 
-    return userRoles.map(ur => ur.roles.name || 'Unknown').filter(Boolean);
+    return userRoles.map((ur) => ur.roles.name || "Unknown").filter(Boolean);
   }
 
   /**
    * Prüfe, ob User eine PERMISSION hat (mit Zeit- & Flag-Validierung)
    * Prüft DIREKTE Permissions UND Permissions über Rollen
-   * 
+   *
    * @param userId - User ID
    * @param permissionName - z.B. 'create_task', 'edit_grades'
    * @param requiredFlag - Benötigte Flag (READ, WRITE, EXECUTE)
@@ -59,22 +59,26 @@ export class PermissionsService {
   async hasPermission(
     userId: number,
     permissionName: string,
-    requiredFlag: PermissionFlag = PermissionFlag.READ
+    requiredFlag: PermissionFlag = PermissionFlag.READ,
   ): Promise<boolean> {
     // Unterstütze Alias-Namen wie delete_task <-> delete_tasks
-    const permissionNames = Array.from(new Set([
-      permissionName,
-      permissionName.endsWith('s') ? permissionName.slice(0, -1) : `${permissionName}s`,
-    ])).filter(Boolean);
+    const permissionNames = Array.from(
+      new Set([
+        permissionName,
+        permissionName.endsWith("s")
+          ? permissionName.slice(0, -1)
+          : `${permissionName}s`,
+      ]),
+    ).filter(Boolean);
 
     for (const name of permissionNames) {
       // 1. Prüfe DIREKTE Permissions
       const userPermission = await this.prisma.user_permissions.findFirst({
         where: {
           user_id: userId,
-          permissions: { name }
+          permissions: { name },
         },
-        include: { permissions: true }
+        include: { permissions: true },
       });
 
       if (userPermission) {
@@ -100,27 +104,28 @@ export class PermissionsService {
           roles: {
             roles_permissions: {
               some: {
-                permissions: { name }
-              }
-            }
-          }
+                permissions: { name },
+              },
+            },
+          },
         },
         include: {
           roles: {
             include: {
               roles_permissions: {
                 where: {
-                  permissions: { name }
+                  permissions: { name },
                 },
-                include: { permissions: true }
-              }
-            }
-          }
-        }
+                include: { permissions: true },
+              },
+            },
+          },
+        },
       });
 
       if (rolePermission && rolePermission.roles.roles_permissions.length > 0) {
-        const permission = rolePermission.roles.roles_permissions[0].permissions;
+        const permission =
+          rolePermission.roles.roles_permissions[0].permissions;
         const hasFlagBits = (permission.flags & requiredFlag) === requiredFlag;
         if (hasFlagBits) return true;
       }
@@ -135,7 +140,7 @@ export class PermissionsService {
   async hasAnyPermission(
     userId: number,
     permissionNames: string[],
-    requiredFlag: PermissionFlag = PermissionFlag.READ
+    requiredFlag: PermissionFlag = PermissionFlag.READ,
   ): Promise<boolean> {
     for (const permName of permissionNames) {
       if (await this.hasPermission(userId, permName, requiredFlag)) {
@@ -151,7 +156,7 @@ export class PermissionsService {
   async hasAllPermissions(
     userId: number,
     permissionNames: string[],
-    requiredFlag: PermissionFlag = PermissionFlag.READ
+    requiredFlag: PermissionFlag = PermissionFlag.READ,
   ): Promise<boolean> {
     for (const permName of permissionNames) {
       if (!(await this.hasPermission(userId, permName, requiredFlag))) {
@@ -175,25 +180,27 @@ export class PermissionsService {
   > {
     const permissions = await this.prisma.user_permissions.findMany({
       where: { user_id: userId },
-      include: { permissions: true }
+      include: { permissions: true },
     });
 
     const now = new Date();
 
-    return permissions.map(up => ({
+    return permissions.map((up) => ({
       name: up.permissions.name,
       flags: up.permissions.flags,
       valid_from: up.valid_from,
       valid_to: up.valid_to,
-      isExpired:
-        up.valid_to !== null && now > up.valid_to
+      isExpired: up.valid_to !== null && now > up.valid_to,
     }));
   }
 
   /**
    * Gebe expirierte Permissions aus (für Benachrichtigungen)
    */
-  async getExpiringPermissions(userId: number, daysUntilExpiry: number = 7): Promise<
+  async getExpiringPermissions(
+    userId: number,
+    daysUntilExpiry: number = 7,
+  ): Promise<
     Array<{
       name: string;
       valid_to: Date;
@@ -202,25 +209,25 @@ export class PermissionsService {
   > {
     const permissions = await this.prisma.user_permissions.findMany({
       where: { user_id: userId },
-      include: { permissions: true }
+      include: { permissions: true },
     });
 
     const now = new Date();
-    const expiryThreshold = new Date(now.getTime() + daysUntilExpiry * 24 * 60 * 60 * 1000);
+    const expiryThreshold = new Date(
+      now.getTime() + daysUntilExpiry * 24 * 60 * 60 * 1000,
+    );
 
     return permissions
       .filter(
-        up =>
-          up.valid_to &&
-          up.valid_to > now &&
-          up.valid_to <= expiryThreshold
+        (up) =>
+          up.valid_to && up.valid_to > now && up.valid_to <= expiryThreshold,
       )
-      .map(up => ({
+      .map((up) => ({
         name: up.permissions.name,
         valid_to: up.valid_to!,
         daysRemaining: Math.ceil(
-          (up.valid_to!.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-        )
+          (up.valid_to!.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+        ),
       }));
   }
 
@@ -237,7 +244,7 @@ export class PermissionsService {
         },
         user_permissions: true,
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 

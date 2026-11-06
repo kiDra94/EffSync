@@ -1,4 +1,13 @@
-import { Controller, Post, Body, UseGuards, Get, Req, Res, BadRequestException } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Req,
+  Res,
+  BadRequestException,
+} from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { LoginDto } from "./dto/login.dto";
@@ -38,27 +47,31 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @Get("google/callback")
   async googleAuthCallback(@Req() req, @Res() res) {
-    console.log('🔐 Google OAuth Callback - User:', req.user);
+    console.log("🔐 Google OAuth Callback - User:", req.user);
 
     const token = await this.authService.generateJwtFromGoogleUser(req.user);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const state = req.query?.state;
 
-    if (state === 'reset-password') {
+    if (state === "reset-password") {
       res.redirect(`${frontendUrl}/reset-password?token=${token}`);
     } else {
-      res.redirect(`${frontendUrl}/auth-callback?token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`);
+      res.redirect(
+        `${frontendUrl}/auth-callback?token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`,
+      );
     }
   }
 
   @UseGuards(JwtAuthGuard)
   @Post("set-new-password")
-  async setNewPassword(@Req() req, @Body('password') password: string) {
+  async setNewPassword(@Req() req, @Body("password") password: string) {
     if (!password || password.length < 6) {
-      throw new BadRequestException('Passwort muss mindestens 6 Zeichen lang sein');
+      throw new BadRequestException(
+        "Passwort muss mindestens 6 Zeichen lang sein",
+      );
     }
     await this.authService.setNewPassword(req.user.userId, password);
-    return { message: 'Passwort erfolgreich geändert' };
+    return { message: "Passwort erfolgreich geändert" };
   }
 
   @UseGuards(JwtAuthGuard)

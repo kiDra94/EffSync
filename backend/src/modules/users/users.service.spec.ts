@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UsersService } from './users.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RolePermissionsService } from '../roles/role-permissions.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { UsersService } from "./users.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { RolePermissionsService } from "../roles/role-permissions.service";
 
-describe('UsersService', () => {
+describe("UsersService", () => {
   let service: UsersService;
 
   const mockPrismaService = {
@@ -17,7 +17,6 @@ describe('UsersService', () => {
       count: jest.fn(),
     },
   };
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,7 +36,7 @@ describe('UsersService', () => {
     service = module.get<UsersService>(UsersService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { CreateCommentDto } from "./dto/create-comment.dto";
+import { UpdateCommentDto } from "./dto/update-comment.dto";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class CommentsService {
@@ -54,7 +58,7 @@ export class CommentsService {
           },
         },
       },
-      orderBy: { created_at: 'asc' },
+      orderBy: { created_at: "asc" },
     });
 
     return comments;
@@ -77,24 +81,34 @@ export class CommentsService {
     });
 
     if (!comment) {
-      throw new NotFoundException(`Kommentar mit ID ${commentId} nicht gefunden`);
+      throw new NotFoundException(
+        `Kommentar mit ID ${commentId} nicht gefunden`,
+      );
     }
 
     return comment;
   }
 
-  async update(commentId: number, updateCommentDto: UpdateCommentDto, userId: number) {
+  async update(
+    commentId: number,
+    updateCommentDto: UpdateCommentDto,
+    userId: number,
+  ) {
     const comment = await this.prisma.comments.findUnique({
       where: { comment_id: commentId },
     });
 
     if (!comment) {
-      throw new NotFoundException(`Kommentar mit ID ${commentId} nicht gefunden`);
+      throw new NotFoundException(
+        `Kommentar mit ID ${commentId} nicht gefunden`,
+      );
     }
 
     // Nur Creator oder Admin kann Kommentar bearbeiten
     if (comment.created_by !== userId) {
-      throw new BadRequestException('Sie können nur Ihre eigenen Kommentare bearbeiten');
+      throw new BadRequestException(
+        "Sie können nur Ihre eigenen Kommentare bearbeiten",
+      );
     }
 
     const updated = await this.prisma.comments.update({
@@ -125,12 +139,16 @@ export class CommentsService {
     });
 
     if (!comment) {
-      throw new NotFoundException(`Kommentar mit ID ${commentId} nicht gefunden`);
+      throw new NotFoundException(
+        `Kommentar mit ID ${commentId} nicht gefunden`,
+      );
     }
 
     // Nur Creator oder Admin kann Kommentar löschen
     if (comment.created_by !== userId) {
-      throw new BadRequestException('Sie können nur Ihre eigenen Kommentare löschen');
+      throw new BadRequestException(
+        "Sie können nur Ihre eigenen Kommentare löschen",
+      );
     }
 
     const deleted = await this.prisma.comments.delete({

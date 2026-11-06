@@ -1,11 +1,11 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { MetricsService } from './metrics.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Controller, Get, Req, UseGuards } from "@nestjs/common";
+import { MetricsService } from "./metrics.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-@Controller('metrics')
+@Controller("metrics")
 export class MetricsController {
   constructor(private readonly metricsService: MetricsService) {}
 
@@ -14,7 +14,7 @@ export class MetricsController {
    * Gibt die Verteilung der Task-Status zurück
    */
   @Permissions()
-  @Get('status-distribution')
+  @Get("status-distribution")
   async getStatusDistribution(@Req() req) {
     return this.metricsService.getStatusDistribution(req.user);
   }
@@ -24,7 +24,7 @@ export class MetricsController {
    * Gibt Fortschrittsmetriken zurück
    */
   @Permissions()
-  @Get('task-progress')
+  @Get("task-progress")
   async getTaskProgress(@Req() req) {
     return this.metricsService.getTaskProgress(req.user);
   }
@@ -34,7 +34,7 @@ export class MetricsController {
    * Gibt alle Tasks gruppiert nach Status zurück
    */
   @Permissions()
-  @Get('tasks-by-status')
+  @Get("tasks-by-status")
   async getTasksByStatus(@Req() req) {
     return this.metricsService.getTasksByStatus(req.user);
   }

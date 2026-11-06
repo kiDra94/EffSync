@@ -1,12 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationsController } from './notifications.controller';
-import { NotificationsService } from './notifications.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { WebsocketGateway } from '../websocket/websocket.gateway';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { NotificationsController } from "./notifications.controller";
+import { NotificationsService } from "./notifications.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('NotificationsController', () => {
+describe("NotificationsController", () => {
   let controller: NotificationsController;
 
   const mockPrismaService = {
@@ -24,11 +24,11 @@ describe('NotificationsController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationsController],
-       providers: [
-              NotificationsService,
-              { provide: PrismaService, useValue: mockPrismaService },
-              { provide: WebsocketGateway, useValue: {} },
-            ],
+      providers: [
+        NotificationsService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: WebsocketGateway, useValue: {} },
+      ],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
@@ -39,7 +39,7 @@ describe('NotificationsController', () => {
     controller = module.get<NotificationsController>(NotificationsController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

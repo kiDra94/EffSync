@@ -1,13 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '../../prisma/prisma.service';
-import { EmailService } from './email.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { TasksService } from '../tasks/tasks.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { PrismaService } from "../../prisma/prisma.service";
+import { EmailService } from "./email.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { TasksService } from "../tasks/tasks.service";
 
 @Injectable()
 export class EmailCronService {
-  private logger = new Logger('EmailCronService');
+  private logger = new Logger("EmailCronService");
 
   constructor(
     private prisma: PrismaService,
@@ -22,7 +22,7 @@ export class EmailCronService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_8AM)
   async checkDeadlines() {
-    this.logger.log('🔔 Starting deadline check...');
+    this.logger.log("🔔 Starting deadline check...");
 
     try {
       // Finde alle Aufgaben die heute oder in den nächsten Tagen fällig sind
@@ -39,7 +39,7 @@ export class EmailCronService {
             gte: today,
             lte: inThreeDays,
           },
-          status: { not: 'COMPLETED' },
+          status: { not: "COMPLETED" },
           assigned_to: { not: null }, // Nur Aufgaben mit zugewiesener Person
         },
         include: {
@@ -47,7 +47,9 @@ export class EmailCronService {
         },
       });
 
-      this.logger.log(`Found ${upcomingTasks.length} tasks with upcoming deadlines`);
+      this.logger.log(
+        `Found ${upcomingTasks.length} tasks with upcoming deadlines`,
+      );
 
       // Für jede Aufgabe: Sende E-Mail an den zugewiesenen Benutzer
       for (const task of upcomingTasks) {
@@ -60,14 +62,13 @@ export class EmailCronService {
           where: { user_id: assignedUser.user_id },
         });
 
-        const prefersEmail =
-          userPreferences?.email_on_deadline !== false;
+        const prefersEmail = userPreferences?.email_on_deadline !== false;
 
         if (prefersEmail && assignedUser.email) {
           const sent = await this.emailService.sendDeadlineEmail(
             assignedUser.user_id,
             assignedUser.email,
-            task.title || 'Untitled Task',
+            task.title || "Untitled Task",
             task.deadline || new Date(),
           );
 
@@ -80,12 +81,13 @@ export class EmailCronService {
 
         // 2️⃣ Feature #27: In-App Notification erstellen
         const daysUntil = Math.ceil(
-          ((task.deadline || new Date()).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+          ((task.deadline || new Date()).getTime() - Date.now()) /
+            (24 * 60 * 60 * 1000),
         );
 
         await this.notificationsService.create({
           user_id: assignedUser.user_id,
-          type: 'task_deadline',
+          type: "task_deadline",
           text: `⏰ Aufgabe "${task.title}" ist fällig in ${daysUntil} Tag(en)`,
           is_read: false,
         });
@@ -95,9 +97,9 @@ export class EmailCronService {
         );
       }
 
-      this.logger.log('✅ Deadline check completed');
+      this.logger.log("✅ Deadline check completed");
     } catch (error) {
-      this.logger.error('❌ Error during deadline check:', error);
+      this.logger.error("❌ Error during deadline check:", error);
     }
   }
 
@@ -107,7 +109,7 @@ export class EmailCronService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async checkOverdueDeadlines() {
-    this.logger.log('🚨 Checking for overdue deadlines...');
+    this.logger.log("🚨 Checking for overdue deadlines...");
 
     try {
       const now = new Date();
@@ -118,7 +120,7 @@ export class EmailCronService {
           deadline: {
             lt: now,
           },
-          status: { not: 'COMPLETED' },
+          status: { not: "COMPLETED" },
           assigned_to: { not: null },
           is_locked: false, // ✅ Feature #27: Nur noch nicht gesperrte Tasks
         },
@@ -140,25 +142,25 @@ export class EmailCronService {
             where: { task_id: task.task_id },
             data: {
               is_locked: true,
-              locked_reason: 'OVERDUE',
+              locked_reason: "OVERDUE",
               locked_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Tage
             },
           });
           this.logger.warn(`🔒 Locked task ${task.task_id}: ${task.title}`);
 
           // 2️⃣ E-Mail senden
-          const userPreferences = await this.prisma.email_preferences.findUnique({
-            where: { user_id: assignedUser.user_id },
-          });
+          const userPreferences =
+            await this.prisma.email_preferences.findUnique({
+              where: { user_id: assignedUser.user_id },
+            });
 
-          const prefersEmail =
-            userPreferences?.email_on_deadline !== false;
+          const prefersEmail = userPreferences?.email_on_deadline !== false;
 
           if (prefersEmail && assignedUser.email && task.deadline) {
             await this.emailService.sendDeadlineEmail(
               assignedUser.user_id,
               assignedUser.email,
-              task.title || 'Untitled Task',
+              task.title || "Untitled Task",
               task.deadline,
             );
             this.logger.log(
@@ -169,7 +171,7 @@ export class EmailCronService {
           // 3️⃣ Feature #27: In-App Notification (URGENT)
           await this.notificationsService.create({
             user_id: assignedUser.user_id,
-            type: 'task_overdue',
+            type: "task_overdue",
             text: `🚨 AUFGABE ÜBERFÄLLIG: "${task.title}" wurde automatisch gesperrt!`,
             is_read: false,
           });
@@ -180,9 +182,9 @@ export class EmailCronService {
         }
       }
 
-      this.logger.log('✅ Overdue check completed');
+      this.logger.log("✅ Overdue check completed");
     } catch (error) {
-      this.logger.error('❌ Error checking overdue deadlines:', error);
+      this.logger.error("❌ Error checking overdue deadlines:", error);
     }
   }
 
@@ -195,7 +197,7 @@ export class EmailCronService {
     return this.emailService.sendDeadlineEmail(
       userId,
       userEmail,
-      'Test Task',
+      "Test Task",
       new Date(),
     );
   }

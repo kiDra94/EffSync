@@ -24,7 +24,21 @@ import { PermissionsService } from "../permissions/permissions.service";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, RolesGuard, PermissionsGuard, PermissionsService],
-  exports: [AuthService, JwtModule, PassportModule, RolesGuard, PermissionsGuard, PermissionsService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    GoogleStrategy,
+    RolesGuard,
+    PermissionsGuard,
+    PermissionsService,
+  ],
+  exports: [
+    AuthService,
+    JwtModule,
+    PassportModule,
+    RolesGuard,
+    PermissionsGuard,
+    PermissionsService,
+  ],
 })
 export class AuthModule {}

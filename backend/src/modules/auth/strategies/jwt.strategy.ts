@@ -23,16 +23,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       },
     });
-    
+
     if (!user) {
       throw new UnauthorizedException();
     }
-    
+
     // Hole die erste Rolle des Benutzers
-    const primaryRole = user.user_roles && user.user_roles.length > 0
-      ? user.user_roles[0].roles?.name?.toLowerCase()
-      : 'user';
-    
+    const primaryRole =
+      user.user_roles && user.user_roles.length > 0
+        ? user.user_roles[0].roles?.name?.toLowerCase()
+        : "user";
+
     const result = {
       id: payload.sub,
       userId: payload.sub,
@@ -42,7 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       lastname: user.lastname,
       role: payload.role || primaryRole, // Nutze JWT-Rolle oder DB-Rolle
     };
-    
+
     return result;
   }
 }

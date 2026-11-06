@@ -7,10 +7,7 @@ describe("ChatRoomsService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ChatRoomsService,
-        { provide: PrismaService, useValue: {} },
-      ],
+      providers: [ChatRoomsService, { provide: PrismaService, useValue: {} }],
     }).compile();
 
     service = module.get<ChatRoomsService>(ChatRoomsService);

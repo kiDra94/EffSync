@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { CreateScheduleDto } from "./dto/create-schedule.dto";
 import { UpdateScheduleDto } from "./dto/update-schedule.dto";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -13,7 +17,7 @@ export class SchedulesService {
     // Validierung: valid_from sollte vor valid_to liegen
     if (valid_from && valid_to && new Date(valid_from) > new Date(valid_to)) {
       throw new BadRequestException(
-        'Startdatum (valid_from) muss vor Enddatum (valid_to) liegen'
+        "Startdatum (valid_from) muss vor Enddatum (valid_to) liegen",
       );
     }
 
@@ -37,11 +41,10 @@ export class SchedulesService {
       include: {
         classes: true,
         lesson_slots: {
-          include: {
-          },
+          include: {},
         },
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
     });
 
     return schedules;
@@ -61,16 +64,13 @@ export class SchedulesService {
           },
         },
         lesson_slots: {
-          include: {
-          },
+          include: {},
         },
       },
     });
 
     if (!schedule) {
-      throw new NotFoundException(
-        `Stundenplan mit ID ${id} nicht gefunden`
-      );
+      throw new NotFoundException(`Stundenplan mit ID ${id} nicht gefunden`);
     }
 
     return schedule;
@@ -82,9 +82,7 @@ export class SchedulesService {
     });
 
     if (!schedule) {
-      throw new NotFoundException(
-        `Stundenplan mit ID ${id} nicht gefunden`
-      );
+      throw new NotFoundException(`Stundenplan mit ID ${id} nicht gefunden`);
     }
 
     const { name, valid_from, valid_to } = updateScheduleDto;
@@ -95,7 +93,7 @@ export class SchedulesService {
 
     if (fromDate && toDate && fromDate > toDate) {
       throw new BadRequestException(
-        'Startdatum (valid_from) muss vor Enddatum (valid_to) liegen'
+        "Startdatum (valid_from) muss vor Enddatum (valid_to) liegen",
       );
     }
 
@@ -122,9 +120,7 @@ export class SchedulesService {
     });
 
     if (!schedule) {
-      throw new NotFoundException(
-        `Stundenplan mit ID ${id} nicht gefunden`
-      );
+      throw new NotFoundException(`Stundenplan mit ID ${id} nicht gefunden`);
     }
 
     // Prüfe ob der Stundenplan noch verwendet wird
@@ -134,7 +130,7 @@ export class SchedulesService {
 
     if (lessonSlotsCount > 0) {
       throw new BadRequestException(
-        `Stundenplan kann nicht gelöscht werden, da ${lessonSlotsCount} Stunden darin definiert sind`
+        `Stundenplan kann nicht gelöscht werden, da ${lessonSlotsCount} Stunden darin definiert sind`,
       );
     }
 

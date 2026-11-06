@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { WebsocketGateway } from './websocket.gateway';
-import { JwtService } from '@nestjs/jwt/dist/jwt.service';
-import { ChatMessagesService } from '../chat-messages/chat-messages.service';
-import { ChatRoomsService } from '../chat-rooms/chat-rooms.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { WebsocketGateway } from "./websocket.gateway";
+import { JwtService } from "@nestjs/jwt/dist/jwt.service";
+import { ChatMessagesService } from "../chat-messages/chat-messages.service";
+import { ChatRoomsService } from "../chat-rooms/chat-rooms.service";
 
-describe('WebsocketGateway', () => {
+describe("WebsocketGateway", () => {
   let gateway: WebsocketGateway;
 
   beforeEach(async () => {
@@ -20,7 +20,7 @@ describe('WebsocketGateway', () => {
     gateway = module.get<WebsocketGateway>(WebsocketGateway);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(gateway).toBeDefined();
   });
 });

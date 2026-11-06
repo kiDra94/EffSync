@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotesService } from './notes.service';
-import { NotesController } from './notes.controller';
-import { PrismaService } from '../../prisma/prisma.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { NotesService } from "./notes.service";
+import { NotesController } from "./notes.controller";
+import { PrismaService } from "../../prisma/prisma.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('NotesController', () => {
+describe("NotesController", () => {
   let controller: NotesController;
 
   const mockPrismaService = {
@@ -19,7 +19,6 @@ describe('NotesController', () => {
       count: jest.fn(),
     },
   };
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -41,7 +40,7 @@ describe('NotesController', () => {
     controller = module.get<NotesController>(NotesController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

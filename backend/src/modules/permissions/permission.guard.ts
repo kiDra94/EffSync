@@ -4,39 +4,46 @@ import {
   Injectable,
   ForbiddenException,
   SetMetadata,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PermissionsService, PermissionFlag } from './permissions.service';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PermissionsService, PermissionFlag } from "./permissions.service";
 
-export const PERMISSION_KEY = 'permission';
-export const REQUIRED_FLAG_KEY = 'requiredFlag';
+export const PERMISSION_KEY = "permission";
+export const REQUIRED_FLAG_KEY = "requiredFlag";
 
 export function RequirePermission(
   permissionName: string,
-  requiredFlag: PermissionFlag = PermissionFlag.READ
+  requiredFlag: PermissionFlag = PermissionFlag.READ,
 ) {
   return (
     target: any,
-    propertyKey?: string | symbol | undefined,
-    descriptor?: PropertyDescriptor | undefined
+    propertyKey?: string | symbol,
+    descriptor?: PropertyDescriptor,
   ) => {
     if (propertyKey && descriptor) {
-      SetMetadata(PERMISSION_KEY, permissionName)(target, propertyKey, descriptor);
-      SetMetadata(REQUIRED_FLAG_KEY, requiredFlag)(target, propertyKey, descriptor);
+      SetMetadata(PERMISSION_KEY, permissionName)(
+        target,
+        propertyKey,
+        descriptor,
+      );
+      SetMetadata(REQUIRED_FLAG_KEY, requiredFlag)(
+        target,
+        propertyKey,
+        descriptor,
+      );
     }
   };
 }
 
-
 export function RequireRole(roleName: string) {
-  return SetMetadata('role', roleName);
+  return SetMetadata("role", roleName);
 }
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    private permissionsService: PermissionsService
+    private permissionsService: PermissionsService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,44 +51,49 @@ export class PermissionGuard implements CanActivate {
     const userId = request.user?.id;
 
     if (!userId) {
-      throw new ForbiddenException('User nicht authentifiziert');
+      throw new ForbiddenException("User nicht authentifiziert");
     }
 
     // Prüfe Permission (falls Decorator vorhanden)
     const requiredPermission = this.reflector.get<string>(
       PERMISSION_KEY,
-      context.getHandler()
+      context.getHandler(),
     );
 
     if (requiredPermission) {
-      const requiredFlag = this.reflector.get<PermissionFlag>(
-        REQUIRED_FLAG_KEY,
-        context.getHandler()
-      ) || PermissionFlag.READ;
+      const requiredFlag =
+        this.reflector.get<PermissionFlag>(
+          REQUIRED_FLAG_KEY,
+          context.getHandler(),
+        ) || PermissionFlag.READ;
 
       const hasPermission = await this.permissionsService.hasPermission(
         userId,
         requiredPermission,
-        requiredFlag
+        requiredFlag,
       );
 
       if (!hasPermission) {
         throw new ForbiddenException(
-          `Permission "${requiredPermission}" nicht vorhanden oder abgelaufen`
+          `Permission "${requiredPermission}" nicht vorhanden oder abgelaufen`,
         );
       }
     }
 
     // Prüfe Rolle (falls Decorator vorhanden)
-    const requiredRole = this.reflector.get<string>('role', context.getHandler());
+    const requiredRole = this.reflector.get<string>(
+      "role",
+      context.getHandler(),
+    );
 
     if (requiredRole) {
-      const hasRole = await this.permissionsService.hasRole(userId, requiredRole);
+      const hasRole = await this.permissionsService.hasRole(
+        userId,
+        requiredRole,
+      );
 
       if (!hasRole) {
-        throw new ForbiddenException(
-          `Rolle "${requiredRole}" nicht vorhanden`
-        );
+        throw new ForbiddenException(`Rolle "${requiredRole}" nicht vorhanden`);
       }
     }
 

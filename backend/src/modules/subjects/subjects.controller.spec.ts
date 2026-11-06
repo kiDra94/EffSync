@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SubjectsController } from './subjects.controller';
-import { SubjectsService } from './subjects.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { SubjectsController } from "./subjects.controller";
+import { SubjectsService } from "./subjects.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 
-describe('SubjectsController', () => {
+describe("SubjectsController", () => {
   let controller: SubjectsController;
 
   beforeEach(async () => {
@@ -21,7 +21,7 @@ describe('SubjectsController', () => {
     controller = module.get<SubjectsController>(SubjectsController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

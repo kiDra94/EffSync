@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class MetricsService {
   constructor(private prisma: PrismaService) {}
 
   private buildTaskVisibilityFilter(user: any) {
-    const role = String(user?.role || '').toLowerCase();
-    if (role === 'admin' || role === 'superuser') {
+    const role = String(user?.role || "").toLowerCase();
+    if (role === "admin" || role === "superuser") {
       return {};
     }
 
@@ -46,7 +46,11 @@ export class MetricsService {
 
     const now = new Date();
     tasks.forEach((task) => {
-      if (task.deadline && new Date(task.deadline) < now && task.status !== 'COMPLETED') {
+      if (
+        task.deadline &&
+        new Date(task.deadline) < now &&
+        task.status !== "COMPLETED"
+      ) {
         distribution.OVERDUE++;
       } else if (task.status && task.status in distribution) {
         distribution[task.status]++;
@@ -54,7 +58,14 @@ export class MetricsService {
     });
 
     return {
-      labels: ['Offen', 'In Bearbeitung', 'In Review', 'Abgeschlossen', 'In Wartestellung', 'Überfällig'],
+      labels: [
+        "Offen",
+        "In Bearbeitung",
+        "In Review",
+        "Abgeschlossen",
+        "In Wartestellung",
+        "Überfällig",
+      ],
       data: [
         distribution.TODO,
         distribution.IN_PROGRESS,
@@ -82,7 +93,7 @@ export class MetricsService {
       },
     });
 
-    const completedCount = tasks.filter((t) => t.status === 'COMPLETED').length;
+    const completedCount = tasks.filter((t) => t.status === "COMPLETED").length;
     const completionRate =
       tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
@@ -98,12 +109,10 @@ export class MetricsService {
     const now = new Date();
     const overdueCount = tasks.filter(
       (t) =>
-        t.deadline &&
-        new Date(t.deadline as Date) < now &&
-        t.status !== 'COMPLETED',
+        t.deadline && new Date(t.deadline) < now && t.status !== "COMPLETED",
     ).length;
 
-    const openCount = tasks.filter((t) => t.status !== 'COMPLETED').length;
+    const openCount = tasks.filter((t) => t.status !== "COMPLETED").length;
 
     return {
       totalTasks: tasks.length,
@@ -113,9 +122,7 @@ export class MetricsService {
       averageProgress: avgProgress,
       overtasks: overdueCount,
       percentageOverdue:
-        tasks.length > 0
-          ? Math.round((overdueCount / tasks.length) * 100)
-          : 0,
+        tasks.length > 0 ? Math.round((overdueCount / tasks.length) * 100) : 0,
     };
   }
 
@@ -133,7 +140,7 @@ export class MetricsService {
         deadline: true,
         progress: true,
       },
-      orderBy: { status: 'asc' },
+      orderBy: { status: "asc" },
     });
 
     const byStatus: Record<string, any[]> = {
@@ -152,5 +159,4 @@ export class MetricsService {
 
     return byStatus;
   }
-
 }

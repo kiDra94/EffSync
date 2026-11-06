@@ -1,6 +1,11 @@
-import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateTaskMemberDto } from './dto/create-task-member.dto';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CreateTaskMemberDto } from "./dto/create-task-member.dto";
 
 /**
  * Permission-Flags (bitweise):
@@ -22,17 +27,13 @@ export class TaskMembersService {
 
   /**
    * Fügt einen Benutzer zu einer Task hinzu.
-   * 
+   *
    * Guard-Checks:
    * - Requester ist Task-Owner ODER hat WRITE-Permission
    * - Ziel-User existiert
    * - User ist nicht bereits Mitglied
    */
-  async addMember(
-    taskId: number,
-    userId: number,
-    requesterId: number,
-  ) {
+  async addMember(taskId: number, userId: number, requesterId: number) {
     // Task existiert?
     const task = await this.prisma.tasks.findUnique({
       where: { task_id: taskId },
@@ -52,7 +53,7 @@ export class TaskMembersService {
 
     if (!isOwner && !hasWritePermission) {
       throw new ForbiddenException(
-        'Sie haben keine Berechtigung, Mitglieder hinzuzufügen',
+        "Sie haben keine Berechtigung, Mitglieder hinzuzufügen",
       );
     }
 
@@ -76,7 +77,9 @@ export class TaskMembersService {
     });
 
     if (existingMember) {
-      throw new BadRequestException('Benutzer ist bereits Mitglied dieser Task');
+      throw new BadRequestException(
+        "Benutzer ist bereits Mitglied dieser Task",
+      );
     }
 
     // Hinzufügen
@@ -90,7 +93,7 @@ export class TaskMembersService {
 
   /**
    * Entfernt einen Benutzer von einer Task.
-   * 
+   *
    * Guard-Checks:
    * - Requester ist Task-Owner ODER hat WRITE-Permission
    * - Nicht der Task-Creator selbst (implizit Mitglied)
@@ -118,21 +121,21 @@ export class TaskMembersService {
 
     if (!isOwner && !hasWritePermission) {
       throw new ForbiddenException(
-        'Sie haben keine Berechtigung, Mitglieder zu entfernen',
+        "Sie haben keine Berechtigung, Mitglieder zu entfernen",
       );
     }
 
     // Nicht den Creator entfernen
     if (task.created_by === userId) {
       throw new BadRequestException(
-        'Der Task-Creator kann nicht als Mitglied entfernt werden',
+        "Der Task-Creator kann nicht als Mitglied entfernt werden",
       );
     }
 
     // Nicht den Zugewiesenen entfernen
     if (task.assigned_to === userId) {
       throw new BadRequestException(
-        'Der zugewiesene Benutzer kann nicht als Mitglied entfernt werden',
+        "Der zugewiesene Benutzer kann nicht als Mitglied entfernt werden",
       );
     }
 
@@ -149,7 +152,7 @@ export class TaskMembersService {
 
   /**
    * Listet alle Mitglieder einer Task auf.
-   * 
+   *
    * Guard-Checks:
    * - Requester ist Mitglied ODER hat READ-Permission
    */
@@ -198,7 +201,7 @@ export class TaskMembersService {
         user_id: task.created_by,
         joined_at: task.created_at,
         users: task.users_tasks_created_byTousers,
-        role: 'creator',
+        role: "creator",
       });
     }
 
@@ -209,7 +212,7 @@ export class TaskMembersService {
         user_id: task.assigned_to,
         joined_at: task.created_at,
         users: task.users_tasks_assigned_toTousers,
-        role: 'assigned',
+        role: "assigned",
       });
     }
 
@@ -237,7 +240,7 @@ export class TaskMembersService {
           user_id: member.user_id,
           joined_at: member.joined_at,
           users: member.users,
-          role: 'member',
+          role: "member",
         });
       }
     }
@@ -294,12 +297,12 @@ export class TaskMembersService {
 
   /**
    * Prüft bitweise, ob ein User die nötige Permission für eine Task hat.
-   * 
+   *
    * Beispiele:
    * - checkPermission(123, 42, 4)  → User 123 kann Task 42 LESEN?
    * - checkPermission(123, 42, 2)  → User 123 kann Task 42 ÄNDERN?
    * - checkPermission(123, 42, 1)  → User 123 kann Task 42 AUSFÜHREN?
-   * 
+   *
    * Rückgabe: true wenn (flags & requiredFlags) === requiredFlags
    */
   async checkPermission(
@@ -339,7 +342,8 @@ export class TaskMembersService {
       }
 
       // Hat Permission die erforderlichen Flags?
-      const hasFlags = (perm.permissions.flags & requiredFlags) === requiredFlags;
+      const hasFlags =
+        (perm.permissions.flags & requiredFlags) === requiredFlags;
 
       if (hasFlags) {
         return true;
@@ -351,7 +355,7 @@ export class TaskMembersService {
 
   /**
    * Extrahiert rwx Permissions aus den bitweisen Flags.
-   * 
+   *
    * Beispiel:
    * Input: 7 (0b111)
    * Output: { read: true, write: true, execute: true }
@@ -370,7 +374,7 @@ export class TaskMembersService {
 
   /**
    * Berechnet bitweise Flags aus rwx.
-   * 
+   *
    * Beispiel:
    * Input: { read: true, write: true, execute: false }
    * Output: 6 (0b110)

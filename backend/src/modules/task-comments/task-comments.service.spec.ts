@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TaskCommentsService } from './task-comments.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { TaskCommentsService } from "./task-comments.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { EmailService } from "../email/email.service";
 
-describe('TaskCommentsService - @mention Email Notifications', () => {
+describe("TaskCommentsService - @mention Email Notifications", () => {
   let service: TaskCommentsService;
   let prismaService: PrismaService;
   let emailService: EmailService;
@@ -56,59 +56,59 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
     jest.clearAllMocks();
   });
 
-  describe('detectMentions', () => {
-    it('should detect single @mention', () => {
-      const text = 'Hey @john please review this';
+  describe("detectMentions", () => {
+    it("should detect single @mention", () => {
+      const text = "Hey @john please review this";
       // @ts-ignore - accessing private method for testing
-      const mentions = service['detectMentions'](text);
-      expect(mentions).toContain('john');
+      const mentions = service["detectMentions"](text);
+      expect(mentions).toContain("john");
       expect(mentions.length).toBe(1);
     });
 
-    it('should detect multiple @mentions', () => {
-      const text = '@alice and @bob please check @charlie comment';
+    it("should detect multiple @mentions", () => {
+      const text = "@alice and @bob please check @charlie comment";
       // @ts-ignore - accessing private method for testing
-      const mentions = service['detectMentions'](text);
-      expect(mentions).toContain('alice');
-      expect(mentions).toContain('bob');
-      expect(mentions).toContain('charlie');
+      const mentions = service["detectMentions"](text);
+      expect(mentions).toContain("alice");
+      expect(mentions).toContain("bob");
+      expect(mentions).toContain("charlie");
       expect(mentions.length).toBe(3);
     });
 
-    it('should remove duplicate mentions', () => {
-      const text = '@john @john please check';
+    it("should remove duplicate mentions", () => {
+      const text = "@john @john please check";
       // @ts-ignore - accessing private method for testing
-      const mentions = service['detectMentions'](text);
-      expect(mentions).toEqual(['john']);
+      const mentions = service["detectMentions"](text);
+      expect(mentions).toEqual(["john"]);
     });
 
-    it('should return empty array for no mentions', () => {
-      const text = 'This is a comment without any mentions';
+    it("should return empty array for no mentions", () => {
+      const text = "This is a comment without any mentions";
       // @ts-ignore - accessing private method for testing
-      const mentions = service['detectMentions'](text);
+      const mentions = service["detectMentions"](text);
       expect(mentions).toEqual([]);
     });
 
-    it('should handle special characters and numbers', () => {
-      const text = '@user_123 @john-doe please help';
+    it("should handle special characters and numbers", () => {
+      const text = "@user_123 @john-doe please help";
       // @ts-ignore - accessing private method for testing
-      const mentions = service['detectMentions'](text);
-      expect(mentions).toContain('user_123');
+      const mentions = service["detectMentions"](text);
+      expect(mentions).toContain("user_123");
       expect(mentions.length).toBe(2);
     });
   });
 
-  describe('notifyMentionedUsers', () => {
-    it('should send email to mentioned user with email_on_mention enabled', async () => {
-      const text = 'Hey @alice please review';
-      const commenterName = 'bob';
-      const taskTitle = 'Code Review Task';
+  describe("notifyMentionedUsers", () => {
+    it("should send email to mentioned user with email_on_mention enabled", async () => {
+      const text = "Hey @alice please review";
+      const commenterName = "bob";
+      const taskTitle = "Code Review Task";
       const taskId = 1;
       const commenterUserId = 2;
 
       mockPrismaService.users.findFirst.mockResolvedValue({
         user_id: 1,
-        email: 'alice@example.com',
+        email: "alice@example.com",
       });
 
       mockPrismaService.email_preferences.findUnique.mockResolvedValue({
@@ -117,11 +117,11 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
         email_on_deadline: true,
         email_on_comment: false,
         email_digest: false,
-        digest_frequency: 'daily',
+        digest_frequency: "daily",
       });
 
       // @ts-ignore - accessing private method for testing
-      await service['notifyMentionedUsers'](
+      await service["notifyMentionedUsers"](
         text,
         commenterName,
         taskTitle,
@@ -130,29 +130,29 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
       );
 
       expect(mockPrismaService.users.findFirst).toHaveBeenCalledWith({
-        where: { username: 'alice' },
+        where: { username: "alice" },
         select: { user_id: true, email: true },
       });
 
       expect(mockEmailService.sendMentionEmail).toHaveBeenCalledWith(
         1,
-        'alice@example.com',
-        'bob',
-        'Code Review Task',
-        'Hey @alice please review',
+        "alice@example.com",
+        "bob",
+        "Code Review Task",
+        "Hey @alice please review",
       );
     });
 
-    it('should NOT send email if email_on_mention is disabled', async () => {
-      const text = 'Hey @alice please review';
-      const commenterName = 'bob';
-      const taskTitle = 'Code Review Task';
+    it("should NOT send email if email_on_mention is disabled", async () => {
+      const text = "Hey @alice please review";
+      const commenterName = "bob";
+      const taskTitle = "Code Review Task";
       const taskId = 1;
       const commenterUserId = 2;
 
       mockPrismaService.users.findFirst.mockResolvedValue({
         user_id: 1,
-        email: 'alice@example.com',
+        email: "alice@example.com",
       });
 
       mockPrismaService.email_preferences.findUnique.mockResolvedValue({
@@ -161,11 +161,11 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
         email_on_deadline: true,
         email_on_comment: false,
         email_digest: false,
-        digest_frequency: 'daily',
+        digest_frequency: "daily",
       });
 
       // @ts-ignore - accessing private method for testing
-      await service['notifyMentionedUsers'](
+      await service["notifyMentionedUsers"](
         text,
         commenterName,
         taskTitle,
@@ -176,20 +176,20 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
       expect(mockEmailService.sendMentionEmail).not.toHaveBeenCalled();
     });
 
-    it('should NOT send email to commenter themselves', async () => {
-      const text = 'Hey @bob please review';
-      const commenterName = 'bob';
-      const taskTitle = 'Code Review Task';
+    it("should NOT send email to commenter themselves", async () => {
+      const text = "Hey @bob please review";
+      const commenterName = "bob";
+      const taskTitle = "Code Review Task";
       const taskId = 1;
       const commenterUserId = 1; // Same as mentioned user
 
       mockPrismaService.users.findFirst.mockResolvedValue({
         user_id: 1,
-        email: 'bob@example.com',
+        email: "bob@example.com",
       });
 
       // @ts-ignore - accessing private method for testing
-      await service['notifyMentionedUsers'](
+      await service["notifyMentionedUsers"](
         text,
         commenterName,
         taskTitle,
@@ -200,21 +200,21 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
       expect(mockEmailService.sendMentionEmail).not.toHaveBeenCalled();
     });
 
-    it('should send emails to multiple mentioned users', async () => {
-      const text = '@alice and @bob please review';
-      const commenterName = 'charlie';
-      const taskTitle = 'Code Review Task';
+    it("should send emails to multiple mentioned users", async () => {
+      const text = "@alice and @bob please review";
+      const commenterName = "charlie";
+      const taskTitle = "Code Review Task";
       const taskId = 1;
       const commenterUserId = 3;
 
       mockPrismaService.users.findFirst
         .mockResolvedValueOnce({
           user_id: 1,
-          email: 'alice@example.com',
+          email: "alice@example.com",
         })
         .mockResolvedValueOnce({
           user_id: 2,
-          email: 'bob@example.com',
+          email: "bob@example.com",
         });
 
       mockPrismaService.email_preferences.findUnique
@@ -228,7 +228,7 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
         });
 
       // @ts-ignore - accessing private method for testing
-      await service['notifyMentionedUsers'](
+      await service["notifyMentionedUsers"](
         text,
         commenterName,
         taskTitle,
@@ -240,27 +240,27 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
       expect(mockEmailService.sendMentionEmail).toHaveBeenNthCalledWith(
         1,
         1,
-        'alice@example.com',
-        'charlie',
-        'Code Review Task',
-        '@alice and @bob please review',
+        "alice@example.com",
+        "charlie",
+        "Code Review Task",
+        "@alice and @bob please review",
       );
       expect(mockEmailService.sendMentionEmail).toHaveBeenNthCalledWith(
         2,
         2,
-        'bob@example.com',
-        'charlie',
-        'Code Review Task',
-        '@alice and @bob please review',
+        "bob@example.com",
+        "charlie",
+        "Code Review Task",
+        "@alice and @bob please review",
       );
     });
   });
 
-  describe('create with @mention notifications', () => {
-    it('should create comment and send mention emails', async () => {
+  describe("create with @mention notifications", () => {
+    it("should create comment and send mention emails", async () => {
       const createCommentDto = {
         task_id: 1,
-        text: '@alice please review this code',
+        text: "@alice please review this code",
         user_id: 2,
       };
 
@@ -268,7 +268,7 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
         comment_id: 1,
         task_id: 1,
         user_id: 2,
-        text: '@alice please review this code',
+        text: "@alice please review this code",
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -278,16 +278,16 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
       mockPrismaService.users.findUnique
         .mockResolvedValueOnce({
           user_id: 2,
-          username: 'bob',
+          username: "bob",
         })
         .mockResolvedValueOnce({
           user_id: 1,
-          email: 'alice@example.com',
+          email: "alice@example.com",
         });
 
       mockPrismaService.tasks.findUnique.mockResolvedValue({
         task_id: 1,
-        title: 'Code Review',
+        title: "Code Review",
       });
 
       mockPrismaService.email_preferences.findUnique.mockResolvedValue({
@@ -302,17 +302,17 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
         data: {
           task_id: 1,
           user_id: 2,
-          text: '@alice please review this code',
+          text: "@alice please review this code",
         },
       });
 
       expect(mockEmailService.sendMentionEmail).toHaveBeenCalled();
     });
 
-    it('should create comment even if mention notification fails', async () => {
+    it("should create comment even if mention notification fails", async () => {
       const createCommentDto = {
         task_id: 1,
-        text: '@alice please review',
+        text: "@alice please review",
         user_id: 2,
       };
 
@@ -320,14 +320,14 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
         comment_id: 1,
         task_id: 1,
         user_id: 2,
-        text: '@alice please review',
+        text: "@alice please review",
         created_at: new Date(),
         updated_at: new Date(),
       };
 
       mockPrismaService.task_comments.create.mockResolvedValue(newComment);
       mockPrismaService.users.findUnique.mockRejectedValue(
-        new Error('Database error'),
+        new Error("Database error"),
       );
 
       const result = await service.create(createCommentDto);
@@ -337,20 +337,20 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
     });
   });
 
-  describe('findAll', () => {
-    it('should return all comments with user info', async () => {
+  describe("findAll", () => {
+    it("should return all comments with user info", async () => {
       const comments = [
         {
           comment_id: 1,
           task_id: 1,
           user_id: 1,
-          text: 'First comment',
+          text: "First comment",
           created_at: new Date(),
           updated_at: new Date(),
           users: {
-            username: 'alice',
-            firstname: 'Alice',
-            lastname: 'Smith',
+            username: "alice",
+            firstname: "Alice",
+            lastname: "Smith",
           },
         },
       ];
@@ -364,16 +364,16 @@ describe('TaskCommentsService - @mention Email Notifications', () => {
     });
   });
 
-  describe('findOne', () => {
-    it('should return a single comment', async () => {
+  describe("findOne", () => {
+    it("should return a single comment", async () => {
       const comment = {
         comment_id: 1,
         task_id: 1,
         user_id: 1,
-        text: 'Test comment',
+        text: "Test comment",
         created_at: new Date(),
         updated_at: new Date(),
-        users: { username: 'alice' },
+        users: { username: "alice" },
       };
 
       mockPrismaService.task_comments.findUnique.mockResolvedValue(comment);

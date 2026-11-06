@@ -1,6 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ROLE_PERMISSIONS_CONFIG, getPermissionsForRole } from '../../config/role-permissions.config';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import {
+  ROLE_PERMISSIONS_CONFIG,
+  getPermissionsForRole,
+} from "../../config/role-permissions.config";
 
 /**
  * Service zur Verwaltung von Rollen-Permissions-Zuordnungen
@@ -18,9 +25,9 @@ export class RolePermissionsService {
   async getPermissionIdsForRole(roleId: number): Promise<number[]> {
     const rolePermissions = await this.prisma.roles_permissions.findMany({
       where: { roles_id: roleId },
-      select: { permission_id: true }
+      select: { permission_id: true },
     });
-    return rolePermissions.map(rp => rp.permission_id);
+    return rolePermissions.map((rp) => rp.permission_id);
   }
 
   /**
@@ -31,7 +38,7 @@ export class RolePermissionsService {
   async getPermissionIdByName(permissionName: string): Promise<number | null> {
     const permission = await this.prisma.permissions.findFirst({
       where: { name: permissionName },
-      select: { permission_id: true }
+      select: { permission_id: true },
     });
     return permission?.permission_id || null;
   }
@@ -45,15 +52,19 @@ export class RolePermissionsService {
   async assignDefaultPermissionsForRole(
     userId: number,
     roleId: number,
-    roleName: string
+    roleName: string,
   ): Promise<void> {
-    console.log(`\n📋 Weisen automatisch Permissions für Rolle "${roleName}" zu User ${userId} zu`);
+    console.log(
+      `\n📋 Weisen automatisch Permissions für Rolle "${roleName}" zu User ${userId} zu`,
+    );
 
     // Hole die konfigurierten Permissions für die Rolle
     const permissionNames = getPermissionsForRole(roleName);
 
     if (!permissionNames || permissionNames.length === 0) {
-      console.warn(`  ⚠️  Keine Permissions in Konfiguration für Rolle "${roleName}" definiert`);
+      console.warn(
+        `  ⚠️  Keine Permissions in Konfiguration für Rolle "${roleName}" definiert`,
+      );
       return;
     }
 
@@ -66,7 +77,9 @@ export class RolePermissionsService {
         const permId = await this.getPermissionIdByName(permName);
 
         if (!permId) {
-          console.warn(`  ⚠️  Permission "${permName}" nicht in DB gefunden, überspringe`);
+          console.warn(
+            `  ⚠️  Permission "${permName}" nicht in DB gefunden, überspringe`,
+          );
           continue;
         }
 
@@ -75,13 +88,15 @@ export class RolePermissionsService {
           where: {
             user_id_permission_id: {
               user_id: userId,
-              permission_id: permId
-            }
-          }
+              permission_id: permId,
+            },
+          },
         });
 
         if (existing) {
-          console.log(`  ⊘ Permission "${permName}" existiert bereits, überspringe`);
+          console.log(
+            `  ⊘ Permission "${permName}" existiert bereits, überspringe`,
+          );
           skippedCount++;
           continue;
         }
@@ -92,38 +107,43 @@ export class RolePermissionsService {
             user_id: userId,
             permission_id: permId,
             valid_from: new Date(),
-            valid_to: null
-          }
+            valid_to: null,
+          },
         });
 
         console.log(`  ✓ Permission "${permName}" zugewiesen`);
         assignedCount++;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         console.error(`  ✗ Fehler bei Permission "${permName}":`, errorMessage);
       }
     }
 
-    console.log(`  📊 Zusammenfassung: ${assignedCount} neu zugewiesen, ${skippedCount} übersprungen`);
+    console.log(
+      `  📊 Zusammenfassung: ${assignedCount} neu zugewiesen, ${skippedCount} übersprungen`,
+    );
   }
 
   /**
-   * Entfernt Permissions, die von einer Rolle stammen 
+   * Entfernt Permissions, die von einer Rolle stammen
    * (aber nur wenn User keine andere Rolle mit dieser Permission mehr hat)
-   * 
+   *
    * @param userId - Die User ID
    * @param roleId - Die Role ID die entfernt wird
    */
   async removeRolePermissionsIfNotNeeded(
     userId: number,
-    roleId: number
+    roleId: number,
   ): Promise<void> {
-    console.log(`\n🗑️  Überprüfe ob Permissions entfernt werden können nach Rollen-Entfernung`);
+    console.log(
+      `\n🗑️  Überprüfe ob Permissions entfernt werden können nach Rollen-Entfernung`,
+    );
 
     // Hole alle Permissions die diese Rolle hatte
     const rolePermissions = await this.prisma.roles_permissions.findMany({
       where: { roles_id: roleId },
-      select: { permission_id: true }
+      select: { permission_id: true },
     });
 
     for (const rp of rolePermissions) {
@@ -134,11 +154,11 @@ export class RolePermissionsService {
           roles: {
             roles_permissions: {
               some: {
-                permission_id: rp.permission_id
-              }
-            }
-          }
-        }
+                permission_id: rp.permission_id,
+              },
+            },
+          },
+        },
       });
 
       if (!otherRoleWithPerm) {
@@ -148,9 +168,9 @@ export class RolePermissionsService {
             where: {
               user_id_permission_id: {
                 user_id: userId,
-                permission_id: rp.permission_id
-              }
-            }
+                permission_id: rp.permission_id,
+              },
+            },
           });
           console.log(`  ✓ Permission entfernt (keine andere Rolle hat sie)`);
         } catch (error) {
@@ -158,7 +178,9 @@ export class RolePermissionsService {
           console.log(`  ⊘ Permission war bereits nicht direkt zugewiesen`);
         }
       } else {
-        console.log(`  ⊘ Permission wird noch von andere Rolle benötigt, behalte`);
+        console.log(
+          `  ⊘ Permission wird noch von andere Rolle benötigt, behalte`,
+        );
       }
     }
   }

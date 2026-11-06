@@ -23,13 +23,18 @@ export class AuthService {
 
     // Assign default role: Student (role_id=2)
     try {
-      const studentRole = await this.prisma.roles.findFirst({ where: { name: { in: ['Student', 'student'] } } });
+      const studentRole = await this.prisma.roles.findFirst({
+        where: { name: { in: ["Student", "student"] } },
+      });
       const roleId = studentRole?.role_id ?? 2;
       await this.prisma.user_roles.create({
         data: { user_id: user.user_id, role_id: roleId },
       });
     } catch (error) {
-      console.error('Failed to assign default role during registration:', error);
+      console.error(
+        "Failed to assign default role during registration:",
+        error,
+      );
     }
 
     return user;
@@ -57,12 +62,13 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException("Passwort ist ungültig");
     }
-    
+
     // Hole die erste Rolle des Benutzers (Primary Role)
-    const primaryRole = user.user_roles && user.user_roles.length > 0 
-      ? user.user_roles[0].roles?.name?.toLowerCase() 
-      : 'user'; // Default Rolle
-    
+    const primaryRole =
+      user.user_roles && user.user_roles.length > 0
+        ? user.user_roles[0].roles?.name?.toLowerCase()
+        : "user"; // Default Rolle
+
     const { password_hash, ...userWithNoPassword } = user;
     const payload = {
       sub: user.user_id,
