@@ -3,6 +3,7 @@ import { PrismaClient, task_status } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
+import { getPermissionsForRole } from '../src/config/role-permissions.config';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -343,24 +344,16 @@ async function main() {
         console.log(`✓ ${allUserPermissions.length} Einträge in user_permissions erstellt (mit erweiterten Testszenarien)`);
 
         // === ROLE-PERMISSION MAPPINGS ===
-        const rolesPermissionsData = [
-            // Superuser (ID 1): all permissions
-            ...Array.from({ length: 10 }).map((_, i) => ({
-                roles_id: 1, permission_id: i + 1
-            })),
-            // Student (ID 2): view_dashboard, view_grades, view_schedules
-            { roles_id: 2, permission_id: 1 },   // view_dashboard
-            { roles_id: 2, permission_id: 6 },   // view_grades
-            { roles_id: 2, permission_id: 9 },   // view_schedules
-            // Teacher (ID 3): create_tasks, edit_tasks, edit_grades
-            { roles_id: 3, permission_id: 3 },   // create_tasks
-            { roles_id: 3, permission_id: 4 },   // edit_tasks
-            { roles_id: 3, permission_id: 7 },   // edit_grades
-            // Admin (ID 4): manage_users, manage_classes, manage_system
-            { roles_id: 4, permission_id: 2 },   // manage_users
-            { roles_id: 4, permission_id: 8 },   // manage_classes
-            { roles_id: 4, permission_id: 10 }   // manage_system
-        ];
+        // role permissions follow src/config/role-permissions.config.ts (decision F4)
+        const roleRows = await prisma.roles.findMany();
+        const permissionRows = await prisma.permissions.findMany();
+        const rolesPermissionsData = roleRows.flatMap((role) =>
+            getPermissionsForRole(role.name ?? '').map((permissionName) => {
+                const permission = permissionRows.find((p) => p.name === permissionName);
+                if (!permission) throw new Error(`Unknown permission in role config: ${permissionName}`);
+                return { roles_id: role.role_id, permission_id: permission.permission_id };
+            }),
+        );
         await prisma.roles_permissions.createMany({ data: rolesPermissionsData });
         console.log(`✓ ${rolesPermissionsData.length} Einträge in roles_permissions erstellt`);
 

@@ -3,6 +3,7 @@ import { PrismaClient, task_status } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
+import { getPermissionsForRole } from '../src/config/role-permissions.config';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -162,30 +163,16 @@ async function main() {
         ];
         await prisma.user_roles.createMany({ data: userRolesData });
 
-        const rolesPermissionsData = [
-            // Superuser: all permissions
-            { roles_id: 1, permission_id: 1 },
-            { roles_id: 1, permission_id: 2 },
-            { roles_id: 1, permission_id: 3 },
-            { roles_id: 1, permission_id: 4 },
-            { roles_id: 1, permission_id: 5 },
-            { roles_id: 1, permission_id: 6 },
-            { roles_id: 1, permission_id: 7 },
-            { roles_id: 1, permission_id: 8 },
-            { roles_id: 1, permission_id: 9 },
-            { roles_id: 1, permission_id: 10 },
-            // Teacher
-            { roles_id: 3, permission_id: 1 },
-            { roles_id: 3, permission_id: 2 },
-            { roles_id: 3, permission_id: 3 },
-            { roles_id: 3, permission_id: 4 },
-            { roles_id: 3, permission_id: 5 },
-            { roles_id: 3, permission_id: 6 },
-            // Student
-            { roles_id: 2, permission_id: 1 },
-            { roles_id: 2, permission_id: 5 },
-            { roles_id: 2, permission_id: 9 }
-        ];
+        // role permissions follow src/config/role-permissions.config.ts (decision F4)
+        const roleRows = await prisma.roles.findMany();
+        const permissionRows = await prisma.permissions.findMany();
+        const rolesPermissionsData = roleRows.flatMap((role) =>
+            getPermissionsForRole(role.name ?? '').map((permissionName) => {
+                const permission = permissionRows.find((p) => p.name === permissionName);
+                if (!permission) throw new Error(`Unknown permission in role config: ${permissionName}`);
+                return { roles_id: role.role_id, permission_id: permission.permission_id };
+            }),
+        );
         await prisma.roles_permissions.createMany({ data: rolesPermissionsData });
 
         console.log('✓ Rollen & Permissions zugewiesen');

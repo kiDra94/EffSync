@@ -22,7 +22,7 @@ export class TaskCommentsController {
   constructor(private readonly taskCommentsService: TaskCommentsService) {}
 
   @Post()
-  @Permissions()
+  @Permissions("view_dashboard")
   async create(
     @Body() createTaskCommentDto: CreateTaskCommentDto,
     @Req() req: any,
@@ -35,19 +35,19 @@ export class TaskCommentsController {
   }
 
   @Get()
-  @Permissions()
+  @Permissions("view_dashboard")
   async findAll() {
     return await this.taskCommentsService.findAll();
   }
 
   @Get(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   async findOne(@Param("id") id: string) {
     return await this.taskCommentsService.findOne(+id);
   }
 
   @Patch(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   async update(
     @Param("id") id: string,
     @Body() updateTaskCommentDto: UpdateTaskCommentDto,
@@ -56,7 +56,7 @@ export class TaskCommentsController {
   }
 
   @Delete(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   async remove(@Param("id") id: string) {
     return await this.taskCommentsService.remove(+id);
   }

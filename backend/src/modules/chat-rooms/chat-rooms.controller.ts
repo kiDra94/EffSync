@@ -32,7 +32,7 @@ export class ChatRoomsController {
   ) {}
 
   @Post()
-  @Permissions()
+  @Permissions("view_dashboard")
   create(
     @Body() createChatRoomDto: CreateChatRoomDto,
     @Req() req: AuthenticatedRequest,
@@ -41,13 +41,13 @@ export class ChatRoomsController {
   }
 
   @Get()
-  @Permissions()
+  @Permissions("view_dashboard")
   findRoomsByUser(@Req() req: AuthenticatedRequest) {
     return this.chatRoomsService.findRoomsByUser(req.user.userId);
   }
 
   @Get(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   async findOne(
     @Param("id", ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
@@ -57,7 +57,7 @@ export class ChatRoomsController {
   }
 
   @Patch(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   async updateRoom(
     @Param("id", ParseIntPipe) id: number,
     @Body() updateChatRoomDto: UpdateChatRoomDto,
@@ -68,7 +68,7 @@ export class ChatRoomsController {
   }
 
   @Delete(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   deleteRoom(
     @Param("id", ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
@@ -79,7 +79,7 @@ export class ChatRoomsController {
 
   // decision Q14: only the creator adds members
   @Post(":id/members")
-  @Permissions()
+  @Permissions("view_dashboard")
   async addMember(
     @Param("id", ParseIntPipe) roomId: number,
     @Body() addChatMemberDto: AddChatMemberDto,
@@ -90,7 +90,7 @@ export class ChatRoomsController {
   }
 
   @Delete(":id/members/:userId")
-  @Permissions()
+  @Permissions("view_dashboard")
   async removeMember(
     @Param("id", ParseIntPipe) roomId: number,
     @Param("userId", ParseIntPipe) targetUserId: number,

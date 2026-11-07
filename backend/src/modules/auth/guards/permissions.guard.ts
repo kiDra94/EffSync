@@ -1,4 +1,8 @@
 import {
+  PERMISSION_FLAG_KEY,
+  PERMISSIONS_KEY,
+} from "../decorators/permissions.decorator";
+import {
   Injectable,
   CanActivate,
   ExecutionContext,
@@ -31,14 +35,23 @@ export class PermissionsGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Read the required permissions from the @Permissions() decorator
-    const requiredPermissions = this.reflector.get<string[]>(
-      "permissions",
+    const requiredPermissions = this.reflector.get<string[] | undefined>(
+      PERMISSIONS_KEY,
       context.getHandler(),
     );
+    const requiredFlag =
+      this.reflector.get<PermissionFlag | undefined>(
+        PERMISSION_FLAG_KEY,
+        context.getHandler(),
+      ) ?? PermissionFlag.READ;
 
-    // No permissions defined: allow (no protection)
-    if (!requiredPermissions || requiredPermissions.length === 0) {
+    // No @Permissions on the handler: no permission restriction
+    if (requiredPermissions === undefined) {
       return true;
+    }
+    // @Permissions with an empty list fails closed (T54)
+    if (requiredPermissions.length === 0) {
+      throw new ForbiddenException("No permission declared for this endpoint");
     }
 
     // Get the request and the current user
@@ -60,7 +73,7 @@ export class PermissionsGuard implements CanActivate {
       const hasPermission = await this.permissionsService.hasAnyPermission(
         userId,
         alternatives.length > 0 ? alternatives : [permissionExpression],
-        PermissionFlag.READ,
+        requiredFlag,
       );
 
       if (!hasPermission) {

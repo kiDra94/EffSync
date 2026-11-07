@@ -5,6 +5,7 @@ import { WebsocketGateway } from "./websocket.gateway";
 import { JwtService } from "@nestjs/jwt/dist/jwt.service";
 import { ChatMessagesService } from "../chat-messages/chat-messages.service";
 import { ChatRoomsService } from "../chat-rooms/chat-rooms.service";
+import { PermissionsService } from "../permissions/permissions.service";
 
 describe("WebsocketGateway", () => {
   let gateway: WebsocketGateway;
@@ -29,6 +30,8 @@ describe("WebsocketGateway", () => {
   let messages: Record<string, jest.Mock>;
   let socketsLeave: jest.Mock;
   let serverIn: jest.Mock;
+  let permissions: { hasPermission: jest.Mock };
+  let jwt: { verify: jest.Mock };
 
   beforeEach(async () => {
     rooms = {
@@ -45,12 +48,16 @@ describe("WebsocketGateway", () => {
       deleteMessage: jest.fn().mockResolvedValue({ message_id: 7 }),
     };
     broadcastEmit = jest.fn();
+    permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
+    jwt = { verify: jest.fn().mockReturnValue({ sub: 4, username: "felix" }) };
+    rooms.findRoomsByUser = jest.fn().mockResolvedValue([{ room_id: 2 }]);
     socketsLeave = jest.fn();
     serverIn = jest.fn(() => ({ socketsLeave }));
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebsocketGateway,
-        { provide: JwtService, useValue: {} },
+        { provide: JwtService, useValue: jwt },
+        { provide: PermissionsService, useValue: permissions },
         { provide: ChatRoomsService, useValue: rooms },
         { provide: ChatMessagesService, useValue: messages },
       ],
@@ -171,6 +178,41 @@ describe("WebsocketGateway", () => {
         userId: 4,
         username: "user4",
       });
+    });
+  });
+
+  // T54 (M8 review): the socket is as protected as the chat REST routes (view_dashboard)
+  describe("handleConnection", () => {
+    const connecting = () =>
+      ({
+        id: "socket-1",
+        handshake: { auth: { token: "jwt" } },
+        data: {},
+        join: jest.fn(),
+        disconnect: jest.fn(),
+      }) as unknown as Socket & { join: jest.Mock; disconnect: jest.Mock };
+
+    it("joins the user's rooms when the user has view_dashboard", async () => {
+      const socket = connecting();
+
+      await gateway.handleConnection(socket);
+
+      expect(permissions.hasPermission).toHaveBeenCalledWith(
+        4,
+        "view_dashboard",
+      );
+      expect(socket.join).toHaveBeenCalledWith("chat_2");
+      expect(socket.disconnect).not.toHaveBeenCalled();
+    });
+
+    it("disconnects a user without view_dashboard before joining anything", async () => {
+      permissions.hasPermission.mockResolvedValue(false);
+      const socket = connecting();
+
+      await gateway.handleConnection(socket);
+
+      expect(socket.disconnect).toHaveBeenCalled();
+      expect(socket.join).not.toHaveBeenCalled();
     });
   });
 });

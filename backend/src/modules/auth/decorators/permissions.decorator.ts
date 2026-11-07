@@ -1,4 +1,5 @@
-import { SetMetadata } from "@nestjs/common";
+import { applyDecorators, SetMetadata } from "@nestjs/common";
+import { PermissionFlag } from "../../permissions/permissions.service";
 
 /**
  * @Permissions() Decorator
@@ -9,7 +10,6 @@ import { SetMetadata } from "@nestjs/common";
  * Examples:
  * @Permissions('create_tasks')
  * @Permissions('edit_tasks', 'delete_tasks')
- * @Permissions()  // empty array = no PermissionsGuard protection
  *
  * Usage in a controller:
  * @Post()
@@ -24,5 +24,24 @@ import { SetMetadata } from "@nestjs/common";
  * - Expired permissions (valid_to < NOW) are treated as invalid
  * - Permissions that are not yet valid (valid_from > NOW) are treated as invalid
  */
-export const Permissions = (...permissions: string[]) =>
-  SetMetadata("permissions", permissions);
+export const PERMISSIONS_KEY = "permissions";
+export const PERMISSION_FLAG_KEY = "permission_flag";
+
+/**
+ * At least one permission name (T54: no endpoint without a permission), and
+ * optionally the flag it needs (T94), e.g.
+ * `@Permissions("edit_tasks", PermissionFlag.WRITE)`. Without a flag: READ.
+ */
+export const Permissions = (
+  permission: string,
+  ...rest: Array<string | PermissionFlag>
+) => {
+  const names = [permission, ...rest.filter((e) => typeof e === "string")];
+  const flag =
+    rest.find((e): e is PermissionFlag => typeof e === "number") ??
+    PermissionFlag.READ;
+  return applyDecorators(
+    SetMetadata(PERMISSIONS_KEY, names),
+    SetMetadata(PERMISSION_FLAG_KEY, flag),
+  );
+};

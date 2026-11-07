@@ -33,26 +33,26 @@ export class NotesController {
   }
 
   @Post()
-  @Permissions()
+  @Permissions("view_dashboard")
   create(@Body() createNoteDto: CreateNoteDto, @Req() req) {
     return this.notesService.create(createNoteDto, this.getUserId(req));
   }
 
   @Get()
-  @Permissions()
+  @Permissions("view_dashboard")
   findAll(@Req() req, @Query("subject_id") subjectId?: string) {
     const parsedId = subjectId ? parseInt(subjectId, 10) : undefined;
     return this.notesService.findAll(this.getUserId(req), parsedId);
   }
 
   @Get(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   findOne(@Param("id", ParseIntPipe) noteId: number, @Req() req) {
     return this.notesService.findOne(noteId, this.getUserId(req));
   }
 
   @Patch(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   update(
     @Param("id", ParseIntPipe) noteId: number,
     @Req() req,
@@ -62,7 +62,7 @@ export class NotesController {
   }
 
   @Delete(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   remove(@Param("id", ParseIntPipe) noteId: number, @Req() req) {
     return this.notesService.remove(noteId, this.getUserId(req));
   }

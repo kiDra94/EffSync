@@ -1,3 +1,4 @@
+import { PermissionFlag } from "../permissions/permissions.service";
 import {
   Controller,
   Get,
@@ -19,7 +20,7 @@ import { RolesGuard } from "../auth/guards/roles.guard";
 import { Permissions } from "../auth/decorators/permissions.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth("bearer")
 @Controller("users")
 export class UsersController {
@@ -33,8 +34,7 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Post()
-  @UseGuards(PermissionsGuard)
-  @Permissions("manage_users")
+  @Permissions("manage_users", PermissionFlag.WRITE)
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -46,6 +46,7 @@ export class UsersController {
    * No special permissions required (only a JWT).
    */
   @Get("profile")
+  @Permissions("view_dashboard")
   getProfile(@Req() req) {
     return { ...req.user };
   }
@@ -57,6 +58,7 @@ export class UsersController {
    * No special permissions required (only a JWT).
    */
   @Get("me/permissions")
+  @Permissions("view_dashboard")
   async getMyPermissions(@Req() req) {
     return this.usersService.getUserPermissionsAndRoles(req.user.userId);
   }
@@ -69,7 +71,6 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Get(":id/permissions")
-  @UseGuards(PermissionsGuard)
   @Permissions("manage_users")
   async getUserPermissions(@Param("id") id: string) {
     return this.usersService.getUserPermissionsAndRoles(+id);
@@ -80,6 +81,7 @@ export class UsersController {
    * Returns all users with minimal info for the chat (only a JWT required).
    */
   @Get("for-chat")
+  @Permissions("view_dashboard")
   findAllForChat() {
     return this.usersService.findAllForChat();
   }
@@ -92,7 +94,6 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Get()
-  @UseGuards(PermissionsGuard)
   @Permissions("manage_users")
   findAll() {
     return this.usersService.findAll();
@@ -106,7 +107,6 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Get(":id")
-  @UseGuards(PermissionsGuard)
   @Permissions("manage_users")
   findOne(@Param("id") id: string) {
     return this.usersService.findOne(+id);
@@ -120,8 +120,7 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Patch(":id")
-  @UseGuards(PermissionsGuard)
-  @Permissions("manage_users")
+  @Permissions("manage_users", PermissionFlag.WRITE)
   update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(+id, updateUserDto);
   }
@@ -134,8 +133,7 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Delete(":id")
-  @UseGuards(PermissionsGuard)
-  @Permissions("manage_users")
+  @Permissions("manage_users", PermissionFlag.EXECUTE)
   remove(@Param("id") id: string) {
     return this.usersService.remove(+id);
   }
@@ -155,8 +153,7 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Post(":id/permissions")
-  @UseGuards(PermissionsGuard)
-  @Permissions("manage_users")
+  @Permissions("manage_users", PermissionFlag.WRITE)
   async addPermissionToUser(
     @Param("id") userId: string,
     @Body()
@@ -185,8 +182,7 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Delete(":id/permissions/:permissionId")
-  @UseGuards(PermissionsGuard)
-  @Permissions("manage_users")
+  @Permissions("manage_users", PermissionFlag.EXECUTE)
   async removePermissionFromUser(
     @Param("id") userId: string,
     @Param("permissionId") permissionId: string,
@@ -207,8 +203,7 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Post(":id/roles")
-  @UseGuards(PermissionsGuard)
-  @Permissions("manage_users")
+  @Permissions("manage_users", PermissionFlag.WRITE)
   async addRoleToUser(
     @Param("id") userId: string,
     @Body() dto: { role_id: number },
@@ -224,8 +219,7 @@ export class UsersController {
    * - requires the permission 'manage_users'
    */
   @Delete(":id/roles/:roleId")
-  @UseGuards(PermissionsGuard)
-  @Permissions("manage_users")
+  @Permissions("manage_users", PermissionFlag.EXECUTE)
   async removeRoleFromUser(
     @Param("id") userId: string,
     @Param("roleId") roleId: string,

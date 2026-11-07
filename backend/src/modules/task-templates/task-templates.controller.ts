@@ -1,3 +1,4 @@
+import { PermissionFlag } from "../permissions/permissions.service";
 import {
   Controller,
   Get,
@@ -35,7 +36,7 @@ export class TaskTemplatesController {
   @Post()
   @ApiOperation({ summary: "Create a task template" })
   @ApiResponse({ status: 201, description: "Template created successfully" })
-  @Permissions()
+  @Permissions("create_tasks", PermissionFlag.WRITE)
   create(@Body() createDto: CreateTaskTemplateDto, @Req() req) {
     return this.taskTemplatesService.create(createDto, req.user.userId);
   }
@@ -44,7 +45,7 @@ export class TaskTemplatesController {
   @ApiOperation({ summary: "Get all templates (optional filter by creator)" })
   @ApiQuery({ name: "created_by", required: false, type: Number })
   @ApiResponse({ status: 200, description: "Templates retrieved successfully" })
-  @Permissions()
+  @Permissions("view_dashboard")
   findAll(@Query("created_by") createdBy: number) {
     return this.taskTemplatesService.findAll(createdBy);
   }
@@ -53,7 +54,7 @@ export class TaskTemplatesController {
   @ApiOperation({ summary: "Get template by ID" })
   @ApiResponse({ status: 200, description: "Template retrieved successfully" })
   @ApiResponse({ status: 404, description: "Template not found" })
-  @Permissions()
+  @Permissions("view_dashboard")
   findOne(@Param("id", ParseIntPipe) id: number) {
     return this.taskTemplatesService.findOne(id);
   }
@@ -62,7 +63,7 @@ export class TaskTemplatesController {
   @ApiOperation({ summary: "Update template" })
   @ApiResponse({ status: 200, description: "Template updated successfully" })
   @ApiResponse({ status: 404, description: "Template not found" })
-  @Permissions()
+  @Permissions("create_tasks", PermissionFlag.WRITE)
   update(
     @Param("id", ParseIntPipe) id: number,
     @Body() updateDto: UpdateTaskTemplateDto,
@@ -75,7 +76,7 @@ export class TaskTemplatesController {
   @ApiResponse({ status: 200, description: "Template deleted successfully" })
   @ApiResponse({ status: 400, description: "Template has associated tasks" })
   @ApiResponse({ status: 404, description: "Template not found" })
-  @Permissions()
+  @Permissions("create_tasks", PermissionFlag.WRITE)
   remove(@Param("id", ParseIntPipe) id: number) {
     return this.taskTemplatesService.remove(id);
   }

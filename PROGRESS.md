@@ -319,3 +319,78 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - The first role in the JWT depends on the unordered `user_roles` read in `auth.service.ts`; give it an order when the token is reworked (M9).
 
 **Failed / open:** none.
+
+
+## 2026-11-07 – M8: Permission flags and explicit permissions
+
+**Decisions asked and recorded first** (GOALS.md F1–F4, 2026-11-07):
+- F1: the base permission for every-user features is `view_dashboard`.
+- F2: Student and Admin get `create_tasks` and `edit_tasks`.
+- F3: school administration uses `manage_classes`.
+- F4: the seeds follow the config, and a data migration updates existing databases.
+
+**Done:**
+- `@Permissions(name, ...more, flag?)` takes at least one permission name (a TypeScript error otherwise) and an optional `PermissionFlag` (READ by default). `PermissionsGuard` checks that flag (T94), and an empty list fails closed (T54).
+- Every endpoint behind `PermissionsGuard` has a permission. `UsersController`, `TaskActivityLogController` and `EmailPreferencesController` now use the guard: users had decorators without a guard, and the other two had no permission at all. Only the auth endpoints (login, register, password reset, `/auth/profile`) stay JWT-only or public by design. Table:
+
+| Permission and flag | Endpoints |
+|---|---|
+| `view_dashboard` READ | `POST /chat-rooms/:id/messages`, `GET /chat-rooms/:id/messages`, `PATCH /chat-rooms/messages/:id`, `DELETE /chat-rooms/messages/:id`, `POST /chat-rooms`, `GET /chat-rooms`, `GET /chat-rooms/:id`, `PATCH /chat-rooms/:id`, `DELETE /chat-rooms/:id`, `POST /chat-rooms/:id/members`, `DELETE /chat-rooms/:id/members/:userId`, `POST /documents/upload`, `GET /documents`, `GET /documents/by-task/:taskId`, `GET /documents/:id/download`, `GET /documents/:id`, `PATCH /documents/:id`, `DELETE /documents/:id`, `GET /email-preferences`, `PUT /email-preferences`, `GET /metrics/status-distribution`, `GET /metrics/task-progress`, `GET /metrics/tasks-by-status`, `POST /notes`, `GET /notes`, `GET /notes/:id`, `PATCH /notes/:id`, `DELETE /notes/:id`, `GET /notifications`, `GET /notifications/unread-count`, `GET /notifications/unread-count`, `GET /notifications/:id`, `PATCH /notifications/:id/read`, `PATCH /notifications/mark-all-read`, `DELETE /notifications/:id`, `GET /task-activity`, `GET /task-activity/:id`, `POST /task-comments`, `GET /task-comments`, `GET /task-comments/:id`, `PATCH /task-comments/:id`, `DELETE /task-comments/:id`, `GET /api/tasks/:taskId/members`, `GET /api/tasks/:taskId/members/check-permission`, `GET /task-templates`, `GET /task-templates/:id`, `GET /tasks`, `GET /tasks/:id/tree`, `GET /tasks/:id`, `GET /tasks/:id/subtasks`, `GET /tasks/:id/comments`, `GET /tasks/:id/activity`, `GET /tasks/:id/documents`, `GET /tasks/:id/can-edit`, `GET /users/profile`, `GET /users/me/permissions`, `GET /users/for-chat` |
+| `manage_classes` WRITE | `POST /classes`, `PATCH /classes/:id`, `POST /departments`, `PATCH /departments/:id`, `POST /lesson-slots`, `PATCH /lesson-slots/:id`, `POST /rooms`, `PATCH /rooms/:id`, `POST /schedules`, `PATCH /schedules/:id`, `POST /subjects`, `PATCH /subjects/:id` |
+| `view_schedules` READ | `GET /classes`, `GET /classes/:id`, `GET /departments`, `GET /departments/:id`, `GET /lesson-slots`, `GET /lesson-slots/:id`, `GET /rooms`, `GET /rooms/:id`, `GET /schedules`, `GET /schedules/:id`, `GET /subjects`, `GET /subjects/:id` |
+| `manage_users` READ | `GET /permissions`, `GET /permissions/:id`, `GET /roles`, `GET /roles/:id`, `GET /users/:id/permissions`, `GET /users`, `GET /users/:id` |
+| `edit_tasks` WRITE | `POST /task-activity`, `POST /api/tasks/:taskId/members`, `DELETE /api/tasks/:taskId/members/:userId`, `PATCH /tasks/:id`, `PATCH /tasks/:id/deadline-unlock`, `POST /tasks/:id/lock`, `POST /tasks/:id/unlock` |
+| `manage_classes` EXECUTE | `DELETE /classes/:id`, `DELETE /departments/:id`, `DELETE /lesson-slots/:id`, `DELETE /rooms/:id`, `DELETE /schedules/:id`, `DELETE /subjects/:id` |
+| `create_tasks` WRITE | `POST /task-templates`, `PATCH /task-templates/:id`, `DELETE /task-templates/:id`, `POST /tasks`, `POST /tasks/:id/subtasks` |
+| `manage_users` WRITE | `POST /users`, `PATCH /users/:id`, `POST /users/:id/permissions`, `POST /users/:id/roles` |
+| `manage_users` EXECUTE | `DELETE /users/:id`, `DELETE /users/:id/permissions/:permissionId`, `DELETE /users/:id/roles/:roleId` |
+| `edit_grades` WRITE | `PATCH /documents/:id/grade`, `PATCH /documents/:id/allow-resubmit` |
+| `view_grades` READ | `GET /documents/my-grades` |
+| `manage_system` WRITE | `POST /notifications` |
+| `edit_tasks|delete_tasks` READ | `DELETE /tasks/:id` |
+
+  Rule: GET → READ, POST/PATCH → WRITE, DELETE → EXECUTE where the permission has it. The base permission `view_dashboard` is READ-only, so every-user features check READ regardless of the method; ownership and membership rules stay in the services. `DELETE /tasks/:id` accepts `edit_tasks|delete_tasks`: the service still requires `delete_tasks` for other people's tasks.
+- Socket.io: a connection without `view_dashboard` is refused, so the chat can't bypass the REST permission.
+- `role-permissions.config.ts`: Student and Admin got `create_tasks` and `edit_tasks` (F2), and Admin kept grading with `edit_grades` (Admin is in `STAFF_ROLES` and could grade before).
+- `seed.ts` and `test-seed.ts` derive `roles_permissions` from the config (`getPermissionsForRole`), so the seeds can't drift from it again (F4). The data migration `20261107120000_sync_role_permissions_with_config` inserts the 31 config pairs that are missing, matching names case-insensitively, with `ON CONFLICT DO NOTHING`.
+- `TasksService.remove()` checks through `permissionsService.hasAnyPermission` instead of its own copy of the permission logic (problem 5).
+
+**Verified:**
+- Done-when:
+  - `grep -rn "@Permissions()"` finds no call without an argument (and the compiler refuses one).
+  - Flag tests: the decorator spec, plus the M2 guard tests T54 and T94 flipped.
+  - The M1 `remove` tests pass with the spec file unchanged.
+  - E2E: `POST /tasks` answers 403 "Missing permission: create_tasks" for a user whose only role was removed.
+- `test/permissions.e2e-spec.ts` also covers:
+  - a student creates a task (F2)
+  - a user without permissions gets 403 on `/users/for-chat`, `/users/profile`, `/task-activity` and `/email-preferences`, while a student gets 200
+  - `POST /notifications` needs `manage_system`
+  - a student deleting someone else's task gets 403 "Missing permission: delete_tasks"
+- Seed check against the table: the seeded users of every role pass all suites (backend 345 unit and 47 E2E tests, frontend 154).
+- The migration was tested on the populated test DB: it restored deleted rows, and a second run changed nothing. A read-only preview against `devdb` shows it would add 12 rows there:
+  - Admin: `create_tasks`, `edit_grades`, `edit_tasks`, `view_dashboard`, `view_grades`, `view_schedules`
+  - Student: `create_tasks`, `edit_tasks`
+  - Teacher: `delete_tasks`, `view_dashboard`, `view_grades`, `view_schedules`
+
+  Without them, teachers in `devdb` would be locked out. I did not run it on `devdb`; it runs with the next `prisma migrate dev`.
+- tsc, lint (0 errors, 484 warnings; ratchet 493 → 484), knip and build pass. `act`: all three jobs succeeded.
+- `code-review` (high), 10 findings:
+  - fixed:
+    - Admin lost grading
+    - decorators without a guard on `/users/*`
+    - endpoints without any permission (`/task-activity`, `/email-preferences`)
+    - DELETE `/tasks/:id` blocked `delete_tasks` holders
+    - `POST /notifications` was open to everyone
+    - the socket bypassed `view_dashboard`
+    - case-sensitive migration names
+    - the duplicate alias in `remove()`
+  - not done:
+    - A global fail-closed `APP_GUARD` with class-level defaults, which would remove the 54 repeated `view_dashboard` lines. It belongs to the identity-access context (M11).
+    - The query cost of the permission checks: 2 queries per name, 4 on a miss.
+    - Users without a role (created through `POST /users`, or when a role assignment fails) have no permission at all. That is correct RBAC; an admin assigns the role in AdminView (M35).
+
+**Learned (for later milestones):**
+- Before M8 the endpoints with `manage_subjects`, `manage_rooms`, `manage_departments` and `manage_schedules` answered 403 for everyone, because those permissions never existed. The school views store their data in localStorage (problem 19), so nobody noticed (M36).
+- `TaskActivityLogController`: `POST /task-activity` lets any user with `edit_tasks` write log entries for any task. Logging belongs inside the task use cases (T32, M15).
+
+**Failed / open:** none.

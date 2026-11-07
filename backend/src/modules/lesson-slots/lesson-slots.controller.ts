@@ -1,3 +1,4 @@
+import { PermissionFlag } from "../permissions/permissions.service";
 import {
   Controller,
   Get,
@@ -21,25 +22,25 @@ export class LessonSlotController {
   constructor(private readonly lessonSlotService: LessonSlotService) {}
 
   @Post()
-  @Permissions("manage_schedules")
+  @Permissions("manage_classes", PermissionFlag.WRITE)
   create(@Body() createLessonSlotDto: CreateLessonSlotDto) {
     return this.lessonSlotService.create(createLessonSlotDto);
   }
 
   @Get()
-  @Permissions()
+  @Permissions("view_schedules")
   findAll() {
     return this.lessonSlotService.findAll();
   }
 
   @Get(":id")
-  @Permissions()
+  @Permissions("view_schedules")
   findOne(@Param("id") id: string) {
     return this.lessonSlotService.findOne(+id);
   }
 
   @Patch(":id")
-  @Permissions("manage_schedules")
+  @Permissions("manage_classes", PermissionFlag.WRITE)
   update(
     @Param("id") id: string,
     @Body() updateLessonSlotDto: UpdateLessonSlotDto,
@@ -48,7 +49,7 @@ export class LessonSlotController {
   }
 
   @Delete(":id")
-  @Permissions("manage_schedules")
+  @Permissions("manage_classes", PermissionFlag.EXECUTE)
   remove(@Param("id") id: string) {
     return this.lessonSlotService.remove(+id);
   }

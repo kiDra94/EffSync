@@ -1,3 +1,4 @@
+import { PermissionFlag } from "../permissions/permissions.service";
 import {
   BadRequestException,
   Controller,
@@ -63,6 +64,7 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post("upload")
+  @Permissions("view_dashboard")
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor("file", {
@@ -104,7 +106,7 @@ export class DocumentsController {
   }
 
   @Get()
-  @Permissions()
+  @Permissions("view_dashboard")
   findAll(@Req() req) {
     return this.documentsService.findAll(req.user.userId, req.user.role);
   }
@@ -114,7 +116,7 @@ export class DocumentsController {
    * Returns all grades of the current student
    */
   @Get("my-grades")
-  @Permissions()
+  @Permissions("view_grades")
   async getMyGrades(@Req() req) {
     return this.documentsService.getMyGrades(req.user.userId);
   }
@@ -125,7 +127,7 @@ export class DocumentsController {
    * Only for the task's teacher/admin or the document's uploader
    */
   @Get("by-task/:taskId")
-  @Permissions()
+  @Permissions("view_dashboard")
   async getDocumentsByTask(
     @Param("taskId", ParseIntPipe) taskId: number,
     @Req() req,
@@ -138,7 +140,7 @@ export class DocumentsController {
   }
 
   @Get(":id/download")
-  @Permissions()
+  @Permissions("view_dashboard")
   async download(
     @Param("id", ParseIntPipe) id: number,
     @Req() req,
@@ -160,13 +162,13 @@ export class DocumentsController {
   }
 
   @Get(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   findOne(@Param("id") id: string, @Req() req) {
     return this.documentsService.findOne(id, req.user.userId, req.user.role);
   }
 
   @Patch(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   update(
     @Param("id", ParseIntPipe) id: number,
     @Body() updateDocumentDto: UpdateDocumentDto,
@@ -182,7 +184,7 @@ export class DocumentsController {
 
   @Patch(":id/grade")
   @Roles(...STAFF_ROLES)
-  @Permissions()
+  @Permissions("edit_grades", PermissionFlag.WRITE)
   grade(
     @Param("id", ParseIntPipe) id: number,
     @Body() gradeDocumentDto: GradeDocumentDto,
@@ -203,7 +205,7 @@ export class DocumentsController {
    */
   @Patch(":id/allow-resubmit")
   @Roles(...STAFF_ROLES)
-  @Permissions()
+  @Permissions("edit_grades", PermissionFlag.WRITE)
   allowResubmit(
     @Param("id", ParseIntPipe) id: number,
     @Body() body: { new_deadline?: string },
@@ -218,7 +220,7 @@ export class DocumentsController {
   }
 
   @Delete(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   remove(@Param("id") id: string, @Req() req) {
     return this.documentsService.remove(id, req.user.userId, req.user.role);
   }

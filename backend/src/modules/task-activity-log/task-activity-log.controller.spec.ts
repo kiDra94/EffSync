@@ -1,3 +1,4 @@
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { Test, TestingModule } from "@nestjs/testing";
 import { TaskActivityLogService } from "./task-activity-log.service";
 import { TaskActivityLogController } from "./task-activity-log.controller";
@@ -37,7 +38,10 @@ describe("TaskActivityLogController", () => {
           useValue: mockPrismaService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TaskActivityLogController>(
       TaskActivityLogController,

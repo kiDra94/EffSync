@@ -25,7 +25,7 @@ export class ChatMessagesController {
   constructor(private readonly chatMessagesService: ChatMessagesService) {}
 
   @Post(":id/messages")
-  @Permissions()
+  @Permissions("view_dashboard")
   create(
     @Param("id", ParseIntPipe) roomId: number,
     @Body() body: Partial<CreateChatMessageDto> & { content?: string },
@@ -45,7 +45,7 @@ export class ChatMessagesController {
   }
 
   @Get(":id/messages")
-  @Permissions()
+  @Permissions("view_dashboard")
   getMessages(
     @Param("id", ParseIntPipe) roomId: number,
     @Req() req: AuthenticatedRequest,
@@ -54,7 +54,7 @@ export class ChatMessagesController {
   }
 
   @Patch("messages/:id")
-  @Permissions()
+  @Permissions("view_dashboard")
   async update(
     @Param("id", ParseIntPipe) id: number,
     @Body() updateChatMessageDto: UpdateChatMessageDto,
@@ -68,7 +68,7 @@ export class ChatMessagesController {
   }
 
   @Delete("messages/:id")
-  @Permissions()
+  @Permissions("view_dashboard")
   async remove(
     @Param("id", ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,

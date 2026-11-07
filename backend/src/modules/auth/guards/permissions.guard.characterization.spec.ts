@@ -1,9 +1,13 @@
 /**
- * Characterization tests for PermissionsGuard (GOALS.md M2).
+ * Characterization tests for PermissionsGuard (GOALS.md M2; T54 and T94 flipped in M8).
  */
 import { ExecutionContext, ForbiddenException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PermissionsGuard } from "./permissions.guard";
+import {
+  PERMISSION_FLAG_KEY,
+  PERMISSIONS_KEY,
+} from "../decorators/permissions.decorator";
 import {
   PermissionFlag,
   PermissionsService,
@@ -20,6 +24,16 @@ describe("PermissionsGuard (characterization, M2)", () => {
       switchToHttp: () => ({ getRequest: () => ({ user }) }),
     }) as unknown as ExecutionContext;
 
+  // the handler's metadata: permission names and the required flag (absent = READ)
+  const metadata = (names?: string[], flag?: PermissionFlag) =>
+    reflector.get.mockImplementation((key: string) =>
+      key === PERMISSIONS_KEY
+        ? names
+        : key === PERMISSION_FLAG_KEY
+          ? flag
+          : undefined,
+    );
+
   beforeEach(() => {
     reflector = { get: jest.fn() };
     permissionsService = {
@@ -32,22 +46,24 @@ describe("PermissionsGuard (characterization, M2)", () => {
   });
 
   it("allows the request when the handler has no @Permissions metadata", async () => {
-    reflector.get.mockReturnValue(undefined);
+    metadata(undefined);
 
     await expect(guard.canActivate(contextFor({ id: 5 }))).resolves.toBe(true);
     expect(permissionsService.hasAnyPermission).not.toHaveBeenCalled();
   });
 
-  // THESIS: T54 – @Permissions() without arguments protects nothing beyond the JWT
-  it("allows the request for @Permissions() without arguments", async () => {
-    reflector.get.mockReturnValue([]);
+  // THESIS: T54 (flipped in M8) – an empty permission list fails closed
+  it("rejects a handler whose @Permissions lists no permission", async () => {
+    metadata([]);
 
-    await expect(guard.canActivate(contextFor())).resolves.toBe(true);
+    await expect(guard.canActivate(contextFor({ id: 5 }))).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(permissionsService.hasAnyPermission).not.toHaveBeenCalled();
   });
 
   it("rejects a request without a user id with 403", async () => {
-    reflector.get.mockReturnValue(["view_dashboard"]);
+    metadata(["view_dashboard"]);
 
     await expect(guard.canActivate(contextFor())).rejects.toThrow(
       "No user ID found in request",
@@ -58,7 +74,7 @@ describe("PermissionsGuard (characterization, M2)", () => {
   });
 
   it("treats 'a|b' inside one entry as OR and trims the names", async () => {
-    reflector.get.mockReturnValue([" delete_task | delete_tasks "]);
+    metadata([" delete_task | delete_tasks "]);
 
     await expect(guard.canActivate(contextFor({ id: 5 }))).resolves.toBe(true);
     expect(permissionsService.hasAnyPermission).toHaveBeenCalledWith(
@@ -69,7 +85,7 @@ describe("PermissionsGuard (characterization, M2)", () => {
   });
 
   it("treats several entries as AND and names the first missing one", async () => {
-    reflector.get.mockReturnValue(["view_dashboard", "manage_users"]);
+    metadata(["view_dashboard", "manage_users"]);
     permissionsService.hasAnyPermission
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(false);
@@ -81,7 +97,7 @@ describe("PermissionsGuard (characterization, M2)", () => {
   });
 
   it("stops at the first missing entry", async () => {
-    reflector.get.mockReturnValue(["a", "b", "c"]);
+    metadata(["a", "b", "c"]);
     permissionsService.hasAnyPermission.mockResolvedValueOnce(false);
 
     await expect(guard.canActivate(contextFor({ id: 5 }))).rejects.toThrow(
@@ -90,20 +106,26 @@ describe("PermissionsGuard (characterization, M2)", () => {
     expect(permissionsService.hasAnyPermission).toHaveBeenCalledTimes(1);
   });
 
-  // THESIS: T94 – the guard always checks the READ flag, never WRITE or EXECUTE
-  it("always requires the READ flag", async () => {
-    reflector.get.mockReturnValue(["edit_tasks", "delete_tasks"]);
+  // THESIS: T94 (flipped in M8) – the flag declared on the handler is checked
+  it("checks the flag declared with @Permissions, READ by default", async () => {
+    metadata(["edit_tasks", "delete_tasks"], PermissionFlag.WRITE);
+    await guard.canActivate(contextFor({ id: 5 }));
 
+    metadata(["view_dashboard"]);
     await guard.canActivate(contextFor({ id: 5 }));
 
     const flags = permissionsService.hasAnyPermission.mock.calls.map(
       (call: unknown[]) => call[2],
     );
-    expect(flags).toEqual([PermissionFlag.READ, PermissionFlag.READ]);
+    expect(flags).toEqual([
+      PermissionFlag.WRITE,
+      PermissionFlag.WRITE,
+      PermissionFlag.READ,
+    ]);
   });
 
   it("falls back to the raw expression when splitting leaves nothing", async () => {
-    reflector.get.mockReturnValue(["|"]);
+    metadata(["|"]);
 
     await guard.canActivate(contextFor({ id: 5 }));
 

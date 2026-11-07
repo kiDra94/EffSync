@@ -1,3 +1,4 @@
+import { PermissionFlag } from "../permissions/permissions.service";
 import {
   Controller,
   Get,
@@ -27,32 +28,32 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  @Permissions()
+  @Permissions("create_tasks", PermissionFlag.WRITE)
   create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
     return this.tasksService.create(createTaskDto, req.user.userId);
   }
 
   @Get()
-  @Permissions()
+  @Permissions("view_dashboard")
   findAll(@Query() queryDto: QueryTasksDto, @Req() req) {
     return this.tasksService.findAll(queryDto, req.user.userId);
   }
 
   @Get(":id/tree")
-  @Permissions()
+  @Permissions("view_dashboard")
   findTree(@Param("id") id: string) {
     return this.tasksService.findeOneWithSubtasks(+id);
   }
 
   @Get(":id")
-  @Permissions()
+  @Permissions("view_dashboard")
   findOne(@Param("id") id: string, @Req() req) {
     // Feature #27: use the per-student method to show whether only this student is locked
     return this.tasksService.findOneForStudent(+id, req.user.userId);
   }
 
   @Patch(":id")
-  @Permissions()
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
   update(
     @Param("id") id: string,
     @Body() updateTaskDto: UpdateTaskDto,
@@ -68,7 +69,7 @@ export class TasksController {
    */
   // staff or the task's creator; checked in the service, because a role alone isn't enough
   @Patch(":id/deadline-unlock")
-  @Permissions()
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
   updateDeadlineAndUnlock(
     @Param("id") id: string,
     @Body() body: { deadline: string | Date },
@@ -84,14 +85,16 @@ export class TasksController {
     );
   }
 
+  // own tasks with edit_tasks, others' with delete_tasks (checked in the service)
   @Delete(":id")
+  @Permissions("edit_tasks|delete_tasks")
   remove(@Param("id") id: string, @Req() req) {
     const requesterId = req?.user?.userId ?? req?.user?.id;
     return this.tasksService.remove(+id, requesterId);
   }
 
   @Post(":id/subtasks")
-  @Permissions("create_tasks|create_task")
+  @Permissions("create_tasks", PermissionFlag.WRITE)
   createSubTask(
     @Param("id") id: string,
     @Body() createTaskDto: CreateTaskDto,
@@ -101,25 +104,25 @@ export class TasksController {
   }
 
   @Get(":id/subtasks")
-  @Permissions()
+  @Permissions("view_dashboard")
   getSubtasks(@Param("id") id: string) {
     return this.tasksService.getSubtasksOfTask(+id);
   }
 
   @Get(":id/comments")
-  @Permissions()
+  @Permissions("view_dashboard")
   getComments(@Param("id") id: string) {
     return this.tasksService.getComments(+id);
   }
 
   @Get(":id/activity")
-  @Permissions()
+  @Permissions("view_dashboard")
   getActivity(@Param("id") id: string) {
     return this.tasksService.getActivityLog(+id);
   }
 
   @Get(":id/documents")
-  @Permissions()
+  @Permissions("view_dashboard")
   getDocuments(@Param("id") id: string) {
     return this.tasksService.getDocuments(+id);
   }
@@ -129,6 +132,7 @@ export class TasksController {
    * Prevents any modifications to the task
    */
   @Post(":id/lock")
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
   lockTask(
     @Param("id") id: string,
     @Body() { reason }: { reason?: string },
@@ -142,6 +146,7 @@ export class TasksController {
    * Allows modifications again
    */
   @Post(":id/unlock")
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
   unlockTask(@Param("id") id: string, @Req() req) {
     return this.tasksService.unlockTask(+id, req.user.userId);
   }
@@ -150,6 +155,7 @@ export class TasksController {
    * Feature #27: Check if task can be edited
    */
   @Get(":id/can-edit")
+  @Permissions("view_dashboard")
   canEditTask(@Param("id") id: string, @Req() req) {
     return this.tasksService.canEditTask(+id, req.user.userId);
   }

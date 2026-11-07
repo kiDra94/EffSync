@@ -19,10 +19,13 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
+import { PermissionFlag } from "../permissions/permissions.service";
 
 @ApiTags("task-activity")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("task-activity")
 export class TaskActivityLogController {
   constructor(
@@ -30,6 +33,7 @@ export class TaskActivityLogController {
   ) {}
 
   @Post()
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
   @ApiOperation({ summary: "Log a task activity" })
   @ApiResponse({ status: 201, description: "Activity logged successfully" })
   @ApiResponse({ status: 404, description: "Task not found" })
@@ -44,6 +48,7 @@ export class TaskActivityLogController {
   }
 
   @Get()
+  @Permissions("view_dashboard")
   @ApiOperation({ summary: "Get all activity logs" })
   @ApiQuery({ name: "task_id", required: false, type: Number })
   @ApiResponse({
@@ -55,6 +60,7 @@ export class TaskActivityLogController {
   }
 
   @Get(":id")
+  @Permissions("view_dashboard")
   @ApiOperation({ summary: "Get activity log by ID" })
   @ApiResponse({
     status: 200,

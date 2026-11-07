@@ -1,3 +1,4 @@
+import { PermissionFlag } from "../permissions/permissions.service";
 import {
   Controller,
   Get,
@@ -21,31 +22,31 @@ export class SubjectsController {
   constructor(private readonly subjectsService: SubjectsService) {}
 
   @Post()
-  @Permissions("manage_subjects")
+  @Permissions("manage_classes", PermissionFlag.WRITE)
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectsService.create(createSubjectDto);
   }
 
   @Get()
-  @Permissions()
+  @Permissions("view_schedules")
   findAll() {
     return this.subjectsService.findAll();
   }
 
   @Get(":id")
-  @Permissions()
+  @Permissions("view_schedules")
   findOne(@Param("id") id: string) {
     return this.subjectsService.findOne(+id);
   }
 
   @Patch(":id")
-  @Permissions("manage_subjects")
+  @Permissions("manage_classes", PermissionFlag.WRITE)
   update(@Param("id") id: string, @Body() updateSubjectDto: UpdateSubjectDto) {
     return this.subjectsService.update(+id, updateSubjectDto);
   }
 
   @Delete(":id")
-  @Permissions("manage_subjects")
+  @Permissions("manage_classes", PermissionFlag.EXECUTE)
   remove(@Param("id") id: string) {
     return this.subjectsService.remove(+id);
   }

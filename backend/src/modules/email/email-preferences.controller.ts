@@ -10,6 +10,9 @@ import {
   Logger,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { Permissions } from "../auth/decorators/permissions.decorator";
+
 import { PrismaService } from "../../prisma/prisma.service";
 import type { Request } from "express";
 
@@ -22,7 +25,7 @@ interface EmailPreferencesDto {
 }
 
 @Controller("email-preferences")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class EmailPreferencesController {
   private logger = new Logger("EmailPreferencesController");
 
@@ -33,6 +36,7 @@ export class EmailPreferencesController {
    * Returns the current user's e-mail preferences
    */
   @Get()
+  @Permissions("view_dashboard")
   async getPreferences(@Req() req: Request) {
     try {
       const userId = (req.user as any)?.userId ?? (req.user as any)?.id;
@@ -78,6 +82,7 @@ export class EmailPreferencesController {
    * Updates the current user's e-mail preferences
    */
   @Put()
+  @Permissions("view_dashboard")
   @HttpCode(HttpStatus.OK)
   async updatePreferences(
     @Req() req: Request,

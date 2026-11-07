@@ -321,7 +321,7 @@ Rules for all milestones:
   - First step of the milestone (decisions Q10, C1): run `SELECT name FROM roles;` on every database in use and record the result in PROGRESS.md. The aliases are removed only if every result shows English role names; a database with German names first gets a one-off rename to the English names.
   - Risk: medium. Changing role checks can lock users out; the guard-order and visibility tests cover it.
 
-- [ ] **M8: Permission flags and explicit permissions**
+- [x] **M8: Permission flags and explicit permissions**
   - Why:
     - T94: `PermissionsGuard` always checks `READ` (`permissions.guard.ts:63`).
     - T54/T72: many endpoints use `@Permissions()` without arguments, so e.g. `POST /tasks` never returns 403.
@@ -728,6 +728,10 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **D1 School structure on the real API** (decided 2026-11-06, from a new audit finding): classes, departments and schedules move from localStorage to the existing APIs through stores, and subjects and rooms get a simple UI. New milestone M36 after M22. No schema change. Affects: T26, problem 19, M36, Definition of done.
 - **D2 Class membership** (decided 2026-11-06, answers UNUSED_CODE.md question 5): `GET /classes/:id` returns students, teachers and head teacher; `PUT /classes/:id/students` and `/teachers` assign them; admins for all classes, teachers for their own classes. The class chat (M21) uses this membership. No schema change. Affects: T26, T29, M21, M36.
 - **E1 Task template visibility** (decided 2026-11-07, found in M5): templates are private. Each user sees, edits and deletes only their own templates (`GET /task-templates` returns only the requester's, update/delete of someone else's gives 404 or 403), and responses no longer include the creator's email. Affects: T110, M18.
+- **F1 Base permission** (decided 2026-11-07, found in M8): features every logged-in user needs (chat, notes, notifications, own profile, reading tasks and documents) require `view_dashboard`, which all four roles have. Affects: T54, M8.
+- **F2 Students create tasks** (decided 2026-11-07): Student gets `create_tasks` and `edit_tasks` (UC-10…12 list Member/Student as actors; TaskView offers personal tasks). Editing or deleting others' tasks stays limited by the ownership checks. Admin gets the same two, because UC-10 names Admin as an actor. Affects: T54, M8.
+- **F3 School administration permission** (decided 2026-11-07): subjects, rooms, departments, schedules and lesson slots use `manage_classes` instead of the non-existent `manage_subjects`/`manage_rooms`/`manage_departments`/`manage_schedules`. Affects: M8, M36.
+- **F4 Permissions in existing databases** (decided 2026-11-07): `seed.ts` and `test-seed.ts` follow `role-permissions.config.ts`, and a data migration inserts the missing `roles_permissions` rows by name into existing databases. Affects: M8.
 - **Q8g Activity log on task delete** (decided 2026-11-06): no schema change. The delete transaction writes a "deleted" entry with the task title, sets `task_id = null` on the task's log rows, then deletes the task. Affects: T32, M15, M27, M33.
 
 ## Open questions

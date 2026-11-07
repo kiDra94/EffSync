@@ -14,6 +14,7 @@ import {
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { Permissions } from "../auth/decorators/permissions.decorator";
+import { PermissionFlag } from "../permissions/permissions.service";
 import {
   TaskMembersService,
   TaskPermissionFlags,
@@ -43,7 +44,7 @@ export class TaskMembersController {
    * - the requester has WRITE permission on this task
    */
   @Post()
-  @Permissions()
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
   async addMember(
     @Param("taskId") taskId: string,
     @Body() createDto: CreateTaskMemberDto,
@@ -82,7 +83,7 @@ export class TaskMembersController {
    * - the requester has READ permission on this task
    */
   @Get()
-  @Permissions()
+  @Permissions("view_dashboard")
   async findMembers(
     @Param("taskId") taskId: string,
     @Req() req: any,
@@ -135,7 +136,7 @@ export class TaskMembersController {
    */
   @Delete(":userId")
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Permissions()
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
   async removeMember(
     @Param("taskId") taskId: string,
     @Param("userId") userId: string,
@@ -170,7 +171,7 @@ export class TaskMembersController {
    * }
    */
   @Get("check-permission")
-  @Permissions()
+  @Permissions("view_dashboard")
   async checkPermission(
     @Param("taskId") taskId: string,
     @Req() req: any,

@@ -11,6 +11,7 @@ import {
 import { Server, Socket } from "socket.io";
 import { ChatRoomsService } from "../chat-rooms/chat-rooms.service";
 import { ChatMessagesService } from "../chat-messages/chat-messages.service";
+import { PermissionsService } from "../permissions/permissions.service";
 
 @WebSocketGateway({
   cors: {
@@ -31,6 +32,7 @@ export class WebsocketGateway
     private readonly chatRoomsService: ChatRoomsService,
     @Inject(forwardRef(() => ChatMessagesService))
     private readonly chatMessagesService: ChatMessagesService,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   afterInit() {
@@ -45,9 +47,24 @@ export class WebsocketGateway
         return;
       }
 
-      const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
+      const payload = this.jwtService.verify<{ sub: number; username: string }>(
+        token,
+        {
+          secret: process.env.JWT_SECRET,
+        },
+      );
+
+      // the socket is as protected as the chat REST routes (T54, decision F1)
+      const userId = Number(payload.sub);
+      if (
+        !(await this.permissionsService.hasPermission(userId, "view_dashboard"))
+      ) {
+        this.logger.warn(
+          `Connection refused: ${client.id} - no view_dashboard`,
+        );
+        client.disconnect();
+        return;
+      }
 
       client.data.user = {
         userId: payload.sub,

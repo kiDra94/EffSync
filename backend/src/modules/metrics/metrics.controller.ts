@@ -13,8 +13,8 @@ export class MetricsController {
    * GET /metrics/status-distribution
    * Returns the distribution of task statuses
    */
-  @Permissions()
   @Get("status-distribution")
+  @Permissions("view_dashboard")
   async getStatusDistribution(@Req() req) {
     return this.metricsService.getStatusDistribution(req.user);
   }
@@ -23,8 +23,8 @@ export class MetricsController {
    * GET /metrics/task-progress
    * Returns progress metrics
    */
-  @Permissions()
   @Get("task-progress")
+  @Permissions("view_dashboard")
   async getTaskProgress(@Req() req) {
     return this.metricsService.getTaskProgress(req.user);
   }
@@ -33,8 +33,8 @@ export class MetricsController {
    * GET /metrics/tasks-by-status
    * Returns all tasks grouped by status
    */
-  @Permissions()
   @Get("tasks-by-status")
+  @Permissions("view_dashboard")
   async getTasksByStatus(@Req() req) {
     return this.metricsService.getTasksByStatus(req.user);
   }

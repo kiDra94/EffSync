@@ -70,6 +70,11 @@ export const ROLE_PERMISSIONS_CONFIG: Record<RoleName, string[]> = {
     "manage_system",
     "view_grades",
     "view_schedules",
+    // UC-10 names Admin as an actor of "create task" (decision F2)
+    "create_tasks",
+    "edit_tasks",
+    // Admin is staff (STAFF_ROLES) and kept grading (M8 review)
+    "edit_grades",
   ],
 
   // ============ TEACHER ============
@@ -86,7 +91,14 @@ export const ROLE_PERMISSIONS_CONFIG: Record<RoleName, string[]> = {
 
   // ============ STUDENT ============
   // Student functions
-  [RoleName.STUDENT]: ["view_dashboard", "view_grades", "view_schedules"],
+  // UC-10…12: students create, edit and finish their own tasks (decision F2)
+  [RoleName.STUDENT]: [
+    "view_dashboard",
+    "view_grades",
+    "view_schedules",
+    "create_tasks",
+    "edit_tasks",
+  ],
 };
 
 /**

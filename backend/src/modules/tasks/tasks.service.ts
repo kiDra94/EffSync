@@ -511,64 +511,12 @@ export class TasksService {
     // The creator may always delete their own task.
     // Everyone else needs the delete_task(s) permission.
     if (requesterId && task.created_by !== requesterId) {
-      const now = new Date();
-      const READ_FLAG = 4;
-      const permissionNames = ["delete_tasks", "delete_task"];
-
-      const directPermission = await this.prisma.user_permissions.findFirst({
-        where: {
-          user_id: requesterId,
-          permissions: { name: { in: permissionNames } },
-        },
-        include: { permissions: true },
-      });
-
-      let canDelete = false;
-
-      if (directPermission) {
-        const isTimeValid =
-          (!directPermission.valid_from ||
-            now >= directPermission.valid_from) &&
-          (!directPermission.valid_to || now <= directPermission.valid_to);
-
-        canDelete =
-          isTimeValid &&
-          (directPermission.permissions.flags & READ_FLAG) === READ_FLAG;
-      }
-
-      if (!canDelete) {
-        const rolePermission = await this.prisma.user_roles.findFirst({
-          where: {
-            user_id: requesterId,
-            roles: {
-              roles_permissions: {
-                some: {
-                  permissions: { name: { in: permissionNames } },
-                },
-              },
-            },
-          },
-          include: {
-            roles: {
-              include: {
-                roles_permissions: {
-                  where: {
-                    permissions: { name: { in: permissionNames } },
-                  },
-                  include: { permissions: true },
-                },
-              },
-            },
-          },
-        });
-
-        if (rolePermission?.roles?.roles_permissions?.length) {
-          canDelete = rolePermission.roles.roles_permissions.some(
-            (rp) => (rp.permissions.flags & READ_FLAG) === READ_FLAG,
-          );
-        }
-      }
-
+      // one permission check for all endpoints (problem 5): direct or through a role
+      const canDelete = await this.permissionsService.hasAnyPermission(
+        requesterId,
+        ["delete_tasks"],
+        PermissionFlag.READ,
+      );
       if (!canDelete) {
         throw new ForbiddenException("Missing permission: delete_tasks");
       }
