@@ -21,6 +21,8 @@ export abstract class RefreshTokenRepository {
   abstract revokeIfActive(id: number): Promise<boolean>;
   /** Revokes the active session with this hash, if there is one. */
   abstract revokeActiveByHash(tokenHash: string): Promise<void>;
+  /** Revokes all active sessions of the user (password change, M13); returns how many. */
+  abstract revokeAllForUser(userId: number): Promise<number>;
   /** Deletes the rows whose expiry has passed; returns how many. */
   abstract deleteExpired(): Promise<number>;
 }

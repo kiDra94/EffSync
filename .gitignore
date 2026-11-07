@@ -42,6 +42,7 @@ backend/prisma/dev.db-journal
 backend/src/generated/
 backend/uploads/
 backend/uploads-test/
+backend/mail-outbox-test/
 
 # Logs & Temp
 *.log

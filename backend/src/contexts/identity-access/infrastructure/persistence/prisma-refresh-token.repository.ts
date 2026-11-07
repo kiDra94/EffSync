@@ -47,6 +47,14 @@ export class PrismaRefreshTokenRepository extends RefreshTokenRepository {
     });
   }
 
+  async revokeAllForUser(userId: number) {
+    const { count } = await this.unitOfWork.client().refresh_tokens.updateMany({
+      where: { user_id: userId, revoked_at: null },
+      data: { revoked_at: new Date() },
+    });
+    return count;
+  }
+
   async deleteExpired() {
     const { count } = await this.unitOfWork.client().refresh_tokens.deleteMany({
       where: { expires_at: { lt: new Date() } },

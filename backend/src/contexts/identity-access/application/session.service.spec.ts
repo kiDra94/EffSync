@@ -28,6 +28,7 @@ describe("SessionService", () => {
       findActiveByHash: jest.fn(),
       revokeIfActive: jest.fn().mockResolvedValue(true),
       revokeActiveByHash: jest.fn().mockResolvedValue(undefined),
+      revokeAllForUser: jest.fn(),
       deleteExpired: jest.fn().mockResolvedValue(4),
     };
     auth = { issueToken: jest.fn().mockReturnValue({ token: "access.jwt" }) };

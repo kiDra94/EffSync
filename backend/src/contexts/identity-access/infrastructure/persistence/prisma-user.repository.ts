@@ -1,5 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
 import { PrismaService } from "../../../../shared/infrastructure/prisma/prisma.service";
+import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import {
   NewUser,
   UserChanges,
@@ -16,7 +17,11 @@ const ROLE_WITH_PERMISSIONS = {
 /** UserRepository on Prisma; the queries are the ones UsersService/AuthService made before M11. */
 @Injectable()
 export class PrismaUserRepository extends UserRepository {
-  constructor(private readonly prisma: PrismaService) {
+  // the unit of work is optional, so the M2 specs build the repository unchanged
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly unitOfWork?: PrismaUnitOfWork,
+  ) {
     super();
   }
 
@@ -54,6 +59,20 @@ export class PrismaUserRepository extends UserRepository {
     return this.prisma.users.findFirst({
       where: { email: { equals: email, mode: "insensitive" } },
       include: WITH_ROLES,
+    });
+  }
+
+  findByGoogleIdWithRoles(googleId: string) {
+    return this.prisma.users.findUnique({
+      where: { google_id: googleId },
+      include: WITH_ROLES,
+    });
+  }
+
+  async linkGoogleId(userId: number, googleId: string) {
+    await this.prisma.users.update({
+      where: { user_id: userId },
+      data: { google_id: googleId },
     });
   }
 
@@ -103,8 +122,9 @@ export class PrismaUserRepository extends UserRepository {
     });
   }
 
+  // joins an open unit of work: the password change revokes sessions with it (M13)
   updatePasswordHash(userId: number, passwordHash: string) {
-    return this.prisma.users.update({
+    return (this.unitOfWork?.client() ?? this.prisma).users.update({
       where: { user_id: userId },
       data: { password_hash: passwordHash },
     });

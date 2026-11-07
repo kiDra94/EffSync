@@ -387,7 +387,7 @@ Rules for all milestones:
   - Done when: E2E covers login → refresh → logout, an expired access token returns 401, a revoked or already-rotated refresh token returns 401, logout on one session leaves another session working, and the frontend refresh is tested in Vitest.
   - Risk: medium. It changes session behavior for every user, and the WebSocket JWT (`websocket.module.ts:13`) has to follow the same lifetime. Additive schema change (approved, Q8b); `seed.ts` and `test-seed.ts` clear the table.
 
-- [ ] **M13: Password reset by e-mail**
+- [x] **M13: Password reset by e-mail**
   - Why: T52. `ForgotPasswordView` posts to `/auth/forgot-password`, which doesn't exist; reset works only via Google.
   - Steps:
     1. Add `POST /auth/forgot-password`, which sends a reset link through the existing `EmailService`. It always answers 204, so it doesn't reveal whether an e-mail exists.

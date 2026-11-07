@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "../application/auth.service";
 import { SessionService } from "../application/session.service";
+import { PasswordResetService } from "../application/password-reset.service";
 
 describe("AuthController", () => {
   let controller: AuthController;
@@ -11,6 +12,10 @@ describe("AuthController", () => {
     login: jest.fn(),
     issueToken: jest.fn(),
     generateJwtFromGoogleUser: jest.fn(),
+  };
+  const mockPasswordReset = {
+    requestReset: jest.fn(),
+    changePassword: jest.fn(),
   };
   const mockSessions = {
     start: jest.fn(),
@@ -27,6 +32,7 @@ describe("AuthController", () => {
           useValue: mockAuthService,
         },
         { provide: SessionService, useValue: mockSessions },
+        { provide: PasswordResetService, useValue: mockPasswordReset },
       ],
     }).compile();
 
@@ -138,5 +144,24 @@ describe("AuthController", () => {
     expect(redirect).toHaveBeenCalledWith(
       "http://localhost:5173/reset-password#token=reset.jwt",
     );
+  });
+
+  // M13 (T52)
+  it("passes forgot-password and set-new-password to the PasswordResetService", async () => {
+    mockPasswordReset.requestReset.mockResolvedValue(undefined);
+    mockPasswordReset.changePassword.mockResolvedValue(undefined);
+
+    await controller.forgotPassword({ email: "t@htl.at" });
+    const result = await controller.setNewPassword(
+      { user: { userId: 9 } },
+      { password: "neues-passwort" },
+    );
+
+    expect(mockPasswordReset.requestReset).toHaveBeenCalledWith("t@htl.at");
+    expect(mockPasswordReset.changePassword).toHaveBeenCalledWith(
+      9,
+      "neues-passwort",
+    );
+    expect(result).toEqual({ message: "Passwort erfolgreich geändert" });
   });
 });

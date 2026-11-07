@@ -9,6 +9,8 @@ import { RolePermissionsService } from "./application/role-permissions.service";
 import { RolesService } from "./application/roles.service";
 import { UsersService } from "./application/users.service";
 import { SessionService } from "./application/session.service";
+import { PasswordResetService } from "./application/password-reset.service";
+import { ResetTokens } from "./application/ports/reset-tokens";
 import {
   PermissionRepository,
   RolePermissionRepository,
@@ -28,12 +30,14 @@ import { GoogleStrategy } from "./infrastructure/security/google.strategy";
 import { JwtStrategy } from "./infrastructure/security/jwt.strategy";
 import { LocalStrategy } from "./infrastructure/security/local.strategy";
 import { SessionCleanupJob } from "./infrastructure/session-cleanup.job";
+import { JwtResetTokens } from "./infrastructure/security/jwt-reset-tokens";
 import { AuthController } from "./presentation/auth.controller";
 import { PermissionsController } from "./presentation/permissions.controller";
 import { RolesController } from "./presentation/roles.controller";
 import { UsersController } from "./presentation/users.controller";
 import { PermissionsGuard } from "./presentation/security/permissions.guard";
 import { RolesGuard } from "./presentation/security/roles.guard";
+import { PasswordChangeGuard } from "./presentation/security/password-change.guard";
 
 /**
  * identity-access (GOALS.md M11): authentication, users, roles and
@@ -63,6 +67,8 @@ import { RolesGuard } from "./presentation/security/roles.guard";
     RolePermissionsService,
     PermissionsService,
     SessionService,
+    PasswordResetService,
+    { provide: ResetTokens, useClass: JwtResetTokens },
     { provide: UserRepository, useClass: PrismaUserRepository },
     { provide: PermissionRepository, useClass: PrismaPermissionRepository },
     { provide: RoleRepository, useClass: PrismaRoleRepository },
@@ -77,6 +83,7 @@ import { RolesGuard } from "./presentation/security/roles.guard";
     SessionCleanupJob,
     RolesGuard,
     PermissionsGuard,
+    PasswordChangeGuard,
   ],
   exports: [
     PermissionsService,

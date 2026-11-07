@@ -602,3 +602,56 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - The WebSocket gateway checks the JWT only at the handshake. An open connection stays alive after the token expires; only a reconnect needs a fresh token.
 
 **Failed / open:** reuse detection (finding 6, see above).
+
+## 2026-11-07 – M13: Password reset by e-mail
+
+**Done:**
+- `POST /auth/forgot-password` (T52) always answers 204, even for an unknown address. It is throttled to 3 requests per minute.
+  - The mail is sent after the answer, so neither the answer nor its timing reveals whether the address exists.
+  - At most one reset mail per account every 5 minutes (recorded in `email_logs`), so the public endpoint can't flood an inbox.
+- The link `FRONTEND_URL/reset-password#token=…` (in the fragment, decision Q9) carries a 30-minute JWT with purpose `reset` (decision Q8a). Its key is `JWT_SECRET:reset:<password hash>`, so the link stops working once the password changes. The `:reset:` part means a reset token never passes as an access token, even for Google-only accounts without a password hash.
+- `set-new-password` uses `PasswordChangeGuard`. A reset token is recognized by its purpose and checked by `PasswordResetService`; any other bearer token goes through the normal JWT check, so the Google reset path stays.
+  - The password follows the registration rules (7–32 characters, `NewPasswordDto`), and the reset view checks the same rules.
+  - The change revokes all of the user's refresh tokens (step 6, from the M12 review) in the same unit of work as the password update. `PrismaUserRepository.updatePasswordHash` joins the unit of work; the dependency is optional, so the M2 specs build the repository unchanged.
+- Google sign-in (step 5): `GoogleStrategy` only maps the profile; `AuthService.signInWithGoogle` does the rest.
+  - It looks the account up by `google_id`, then by a verified e-mail. A matched account is linked only if it has no Google id yet; otherwise 409.
+  - A new user gets the same default role as registration (`assignDefaultRole`).
+  - An e-mail or username that another account uses ends in 409 instead of a unique-constraint 500. The strategy no longer logs profile data.
+- Dependency rules: identity-access may not import the legacy e-mail module, so it defines the port `PasswordResetMailer`. `modules/email` implements it on the existing `EmailService` (`EmailPasswordResetMailer`, bound by the global `PasswordResetMailModule`) until M23.
+- Mail transport (`mail-transport.ts`, injected as `MAIL_TRANSPORT`): SMTP in production, Ethereal in development. In tests, a file outbox in `MAIL_OUTBOX_DIR` (gitignored), so no E2E run sends mail over the network.
+- `frontendUrl()` in `shared/presentation` replaces two copies of the `FRONTEND_URL` default.
+
+**Verified:**
+- Done when:
+  - `test/password-reset.e2e-spec.ts` covers:
+    - an unknown address gets 204 and no mail
+    - the address is matched case-insensitively
+    - the token is read from the outbox and sets a new password, and the login works with it
+    - the reset token gets 401 as an access token
+    - a 6- or 33-character password gets 400
+    - the same link again gets 401
+    - a refresh token from before the change gets 401
+    - an expired link gets 401
+    - the Google reset path (an access token) still works
+  - Frontend against the real backend: a temporary Cypress spec, kept outside the repo, ran with the backend on the test DB (port 3001) and Vite. It requested the link on `/forgot-password`, opened the link from the outbox, set a password on `/reset-password` and signed in with it. Passed, both before and after the review fixes.
+- Backend: 406 unit and 63 E2E tests. Frontend: 184 tests. tsc, lint (0 errors, 431 warnings), knip, dependency-cruiser (0 violations, 0 context cycles) and the build pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 9 findings:
+  - fixed:
+    - a Google-only account's reset token passed as an access token (1, critical)
+    - Google collisions ended in 500 (2)
+    - the password change and the revoke weren't atomic (3)
+    - `linkGoogleId` overwrote another Google id (4)
+    - weaker password rules than registration (5)
+    - a failed mail was never logged (6)
+    - inbox flooding (7)
+    - the duplicated `FRONTEND_URL` default (9, partly)
+  - accepted:
+    - (8) Access tokens issued before a password change stay valid until they expire (at most 15 minutes, T51). Rejecting them would need a `password_changed_at` column, which is an unapproved schema change.
+    - A refresh that runs in the same milliseconds as the revoke can still insert one rotated row.
+    - (9, rest) `requestReset` loads the roles with the user, because `findByEmailWithRoles` is the case-insensitive lookup.
+
+**Learned (for later milestones):**
+- Global binding modules (`PasswordResetMailModule`) are the way for a context to use a legacy module before that module is migrated. Remove this one in M23.
+- `NODE_ENV=test` now switches the e-mail transport. E2E files that trigger mail can read `MAIL_OUTBOX_DIR`.
+
+**Failed / open:** none beyond the accepted points above.

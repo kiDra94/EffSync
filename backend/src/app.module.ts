@@ -7,6 +7,7 @@ import { DocumentsModule } from "./modules/documents/documents.module";
 import { ChatRoomsModule } from "./modules/chat-rooms/chat-rooms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { EmailModule } from "./modules/email/email.module";
+import { PasswordResetMailModule } from "./modules/email/password-reset-mail.module";
 import { NotesModule } from "./modules/notes/notes.module";
 import { SchedulesModule } from "./modules/schedules/schedules.module";
 import { ClassesModule } from "./modules/classes/classes.module";
@@ -63,6 +64,7 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     ChatMessagesModule,
     NotificationsModule,
     EmailModule,
+    PasswordResetMailModule,
     NotesModule,
     SchedulesModule,
     ClassesModule,

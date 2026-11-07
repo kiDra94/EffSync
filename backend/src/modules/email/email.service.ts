@@ -1,45 +1,19 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
+import { MAIL_TRANSPORT } from "./mail-transport";
+
+const PASSWORD_RESET_COOLDOWN_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter;
   private logger = new Logger("EmailService");
 
-  constructor(private prisma: PrismaService) {
-    this.initializeTransporter();
-  }
-
-  private initializeTransporter() {
-    // Configure Nodemailer depending on the environment
-    // Development: Ethereal Email (free, no real server needed)
-    // Production: a real SMTP server (Gmail, SendGrid, etc.)
-
-    if (process.env.NODE_ENV === "production") {
-      // Production: SendGrid, Gmail, etc.
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || "smtp.gmail.com",
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSWORD,
-        },
-      });
-    } else {
-      // Development: Ethereal Email (test service)
-      this.transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        auth: {
-          user: process.env.ETHEREAL_USER || "test@ethereal.email",
-          pass: process.env.ETHEREAL_PASSWORD || "test-password",
-        },
-      });
-      this.logger.debug("✉️  Using Ethereal Email for testing");
-    }
-  }
+  // the transport depends on the environment (mail-transport.ts)
+  constructor(
+    private prisma: PrismaService,
+    @Inject(MAIL_TRANSPORT) private transporter: nodemailer.Transporter,
+  ) {}
 
   /**
    * Sends the e-mail for a task that is due
@@ -164,6 +138,62 @@ export class EmailService {
       );
       return false;
     }
+  }
+
+  /**
+   * Sends the password-reset link (T52, M13). Valid 30 minutes and only until
+   * the password has changed. At most one per account every 5 minutes, so the
+   * public forgot-password endpoint can't flood an inbox.
+   */
+  async sendPasswordResetEmail(
+    userId: number,
+    userEmail: string,
+    link: string,
+  ): Promise<boolean> {
+    const subject = "EffSync: Passwort zurücksetzen";
+    const recent = await this.prisma.email_logs.findFirst({
+      where: {
+        user_id: userId,
+        email_type: "password_reset",
+        status: "sent",
+        sent_at: { gte: new Date(Date.now() - PASSWORD_RESET_COOLDOWN_MS) },
+      },
+    });
+    if (recent) return true;
+    try {
+      await this.sendEmail(
+        userEmail,
+        subject,
+        this.generatePasswordResetEmailHtml(link),
+      );
+      await this.logEmail(userId, userEmail, subject, "password_reset", "sent");
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to send password reset email to user ${userId}:`,
+        error,
+      );
+      await this.logEmail(
+        userId,
+        userEmail,
+        subject,
+        "password_reset",
+        "failed",
+        error instanceof Error ? error.message : String(error),
+      );
+      return false;
+    }
+  }
+
+  private generatePasswordResetEmailHtml(link: string): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Passwort zurücksetzen</h2>
+        <p>Für dein EffSync-Konto wurde ein neues Passwort angefordert.</p>
+        <p><a href="${link}" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Neues Passwort festlegen</a></p>
+        <p>Der Link ist 30 Minuten gültig und funktioniert nur einmal. Wenn du kein neues Passwort angefordert hast, kannst du diese E-Mail ignorieren.</p>
+      </div>
+    `;
   }
 
   /**

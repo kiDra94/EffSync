@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { CreateUserInput } from "./user-inputs";
 import * as bcrypt from "bcrypt";
 import { JwtService } from "@nestjs/jwt";
@@ -16,6 +20,16 @@ export interface JwtPayload {
   sub: number;
   username: string;
   role?: string;
+}
+
+/** What GoogleStrategy reads from the Google profile. */
+interface GoogleProfile {
+  googleId: string;
+  email?: string;
+  /** Google confirmed the address; only then may it link a local account */
+  emailVerified: boolean;
+  firstname?: string;
+  lastname?: string;
 }
 
 /** The user GoogleStrategy hands to the callback. */
@@ -42,19 +56,73 @@ export class AuthService {
       password_hash: hashedPassword,
     });
 
-    // Assign default role: Student (role_id=2)
+    await this.assignDefaultRole(user.user_id);
+    return withoutPasswordHash(user);
+  }
+
+  /**
+   * Google sign-in (M13 step 5): the account linked to the Google id, else a
+   * local account with the same verified e-mail (which gets linked if it has
+   * no Google id yet), else a new user with the same default role as
+   * register. An e-mail or username that another account already uses ends
+   * in 409, not in a unique-constraint error.
+   */
+  async signInWithGoogle(profile: GoogleProfile): Promise<GoogleUser> {
+    let user = await this.users.findByGoogleIdWithRoles(profile.googleId);
+
+    if (!user && profile.email && profile.emailVerified) {
+      user = await this.users.findByEmailWithRoles(profile.email);
+      if (user?.google_id) {
+        throw new ConflictException(
+          "Dieses Konto ist mit einem anderen Google-Konto verknüpft",
+        );
+      }
+      if (user) await this.users.linkGoogleId(user.user_id, profile.googleId);
+    }
+
+    if (!user) {
+      const email = profile.email || `${profile.googleId}@google.oauth`;
+      const taken =
+        (await this.users.findByEmail(email)) ??
+        (await this.users.findByUsername(email));
+      if (taken) {
+        throw new ConflictException(
+          "Diese E-Mail-Adresse gehört bereits zu einem Konto",
+        );
+      }
+      const created = await this.users.create({
+        username: email,
+        email,
+        firstname: profile.firstname || "Google",
+        lastname: profile.lastname || "User",
+        password_hash: null,
+        google_id: profile.googleId,
+      });
+      await this.assignDefaultRole(created.user_id);
+      user = await this.users.findByIdWithRoles(created.user_id);
+    }
+    if (!user)
+      throw new UnauthorizedException("Google-Anmeldung fehlgeschlagen");
+
+    return {
+      userId: user.user_id,
+      username: user.username,
+      role: (user.user_roles[0]?.roles?.name ?? RoleName.STUDENT).toLowerCase(),
+    };
+  }
+
+  // Default role for new accounts: Student (role_id=2)
+  private async assignDefaultRole(userId: number) {
     try {
       const studentRole = await this.users.findRoleByName(RoleName.STUDENT);
       const roleId = studentRole?.role_id ?? 2;
-      await this.users.assignRole(user.user_id, roleId);
+      await this.users.assignRole(userId, roleId);
     } catch (error) {
       console.error(
         "Failed to assign default role during registration:",
         error,
       );
     }
-
-    return withoutPasswordHash(user);
   }
 
   /**

@@ -18,10 +18,12 @@ export interface NewUser {
   username: string;
   firstname: string;
   lastname: string;
-  password_hash: string;
+  /** null for an account that signs in only with Google */
+  password_hash: string | null;
+  google_id?: string;
 }
 
-export type UserChanges = Partial<Omit<NewUser, "password_hash">>;
+export type UserChanges = Partial<Omit<NewUser, "password_hash" | "google_id">>;
 
 /** Users, their roles and their direct permissions (port; Prisma in infrastructure). */
 export abstract class UserRepository {
@@ -34,6 +36,10 @@ export abstract class UserRepository {
     username: string,
   ): Promise<UserWithRoles | null>;
   abstract findByEmailWithRoles(email: string): Promise<UserWithRoles | null>;
+  abstract findByGoogleIdWithRoles(
+    googleId: string,
+  ): Promise<UserWithRoles | null>;
+  abstract linkGoogleId(userId: number, googleId: string): Promise<void>;
   abstract findSummary(userId: number): Promise<UserSummary | null>;
   abstract findAllForChat(): Promise<UserForChat[]>;
   abstract findAllWithAccess(): Promise<UserWithAccess[]>;

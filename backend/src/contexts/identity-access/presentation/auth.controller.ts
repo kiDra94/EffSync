@@ -6,29 +6,37 @@ import {
   Get,
   Req,
   Res,
-  BadRequestException,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
 import { AuthService, GoogleUser } from "../application/auth.service";
 import { SessionService } from "../application/session.service";
+import { PasswordResetService } from "../application/password-reset.service";
 import type { UserWithRoles } from "../application/ports/identity-records";
 import type { AuthenticatedRequest } from "./security/authenticated-request";
 import type { Request, Response } from "express";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { NewPasswordDto } from "./dto/new-password.dto";
+import {
+  PasswordChangeGuard,
+  type PasswordChangeRequest,
+} from "./security/password-change.guard";
 import { JwtAuthGuard } from "./security/jwt-auth.guard";
 import { LocalAuthGuard } from "./security/local-auth.guard";
 import { GoogleAuthGuard } from "./security/google-auth.guard";
 import { GoogleResetAuthGuard } from "./security/google-reset-auth.guard";
 import { Throttle } from "@nestjs/throttler";
+import { frontendUrl } from "../../../shared/presentation/frontend-url";
 
 @Controller("auth")
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly sessions: SessionService,
+    private readonly passwordReset: PasswordResetService,
   ) {}
 
   @Throttle({ default: { limit: 3, ttl: 60000 } })
@@ -85,35 +93,39 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const token = this.authService.generateJwtFromGoogleUser(req.user);
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const state = req.query?.state;
 
     // decision Q9: the tokens travel in the URL fragment, which never reaches a
     // server or proxy log; the frontend loads the user from GET /auth/profile
     if (state === "reset-password") {
       // only for setting a new password: no session, so no refresh token
-      res.redirect(`${frontendUrl}/reset-password#token=${token}`);
+      res.redirect(`${frontendUrl()}/reset-password#token=${token}`);
     } else {
       // M12: a sign-in starts a session like the local login
       const refreshToken = await this.sessions.start(req.user.userId);
       res.redirect(
-        `${frontendUrl}/auth-callback#token=${token}&refreshToken=${refreshToken}`,
+        `${frontendUrl()}/auth-callback#token=${token}&refreshToken=${refreshToken}`,
       );
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  // T52: always 204, so the answer doesn't reveal whether the address exists
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post("forgot-password")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    await this.passwordReset.requestReset(body.email);
+  }
+
+  // a reset token from the e-mail link or an access token (Google reset path);
+  // the change ends all of the user's sessions
+  @UseGuards(PasswordChangeGuard)
   @Post("set-new-password")
   async setNewPassword(
-    @Req() req: AuthenticatedRequest,
-    @Body("password") password: string,
+    @Req() req: PasswordChangeRequest,
+    @Body() body: NewPasswordDto,
   ) {
-    if (!password || password.length < 6) {
-      throw new BadRequestException(
-        "Passwort muss mindestens 6 Zeichen lang sein",
-      );
-    }
-    await this.authService.setNewPassword(req.user.userId, password);
+    await this.passwordReset.changePassword(req.user.userId, body.password);
     return { message: "Passwort erfolgreich geändert" };
   }
 

@@ -13,3 +13,4 @@ export {
   getPermissionsForRole,
 } from "../domain/role-permissions";
 export { BCRYPT_COST } from "./password-hashing";
+export { PasswordResetMailer } from "./ports/password-reset-mailer";

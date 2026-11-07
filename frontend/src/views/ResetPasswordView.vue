@@ -37,8 +37,9 @@ const handleSubmit = async () => {
   errorMessage.value = ''
   message.value = ''
 
-  if (password.value.length < 6) {
-    errorMessage.value = 'Passwort muss mindestens 6 Zeichen lang sein.'
+  // the same rules as the backend (NewPasswordDto) and the registration
+  if (password.value.length < 7 || password.value.length > 32) {
+    errorMessage.value = 'Das Passwort muss 7 bis 32 Zeichen lang sein.'
     return
   }
   if (password.value !== passwordConfirm.value) {
@@ -81,7 +82,7 @@ const handleSubmit = async () => {
             type="password"
             v-model="password"
             required
-            placeholder="Mindestens 6 Zeichen"
+            placeholder="7 bis 32 Zeichen"
             :disabled="!token"
           />
         </div>
