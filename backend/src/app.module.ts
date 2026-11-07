@@ -1,13 +1,13 @@
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { TasksModule } from "./modules/tasks/tasks.module";
-import { TaskCommentsModule } from "./modules/task-comments/task-comments.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { ChatRoomsModule } from "./modules/chat-rooms/chat-rooms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { EmailModule } from "./modules/email/email.module";
-import { PasswordResetMailModule } from "./modules/email/password-reset-mail.module";
+import { EmailPortsModule } from "./modules/email/email-ports.module";
+import { WebsocketPortsModule } from "./modules/websocket/websocket-ports.module";
+import { TaskManagementModule } from "./contexts/task-management/task-management.module";
 import { NotesModule } from "./modules/notes/notes.module";
 import { SchedulesModule } from "./modules/schedules/schedules.module";
 import { ClassesModule } from "./modules/classes/classes.module";
@@ -24,9 +24,6 @@ import {
 import { ChatMessagesModule } from "./modules/chat-messages/chat-messages.module";
 import { RoomsModule } from "./modules/rooms/room.module";
 import { LessonSlotsModule } from "./modules/lesson-slots/lesson-slots.module";
-import { TaskActivityLogModule } from "./modules/task-activity-log/task-activity-log.module";
-import { TaskMembersModule } from "./modules/task-members/task-members.module";
-import { TaskTemplatesModule } from "./modules/task-templates/task-templates.module";
 import { APP_GUARD } from "@nestjs/core";
 import { SubjectsModule } from "./modules/subjects/subjects.module";
 import { WebsocketModule } from "./modules/websocket/websocket.module";
@@ -57,14 +54,14 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
       }),
     }),
     IdentityAccessModule,
-    TasksModule,
-    TaskCommentsModule,
     DocumentsModule,
     ChatRoomsModule,
     ChatMessagesModule,
     NotificationsModule,
     EmailModule,
-    PasswordResetMailModule,
+    EmailPortsModule,
+    WebsocketPortsModule,
+    TaskManagementModule,
     NotesModule,
     SchedulesModule,
     ClassesModule,
@@ -72,9 +69,6 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     PrismaModule,
     LessonSlotsModule,
     RoomsModule,
-    TaskActivityLogModule,
-    TaskMembersModule,
-    TaskTemplatesModule,
     SubjectsModule,
     WebsocketModule,
     MetricsModule,

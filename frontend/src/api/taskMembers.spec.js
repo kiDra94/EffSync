@@ -24,7 +24,7 @@ describe('taskMembersApi', () => {
 
       const result = await taskMembersApi.getTaskMembers(mockTaskId);
 
-      expect(apiClient.get).toHaveBeenCalledWith(`/api/tasks/${mockTaskId}/members`);
+      expect(apiClient.get).toHaveBeenCalledWith(`/tasks/${mockTaskId}/members`);
       expect(result.data).toEqual(mockMembers);
     });
 
@@ -35,7 +35,7 @@ describe('taskMembersApi', () => {
 
       for (const id of taskIds) {
         await taskMembersApi.getTaskMembers(id);
-        expect(apiClient.get).toHaveBeenCalledWith(`/api/tasks/${id}/members`);
+        expect(apiClient.get).toHaveBeenCalledWith(`/tasks/${id}/members`);
       }
 
       expect(apiClient.get).toHaveBeenCalledTimes(taskIds.length);
@@ -70,7 +70,7 @@ describe('taskMembersApi', () => {
       const result = await taskMembersApi.addTaskMember(mockTaskId, mockData);
 
       expect(apiClient.post).toHaveBeenCalledWith(
-        `/api/tasks/${mockTaskId}/members`,
+        `/tasks/${mockTaskId}/members`,
         mockData
       );
       expect(result.data).toEqual(mockData);
@@ -83,7 +83,7 @@ describe('taskMembersApi', () => {
       for (const id of userIds) {
         await taskMembersApi.addTaskMember(mockTaskId, { user_id: id });
         expect(apiClient.post).toHaveBeenCalledWith(
-          `/api/tasks/${mockTaskId}/members`,
+          `/tasks/${mockTaskId}/members`,
           { user_id: id }
         );
       }
@@ -149,7 +149,7 @@ describe('taskMembersApi', () => {
       await taskMembersApi.removeTaskMember(mockTaskId, mockUserId);
 
       expect(apiClient.delete).toHaveBeenCalledWith(
-        `/api/tasks/${mockTaskId}/members/${mockUserId}`
+        `/tasks/${mockTaskId}/members/${mockUserId}`
       );
     });
 
@@ -160,7 +160,7 @@ describe('taskMembersApi', () => {
       for (const id of userIds) {
         await taskMembersApi.removeTaskMember(mockTaskId, id);
         expect(apiClient.delete).toHaveBeenCalledWith(
-          `/api/tasks/${mockTaskId}/members/${id}`
+          `/tasks/${mockTaskId}/members/${id}`
         );
       }
 
@@ -219,7 +219,7 @@ describe('taskMembersApi', () => {
       const result = await taskMembersApi.checkPermission(mockTaskId);
 
       expect(apiClient.get).toHaveBeenCalledWith(
-        `/api/tasks/${mockTaskId}/members/check-permission`
+        `/tasks/${mockTaskId}/members/check-permission`
       );
       expect(result.data.has_read).toBe(true);
       expect(result.data.has_write).toBe(true);
@@ -301,7 +301,7 @@ describe('taskMembersApi', () => {
       await taskMembersApi.removeTaskMember(mockTaskId, 1);
       await taskMembersApi.checkPermission(mockTaskId);
 
-      // All endpoints should have /api/tasks/:taskId/members in the path
+      // All endpoints should have /tasks/:taskId/members in the path (M15, T130: no doubled /api)
       const allCalls = [
         ...apiClient.get.mock.calls,
         ...apiClient.post.mock.calls,
@@ -309,7 +309,7 @@ describe('taskMembersApi', () => {
       ];
 
       allCalls.forEach(call => {
-        expect(call[0]).toContain(`/api/tasks/${mockTaskId}/members`);
+        expect(call[0]).toContain(`/tasks/${mockTaskId}/members`);
       });
     });
   });

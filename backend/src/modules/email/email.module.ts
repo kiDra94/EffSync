@@ -6,10 +6,9 @@ import { EmailCronService } from "./email-cron.service";
 import { EmailPreferencesController } from "./email-preferences.controller";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { NotificationsModule } from "../notifications/notifications.module";
-import { TasksModule } from "../tasks/tasks.module";
 
 @Module({
-  imports: [ScheduleModule.forRoot(), NotificationsModule, TasksModule],
+  imports: [ScheduleModule.forRoot(), NotificationsModule],
   providers: [
     EmailService,
     EmailCronService,

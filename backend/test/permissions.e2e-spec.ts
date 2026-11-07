@@ -91,7 +91,7 @@ describe("Endpoint permissions (e2e)", () => {
   it.each([
     "/api/users/for-chat",
     "/api/users/profile",
-    "/api/task-activity?task_id=1",
+    "/api/tasks/1/activity",
     "/api/email-preferences",
   ])("answers 403 on GET %s without view_dashboard", async (url) => {
     await get(url, noPermissions).expect(403);

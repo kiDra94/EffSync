@@ -1,0 +1,247 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  MemberUser,
+  TaskMemberRepository,
+} from "./ports/task-member.repository";
+
+/**
+ * Permission flags (bitwise):
+ * READ:    0b100 = 4   (read data)
+ * WRITE:   0b010 = 2   (change data)
+ * EXECUTE: 0b001 = 1   (run an action)
+ * RWX:     0b111 = 7   (full access)
+ */
+export const TaskPermissionFlags = {
+  READ: 4,
+  WRITE: 2,
+  EXECUTE: 1,
+  RWX: 7,
+};
+
+/** A member of a task: explicit, or implicitly the creator or the assignee. */
+interface TaskMemberView {
+  task_id: number;
+  user_id: number;
+  joined_at: Date | null;
+  users: MemberUser | null;
+  role: "creator" | "assigned" | "member";
+}
+
+/** Task members (T44): add, remove, list, and the rwx check on a task. */
+@Injectable()
+export class TaskMembersService {
+  constructor(private readonly members: TaskMemberRepository) {}
+
+  /**
+   * Adds a user to a task: the requester is the task owner or has WRITE, the
+   * target user exists, and isn't a member yet.
+   */
+  async addMember(taskId: number, userId: number, requesterId: number) {
+    const task = await this.members.findTask(taskId);
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} nicht gefunden`);
+    }
+
+    const isOwner = task.created_by === requesterId;
+    const hasWritePermission = await this.checkPermission(
+      requesterId,
+      taskId,
+      TaskPermissionFlags.WRITE,
+    );
+    if (!isOwner && !hasWritePermission) {
+      throw new ForbiddenException(
+        "Sie haben keine Berechtigung, Mitglieder hinzuzufügen",
+      );
+    }
+
+    if (!(await this.members.userExists(userId))) {
+      throw new NotFoundException(`Benutzer ${userId} nicht gefunden`);
+    }
+    if (await this.members.findMember(taskId, userId)) {
+      throw new BadRequestException(
+        "Benutzer ist bereits Mitglied dieser Task",
+      );
+    }
+
+    return this.members.create(taskId, userId);
+  }
+
+  /**
+   * Removes a user from a task: the requester is the owner or has WRITE; the
+   * creator and the assignee (implicit members) can't be removed.
+   */
+  async removeMember(
+    taskId: number,
+    userId: number,
+    requesterId: number,
+  ): Promise<void> {
+    const task = await this.members.findTask(taskId);
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} nicht gefunden`);
+    }
+
+    const isOwner = task.created_by === requesterId;
+    const hasWritePermission = await this.checkPermission(
+      requesterId,
+      taskId,
+      TaskPermissionFlags.WRITE,
+    );
+    if (!isOwner && !hasWritePermission) {
+      throw new ForbiddenException(
+        "Sie haben keine Berechtigung, Mitglieder zu entfernen",
+      );
+    }
+    if (task.created_by === userId) {
+      throw new BadRequestException(
+        "Der Task-Creator kann nicht als Mitglied entfernt werden",
+      );
+    }
+    if (task.assigned_to === userId) {
+      throw new BadRequestException(
+        "Der zugewiesene Benutzer kann nicht als Mitglied entfernt werden",
+      );
+    }
+
+    await this.members.delete(taskId, userId);
+  }
+
+  /** All members of a task: the creator, the assignee and the explicit members. */
+  async findByTaskIncludingImplicit(taskId: number): Promise<TaskMemberView[]> {
+    const task = await this.members.findTaskWithPeople(taskId);
+    if (!task) return [];
+
+    const memberMap = new Map<number, TaskMemberView>();
+    if (task.created_by && task.users_tasks_created_byTousers) {
+      memberMap.set(task.created_by, {
+        task_id: taskId,
+        user_id: task.created_by,
+        joined_at: task.created_at,
+        users: task.users_tasks_created_byTousers,
+        role: "creator",
+      });
+    }
+    if (task.assigned_to && task.users_tasks_assigned_toTousers) {
+      memberMap.set(task.assigned_to, {
+        task_id: taskId,
+        user_id: task.assigned_to,
+        joined_at: task.created_at,
+        users: task.users_tasks_assigned_toTousers,
+        role: "assigned",
+      });
+    }
+
+    for (const member of await this.members.findMembersWithUsers(taskId)) {
+      // implicit members stay as they are
+      if (!memberMap.has(member.user_id)) {
+        memberMap.set(member.user_id, {
+          task_id: member.task_id,
+          user_id: member.user_id,
+          joined_at: member.joined_at,
+          users: member.users,
+          role: "member",
+        });
+      }
+    }
+    return Array.from(memberMap.values());
+  }
+
+  /** The members, for a requester who is a member or has READ on the task. */
+  async findMembersFor(taskId: number, requesterId: number) {
+    const mayRead =
+      (await this.isMember(taskId, requesterId)) ||
+      (await this.checkPermission(
+        requesterId,
+        taskId,
+        TaskPermissionFlags.READ,
+      ));
+    if (!mayRead) {
+      throw new ForbiddenException(
+        "Sie haben keine Berechtigung, die Mitglieder zu sehen",
+      );
+    }
+    return this.findByTaskIncludingImplicit(taskId);
+  }
+
+  async findByTask(taskId: number) {
+    return this.members.findMembersWithUsers(taskId);
+  }
+
+  /** Creator and assignee are implicit members. */
+  async isMember(taskId: number, userId: number): Promise<boolean> {
+    const task = await this.members.findMembership(taskId);
+    if (!task) return false;
+    if (task.created_by === userId || task.assigned_to === userId) {
+      return true;
+    }
+    return !!(await this.members.findMember(taskId, userId));
+  }
+
+  /**
+   * Whether the user has the flags on the task: the creator always has RWX,
+   * everyone else needs a valid direct permission with all the flags.
+   */
+  async checkPermission(
+    userId: number,
+    taskId: number,
+    requiredFlags: number,
+  ): Promise<boolean> {
+    const task = await this.members.findCreator(taskId);
+    if (!task) return false;
+    if (task.created_by === userId) return true;
+
+    const now = new Date();
+    for (const perm of await this.members.findUserPermissions(userId)) {
+      if (perm.valid_from && perm.valid_from > now) continue; // not valid yet
+      if (perm.valid_to && perm.valid_to < now) continue; // expired
+      if ((perm.permissions.flags & requiredFlags) === requiredFlags) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** The requester's rwx on the task, from one creator and one permission query. */
+  async permissionFlags(userId: number, taskId: number) {
+    const task = await this.members.findCreator(taskId);
+    let flags = 0;
+    if (task && task.created_by === userId) {
+      flags = TaskPermissionFlags.RWX;
+    } else if (task) {
+      const now = new Date();
+      for (const perm of await this.members.findUserPermissions(userId)) {
+        if (perm.valid_from && perm.valid_from > now) continue;
+        if (perm.valid_to && perm.valid_to < now) continue;
+        flags |= perm.permissions.flags & TaskPermissionFlags.RWX;
+      }
+    }
+    return {
+      has_read: (flags & TaskPermissionFlags.READ) !== 0,
+      has_write: (flags & TaskPermissionFlags.WRITE) !== 0,
+      has_execute: (flags & TaskPermissionFlags.EXECUTE) !== 0,
+      permission_flags: flags,
+    };
+  }
+
+  /** rwx from the bitwise flags, e.g. 7 → read, write and execute. */
+  extractPermissions(flags: number) {
+    return {
+      read: (flags & TaskPermissionFlags.READ) !== 0,
+      write: (flags & TaskPermissionFlags.WRITE) !== 0,
+      execute: (flags & TaskPermissionFlags.EXECUTE) !== 0,
+    };
+  }
+
+  /** The bitwise flags from rwx, e.g. read and write → 6. */
+  computeFlags(perms: { read?: boolean; write?: boolean; execute?: boolean }) {
+    let flags = 0;
+    if (perms.read) flags |= TaskPermissionFlags.READ;
+    if (perms.write) flags |= TaskPermissionFlags.WRITE;
+    if (perms.execute) flags |= TaskPermissionFlags.EXECUTE;
+    return flags;
+  }
+}

@@ -30,7 +30,7 @@ async function main() {
       "email_logs",
       "email_preferences",
       "comments",
-      "task_comments",
+      "task_grade",
       "task_activity_log",
       "task_documents",
       "task_members",
@@ -1364,13 +1364,26 @@ async function main() {
     await prisma.task_activity_log.createMany({ data: taskActivityLogData });
     console.log(`✓ 10 Einträge in task_activity_log erstellt`);
 
+    // student questions are discussion comments (decision Q16: comments, M15)
     const taskCommentsData = Array.from({ length: 10 }).map((_, i) => ({
       task_id: i + 1,
-      user_id: i + 7,
-      text: `Ich habe eine Frage zu Teilschritt ${i + 1}`,
+      created_by: i + 7,
+      content: `Ich habe eine Frage zu Teilschritt ${i + 1}`,
     }));
-    await prisma.task_comments.createMany({ data: taskCommentsData });
-    console.log(`✓ 10 Einträge in task_comments erstellt`);
+    await prisma.comments.createMany({ data: taskCommentsData });
+    console.log(`✓ 10 weitere Einträge in comments erstellt`);
+
+    // teachers' grading remarks on a task (task_grade)
+    const taskGradeData = [
+      { task_id: 3, user_id: 2, text: "Saubere API, die Tests fehlen noch." },
+      {
+        task_id: 5,
+        user_id: 2,
+        text: "Protokoll vollständig, gute Auswertung.",
+      },
+    ];
+    await prisma.task_grade.createMany({ data: taskGradeData });
+    console.log(`✓ ${taskGradeData.length} Einträge in task_grade erstellt`);
 
     const taskDocumentsData = [
       { task_id: 1, document_id: 1 },

@@ -22,32 +22,31 @@ describe("Routes without scaffold stubs (e2e)", () => {
     await app.close();
   });
 
-  // THESIS: T33 – /task-activity belongs to TaskActivityLogController, which requires a JWT
-  it("GET /api/task-activity reaches the guarded activity-log controller", async () => {
-    const response = await request(app.getHttpServer()).get(
-      "/api/task-activity",
-    );
-
-    expect(response.status).toBe(401);
-    expect(response.text).not.toContain("This action returns");
+  // THESIS: T33 (M15, decisions Q6 and A2) – the activity log is /tasks/:id/activity and the
+  // admin audit log /tasks/activity, in the guarded TaskController
+  it("serves the activity log under /api/tasks, behind the JWT guard", async () => {
+    await request(app.getHttpServer()).get("/api/tasks/activity").expect(401);
+    await request(app.getHttpServer()).get("/api/tasks/1/activity").expect(401);
   });
 
-  it("PATCH and DELETE /api/task-activity/:id are not served by a stub", async () => {
-    await request(app.getHttpServer())
-      .patch("/api/task-activity/1")
-      .send({})
-      .expect(404);
-    await request(app.getHttpServer())
-      .delete("/api/task-activity/1")
-      .expect(404);
+  // decision Q6: the old task prefixes are removed
+  it.each([
+    ["get", "/api/task-activity"],
+    ["get", "/api/task-templates"],
+    ["get", "/api/task-comments"],
+    ["get", "/api/api/tasks/1/members"],
+    ["patch", "/api/task-activity/1"],
+    ["delete", "/api/task-activity/1"],
+  ] as const)("%s %s no longer exists", async (method, url) => {
+    await request(app.getHttpServer())[method](url).expect(404);
   });
 
-  // THESIS: T110 – templates live at /task-templates; the stub /templates is gone
+  // THESIS: T110 – the stub /templates is gone; templates are /tasks/templates (Q6)
   it("GET /api/templates no longer exists", async () => {
     await request(app.getHttpServer()).get("/api/templates").expect(404);
   });
 
-  it("GET /api/task-templates is the guarded real API", async () => {
-    await request(app.getHttpServer()).get("/api/task-templates").expect(401);
+  it("GET /api/tasks/templates is the guarded real API", async () => {
+    await request(app.getHttpServer()).get("/api/tasks/templates").expect(401);
   });
 });

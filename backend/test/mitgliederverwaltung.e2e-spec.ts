@@ -5,9 +5,9 @@ import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/shared/infrastructure/prisma/prisma.service";
 import { createTestApp } from "./setup/create-test-app";
 
-// THESIS: T130 – the controller prefix already contains `api/`, so with the global
-// prefix the member routes really are /api/api/tasks/... (flipped in M15)
-const MEMBERS_BASE = "/api/api/tasks";
+// THESIS: T130 (flipped in M15) – the member routes are /api/tasks/:id/members
+// in the single TaskController (decision Q6), no longer /api/api/tasks/...
+const MEMBERS_BASE = "/api/tasks";
 
 /**
  * E2E tests for the member management workflows

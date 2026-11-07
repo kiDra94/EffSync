@@ -2,6 +2,7 @@ import { UserRepository } from "./ports/user.repository";
 import { PrismaUserRepository } from "../infrastructure/persistence/prisma-user.repository";
 import { Test, TestingModule } from "@nestjs/testing";
 import { UnitOfWork } from "../../../shared/application/unit-of-work";
+import { AccountDeletionRegistry } from "./account-deletion";
 import { UsersService } from "./users.service";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { RolePermissionsService } from "./role-permissions.service";
@@ -35,6 +36,7 @@ describe("UsersService", () => {
           useValue: {},
         },
         { provide: UnitOfWork, useValue: { run: jest.fn() } },
+        AccountDeletionRegistry,
       ],
     }).compile();
 

@@ -3,7 +3,6 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { EmailService } from "./email.service";
 import { NotificationsService } from "../notifications/notifications.service";
-import { TasksService } from "../tasks/tasks.service";
 
 @Injectable()
 export class EmailCronService {
@@ -13,7 +12,6 @@ export class EmailCronService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private notificationsService: NotificationsService,
-    private tasksService: TasksService,
   ) {}
 
   /**

@@ -713,3 +713,102 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - The data migration and the seeds both create user 0: the migration for existing databases, the seed after its `TRUNCATE`.
 
 **Failed / open:** see "accepted" above.
+
+## 2026-11-08 – M15: Migrate `task-management`
+
+**Done:**
+- The task code lives only in `src/contexts/task-management`. The modules `tasks`, `task-members`, `task-templates`, `task-comments` and `task-activity-log` are gone.
+  - `domain/`:
+    - `completion-rule.ts` (`evaluateCondition`, `ruleContainsTask`)
+    - `task.ts`: the aggregate's rules: `wouldCreateCycle` (was `validateNoCircularReference`), `isOwnParent`, `mayChangeLockedTask`, `mayEdit`, `mayLock`, `buildTree`, `LOCK_DURATION_MS`
+  - `application/`:
+    - ports for tasks, activity log, members, templates, comments, grading remarks, `TaskRealtime` and `MentionMailer`, with Prisma's types type-only
+    - `TaskService` (create, read, update, delete, subtasks, lists), `TaskLockingService`, `TaskCompletionService`, `TaskActivityLogService` (with the audit log), `TaskMembersService`, `TaskTemplatesService`, `CommentsService` (@mention mail, T09) and `GradeRemarksService`
+  - `infrastructure/`: Prisma repositories that make the previous queries (decision G1), all through `PrismaUnitOfWork.client()`, and `TaskAccountDeletion`
+  - `presentation/`: the one `TaskController` (decision Q6) and the DTOs
+- One unit of work per task use case (T32, L1): create, update, delete and deadline-unlock write the task and its activity-log entry together.
+  - Completing a task reads its descendant IDs before the transaction, so the transaction stays short.
+  - Realtime events for parents that changed are sent only after the commit.
+- Delete (decision Q8g): in the transaction, write `Task deleted: "<title>"`, set `task_id = null` on all of the task's log rows, then delete the task with its comments, grading remarks and document links (Q16 step 4.4). Chat rooms stay, without the task.
+- Comments and grading remarks (decision Q16):
+  - Migration `20261107180000_task_comments_to_task_grade`: renames the table with its PK, FKs and sequence, copies the rows into `comments` (`user_id` → `created_by`, `text` → `content`, timestamps kept) and empties `task_grade`. The seeds write discussion comments into `comments` and grading remarks into `task_grade`.
+  - Only the author edits or deletes a comment (403).
+  - Grading remarks: writing needs `@Roles(...STAFF_ROLES)` plus `edit_grades`, the same check as `PATCH /documents/:id/grade`. Reading is for task members and staff.
+- Admin audit log `GET /tasks/activity` (T33, UC-32, decision A2): `@Roles(...PRIVILEGED_ROLES)` plus `manage_system`. Paginated, filterable by `user_id`, `action` and `from`/`to` (a date alone means the whole day), and includes the entries of deleted tasks.
+- M14 step 6 (rule 4): identity-access has an `AccountDeletionRegistry`. task-management registers `TaskAccountDeletion`, which moves its tables to the ghost user and ends assignments in the deletion's unit of work; identity-access no longer writes the task tables.
+- Legacy bindings: `EmailPortsModule` (renamed from `PasswordResetMailModule`, now also `MentionMailer`) and `WebsocketPortsModule` (`TaskRealtime`) are global until M20 and M23. `EmailCronService` no longer injects `TasksService`, which it never used.
+- Fixed while moving:
+  - `BUG (M15)`: `changeTaskParent` checks the own parent first, the same way as `update()`.
+  - `/api/api/tasks/…/members` is now `/api/tasks/:id/members` (T130).
+  - The activity log's include selected non-existent columns.
+  - A non-numeric `:id` gets 400 instead of 500.
+  - A member-list denial gets 403 instead of 400.
+  - `check-permission` takes 2 queries instead of 6.
+- Frontend: `api/taskMembers.js` (without the doubled `/api`) and `api/taskTemplates.js` (`/tasks/templates`).
+- Lint: task-management has 0 `no-unsafe-*` findings and the rules are `error` there (decision Q13). The backend ratchet goes from 431 to 285 warnings.
+
+**Route table** (`GET /api-json`, all under `/api`):
+
+| Method | Path | Guard / permission |
+|---|---|---|
+| POST | /tasks | create_tasks W |
+| GET | /tasks | view_dashboard |
+| GET | /tasks/activity | Admin/Superuser, manage_system R |
+| POST | /tasks/templates | create_tasks W |
+| GET | /tasks/templates | view_dashboard |
+| GET | /tasks/templates/{templateId} | view_dashboard |
+| PATCH | /tasks/templates/{templateId} | create_tasks W |
+| DELETE | /tasks/templates/{templateId} | create_tasks W |
+| GET | /tasks/{id} | view_dashboard |
+| PATCH | /tasks/{id} | edit_tasks W |
+| DELETE | /tasks/{id} | edit_tasks or delete_tasks (others' tasks: delete_tasks, service) |
+| GET | /tasks/{id}/tree | view_dashboard |
+| PATCH | /tasks/{id}/deadline-unlock | edit_tasks W (staff or creator, service) |
+| POST, GET | /tasks/{id}/subtasks | create_tasks W / view_dashboard |
+| GET | /tasks/{id}/documents | view_dashboard |
+| GET | /tasks/{id}/activity | view_dashboard |
+| POST | /tasks/{id}/lock, /tasks/{id}/unlock | edit_tasks W (creator, service) |
+| GET | /tasks/{id}/can-edit | view_dashboard |
+| GET, POST | /tasks/{id}/comments | view_dashboard |
+| PATCH, DELETE | /tasks/{id}/comments/{commentId} | view_dashboard (author, service) |
+| GET | /tasks/{id}/grade-remarks | view_grades (member or staff, service) |
+| POST | /tasks/{id}/grade-remarks | Teacher/Admin/Superuser, edit_grades W |
+| POST, GET | /tasks/{id}/members | edit_tasks W / view_dashboard (member or READ, service) |
+| GET | /tasks/{id}/members/check-permission | view_dashboard |
+| DELETE | /tasks/{id}/members/{userId} | edit_tasks W |
+
+Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-templates` (5) and `/api/api/tasks/{taskId}/members` (4).
+
+**Verified:**
+- Done when:
+  - 0 dependency-cruiser violations (209 modules) and 0 context cycles. Specs and `*.fixtures.ts` are excluded, like specs before.
+  - The rollback: `test/task-transaction.e2e-spec.ts` replaces the activity-log repository with one that fails. `POST /tasks` and `PATCH /tasks/:id` answer 500, and neither the task nor the change is in the database. The unit tests show the same inside `$transaction`.
+  - The three `// THESIS: T32` tests are flipped (create, update, delete). `test/task-management.e2e-spec.ts` shows the created, updated and deleted entries of a deleted task, all with `task_id` null, in the database and in the audit log.
+  - The M1 task spec is split along the services into four files plus `task.characterization.fixtures.ts`. It has the same 54 test names (compared), and all 54 pass. Besides the construction lines, only the T32, `BUG (M15)` and Q16 comments tests changed.
+  - The 9 @mention tests pass against `CommentsService` on `comments`.
+  - After the reset with seed, `GET /tasks/1/comments` returns the former discussion comments, and a student gets 403 writing a grading remark.
+  - The migration on a throwaway database: two `task_comments` rows arrive in `comments` with their dates, `task_grade` is empty and `task_comments` is gone. `prisma migrate diff` shows no drift.
+  - `GET /api-json`: compared with `HEAD` (worktree, `ts-node --transpile-only`), 128 → 126 routes. The difference is exactly the removed and added routes above.
+  - No task-management file is over 500 lines; the members spec was split at 405 lines. Files over 500 elsewhere belong to M19 (`documents`).
+- Backend: 447 unit and 81 E2E tests. Frontend: 184 tests. tsc, lint (0 errors, 285 warnings), knip and build pass. `act`: all three jobs succeeded.
+- `code-review` (high) confirmed the moved queries, the migration and the route order. 10 findings:
+  - fixed:
+    - realtime events sent before the commit (2)
+    - recursive reads inside the transaction (3)
+    - `to` as a date dropped the day (5)
+    - dead `CommentsService.findForTask` and the `task_id: null` union (6, partly)
+    - the member-list check in the controller with 400 (7)
+    - repeated reads (8)
+  - planned: (1) `GET /tasks/:id` and its sub-resources check only `view_dashboard`, which was already so before M15. This is M17 step 5, using the visible set from step 4, with a Done-when check.
+  - documented:
+    - (4) A task delete deletes its comments, as Q16 step 4.4 says.
+    - (6, rest) `lockOverdueTask`, `changeTaskParent` and `extractPermissions` have no caller, but M1 and member tests pin them. The overdue cron locks tasks itself until M23.
+    - (9) Without a registered participant, the account deletion fails on the task FK and loses nothing.
+    - (10) The template include stays broken until M18 on purpose: decision E1 says a working template API must come with the privacy fix.
+
+**Learned (for later milestones):**
+- Global binding modules are the bridge from a context to a legacy module (`EmailPortsModule`, `WebsocketPortsModule`). M20 and M23 remove them.
+- An account deletion now runs through the registry. M19, M20 and M22 register their own participants (GOALS.md M15 step 6).
+- With the unit of work, a failing statement aborts the Postgres transaction, so best-effort `try/catch` inside a use case no longer works. Side effects such as mail go after the commit or out of the use case.
+
+**Failed / open:** see "planned" and "documented" above.

@@ -10,6 +10,7 @@ import { UserRepository } from "./ports/user.repository";
 import { RoleName } from "../domain/role-permissions";
 import { GHOST_USER_ID } from "../domain/ghost-user";
 import { UnitOfWork } from "../../../shared/application/unit-of-work";
+import { AccountDeletionRegistry } from "./account-deletion";
 import { BCRYPT_COST } from "./password-hashing";
 import { withoutPasswordHash } from "./public-user";
 
@@ -27,6 +28,7 @@ export class UsersService {
     private readonly users: UserRepository,
     private rolePermissionsService: RolePermissionsService,
     private readonly unitOfWork: UnitOfWork,
+    private readonly accountDeletion: AccountDeletionRegistry,
   ) {}
 
   async create(createUserDto: CreateUserInput) {
@@ -89,6 +91,8 @@ export class UsersService {
         );
       }
       await this.assertNotLastCriticalRoleHolder(id);
+      // the other contexts' rows first (tasks, M15), then identity-access's own
+      await this.accountDeletion.anonymizeUser(id);
       return withoutPasswordHash(await this.users.anonymizeAndDelete(id));
     });
   }

@@ -13,5 +13,9 @@ export {
   getPermissionsForRole,
 } from "../domain/role-permissions";
 export { BCRYPT_COST } from "./password-hashing";
-export { GHOST_USER } from "../domain/ghost-user";
+export { GHOST_USER, GHOST_USER_ID } from "../domain/ghost-user";
+export {
+  AccountDeletionRegistry,
+  type AccountDeletionParticipant,
+} from "./account-deletion";
 export { PasswordResetMailer } from "./ports/password-reset-mailer";

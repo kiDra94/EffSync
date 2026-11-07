@@ -12,7 +12,7 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     chat_messages: table(),
     tasks: table(),
     comments: table(),
-    task_comments: table(),
+    task_grade: table(),
     chat_rooms: table(),
     documents: table(),
     task_activity_log: table(),
@@ -55,14 +55,9 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
 
   it.each([
     ["chat_messages", "user_id"],
-    ["tasks", "created_by"],
-    ["comments", "created_by"],
-    ["task_comments", "user_id"],
     ["chat_rooms", "created_by"],
     ["documents", "added_by"],
     ["documents", "graded_by"],
-    ["task_activity_log", "user_id"],
-    ["task_templates", "created_by"],
   ] as const)("moves %s.%s to the ghost user", (name, column) => {
     expect(tx[name].updateMany).toHaveBeenCalledWith({
       where: { [column]: 5 },
@@ -70,15 +65,15 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     });
   });
 
-  it.each([
-    ["tasks", "assigned_to"],
-    ["teachers", "supervisor_id"],
-  ] as const)("sets %s.%s to NULL", (name, column) => {
-    expect(tx[name].updateMany).toHaveBeenCalledWith({
-      where: { [column]: 5 },
-      data: { [column]: null },
-    });
-  });
+  it.each([["teachers", "supervisor_id"]] as const)(
+    "sets %s.%s to NULL",
+    (name, column) => {
+      expect(tx[name].updateMany).toHaveBeenCalledWith({
+        where: { [column]: 5 },
+        data: { [column]: null },
+      });
+    },
+  );
 
   it("deletes the personal rows and the user's own notes", () => {
     for (const name of [

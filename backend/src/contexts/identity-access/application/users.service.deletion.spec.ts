@@ -8,12 +8,14 @@ import { UserRepository } from "./ports/user.repository";
 import { RolePermissionsService } from "./role-permissions.service";
 import { UnitOfWork } from "../../../shared/application/unit-of-work";
 import type { Transaction } from "../../../shared/domain/transaction";
+import { AccountDeletionRegistry } from "./account-deletion";
 
 // T10, decision H1 (M14): the rules around deleting an account
 describe("UsersService.remove", () => {
   const ADMIN = 1;
   let users: Record<string, jest.Mock>;
   let unitOfWork: { run: jest.Mock };
+  let accountDeletion: { anonymizeUser: jest.Mock };
   let service: UsersService;
 
   beforeEach(() => {
@@ -32,6 +34,7 @@ describe("UsersService.remove", () => {
       findById: jest.fn(),
       update: jest.fn(),
     };
+    accountDeletion = { anonymizeUser: jest.fn().mockResolvedValue(undefined) };
     unitOfWork = {
       run: jest.fn((work: (tx: Transaction) => Promise<unknown>) =>
         work({} as Transaction),
@@ -41,6 +44,7 @@ describe("UsersService.remove", () => {
       users as unknown as UserRepository,
       {} as RolePermissionsService,
       unitOfWork as unknown as UnitOfWork,
+      accountDeletion as unknown as AccountDeletionRegistry,
     );
   });
 
@@ -52,6 +56,23 @@ describe("UsersService.remove", () => {
     expect(unitOfWork.run).toHaveBeenCalledTimes(1);
     expect(users.lockForDeletion).toHaveBeenCalledWith(4);
     expect(users.anonymizeAndDelete).toHaveBeenCalledWith(4);
+  });
+
+  // M15 step 6: the other contexts' rows (tasks) go first, in the same unit of work
+  it("lets the registered contexts anonymize their rows before its own", async () => {
+    unitOfWork.run.mockImplementation(
+      async (work: (tx: Transaction) => Promise<unknown>) => {
+        const result = await work({} as Transaction);
+        expect(accountDeletion.anonymizeUser).toHaveBeenCalledWith(4);
+        return result;
+      },
+    );
+
+    await service.remove(4, ADMIN);
+
+    expect(
+      accountDeletion.anonymizeUser.mock.invocationCallOrder[0],
+    ).toBeLessThan(users.anonymizeAndDelete.mock.invocationCallOrder[0]);
   });
 
   it("never deletes the ghost user", async () => {

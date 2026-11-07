@@ -184,34 +184,15 @@ export class PrismaUserRepository extends UserRepository {
     });
     await tx.documents.deleteMany({ where: privateDocuments });
 
-    // shared content: the chat history and the task work stay, under the ghost user
+    // shared content: the chat history stays, under the ghost user (the task
+    // tables are task-management's AccountDeletionParticipant, M15)
     const toGhost = { user_id: GHOST_USER_ID };
     await tx.chat_messages.updateMany({
       where: { user_id: userId },
       data: toGhost,
     });
-    await tx.task_comments.updateMany({
-      where: { user_id: userId },
-      data: toGhost,
-    });
-    await tx.task_activity_log.updateMany({
-      where: { user_id: userId },
-      data: toGhost,
-    });
     const createdBy = { created_by: GHOST_USER_ID };
-    await tx.tasks.updateMany({
-      where: { created_by: userId },
-      data: createdBy,
-    });
-    await tx.comments.updateMany({
-      where: { created_by: userId },
-      data: createdBy,
-    });
     await tx.chat_rooms.updateMany({
-      where: { created_by: userId },
-      data: createdBy,
-    });
-    await tx.task_templates.updateMany({
       where: { created_by: userId },
       data: createdBy,
     });
@@ -233,10 +214,6 @@ export class PrismaUserRepository extends UserRepository {
     await tx.$executeRaw`UPDATE "notifications" SET "text" = ${ghostPrefix} || substr("text", char_length(${prefix}) + 1) WHERE "type" = 'chat_message' AND starts_with("text", ${prefix})`;
 
     // references that mean nothing for a ghost
-    await tx.tasks.updateMany({
-      where: { assigned_to: userId },
-      data: { assigned_to: null },
-    });
     await tx.teachers.updateMany({
       where: { supervisor_id: userId },
       data: { supervisor_id: null },

@@ -10,6 +10,7 @@ import { RolesService } from "./application/roles.service";
 import { UsersService } from "./application/users.service";
 import { SessionService } from "./application/session.service";
 import { PasswordResetService } from "./application/password-reset.service";
+import { AccountDeletionRegistry } from "./application/account-deletion";
 import { ResetTokens } from "./application/ports/reset-tokens";
 import {
   PermissionRepository,
@@ -68,6 +69,7 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     PermissionsService,
     SessionService,
     PasswordResetService,
+    AccountDeletionRegistry,
     { provide: ResetTokens, useClass: JwtResetTokens },
     { provide: UserRepository, useClass: PrismaUserRepository },
     { provide: PermissionRepository, useClass: PrismaPermissionRepository },
@@ -87,6 +89,7 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
   ],
   exports: [
     PermissionsService,
+    AccountDeletionRegistry,
     RolesGuard,
     PermissionsGuard,
     JwtModule,

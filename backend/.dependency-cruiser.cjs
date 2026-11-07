@@ -119,7 +119,8 @@ module.exports = {
   options: {
     doNotFollow: { path: "node_modules" },
     // specs may reach across layers to set up their fixtures
-    exclude: { path: "\\.spec\\.ts$" },
+    // specs and their shared fixtures (M15) may wire infrastructure directly
+    exclude: { path: "\\.(spec|fixtures)\\.ts$" },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
     enhancedResolveOptions: {

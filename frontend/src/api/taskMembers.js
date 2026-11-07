@@ -9,32 +9,32 @@ import { apiClient } from './httpClient';
 export const taskMembersApi = {
   /**
    * Returns all members of a task
-   * GET /api/tasks/:taskId/members
+   * GET /tasks/:taskId/members
    */
   getTaskMembers(taskId) {
-    return apiClient.get(`/api/tasks/${taskId}/members`);
+    return apiClient.get(`/tasks/${taskId}/members`);
   },
 
   /**
    * Adds a user to a task
-   * POST /api/tasks/:taskId/members
+   * POST /tasks/:taskId/members
    * Body: { user_id: number }
    */
   addTaskMember(taskId, data) {
-    return apiClient.post(`/api/tasks/${taskId}/members`, data);
+    return apiClient.post(`/tasks/${taskId}/members`, data);
   },
 
   /**
    * Removes a user from a task
-   * DELETE /api/tasks/:taskId/members/:userId
+   * DELETE /tasks/:taskId/members/:userId
    */
   removeTaskMember(taskId, userId) {
-    return apiClient.delete(`/api/tasks/${taskId}/members/${userId}`);
+    return apiClient.delete(`/tasks/${taskId}/members/${userId}`);
   },
 
   /**
    * Checks the current user's permissions on a task
-   * GET /api/tasks/:taskId/members/check-permission
+   * GET /tasks/:taskId/members/check-permission
    * 
    * Response: {
    *   "task_id": number,
@@ -46,6 +46,6 @@ export const taskMembersApi = {
    * }
    */
   checkPermission(taskId) {
-    return apiClient.get(`/api/tasks/${taskId}/members/check-permission`);
+    return apiClient.get(`/tasks/${taskId}/members/check-permission`);
   }
 };

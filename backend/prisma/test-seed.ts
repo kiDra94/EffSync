@@ -30,7 +30,7 @@ async function main() {
       "email_logs",
       "email_preferences",
       "comments",
-      "task_comments",
+      "task_grade",
       "task_activity_log",
       "task_documents",
       "task_members",
@@ -451,24 +451,25 @@ async function main() {
     ];
     await prisma.task_activity_log.createMany({ data: taskActivityData });
 
+    // discussion comments (decision Q16: the comments table, M15)
     const taskCommentsData = [
       {
         task_id: 1,
-        user_id: 2,
-        text: "Dies ist ein wichtiger Test. Viel Erfolg!",
+        created_by: 2,
+        content: "Dies ist ein wichtiger Test. Viel Erfolg!",
       },
       {
         task_id: 1,
-        user_id: 4,
-        text: "Ich habe eine Frage: Sind auch Aufgaben aus Kapitel 4 dabei?",
+        created_by: 4,
+        content: "Ich habe eine Frage: Sind auch Aufgaben aus Kapitel 4 dabei?",
       },
       {
         task_id: 2,
-        user_id: 5,
-        text: "Welche Vokabeln aus Unit 5 werden die wichtigsten sein?",
+        created_by: 5,
+        content: "Welche Vokabeln aus Unit 5 werden die wichtigsten sein?",
       },
     ];
-    await prisma.task_comments.createMany({ data: taskCommentsData });
+    await prisma.comments.createMany({ data: taskCommentsData });
     console.log("✓ Activity Logs & Comments erstellt");
 
     // --- PHASE 12: Email Preferences ---
@@ -520,31 +521,40 @@ async function main() {
     await prisma.notes.createMany({ data: notesData });
     console.log("✓ Notizen erstellt");
 
-    // --- PHASE 14: task comments with more grading ---
+    // --- PHASE 14: more task comments and a grading remark ---
     const moreCommentsData = [
       {
         task_id: 2,
-        user_id: 2,
-        text: "Gute Frage! Die wichtigsten Vokabeln sind: present perfect, past continuous, modal verbs.",
-      },
-      {
-        task_id: 3,
-        user_id: 2,
-        text: "Felix, sehr gute Lösungen! Bitte achte beim nächsten Mal auf die Formatierung der Herleitung.",
+        created_by: 2,
+        content:
+          "Gute Frage! Die wichtigsten Vokabeln sind: present perfect, past continuous, modal verbs.",
       },
       {
         task_id: 4,
-        user_id: 2,
-        text: "Das Projekt ist sehr interessant. Die Deadline ist in 10 Tagen. Ihr könnt Fragen im Chat stellen!",
+        created_by: 2,
+        content:
+          "Das Projekt ist sehr interessant. Die Deadline ist in 10 Tagen. Ihr könnt Fragen im Chat stellen!",
       },
       {
         task_id: 1,
-        user_id: 2,
-        text: "Zu deiner Frage: Ja, auch Kapitel 4 wird berücksichtigt, aber hauptsächlich Kapitel 5-7.",
+        created_by: 2,
+        content:
+          "Zu deiner Frage: Ja, auch Kapitel 4 wird berücksichtigt, aber hauptsächlich Kapitel 5-7.",
       },
     ];
-    await prisma.task_comments.createMany({ data: moreCommentsData });
+    await prisma.comments.createMany({ data: moreCommentsData });
     console.log("✓ Detaillierte Task Comments hinzugefügt");
+
+    // teachers' grading remarks on a task (decision Q16: task_grade, M15)
+    await prisma.task_grade.createMany({
+      data: [
+        {
+          task_id: 3,
+          user_id: 2,
+          text: "Felix, sehr gute Lösungen! Bitte achte beim nächsten Mal auf die Formatierung der Herleitung.",
+        },
+      ],
+    });
 
     // --- PHASE 15: Notifications ---
     const notificationsData = [

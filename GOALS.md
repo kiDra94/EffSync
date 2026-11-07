@@ -407,7 +407,7 @@ Rules for all milestones:
   - Done when: the M2 `// THESIS: T10` test is flipped, and an E2E test deletes a user with messages and shows the chat history intact under the ghost user.
   - Risk: medium. FK rules (`NoAction`) on several tables have to be checked; if one needs a schema change, it goes under Open questions first.
 
-- [ ] **M15: Migrate `task-management` (L1 core)**
+- [x] **M15: Migrate `task-management` (L1 core)**
   - Why: `11_…:29-31`, `10_…:9`, T32. This is the thesis's central example.
   - Steps:
     1. Create the `Task` aggregate in `domain/`, with `validateNoCircularReference`, `buildTree`, `evaluateCondition` and the status rules.
@@ -463,7 +463,8 @@ Rules for all milestones:
     2. Load participants and graded submissions for all listed tasks in batched queries instead of per task.
     3. Add the thesis test "recalculates task status in findOne".
     4. For students, first determine the set of visible task IDs (created, assigned, member, plus all descendants), then page, sort and count over that set, so a page holds at most `limit` tasks and `meta.total`/`totalPages` are correct (decision B3).
-  - Done when: exactly one implementation exists, the thesis test exists and passes, `findAll` uses a constant number of queries regardless of page size (asserted with a Prisma mock call count), and a test with 25 visible tasks (including subtasks) and `limit=10` returns 10, 10 and 5 tasks with `total` 25 and `totalPages` 3 for a student.
+    5. Found in M15: `GET /tasks/:id` and its sub-resources (`/comments` read and write, `/activity`, `/documents`, `/subtasks`, `/tree`) check only `view_dashboard`, so a student can read a task, its discussion and its log, and comment on it, outside their visible set. Apply the same visibility rule (staff, or the task is in the user's visible set from step 4) to all of them and answer 404 otherwise; the grading remarks (member or staff) and the member list (member or READ) keep their own checks.
+  - Done when: exactly one implementation exists, the thesis test exists and passes, a student gets 404 on `GET /tasks/:id/comments` of a task outside their visible set, `findAll` uses a constant number of queries regardless of page size (asserted with a Prisma mock call count), and a test with 25 visible tasks (including subtasks) and `limit=10` returns 10, 10 and 5 tasks with `total` 25 and `totalPages` 3 for a student.
   - Risk: medium. Grading semantics are subtle; rely on M1's document tests.
 
 - [ ] **M18: Task list, priorities and templates per thesis**

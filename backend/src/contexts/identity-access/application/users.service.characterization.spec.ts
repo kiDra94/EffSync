@@ -6,6 +6,7 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { RolePermissionsService } from "./role-permissions.service";
+import { AccountDeletionRegistry } from "./account-deletion";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -19,7 +20,7 @@ function createPrismaMock() {
     chat_messages: updateMany(),
     tasks: updateMany(),
     comments: updateMany(),
-    task_comments: updateMany(),
+    task_grade: updateMany(),
     chat_rooms: updateMany(),
     documents: updateMany(),
     task_activity_log: updateMany(),
@@ -83,6 +84,7 @@ describe("UsersService (characterization, M2)", () => {
       new PrismaUserRepository(prisma as unknown as PrismaService),
       rolePermissions as unknown as RolePermissionsService,
       { run: (work: () => Promise<unknown>) => work() } as never,
+      new AccountDeletionRegistry(),
     );
   });
 
@@ -159,7 +161,8 @@ describe("UsersService (characterization, M2)", () => {
 
   // THESIS: T10 (flipped in M14) – account deletion anonymizes: shared content
   // moves to the ghost user 0, then the personal record is deleted, in one transaction
-  it("reassigns the chat messages and tasks to the ghost user, then deletes the user row", async () => {
+  // the task tables are task-management's part since M15 (task-account-deletion.spec.ts)
+  it("reassigns the chat messages to the ghost user, then deletes the user row", async () => {
     prisma.users.findUnique.mockResolvedValue({ user_id: 3 });
     prisma.users.delete.mockResolvedValue({ user_id: 3, password_hash: "h" });
 
@@ -168,10 +171,6 @@ describe("UsersService (characterization, M2)", () => {
     expect(prisma.chat_messages.updateMany).toHaveBeenCalledWith({
       where: { user_id: 3 },
       data: { user_id: 0 },
-    });
-    expect(prisma.tasks.updateMany).toHaveBeenCalledWith({
-      where: { created_by: 3 },
-      data: { created_by: 0 },
     });
     expect(prisma.users.delete).toHaveBeenCalledWith({ where: { user_id: 3 } });
   });

@@ -323,7 +323,7 @@ const confirmRemove = async () => {
   console.log(`🗑️ Versuche Mitglied ${memberToRemove.value.user_id} zu löschen...`);
 
   try {
-    console.log(`📡 API-Anfrage: DELETE /api/tasks/${props.taskId}/members/${memberToRemove.value.user_id}`);
+    console.log(`📡 API-Anfrage: DELETE /tasks/${props.taskId}/members/${memberToRemove.value.user_id}`);
     
     const response = await taskMembersApi.removeTaskMember(
       props.taskId,
