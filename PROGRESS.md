@@ -812,3 +812,56 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - With the unit of work, a failing statement aborts the Postgres transaction, so best-effort `try/catch` inside a use case no longer works. Side effects such as mail go after the commit or out of the use case.
 
 **Failed / open:** see "planned" and "documented" above.
+
+## 2026-11-08 – M16: Task rules and notifications per thesis
+
+**Done:**
+- T100: `COMPLETED` only at 100 %.
+  - Backend: `isCompletionWithoutFullProgress` in the Task aggregate. Create and update answer 400 when a task would be `COMPLETED` below 100 %, including a lower progress on a task that stays completed. Auto-completion, the cascade to subtasks and the completion from grades set 100 % themselves.
+  - Frontend: in `TaskCard`, the checkbox (also on subtasks) and the "Fertig" option stay disabled until 100 %, with a hint; a completed task can be reopened.
+  - `taskStore.changeStatus` no longer sets 100 % itself, and rolls the status back when the server refuses.
+  - `useTaskValidation`: 100 % on an open task is now a hint, not an error. Otherwise the form couldn't save 100 % and the checkbox could never be used.
+- T107: the realtime event of an auto-completed or reopened parent goes to its creator, assignee and members (`involvedUsersOf`, without the ghost user), after the commit. The store merges the event into the cached task instead of replacing it, because the event carries no relations.
+- T44/T72: `TaskNotificationsService` notifies through the notifications context's new port `Notifier` (`contexts/notifications/application`, its first file; bound to the legacy `NotificationsService` by the global `NotificationPortsModule` until M23).
+  - `task_assigned`: a new assignee, on create and on update.
+  - `task_member_added` and `task_member_removed`: the user concerned.
+  - `task_status_changed`: everyone involved, on an update and for auto-completed parents.
+  - The actor and the ghost user get none. All are sent after the commit, in parallel, and a failed one is logged.
+- T41, UC-10, decision Q2: creating a subtask (`POST /tasks` with `parent_task_id`, and `POST /tasks/:id/subtasks`) and moving a task under another (`PATCH` with `parent_task_id`) require being the creator, assignee or a member of the root task (`findRootId`); otherwise 403.
+  - A new top-level task stays open to `create_tasks`.
+  - In `TaskForm`, the subtask builder shows only to the root task's people, and for a new task to everyone. Before, it was teachers and creators only.
+- Step 6, the ghost user 0:
+  - it can't be added as a member or set as assignee (400);
+  - an @mention of it sends no mail;
+  - `NotificationsService.create` creates nothing for user 0, whoever asks (for example the grading of a ghost-owned document).
+
+**Verified:**
+- Done when:
+  - The M1 `// THESIS: T100` (400, no update) and `// THESIS: T107` (creator, assignee and members) tests are flipped.
+  - `task-notifications.service.spec.ts` covers each notification type, the actor and ghost exclusions, failures and the parallel sends. `task.service.spec.ts` covers the notifications after the commit, an auto-completed parent's status change and no notification without a change.
+  - The checkbox has `TaskCard.spec.js` (blocked below 100 %, allowed at 100 %, reopenable).
+  - `test/task-rules.e2e-spec.ts`:
+    - Laura, an outsider, gets 403 creating a subtask of task 1, both through `POST /tasks` and through `/subtasks`; Felix, a member, gets 201.
+    - `COMPLETED` at 0 % gets 400, and at 100 % gets 200.
+    - `task_member_added` is stored, and a status change is stored for Felix and Laura but not for the actor Anna.
+  - The risk check: the seeds write tasks directly, no E2E file creates subtasks through the API, and the frontend's subtask flow (`TaskForm`) follows the rule.
+- Two M1 fixtures got a creator so that their user is in the project (T41). The test cases are unchanged.
+- Backend: 474 unit and 85 E2E tests. Frontend: 21 files. tsc, lint (0 errors), knip and dependency-cruiser (0 violations) pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings, all fixed except one part of (4):
+  - (1) the T41 bypass by re-parenting through `PATCH`
+  - (2) the form validation that made the checkbox unusable
+  - (3) the realtime row replacing the cached task
+  - (4) no notification for auto-completed parents
+  - (5) no rollback in `changeStatus`
+  - (6) the builder checking the task instead of its root, and new projects
+  - (7) the ghost as assignee
+  - (8) sequential sends
+  - (9) the duplicated recipient rule
+  - (10) the root walk on `findParentLink`, and the constant placed among the imports
+  - From (4), subtasks completed by the cascade get no notification: one notification for the task the user completed is enough, and the subtasks change only because of it.
+
+**Learned (for later milestones):**
+- Realtime events carry the bare task row. Consumers merge, they don't replace.
+- The `Notifier` port is the way into notifications for every context (GOALS.md rule 3 example). M19 (grading) and M20 (chat) switch their `NotificationsService.create` calls to it.
+
+**Failed / open:** none.

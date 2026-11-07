@@ -14,6 +14,7 @@ import { TaskLockingService } from "./application/task-locking.service";
 import { TaskMembersService } from "./application/task-members.service";
 import { TaskTemplatesService } from "./application/task-templates.service";
 import { TaskService } from "./application/task.service";
+import { TaskNotificationsService } from "./application/task-notifications.service";
 import { PrismaActivityLogRepository } from "./infrastructure/persistence/prisma-activity-log.repository";
 import { PrismaCommentRepository } from "./infrastructure/persistence/prisma-comment.repository";
 import { PrismaGradeRemarkRepository } from "./infrastructure/persistence/prisma-grade-remark.repository";
@@ -42,6 +43,7 @@ import { TaskController } from "./presentation/task.controller";
     TaskTemplatesService,
     CommentsService,
     GradeRemarksService,
+    TaskNotificationsService,
     TaskAccountDeletion,
     { provide: TaskRepository, useClass: PrismaTaskRepository },
     { provide: ActivityLogRepository, useClass: PrismaActivityLogRepository },

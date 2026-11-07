@@ -11,9 +11,11 @@ vi.mock('@/stores/authStore', () => ({
   useAuthStore: vi.fn(() => ({ userId: 1, userRole: 'student' }))
 }));
 vi.mock('@/api/usersService');
+const storeTasks = vi.hoisted(() => []);
 vi.mock('@/stores/entities/taskStore', () => ({
   useTaskStore: vi.fn(() => ({
-    getSubtasks: vi.fn(() => [])
+    getSubtasks: vi.fn(() => []),
+    tasks: storeTasks,
   }))
 }));
 
@@ -406,5 +408,61 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
     });
 
     expect(existingTaskWrapper.find('.btn-primary').text()).toContain('Speichern');
+  });
+});
+
+// T41, decision Q2 (M16): only the project's people add subtasks to an existing task
+describe('TaskForm subtask builder', () => {
+  const existing = {
+    task_id: 4,
+    title: 'Projekt',
+    deadline: '2026-12-31T23:59:59Z',
+    priority_id: 2,
+    status: 'TODO',
+    progress: 0,
+    created_by: 9,
+    assigned_to: 8,
+    task_members: [{ user_id: 7 }],
+  };
+
+  const mountAs = async (user) => {
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.mockReturnValue(user);
+    taskMembersApi.getTaskMembers.mockResolvedValue({ data: [] });
+    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    usersApi.getAll.mockResolvedValue({ data: [] });
+    return mount(TaskForm, { props: { task: existing } });
+  };
+
+  it('hides it from a teacher who is not involved in the task', async () => {
+    const wrapper = await mountAs({ userId: 1, userRole: 'teacher' });
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(false);
+  });
+
+  it.each([9, 8, 7])('shows it to user %s of the task', async (userId) => {
+    const wrapper = await mountAs({ userId, userRole: 'student' });
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(true);
+  });
+
+  // review M16: the backend checks the root task, so the form does too
+  it('decides for a subtask by the root task', async () => {
+    storeTasks.splice(0, storeTasks.length, { ...existing, task_members: [{ user_id: 7 }] });
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.mockReturnValue({ userId: 7, userRole: 'student' });
+    const sub = { ...existing, task_id: 5, parent_task_id: 4, created_by: 9, assigned_to: null, task_members: [] };
+
+    const wrapper = mount(TaskForm, { props: { task: sub } });
+
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(true);
+    storeTasks.splice(0, storeTasks.length);
+  });
+
+  it('shows it to a student creating a new project', async () => {
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.mockReturnValue({ userId: 3, userRole: 'student' });
+
+    const wrapper = mount(TaskForm, { props: { task: null } });
+
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(true);
   });
 });

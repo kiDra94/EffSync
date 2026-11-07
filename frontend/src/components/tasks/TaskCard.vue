@@ -7,6 +7,7 @@
 
     <div class="task-left">
       <input type="checkbox" :checked="task.status === 'COMPLETED'" class="task-checkbox" @change="toggleStatus"
+        :disabled="!canComplete(task)" :title="canComplete(task) ? '' : COMPLETE_HINT"
         :aria-label="`Task ${task.title} markieren`" />
     </div>
 
@@ -23,7 +24,7 @@
             <option value="IN_PROGRESS">In Arbeit</option>
             <option value="IN_REVIEW">Review</option>
             <option value="ON_HOLD">Pausiert</option>
-            <option value="COMPLETED">Fertig</option>
+            <option value="COMPLETED" :disabled="!canComplete(task)">Fertig</option>
           </select>
         </div>
 
@@ -86,6 +87,7 @@
           <div v-for="sub in subtasks" :key="sub.task_id" class="subtask-item"
             :class="{ 'subtask-done': sub.status === 'COMPLETED' }">
             <input type="checkbox" :checked="sub.status === 'COMPLETED'" @change="$emit('toggle-status', sub)"
+              :disabled="!canComplete(sub)" :title="canComplete(sub) ? '' : COMPLETE_HINT"
               class="subtask-checkbox" />
             <span class="subtask-title">{{ sub.title }}</span>
             <span v-if="sub.priority_id" class="subtask-priority"
@@ -164,7 +166,12 @@ const deleteTask = () => {
   emit('delete', props.task);
 };
 
+// T100 (M16): a task is completed only at 100 %; a completed one can be reopened
+const COMPLETE_HINT = 'Erst bei 100 % Fortschritt abschließbar';
+const canComplete = (task) => task.status === 'COMPLETED' || (task.progress ?? 0) >= 100;
+
 const toggleStatus = () => {
+  if (!canComplete(props.task)) return;
   emit('toggle-status', props.task);
 };
 

@@ -12,6 +12,12 @@ import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.serv
 import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { PrismaTaskMemberRepository } from "../infrastructure/persistence/prisma-task-member.repository";
 import { TaskMemberRepository } from "./ports/task-member.repository";
+import { TaskNotificationsService } from "./task-notifications.service";
+
+const memberNotifications = {
+  memberAdded: jest.fn().mockResolvedValue(undefined),
+  memberRemoved: jest.fn().mockResolvedValue(undefined),
+};
 
 describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
   let service: TaskMembersService;
@@ -23,6 +29,7 @@ describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
         TaskMembersService,
         PrismaUnitOfWork,
         { provide: TaskMemberRepository, useClass: PrismaTaskMemberRepository },
+        { provide: TaskNotificationsService, useValue: memberNotifications },
         {
           provide: PrismaService,
           useValue: {

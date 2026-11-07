@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import {
+  GHOST_USER_ID,
   PermissionFlag,
   PermissionsService,
   STAFF_ROLES,
@@ -13,6 +14,9 @@ import {
 import { UnitOfWork } from "../../../shared/application/unit-of-work";
 import {
   buildTree,
+  findRootId,
+  involvedUsers,
+  isCompletionWithoutFullProgress,
   isOwnParent,
   mayChangeLockedTask,
   wouldCreateCycle,
@@ -20,14 +24,18 @@ import {
 import { TaskActivityLogService } from "./activity-log.service";
 import { ActivityLogRepository } from "./ports/activity-log.repository";
 import { CommentRepository } from "./ports/comment.repository";
-import type { TaskRow } from "./ports/task-records";
+import type { TaskRecord, TaskRow } from "./ports/task-records";
 import { TaskRepository } from "./ports/task.repository";
 import { TaskCompletionService } from "./task-completion.service";
+import { TaskNotificationsService } from "./task-notifications.service";
 import type {
   CreateTaskInput,
   TaskQuery,
   UpdateTaskInput,
 } from "./task-inputs";
+
+const COMPLETED_NEEDS_FULL_PROGRESS =
+  "Eine Aufgabe kann erst bei 100 % Fortschritt abgeschlossen werden";
 
 /**
  * The task use cases (L1, `11_…:29-31`). Every write runs in one unit of
@@ -44,6 +52,7 @@ export class TaskService {
     private readonly completion: TaskCompletionService,
     private readonly permissionsService: PermissionsService,
     private readonly unitOfWork: UnitOfWork,
+    private readonly notifications: TaskNotificationsService,
   ) {}
 
   async create(input: CreateTaskInput, userId: number) {
@@ -54,10 +63,18 @@ export class TaskService {
       ...taskData
     } = input;
 
-    if (parent_task_id && !(await this.tasks.findById(parent_task_id))) {
-      throw new NotFoundException(
-        `Parent task with ID ${parent_task_id} not found!`,
-      );
+    if (isCompletionWithoutFullProgress(taskData.status, taskData.progress)) {
+      throw new BadRequestException(COMPLETED_NEEDS_FULL_PROGRESS);
+    }
+    assertNotGhostAssignee(taskData.assigned_to);
+    if (parent_task_id) {
+      const parent = await this.tasks.findById(parent_task_id);
+      if (!parent) {
+        throw new NotFoundException(
+          `Parent task with ID ${parent_task_id} not found!`,
+        );
+      }
+      await this.assertInProjectOf(parent, userId);
     }
     if (priority_id && !(await this.tasks.priorityExists(priority_id))) {
       throw new NotFoundException(
@@ -65,7 +82,7 @@ export class TaskService {
       );
     }
 
-    return this.unitOfWork.run(async () => {
+    const created = await this.unitOfWork.run(async () => {
       const task = await this.tasks.create({
         ...taskData,
         created_by: userId,
@@ -82,6 +99,27 @@ export class TaskService {
       await this.tasks.addMember(task.task_id, userId);
       return task;
     });
+    await this.notifications.taskAssigned(created, userId);
+    return created;
+  }
+
+  /**
+   * T41, UC-10, decision Q2 (M16): a subtask belongs to the project of its
+   * root task; only that task's creator, assignee and members add to it.
+   */
+  private async assertInProjectOf(parent: TaskRecord, userId: number) {
+    const rootId = parent.parent_task_id
+      ? await findRootId(parent.task_id, (id) => this.tasks.findParentLink(id))
+      : parent.task_id;
+    const root =
+      rootId === parent.task_id ? parent : await this.tasks.findById(rootId);
+    if (!root) return;
+    const members = await this.tasks.findMemberIds(root.task_id);
+    if (!involvedUsers(root, members).includes(userId)) {
+      throw new ForbiddenException(
+        "Only members of the project may add tasks to it",
+      );
+    }
   }
 
   async findAll(query: TaskQuery, userId?: number) {
@@ -255,14 +293,31 @@ export class TaskService {
       if (isOwnParent(taskId, parent_task_id)) {
         throw new BadRequestException("Task cannot be its own parent");
       }
-      if (parent_task_id) await this.assertValidParent(taskId, parent_task_id);
+      if (parent_task_id) {
+        await this.assertValidParent(taskId, parent_task_id);
+        // moving a task under a project adds it to the project (T41, Q2)
+        const parent = await this.tasks.findById(parent_task_id);
+        if (parent && userId !== undefined) {
+          await this.assertInProjectOf(parent, userId);
+        }
+      }
     }
+    assertNotGhostAssignee(input.assigned_to);
     if (
       priority_id !== undefined &&
       priority_id !== null &&
       !(await this.tasks.priorityExists(priority_id))
     ) {
       throw new NotFoundException(`Priority with ID ${priority_id} not found`);
+    }
+    // T100: also a progress below 100 on a task that stays COMPLETED
+    if (
+      isCompletionWithoutFullProgress(
+        input.status ?? task.status,
+        input.progress ?? task.progress,
+      )
+    ) {
+      throw new BadRequestException(COMPLETED_NEEDS_FULL_PROGRESS);
     }
 
     // completing a task completes all of its subtasks; the recursive reads
@@ -307,6 +362,15 @@ export class TaskService {
     });
     // announced only after the commit
     this.completion.notify(parentChanges);
+    for (const { updated: parent } of parentChanges) {
+      await this.notifications.statusChanged(parent, userId);
+    }
+    if (updated.assigned_to && updated.assigned_to !== task.assigned_to) {
+      await this.notifications.taskAssigned(updated, userId ?? 0);
+    }
+    if (updated.status !== task.status) {
+      await this.notifications.statusChanged(updated, userId);
+    }
     return updated;
   }
 
@@ -425,5 +489,14 @@ export class TaskService {
       all = all.concat(await this.getAllDescendantIds(childId, visited));
     }
     return all;
+  }
+}
+
+/** The ghost user (M14) is no real person and can't be assigned (M16). */
+function assertNotGhostAssignee(assignedTo: number | null | undefined) {
+  if (assignedTo === GHOST_USER_ID) {
+    throw new BadRequestException(
+      "Der Ghost-User kann nicht zugewiesen werden",
+    );
   }
 }

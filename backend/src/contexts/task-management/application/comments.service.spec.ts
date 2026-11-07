@@ -375,4 +375,23 @@ describe("CommentsService - @mention Email Notifications", () => {
       expect(mockPrismaService.comments.delete).not.toHaveBeenCalled();
     });
   });
+
+  // M16 step 6: the ghost user (M14) is no one to mention
+  it("sends no mail for a mention of the ghost user", async () => {
+    mockPrismaService.users.findFirst.mockResolvedValue({
+      user_id: 0,
+      email: "ghost@effsync.invalid",
+    });
+    mockPrismaService.email_preferences.findUnique.mockResolvedValue(null);
+
+    await service["notifyMentionedUsers"](
+      "@geloeschter-nutzer schau mal",
+      "bob",
+      "Task",
+      1,
+      2,
+    );
+
+    expect(mockEmailService.sendMentionEmail).not.toHaveBeenCalled();
+  });
 });

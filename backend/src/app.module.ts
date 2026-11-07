@@ -6,6 +6,7 @@ import { ChatRoomsModule } from "./modules/chat-rooms/chat-rooms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { EmailModule } from "./modules/email/email.module";
 import { EmailPortsModule } from "./modules/email/email-ports.module";
+import { NotificationPortsModule } from "./modules/notifications/notification-ports.module";
 import { WebsocketPortsModule } from "./modules/websocket/websocket-ports.module";
 import { TaskManagementModule } from "./contexts/task-management/task-management.module";
 import { NotesModule } from "./modules/notes/notes.module";
@@ -60,6 +61,7 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     NotificationsModule,
     EmailModule,
     EmailPortsModule,
+    NotificationPortsModule,
     WebsocketPortsModule,
     TaskManagementModule,
     NotesModule,

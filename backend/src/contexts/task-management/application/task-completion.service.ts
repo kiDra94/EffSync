@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { isRoleIn, RoleName } from "../../identity-access/application";
+import { involvedUsersOf } from "./involved-users";
 import {
   ConditionNode,
   evaluateCondition,
@@ -11,8 +12,9 @@ import { TaskRepository } from "./ports/task.repository";
 
 /** A parent whose status changed, for the realtime event. */
 interface ParentChange {
-  parent: TaskRecord;
   updated: TaskRecord;
+  /** creator, assignee and members of the parent (T107) */
+  recipients: number[];
 }
 
 /**
@@ -62,22 +64,28 @@ export class TaskCompletionService {
           status: "COMPLETED",
           progress: 100,
         });
-        changes.push({ parent, updated });
+        changes.push({ updated, recipients: await this.recipientsOf(parent) });
       } else if (!isFulfilled && parent.status === "COMPLETED") {
         const updated = await this.tasks.updateRow(parent.task_id, {
           status: "IN_PROGRESS",
         });
-        changes.push({ parent, updated });
+        changes.push({ updated, recipients: await this.recipientsOf(parent) });
       }
     }
     return changes;
   }
 
-  /** Sends the realtime update of each changed parent to its assignee and creator. */
+  /** Sends the realtime update of each changed parent to everyone involved (T107). */
   notify(changes: ParentChange[]) {
-    for (const { parent, updated } of changes) {
-      this.notifyTaskUpdate(parent, updated);
+    for (const { updated, recipients } of changes) {
+      for (const userId of recipients) {
+        this.realtime.emitTaskUpdated(userId, updated);
+      }
     }
+  }
+
+  private recipientsOf(parent: TaskRecord) {
+    return involvedUsersOf(this.tasks, parent);
   }
 
   /**
@@ -137,14 +145,5 @@ export class TaskCompletionService {
       updated_at: new Date(),
     });
     return true;
-  }
-
-  private notifyTaskUpdate(parent: TaskRecord, updated: TaskRecord) {
-    if (parent.assigned_to) {
-      this.realtime.emitTaskUpdated(parent.assigned_to, updated);
-    }
-    if (parent.created_by && parent.created_by !== parent.assigned_to) {
-      this.realtime.emitTaskUpdated(parent.created_by, updated);
-    }
   }
 }

@@ -85,8 +85,12 @@ describe("TaskCompletionService (characterization, M1)", () => {
       );
     };
 
-    // THESIS: T107 – only creator and assignee get the realtime update, task members don't
-    it("completes the parent when its rule is fulfilled and notifies assignee and creator", async () => {
+    // THESIS: T107 (flipped in M16) – creator, assignee and the members get the realtime update
+    it("completes the parent when its rule is fulfilled and notifies assignee, creator and members", async () => {
+      prisma.task_members.findMany.mockResolvedValue([
+        { user_id: 12 },
+        { user_id: 10 },
+      ]);
       mockParents(
         {
           task_id: 1,
@@ -108,7 +112,7 @@ describe("TaskCompletionService (characterization, M1)", () => {
       });
       expect(
         gateway.emitTaskUpdated.mock.calls.map((call: unknown[]) => call[0]),
-      ).toEqual([10, 11]);
+      ).toEqual([11, 10, 12]);
     });
 
     it("reopens a COMPLETED parent when the rule is no longer fulfilled", async () => {

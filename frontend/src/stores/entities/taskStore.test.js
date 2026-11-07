@@ -130,9 +130,10 @@ describe('TaskStore', () => {
     });
 
     describe('changeStatus', () => {
-        it('changes task status to COMPLETED and sets progress to 100', async () => {
+        // T100 (M16): COMPLETED only at 100 %; the store no longer sets the progress itself
+        it('changes task status to COMPLETED without touching the progress', async () => {
             const store = useTaskStore();
-            const task = createMockTask({ task_id: '1', progress: 50 });
+            const task = createMockTask({ task_id: '1', progress: 100 });
             store.tasks = [task];
             vi.mocked(tasksApi.patchTask).mockResolvedValue({});
 
@@ -140,6 +141,7 @@ describe('TaskStore', () => {
 
             expect(store.tasks[0].status).toBe('COMPLETED');
             expect(store.tasks[0].progress).toBe(100);
+            expect(tasksApi.patchTask).toHaveBeenCalledWith('1', { status: 'COMPLETED' });
         });
 
         it('changes status without modifying progress for non-COMPLETED', async () => {
@@ -160,6 +162,8 @@ describe('TaskStore', () => {
             vi.mocked(tasksApi.patchTask).mockRejectedValue(new Error('Patch Failed'));
 
             await expect(store.changeStatus('1', 'COMPLETED')).rejects.toThrow('Patch Failed');
+            // review M16: a refused change (e.g. COMPLETED below 100 %) is rolled back
+            expect(store.tasks[0].status).toBe('TODO');
         });
     });
 

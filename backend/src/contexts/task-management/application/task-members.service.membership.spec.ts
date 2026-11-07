@@ -12,6 +12,12 @@ import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.serv
 import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { PrismaTaskMemberRepository } from "../infrastructure/persistence/prisma-task-member.repository";
 import { TaskMemberRepository } from "./ports/task-member.repository";
+import { TaskNotificationsService } from "./task-notifications.service";
+
+const memberNotifications = {
+  memberAdded: jest.fn().mockResolvedValue(undefined),
+  memberRemoved: jest.fn().mockResolvedValue(undefined),
+};
 
 // split from task-members.service.spec.ts in M15 (500-line rule)
 describe("TaskMembersService - flags, membership and adding members", () => {
@@ -24,6 +30,7 @@ describe("TaskMembersService - flags, membership and adding members", () => {
         TaskMembersService,
         PrismaUnitOfWork,
         { provide: TaskMemberRepository, useClass: PrismaTaskMemberRepository },
+        { provide: TaskNotificationsService, useValue: memberNotifications },
         {
           provide: PrismaService,
           useValue: {
@@ -319,6 +326,53 @@ describe("TaskMembersService - flags, membership and adding members", () => {
       });
       expect(findTask).toHaveBeenCalledTimes(1);
       expect(findPermissions).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // M16: notifications (T44) and the ghost user (M14)
+  describe("member notifications and the ghost user", () => {
+    const task = {
+      task_id: 1,
+      title: "Projekt",
+      created_by: 9,
+      assigned_to: null,
+    };
+    let createMember: jest.SpyInstance;
+
+    beforeEach(() => {
+      memberNotifications.memberAdded.mockClear();
+      memberNotifications.memberRemoved.mockClear();
+      jest.spyOn(prisma.tasks, "findUnique").mockResolvedValue(task as never);
+      jest.spyOn(prisma.users, "findUnique").mockResolvedValue({
+        user_id: 3,
+      } as never);
+      jest.spyOn(prisma.task_members, "findUnique").mockResolvedValue(null);
+      createMember = jest
+        .spyOn(prisma.task_members, "create")
+        .mockResolvedValue({
+          task_id: 1,
+          user_id: 3,
+        } as never);
+      jest.spyOn(prisma.task_members, "delete").mockResolvedValue({} as never);
+    });
+
+    it("tells the user they were added or removed", async () => {
+      await service.addMember(1, 3, 9);
+      await service.removeMember(1, 3, 9);
+
+      expect(memberNotifications.memberAdded).toHaveBeenCalledWith(task, 3, 9);
+      expect(memberNotifications.memberRemoved).toHaveBeenCalledWith(
+        task,
+        3,
+        9,
+      );
+    });
+
+    it("never adds the ghost user (400)", async () => {
+      await expect(service.addMember(1, 0, 9)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(createMember).not.toHaveBeenCalled();
     });
   });
 });

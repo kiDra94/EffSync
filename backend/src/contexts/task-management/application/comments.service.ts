@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { GHOST_USER_ID } from "../../identity-access/application";
 import { CommentRepository } from "./ports/comment.repository";
 import { MentionMailer } from "./ports/mention-mailer";
 
@@ -42,6 +43,7 @@ export class CommentsService {
         if (
           mentionedUser &&
           mentionedUser.user_id !== commenterUserId &&
+          mentionedUser.user_id !== GHOST_USER_ID &&
           (await this.comments.wantsMentionMail(mentionedUser.user_id))
         ) {
           await this.mailer.sendMentionEmail(

@@ -153,7 +153,8 @@ export const useTaskStore = defineStore('task', () => {
         socket_on('task:updated', (updatedTask) => {
             const index = tasks.value.findIndex(task => task.task_id === updatedTask.task_id);
             if(index !== -1) { // findIndex returns -1 when it finds nothing!
-                tasks.value[index] = updatedTask;
+                // the event carries only the task row: keep the cached relations (M16)
+                tasks.value[index] = { ...tasks.value[index], ...updatedTask };
                 console.log(`Task ${updatedTask.title} was updated automatically!`)
             }
         })
@@ -237,18 +238,23 @@ export const useTaskStore = defineStore('task', () => {
         return tasks.value.filter(task => task.parent_task_id === taskId);
     });
 
+    // T100 (M16): the backend completes a task only at 100 %, and TaskCard
+    // offers COMPLETED only then, so the store doesn't set the progress itself
     async function changeStatus(task_id, newStatus) {
         try {
             const updates = { status: newStatus };
-            if (newStatus === 'COMPLETED') {
-                updates.progress = 100;
-            }
             const index = tasks.value.findIndex((t) => t.task_id === task_id);
+            const previousStatus = index !== -1 ? tasks.value[index].status : undefined;
             if (index !== -1) {
                 tasks.value[index].status = newStatus;
-                tasks.value[index].progress = updates.progress || tasks.value[index].progress;
             }
-            await patchTask(task_id, updates);
+            try {
+                await patchTask(task_id, updates);
+            } catch (patchError) {
+                // the server refused (e.g. COMPLETED below 100 %): show its state again
+                if (index !== -1) tasks.value[index].status = previousStatus;
+                throw patchError;
+            }
             await checkAffectedParents(task_id);
         } catch (error) {
             console.error('Fehler beim Statuswechsel:', error);

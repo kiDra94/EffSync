@@ -18,6 +18,28 @@ interface ParentLink {
   parent_task_id: number | null;
 }
 
+/** T100: a task is COMPLETED only at 100 % progress. */
+export function isCompletionWithoutFullProgress(
+  status: string | null | undefined,
+  progress: number | null | undefined,
+): boolean {
+  return status === "COMPLETED" && (progress ?? 0) < 100;
+}
+
+/**
+ * Everyone involved in a task (T44, T107): its creator, its assignee and its
+ * members, each once.
+ */
+export function involvedUsers(
+  task: { created_by?: number | null; assigned_to?: number | null },
+  memberIds: (number | null)[],
+): number[] {
+  const ids = [task.created_by, task.assigned_to, ...memberIds].filter(
+    (id): id is number => id !== null && id !== undefined,
+  );
+  return [...new Set(ids)];
+}
+
 /** How long a lock holds (overdue and manual locks). */
 export const LOCK_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -44,6 +66,22 @@ export async function wouldCreateCycle(
     current = await parentOf(current.parent_task_id);
   }
   return false;
+}
+
+/** The id of the top-level task (the project, decision Q2) above `taskId`. */
+export async function findRootId(
+  taskId: number,
+  parentOf: (taskId: number) => Promise<ParentLink | null>,
+): Promise<number> {
+  let current = await parentOf(taskId);
+  const visited = new Set<number>();
+  while (current?.parent_task_id && !visited.has(current.task_id)) {
+    visited.add(current.task_id);
+    const parent = await parentOf(current.parent_task_id);
+    if (!parent) break;
+    current = parent;
+  }
+  return current?.task_id ?? taskId;
 }
 
 /** A locked task can only be changed by its creator. */

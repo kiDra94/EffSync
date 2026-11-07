@@ -440,7 +440,7 @@ Rules for all milestones:
     - No file is over 500 lines.
   - Risk: high. This is the largest move and touches `TasksService`'s consumers in documents and websocket; rely on M1. It includes the approved schema change (table rename plus data migration), after which the schema differs from the thesis appendix (`prisma_schema.tex:326`) by decision Q16.
 
-- [ ] **M16: Task rules and notifications per thesis**
+- [x] **M16: Task rules and notifications per thesis**
   - Why:
     - T100: `COMPLETED` only at 100 %; the UI blocks the checkbox and the backend enforces it.
     - T107: auto-completion events go to all involved users.

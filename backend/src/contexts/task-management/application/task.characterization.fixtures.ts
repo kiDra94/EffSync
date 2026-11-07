@@ -16,6 +16,7 @@ import { TaskRealtime } from "./ports/task-realtime";
 import { TaskCompletionService } from "./task-completion.service";
 import { TaskLockingService } from "./task-locking.service";
 import { TaskService } from "./task.service";
+import { TaskNotificationsService } from "./task-notifications.service";
 
 export type FindManyArgs = {
   where?: {
@@ -102,6 +103,11 @@ export function createTaskServices(
     completion,
     permissions,
     unitOfWork,
+    // M16: the notifications are covered in task-notifications.service.spec.ts
+    {
+      taskAssigned: jest.fn(),
+      statusChanged: jest.fn(),
+    } as unknown as TaskNotificationsService,
   );
   const locking = new TaskLockingService(
     tasks,

@@ -4,10 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { GHOST_USER_ID } from "../../identity-access/application";
 import {
   MemberUser,
   TaskMemberRepository,
 } from "./ports/task-member.repository";
+import { TaskNotificationsService } from "./task-notifications.service";
 
 /**
  * Permission flags (bitwise):
@@ -35,7 +37,10 @@ interface TaskMemberView {
 /** Task members (T44): add, remove, list, and the rwx check on a task. */
 @Injectable()
 export class TaskMembersService {
-  constructor(private readonly members: TaskMemberRepository) {}
+  constructor(
+    private readonly members: TaskMemberRepository,
+    private readonly notifications: TaskNotificationsService,
+  ) {}
 
   /**
    * Adds a user to a task: the requester is the task owner or has WRITE, the
@@ -59,6 +64,10 @@ export class TaskMembersService {
       );
     }
 
+    // the ghost user (M14) is no real person
+    if (userId === GHOST_USER_ID) {
+      throw new BadRequestException("Der Ghost-User kann kein Mitglied werden");
+    }
     if (!(await this.members.userExists(userId))) {
       throw new NotFoundException(`Benutzer ${userId} nicht gefunden`);
     }
@@ -68,7 +77,9 @@ export class TaskMembersService {
       );
     }
 
-    return this.members.create(taskId, userId);
+    const member = await this.members.create(taskId, userId);
+    await this.notifications.memberAdded(task, userId, requesterId);
+    return member;
   }
 
   /**
@@ -108,6 +119,7 @@ export class TaskMembersService {
     }
 
     await this.members.delete(taskId, userId);
+    await this.notifications.memberRemoved(task, userId, requesterId);
   }
 
   /** All members of a task: the creator, the assignee and the explicit members. */

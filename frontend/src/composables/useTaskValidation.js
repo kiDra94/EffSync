@@ -10,7 +10,8 @@ export function useTaskValidation(existingTasks = []) {
     });
 
     const warnings = reactive({
-        deadline: ''
+        deadline: '',
+        status: ''
     });
 
     const hasErrors = computed(() => {
@@ -127,10 +128,11 @@ export function useTaskValidation(existingTasks = []) {
             return false;
         }
 
-        if (progressNum === 100 && status !== 'COMPLETED') {
-            errors.status = 'Bei 100% Fortschritt sollte der Status "Abgeschlossen" sein';
-            return false;
-        }
+        // T100 (M16): an open task at 100 % may stay open; the checkbox completes it
+        warnings.status =
+            progressNum === 100 && status !== 'COMPLETED'
+                ? 'Bei 100% Fortschritt kann die Aufgabe abgeschlossen werden'
+                : '';
 
         if (status === 'TODO' && progressNum > 0) {
             errors.progress = 'Status "Zu erledigen" sollte 0% Fortschritt haben';

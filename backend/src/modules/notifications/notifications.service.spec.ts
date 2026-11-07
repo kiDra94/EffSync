@@ -7,6 +7,7 @@ describe("NotificationsService", () => {
   let service: NotificationsService;
 
   const mockPrismaService = {
+    users: { findUnique: jest.fn() },
     notifications: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -23,7 +24,7 @@ describe("NotificationsService", () => {
       providers: [
         NotificationsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: WebsocketGateway, useValue: {} },
+        { provide: WebsocketGateway, useValue: { emitToUser: jest.fn() } },
       ],
     }).compile();
 
@@ -32,5 +33,14 @@ describe("NotificationsService", () => {
 
   it("should be defined", () => {
     expect(service).toBeDefined();
+  });
+
+  // M16 step 6: the ghost user 0 (M14) is no one to notify, whoever asks
+  it("creates no notification for the ghost user", async () => {
+    await expect(
+      service.create({ user_id: 0, type: "info", text: "x" }),
+    ).resolves.toBeNull();
+    expect(mockPrismaService.users.findUnique).not.toHaveBeenCalled();
+    expect(mockPrismaService.notifications.create).not.toHaveBeenCalled();
   });
 });

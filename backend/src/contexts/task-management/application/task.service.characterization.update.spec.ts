@@ -72,7 +72,8 @@ describe("TaskService: update, delete and subtasks (characterization, M1)", () =
         },
         2: { task_id: 2, parent_task_id: 1 },
         3: { task_id: 3, parent_task_id: 2 },
-        4: { task_id: 4, parent_task_id: null },
+        // M16 (T41): user 5 moves task 1 under 4, so 5 is in 4's project
+        4: { task_id: 4, parent_task_id: null, created_by: 5 },
       };
       prisma.tasks.findUnique.mockImplementation(
         (args: { where: { task_id: number } }) =>
@@ -160,16 +161,12 @@ describe("TaskService: update, delete and subtasks (characterization, M1)", () =
       expect(data.title).toBe("y");
     });
 
-    // THESIS: T100 – COMPLETED is accepted although progress is below 100
-    it("accepts COMPLETED with progress below 100", async () => {
-      const result = await service.update(
-        1,
-        { status: "COMPLETED", progress: 40 },
-        5,
-      );
-
-      expect(result.status).toBe("COMPLETED");
-      expect(result.progress).toBe(40);
+    // THESIS: T100 (flipped in M16) – COMPLETED only at 100 % progress
+    it("rejects COMPLETED with progress below 100", async () => {
+      await expect(
+        service.update(1, { status: "COMPLETED", progress: 40 }, 5),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.tasks.update).not.toHaveBeenCalled();
     });
 
     it("logs the update under the task creator, not the acting user", async () => {
@@ -335,6 +332,8 @@ describe("TaskService: update, delete and subtasks (characterization, M1)", () =
             task_id: args.where.task_id,
             status: "COMPLETED",
             parent_task_id: null,
+            // M16 (T41): user 5 creates a subtask, so 5 is the root task's creator
+            created_by: 5,
           }),
       );
     });

@@ -97,6 +97,7 @@
             <option value="COMPLETED">Abgeschlossen</option>
           </select>
           <span v-if="errors.status" class="error-message">{{ errors.status }}</span>
+          <span v-else-if="warnings.status" class="warning-message">{{ warnings.status }}</span>
         </div>
 
         <div v-if="task" class="form-group" :class="{ 'has-error': errors.progress }">
@@ -111,7 +112,7 @@
           <span v-if="errors.progress" class="error-message">{{ errors.progress }}</span>
         </div>
 
-        <SubtaskBuilder v-if="canManageTaskStructure" v-model="subtasks" />
+        <SubtaskBuilder v-if="canAddSubtasks" v-model="subtasks" />
 
         <div v-if="!task" class="form-group">
           <label for="creation-members">Zusätzliche Mitglieder (optional)</label>
@@ -237,6 +238,28 @@ const canManageTaskStructure = computed(() => {
 
   return isTeacher.value || isTaskCreator.value;
 });
+// T41, decision Q2 (M16): the backend lets only the root task's creator,
+// assignee and members add subtasks, so the builder shows only for them; a
+// new task starts a project of its own
+const rootTask = computed(() => {
+  let task = props.task;
+  const seen = new Set();
+  while (task?.parent_task_id && !seen.has(task.task_id)) {
+    seen.add(task.task_id);
+    const parent = (taskStore.tasks || []).find((t) => String(t.task_id) === String(task.parent_task_id));
+    if (!parent) break;
+    task = parent;
+  }
+  return task;
+});
+const isInvolvedInRoot = computed(() => {
+  const root = rootTask.value;
+  const userId = String(authStore.userId);
+  const members = Array.isArray(root?.task_members) ? root.task_members : [];
+  return [root?.created_by, root?.assigned_to, ...members.map((m) => m?.user_id)]
+    .some((id) => id != null && String(id) === userId);
+});
+const canAddSubtasks = computed(() => (props.task?.task_id ? isInvolvedInRoot.value : true));
 const canUnlockTask = computed(() => isTaskLocked.value && isTaskCreator.value);
 
 const lockedReason = computed(() => {

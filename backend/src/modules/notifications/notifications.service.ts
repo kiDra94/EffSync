@@ -7,6 +7,7 @@ import {
 import { CreateNotificationDto } from "./dto/create-notification.dto";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { GHOST_USER_ID } from "../../contexts/identity-access/application";
 
 @Injectable()
 export class NotificationsService {
@@ -17,6 +18,8 @@ export class NotificationsService {
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
+    // the ghost user 0 (M14) is no one to notify, whoever asks (M16)
+    if (createNotificationDto.user_id === GHOST_USER_ID) return null;
     const user = await this.prisma.users.findUnique({
       where: { user_id: createNotificationDto.user_id },
     });
