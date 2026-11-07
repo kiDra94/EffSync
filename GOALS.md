@@ -40,7 +40,7 @@ Thesis-related findings (T01–T130) are in [THESIS_ALIGNMENT.md](THESIS_ALIGNME
 1. **Bug: search is ignored for non-teachers.** `backend/src/modules/tasks/tasks.service.ts:109` sets `where.OR` for the search term, then `:129` overwrites `where.OR` with the visibility filter. Students' `?search=` has no effect.
 2. **A read endpoint writes to the DB, with N+1 queries.** `TasksService.findAll()` calls `recalculateTaskCompletionFromGrades()` for every returned task (`tasks.service.ts:191-208`). That function can `UPDATE` tasks (`:776`), and it runs 3–4 queries per task. The recalculation on read itself is thesis behavior (T119); the N+1 queries are the problem.
 3. **Duplicated completion logic.** `TasksService.recalculateTaskCompletionFromGrades` (`tasks.service.ts:670-785`) and `DocumentsService.completeTaskIfAllParticipantsGraded` (`documents.service.ts:423-541`) are near-identical ~115-line copies.
-4. **Role checks via hardcoded role-name strings, implemented 4+ times.** `tasks.service.ts:122-127` and `:151-161` (same check twice in one function), `documents.service.ts:185-286` (`normalizeRole`, `isTeacher`, `isStudentContext`, including German aliases such as "schueler"/"lehrer"), `documents.service.ts:288` (`getTeacherNotificationRecipients`). A `RoleName` enum already exists in `backend/src/config/role-permissions.config.ts` but these places don't use it.
+4. **Role checks via hardcoded role-name strings, implemented 4+ times.** `tasks.service.ts:122-127` and `:151-161` (same check twice in one function), `documents.service.ts:185-286` (`normalizeRole`, `isTeacher`, `isStudentContext`, including German aliases such as "schueler"/"lehrer"), `documents.service.ts:288` (`getTeacherNotificationRecipients`). A `RoleName` enum already exists in `backend/src/contexts/identity-access/domain/role-permissions.ts` but these places don't use it.
 5. **Permission check copied inline instead of using `PermissionsService`.** `TasksService.remove()` (`tasks.service.ts:463-528`) re-implements the flag and validity-window check with a magic `READ_FLAG = 4`, even though `PermissionsService` is injected into the same class (`:19`) and has `hasAnyPermission()`.
 6. **Three authorization mechanisms, but only one in use.**
    - Used everywhere: `auth/guards/permissions.guard.ts` + `@Permissions()`.
@@ -166,7 +166,7 @@ The refactor is done when all of the following hold:
 - [ ] `npx eslint` reports 0 errors in `backend/src` and `frontend/src`, with the `no-unsafe-*` rules back at `error` everywhere (decision Q13), and CI runs lint and `npm run build` for both projects.
 - [ ] No source file in `backend/src` over 500 lines, no backend method over 80 lines.
 - [ ] No `.vue` file over 800 lines (including style).
-- [ ] Role names appear as string literals only in `config/role-permissions.config.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
+- [ ] Role names appear as string literals only in `contexts/identity-access/domain/role-permissions.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
 - [ ] Permission checks go only through `PermissionsService` / `PermissionsGuard` / `RolesGuard`: no `user_permissions` or `roles_permissions` queries outside `identity-access/infrastructure`.
 - [ ] Exactly one axios instance in `frontend/src/api/`; no `apiClient` import, no `fetch(` (T79) and no import from `@/api/` (T80, decision Q19) in `views/` or `components/`, enforced by an ESLint `no-restricted-imports` rule.
 - [ ] No hardcoded `localhost` URLs in `frontend/src` outside one config module.
@@ -370,7 +370,7 @@ Rules for all milestones:
   - Done when: `npx depcruise src --config .dependency-cruiser.cjs` runs in CI, the build is green, and the baseline is recorded.
   - Risk: low. Nothing moves yet.
 
-- [ ] **M11: Migrate `identity-access`**
+- [x] **M11: Migrate `identity-access`**
   - Why: L1. All other contexts depend on authentication and authorization, so this context goes first.
   - Scope: `auth`, `users`, `roles`, `permissions`; the guards and decorators go to `identity-access/presentation/security/` and are re-exported via `shared/presentation/security/`.
   - Done when: these modules live only under `contexts/identity-access`, it has 0 dependency-cruiser violations, all M2 tests pass unchanged, and `GET /api-json` is unchanged.
@@ -394,6 +394,7 @@ Rules for all milestones:
     2. The link carries a signed JWT (purpose `reset`, 30 min), signed with `JWT_SECRET` plus the user's current password hash, so it stops working once the password has changed (decision Q8a, no schema change).
     3. Accept the token in `set-new-password`.
     4. Keep the Google reset path.
+    5. Found in M11: `GoogleStrategy` looks an account up by `username` = the Google e-mail and otherwise creates a new user, so a local account whose username differs from its e-mail collides on the unique `email` and the callback fails with 500. Look accounts up by `google_id`, then by e-mail, and move the user provisioning (with the default role) from the strategy into `AuthService` behind `UserRepository`, so registration and Google sign-in share one rule.
   - Done when: an E2E test requests a reset, reads the token from the test mail transport and sets a new password; reusing the same link afterwards and using an expired link both return 401; the frontend flow works against the real backend.
   - Risk: low–medium. No schema change. `set-new-password` must tell a reset token apart from a normal access token by its purpose claim.
 
@@ -587,11 +588,12 @@ Rules for all milestones:
     - T77 (UC-40, decision Q18): "Systemkonfiguration" is the RBAC configuration, i.e. which permissions with which flags each role has, guarded by `manage_system`.
   - Steps:
     1. `AdminView`: a user list with create, edit (first name, last name, username, e-mail) and delete, on the existing `POST/PATCH/DELETE /users` endpoints (`manage_users`). Delete runs the ghost-user anonymization (M14) and asks for confirmation.
+    1b. Found in M11: `UsersService.removeRoleFromUser` deletes only the `user_roles` row; the direct `user_permissions` that `addRoleToUser` created for that role stay (`RolePermissionsService.removeRolePermissionsIfNotNeeded` has no caller). Removing a role must also remove the permissions it granted.
     2. Backend in `identity-access` (after M11): `PUT /roles/:id/permissions` with `@Roles(RoleName.SUPERUSER)` and `@Permissions('manage_system')`. Today Admin also holds `manage_system` (`role-permissions.config.ts:42`), so the role check is what makes it Superuser-only. The new mapping is written in one transaction.
     3. A "Systemkonfiguration" tab in `AdminView`, visible only to the Superuser, that edits the role → permission mapping and the flags.
     4. Lock-out guard: a request that would take `manage_system` away from the Superuser role is rejected with 400.
   - Done when: E2E covers an admin creating, editing and deleting a user, a non-admin getting 403 on those endpoints, the Superuser changing a role's permissions with the effect visible on a user of that role, an Admin getting 403 on `PUT /roles/:id/permissions`, and the lock-out guard returning 400. Both `AdminView` tabs have component tests.
-  - Risk: medium. A runtime change to a role's permissions affects every user of that role at once; `role-permissions.config.ts` remains the default for fresh databases.
+  - Risk: medium. A runtime change to a role's permissions affects every user of that role at once; `contexts/identity-access/domain/role-permissions.ts` remains the default for fresh databases.
 
 - [ ] **M28: Shrink `CalendarView.vue` with `useCalendarUtils`**
   - Why: problems 16 and 17. UNUSED_CODE.md: `useCalendarUtils.js` is Planned/Keep and should replace the inline copies.
@@ -731,7 +733,8 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **F1 Base permission** (decided 2026-11-07, found in M8): features every logged-in user needs (chat, notes, notifications, own profile, reading tasks and documents) require `view_dashboard`, which all four roles have. Affects: T54, M8.
 - **F2 Students create tasks** (decided 2026-11-07): Student gets `create_tasks` and `edit_tasks` (UC-10…12 list Member/Student as actors; TaskView offers personal tasks). Editing or deleting others' tasks stays limited by the ownership checks. Admin gets the same two, because UC-10 names Admin as an actor. Affects: T54, M8.
 - **F3 School administration permission** (decided 2026-11-07): subjects, rooms, departments, schedules and lesson slots use `manage_classes` instead of the non-existent `manage_subjects`/`manage_rooms`/`manage_departments`/`manage_schedules`. Affects: M8, M36.
-- **F4 Permissions in existing databases** (decided 2026-11-07): `seed.ts` and `test-seed.ts` follow `role-permissions.config.ts`, and a data migration inserts the missing `roles_permissions` rows by name into existing databases. Affects: M8.
+- **F4 Permissions in existing databases** (decided 2026-11-07): `seed.ts` and `test-seed.ts` follow `contexts/identity-access/domain/role-permissions.ts`, and a data migration inserts the missing `roles_permissions` rows by name into existing databases. Affects: M8.
+- **G1 Migration with repository ports** (decided 2026-11-07, found in M11): services in `application/` work through repository ports; Prisma repositories in `infrastructure/` make exactly today's queries. "M2 tests pass unchanged" means every test case, mock and assertion stays the same; only the line that constructs the service under test (and import paths) change. Applies to all context migrations (M11–M24).
 - **Q8g Activity log on task delete** (decided 2026-11-06): no schema change. The delete transaction writes a "deleted" entry with the task title, sets `task_id = null` on the task's log rows, then deletes the task. Affects: T32, M15, M27, M33.
 
 ## Open questions

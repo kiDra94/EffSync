@@ -15,9 +15,11 @@ import {
 import { NotesService } from "./notes.service";
 import { CreateNoteDto } from "./dto/create-note.dto";
 import { UpdateNoteDto } from "./dto/update-note.dto";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("notes")

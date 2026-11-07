@@ -34,10 +34,13 @@ module.exports = {
     {
       name: "layers-inward",
       comment:
-        "Rule 2: application/ uses the UnitOfWork port and repository ports, never Prisma itself.",
+        "Rule 2: application/ uses the UnitOfWork port and repository ports, never Prisma itself. Prisma's generated row types may be imported type-only (no runtime dependency, G1).",
       severity: "warn",
       from: { path: `^${LAYERED}/application/` },
-      to: { path: "node_modules/(@prisma|prisma)/" },
+      to: {
+        path: "node_modules/(@prisma|prisma)/",
+        dependencyTypesNot: ["type-only"],
+      },
     },
     {
       name: "layers-inward",

@@ -3,8 +3,10 @@ import { TaskCommentsService } from "./task-comments.service";
 import { TaskCommentsController } from "./task-comments.controller";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { EmailService } from "../email/email.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+} from "../../shared/presentation/security";
 
 describe("TaskCommentsController", () => {
   let controller: TaskCommentsController;

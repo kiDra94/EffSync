@@ -14,7 +14,7 @@ import {
   PRIVILEGED_ROLES,
   RoleName,
   STAFF_ROLES,
-} from "../../config/role-permissions.config";
+} from "../../contexts/identity-access/application";
 import { NotificationsService } from "../notifications/notifications.service";
 import { GradeDocumentDto } from "./dto/grade-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";

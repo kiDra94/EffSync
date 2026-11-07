@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { AuthModule } from "./modules/auth/auth.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { TaskCommentsModule } from "./modules/task-comments/task-comments.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
@@ -14,18 +13,16 @@ import { ClassesModule } from "./modules/classes/classes.module";
 import { DepartmentsModule } from "./modules/departments/departments.module";
 import { PrismaModule } from "./shared/infrastructure/prisma/prisma.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { IdentityAccessModule } from "./contexts/identity-access/identity-access.module";
 import { validateEnv } from "./shared/infrastructure/config/env.validation";
 import {
   ThrottlerGuard,
   ThrottlerModule,
   ThrottlerModuleOptions,
 } from "@nestjs/throttler";
-import { UsersModule } from "./modules/users/users.module";
 import { ChatMessagesModule } from "./modules/chat-messages/chat-messages.module";
 import { RoomsModule } from "./modules/rooms/room.module";
 import { LessonSlotsModule } from "./modules/lesson-slots/lesson-slots.module";
-import { PermissionsModule } from "./modules/permissions/permissions.module";
-import { RolesModule } from "./modules/roles/roles.module";
 import { TaskActivityLogModule } from "./modules/task-activity-log/task-activity-log.module";
 import { TaskMembersModule } from "./modules/task-members/task-members.module";
 import { TaskTemplatesModule } from "./modules/task-templates/task-templates.module";
@@ -58,8 +55,7 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
         ],
       }),
     }),
-    AuthModule,
-    UsersModule,
+    IdentityAccessModule,
     TasksModule,
     TaskCommentsModule,
     DocumentsModule,
@@ -73,8 +69,6 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     DepartmentsModule,
     PrismaModule,
     LessonSlotsModule,
-    PermissionsModule,
-    RolesModule,
     RoomsModule,
     TaskActivityLogModule,
     TaskMembersModule,

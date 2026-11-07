@@ -18,8 +18,10 @@ import request from "supertest";
 import { App } from "supertest/types";
 import { ChatRoomsController } from "./chat-rooms.controller";
 import { ChatRoomsService } from "./chat-rooms.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+} from "../../shared/presentation/security";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 
 const REQUESTER = 5;

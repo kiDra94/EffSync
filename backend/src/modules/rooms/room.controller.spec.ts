@@ -1,8 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { RoomsController } from "./room.controller";
 import { RoomsService } from "./room.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+} from "../../shared/presentation/security";
 
 describe("RoomsController", () => {
   let controller: RoomsController;

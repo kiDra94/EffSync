@@ -1,9 +1,11 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { TasksController } from "./tasks.controller";
 import { TasksService } from "./tasks.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { RolesGuard } from "../auth/guards/roles.guard";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  RolesGuard,
+} from "../../shared/presentation/security";
 
 describe("TasksController", () => {
   let controller: TasksController;

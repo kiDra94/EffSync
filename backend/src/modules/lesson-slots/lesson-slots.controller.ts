@@ -1,4 +1,4 @@
-import { PermissionFlag } from "../permissions/permissions.service";
+import { PermissionFlag } from "../../contexts/identity-access/application";
 import {
   Controller,
   Get,
@@ -12,9 +12,11 @@ import {
 import { LessonSlotService } from "./lesson-slots.service";
 import { CreateLessonSlotDto } from "./dto/create-lesson-slots.dto";
 import { UpdateLessonSlotDto } from "./dto/update-lesson-slots.dto";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("lesson-slots")

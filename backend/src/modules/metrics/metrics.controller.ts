@@ -1,8 +1,10 @@
 import { Controller, Get, Req, UseGuards } from "@nestjs/common";
 import { MetricsService } from "./metrics.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("metrics")

@@ -3,7 +3,7 @@ import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service
 import {
   isRoleIn,
   PRIVILEGED_ROLES,
-} from "../../config/role-permissions.config";
+} from "../../contexts/identity-access/application";
 
 @Injectable()
 export class MetricsService {

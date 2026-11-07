@@ -5,7 +5,7 @@ import { WebsocketGateway } from "./websocket.gateway";
 import { JwtService } from "@nestjs/jwt/dist/jwt.service";
 import { ChatMessagesService } from "../chat-messages/chat-messages.service";
 import { ChatRoomsService } from "../chat-rooms/chat-rooms.service";
-import { PermissionsService } from "../permissions/permissions.service";
+import { PermissionsService } from "../../contexts/identity-access/application";
 
 describe("WebsocketGateway", () => {
   let gateway: WebsocketGateway;

@@ -1,4 +1,7 @@
-import { PermissionFlag } from "../permissions/permissions.service";
+import {
+  PermissionFlag,
+  STAFF_ROLES,
+} from "../../contexts/identity-access/application";
 import {
   BadRequestException,
   Controller,
@@ -23,12 +26,13 @@ import { DocumentsService } from "./documents.service";
 import { memoryStorage } from "multer";
 import { extname } from "path";
 import type { Response } from "express";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
-import { RolesGuard } from "../auth/guards/roles.guard";
-import { Roles } from "../auth/decorators/roles.decorator";
-import { STAFF_ROLES } from "../../config/role-permissions.config";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+  RolesGuard,
+  Roles,
+} from "../../shared/presentation/security";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { GradeDocumentDto } from "./dto/grade-document.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";

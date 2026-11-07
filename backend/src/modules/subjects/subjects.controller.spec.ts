@@ -1,8 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { SubjectsController } from "./subjects.controller";
 import { SubjectsService } from "./subjects.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+} from "../../shared/presentation/security";
 
 describe("SubjectsController", () => {
   let controller: SubjectsController;

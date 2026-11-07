@@ -1,4 +1,4 @@
-import { PermissionFlag } from "../permissions/permissions.service";
+import { PermissionFlag } from "../../contexts/identity-access/application";
 import {
   Controller,
   Get,
@@ -14,11 +14,13 @@ import {
 import { TasksService } from "./tasks.service";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
-import type { AuthenticatedRequest } from "../auth/types/authenticated-request";
-import { RolesGuard } from "../auth/guards/roles.guard";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+  RolesGuard,
+} from "../../shared/presentation/security";
+import type { AuthenticatedRequest } from "../../shared/presentation/security";
 import { QueryTasksDto } from "./dto/query-tasks.dto";
 
 // check order token → role → permission (T97)

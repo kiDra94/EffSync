@@ -2,8 +2,10 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { TaskTemplatesService } from "./task-templates.service";
 import { TaskTemplatesController } from "./task-templates.controller";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+} from "../../shared/presentation/security";
 
 describe("TaskTemplatesController", () => {
   let controller: TaskTemplatesController;

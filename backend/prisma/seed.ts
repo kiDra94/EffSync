@@ -3,8 +3,10 @@ import { PrismaClient, task_status } from "@prisma/client";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcrypt";
-import { getPermissionsForRole } from "../src/config/role-permissions.config";
-import { BCRYPT_COST } from "../src/config/auth.config";
+import {
+  BCRYPT_COST,
+  getPermissionsForRole,
+} from "../src/contexts/identity-access/application";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -554,7 +556,7 @@ async function main() {
     );
 
     // === ROLE-PERMISSION MAPPINGS ===
-    // role permissions follow src/config/role-permissions.config.ts (decision F4)
+    // role permissions follow src/contexts/identity-access/domain/role-permissions.ts (decision F4)
     const roleRows = await prisma.roles.findMany();
     const permissionRows = await prisma.permissions.findMany();
     const rolesPermissionsData = roleRows.flatMap((role) =>

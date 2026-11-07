@@ -11,7 +11,7 @@ import {
 import { Server, Socket } from "socket.io";
 import { ChatRoomsService } from "../chat-rooms/chat-rooms.service";
 import { ChatMessagesService } from "../chat-messages/chat-messages.service";
-import { PermissionsService } from "../permissions/permissions.service";
+import { PermissionsService } from "../../contexts/identity-access/application";
 
 @WebSocketGateway({
   cors: {

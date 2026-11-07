@@ -9,9 +9,11 @@ import {
   UseGuards,
   Req,
 } from "@nestjs/common";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
 import { TaskCommentsService } from "./task-comments.service";
 import { CreateTaskCommentDto } from "./dto/create-task-comment.dto";
 import { UpdateTaskCommentDto } from "./dto/update-task-comment.dto";

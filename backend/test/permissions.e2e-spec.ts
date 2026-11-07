@@ -6,7 +6,7 @@ import { AppModule } from "../src/app.module";
 import { createTestApp } from "./setup/create-test-app";
 
 // THESIS: T54 (M8) – every endpoint needs a permission; a missing one returns 403.
-// Roles get their permissions from role-permissions.config.ts (decisions F1, F2).
+// Roles get their permissions from contexts/identity-access/domain/role-permissions.ts (decisions F1, F2).
 const STUDENT_ROLE_ID = 2; // test seed: Superuser 1, Student 2, Teacher 3, Admin 4
 
 describe("Endpoint permissions (e2e)", () => {
@@ -14,6 +14,7 @@ describe("Endpoint permissions (e2e)", () => {
   let superuser: string;
   let student: string;
   let noPermissions: string;
+  let noPermissionsId: number;
   const task = { title: "Permission test task", deadline: "2029-06-01" };
 
   async function login(username: string): Promise<string> {
@@ -45,6 +46,9 @@ describe("Endpoint permissions (e2e)", () => {
       })
       .expect(201);
     const userId = (registered.body as { user_id: number }).user_id;
+    // M11 review: no response carries the password hash
+    expect(registered.body).not.toHaveProperty("password_hash");
+    noPermissionsId = userId;
     // registration gives the Student role; taking it away leaves no permission at all
     await request(app.getHttpServer())
       .delete(`/api/users/${userId}/roles/${STUDENT_ROLE_ID}`)
@@ -116,5 +120,23 @@ describe("Endpoint permissions (e2e)", () => {
     expect((response.body as { message: string }).message).toBe(
       "Missing permission: delete_tasks",
     );
+  });
+
+  // M11 review: user responses carry no password hash, and a password can't be
+  // patched into the users row (it is no column; it used to fail with 500)
+  it("answers user updates without the hash and rejects a password field with 400", async () => {
+    const updated = await request(app.getHttpServer())
+      .patch(`/api/users/${noPermissionsId}`)
+      .set("Authorization", `Bearer ${superuser}`)
+      .send({ lastname: "Changed" })
+      .expect(200);
+    expect(updated.body).not.toHaveProperty("password_hash");
+    expect((updated.body as { lastname: string }).lastname).toBe("Changed");
+
+    await request(app.getHttpServer())
+      .patch(`/api/users/${noPermissionsId}`)
+      .set("Authorization", `Bearer ${superuser}`)
+      .send({ password: "newsecret123" })
+      .expect(400);
   });
 });

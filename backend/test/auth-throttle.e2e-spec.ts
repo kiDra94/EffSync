@@ -3,7 +3,7 @@ import { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { App } from "supertest/types";
 import { AppModule } from "../src/app.module";
-import { AuthService } from "../src/modules/auth/auth.service";
+import { AuthService } from "../src/contexts/identity-access/application/auth.service";
 import { createTestApp } from "./setup/create-test-app";
 
 describe("AuthController Throttling (e2e)", () => {

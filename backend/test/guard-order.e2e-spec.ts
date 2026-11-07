@@ -3,12 +3,12 @@ import { Test, TestingModule } from "@nestjs/testing";
 import request from "supertest";
 import { App } from "supertest/types";
 import { AppModule } from "../src/app.module";
-import { JwtAuthGuard } from "../src/modules/auth/guards/jwt-auth.guard";
-import { RolesGuard } from "../src/modules/auth/guards/roles.guard";
-import { PermissionsGuard } from "../src/modules/auth/guards/permissions.guard";
-import { Roles } from "../src/modules/auth/decorators/roles.decorator";
-import { Permissions } from "../src/modules/auth/decorators/permissions.decorator";
-import { RoleName } from "../src/config/role-permissions.config";
+import { JwtAuthGuard } from "../src/shared/presentation/security";
+import { RolesGuard } from "../src/shared/presentation/security";
+import { PermissionsGuard } from "../src/shared/presentation/security";
+import { Roles } from "../src/shared/presentation/security";
+import { Permissions } from "../src/shared/presentation/security";
+import { RoleName } from "../src/contexts/identity-access/application";
 import { createTestApp } from "./setup/create-test-app";
 
 // THESIS: T97 – the backend checks the token, then the role, then the permission.

@@ -17,10 +17,12 @@ import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
 import { UpdateChatRoomDto } from "./dto/update-chat-room.dto";
 import { AddChatMemberDto } from "./dto/add-chat-member.dto";
-import type { AuthenticatedRequest } from "../auth/types/authenticated-request";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import type { AuthenticatedRequest } from "../../shared/presentation/security";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("chat-rooms")

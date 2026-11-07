@@ -1,4 +1,4 @@
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { PermissionsGuard } from "../../shared/presentation/security";
 import { Test, TestingModule } from "@nestjs/testing";
 import { TaskActivityLogService } from "./task-activity-log.service";
 import { TaskActivityLogController } from "./task-activity-log.controller";

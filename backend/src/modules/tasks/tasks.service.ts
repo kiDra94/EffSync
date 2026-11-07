@@ -15,12 +15,10 @@ import { TaskActivityLogService } from "../task-activity-log/task-activity-log.s
 import {
   PermissionFlag,
   PermissionsService,
-} from "../permissions/permissions.service";
-import {
   isRoleIn,
   RoleName,
   STAFF_ROLES,
-} from "../../config/role-permissions.config";
+} from "../../contexts/identity-access/application";
 
 @Injectable()
 export class TasksService {

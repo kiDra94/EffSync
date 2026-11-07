@@ -1,14 +1,14 @@
 # Bounded contexts (GOALS.md, target architecture)
 
-| Context | Takes over |
-|---|---|
-| `identity-access` | auth, users, roles, permissions, the guards and decorators |
-| `task-management` | tasks, members, templates, grade remarks, comments, activity log |
-| `communication` | chat rooms, chat messages, the chat handlers of the gateway |
-| `documents-notes` | documents (incl. grading), notes |
-| `school-organization` | classes, departments, subjects, rooms, schedules, lesson slots |
-| `notifications` | notifications, e-mail, preferences, cron jobs |
-| `reporting` | metrics for the dashboard |
+| Context               | Takes over                                                       |
+| --------------------- | ---------------------------------------------------------------- |
+| `identity-access`     | auth, users, roles, permissions, the guards and decorators       |
+| `task-management`     | tasks, members, templates, grade remarks, comments, activity log |
+| `communication`       | chat rooms, chat messages, the chat handlers of the gateway      |
+| `documents-notes`     | documents (incl. grading), notes                                 |
+| `school-organization` | classes, departments, subjects, rooms, schedules, lesson slots   |
+| `notifications`       | notifications, e-mail, preferences, cron jobs                    |
+| `reporting`           | metrics for the dashboard                                        |
 
 `src/shared/` is the shared kernel: the Prisma client, the unit of work, config validation, the Socket.io transport and the re-exported security decorators.
 
@@ -26,7 +26,7 @@ presentation/    controllers, DTOs, gateway handlers
 The dependency rules are checked by `.dependency-cruiser.cjs` (`npx depcruise src --config .dependency-cruiser.cjs`):
 
 1. `domain-no-framework`: `domain/` imports only its own `domain/` and `shared/domain/`, nothing from NestJS, Prisma or other contexts.
-2. `layers-inward`: presentation → application → domain; infrastructure → application | domain; application never imports infrastructure or presentation.
+2. `layers-inward`: presentation → application → domain; infrastructure → application | domain; application never imports infrastructure or presentation, and Prisma only as `import type` (generated row types in repository ports, decision G1).
 3. `context-via-application`: another context is reached only through its `application/index.ts`. During the migration the legacy `src/modules/` count as other contexts in both directions. `shared/` depends on no context, except `shared/presentation/security/`, which re-exports identity-access's guards and decorators.
 4. `no-circular`: `identity-access` depends on no other context. Cycles between contexts are checked at context level by `scripts/check-context-cycles.cjs` (`npm run depcruise:contexts`), because dependency-cruiser's own cycle check only sees cycles between files; type-only imports don't count.
 

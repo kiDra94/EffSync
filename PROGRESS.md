@@ -494,3 +494,56 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - The migration milestones (M11–M24) move code into the contexts. The `context-via-application` warnings for legacy-module edges show the remaining coupling and should fall to 0 by M24.
 
 **Failed / open:** none.
+
+## 2026-11-07 – M11: Migrate `identity-access`
+
+**Decision asked first:** G1 (GOALS.md, 2026-11-07). Services in `application/` work through repository ports; Prisma repositories in `infrastructure/` make exactly the previous queries. "M2 tests unchanged" means every test case, mock and assertion stays the same; only the line that constructs the service under test and the import paths change.
+
+**Done:**
+- `auth`, `users`, `roles` and `permissions` now live only in `src/contexts/identity-access` (moved with `git mv`, 214 imports rewritten):
+  - `domain/`: `role-permissions.ts` (`RoleName`, `STAFF_ROLES`, `PRIVILEGED_ROLES`, `isRoleIn`, the role permissions) and `permission-flag.ts`. Pure TypeScript.
+  - `application/`:
+    - `AuthService`, `UsersService`, `PermissionsService`, `RolesService` and `RolePermissionsService`
+    - the ports `UserRepository`, `PermissionRepository`, `RoleRepository` and `RolePermissionRepository`, whose row types are Prisma's generated types, imported type-only
+    - input types instead of the presentation DTOs, `BCRYPT_COST`, and `AuthenticatedUser`
+    - `index.ts` as the public entry point
+  - `infrastructure/`: the Prisma repositories, the Passport strategies (jwt, local, google) and `jwt.config.ts`. `JwtStrategy` now reads the user through `UserRepository`.
+  - `presentation/`: the four controllers, the DTOs, and `security/` (guards, decorators, `AuthenticatedRequest`, `index.ts`). Re-exported through `shared/presentation/security/` (T97 order documented there).
+  - `identity-access.module.ts` (global) at the context root replaces `AuthModule`, `UsersModule`, `RolesModule` and `PermissionsModule`.
+- The legacy modules import identity-access only through `contexts/identity-access/application` (permissions, role names, flags) or `shared/presentation/security` (guards, decorators). 114 imports were rewritten, and 35 duplicate import groups merged.
+- The WebSocket module uses the globally exported, configured `JwtModule` instead of its own.
+- dependency-cruiser: `application/` may import Prisma only `import type` (generated row types in the ports, G1); a runtime import still warns.
+- Lint per context (decision Q13): identity-access has 0 `no-unsafe-*` findings, specs included. The rules are `error` for `src/contexts/identity-access/**`. The typing came from the typed JWT payload, Google user, requests and repository results; the specs got type-only casts (`as never`, `mock.calls as unknown[][]`) with the test cases unchanged.
+- Fixed while moving (code review, security):
+  - Register, `POST /users`, `PATCH /users/:id` and `DELETE /users/:id` returned the bcrypt `password_hash`; they now return the user without it (`withoutPasswordHash`).
+  - `PATCH /users/:id` accepted `password` and then failed with a Prisma 500; `UpdateUserDto` omits the password, so the request now gets 400.
+
+**Verified:**
+- Done-when:
+  - `src/modules/{auth,users,roles,permissions}` and `src/config/` are gone.
+  - **0 dependency-cruiser violations** (176 modules) and 0 cycles between contexts. The legacy modules' edges into identity-access are clean too.
+  - The moved M2 specs, compared with `HEAD` without imports, differ only in the construction line (`new PrismaUserRepository(prisma)`/`new PrismaPermissionRepository(prisma)`) or one provider line, plus the type-only lint casts. 6 spec files are otherwise identical. `tasks.service.characterization.spec.ts` (M1) changed the same way.
+  - `GET /api-json` is **byte-identical** to `HEAD`. I generated it in a git worktree of `HEAD` and in the working tree.
+- Backend 363 unit and 55 E2E tests (new: no `password_hash` in register/update responses, 400 for a password in PATCH), frontend 160; tsc, lint (0 errors, 431 warnings; ratchet 481 → 431), knip and build pass. `act`: all three jobs succeeded.
+- `code-review` (high) confirmed the query extraction is faithful (where/include/select/data, `|| null`, `orderBy`) and the DI holds. 10 findings:
+  - fixed:
+    - the password hash in responses (2)
+    - `password` in `PATCH` (3)
+    - Lint per context, which I had missed (5)
+    - deep imports from the seeds and E2E tests into identity-access internals: `BCRYPT_COST` and `getPermissionsForRole` are now in the index, and `guard-order` uses the shared security export (7)
+    - `JwtStrategy` querying Prisma directly (8, partly)
+    - `RoleGrant` duplicating `UserRoleWithRolePermissions` (9, partly)
+    - the leftovers (10): stale paths in comments, GOALS.md, THESIS_ALIGNMENT.md, UNUSED_CODE.md and `documents/AUTOMATISCHE-PERMISSIONS.md`; `.gitkeep` files in populated folders; the `PermissionFlag` re-export; unused imports
+  - planned in later milestones:
+    - (1) Removing a role leaves the permissions it granted: an existing bug, now in M35 step 1b.
+    - (4/8) Google sign-in collides with local accounts and duplicates the user provisioning: an existing bug, now in M13 step 5.
+  - documented:
+    - (6) dependency-cruiser doesn't see DI dependencies: the global module exports `JwtModule`, `PassportModule` and `PermissionsService` to everyone.
+    - The specs are excluded from depcruise; `tasks.service.characterization.spec.ts` builds the real `PrismaPermissionRepository`, so it imports infrastructure.
+  - accepted: `RolePermissionRepository` and `UserRepository` share two queries.
+
+**Learned (for later milestones):**
+- Moving a context needs a construction-line change in specs of other contexts that build its services with Prisma mocks (here the M1 task spec). G1 covers that.
+- A `@Global` context module is convenient for the guards but invisible to dependency-cruiser. The later contexts should export narrow providers and import identity-access explicitly where they need more than the guards.
+
+**Failed / open:** none.

@@ -1,4 +1,4 @@
-import { PermissionFlag } from "../permissions/permissions.service";
+import { PermissionFlag } from "../../contexts/identity-access/application";
 import {
   Controller,
   Get,
@@ -22,9 +22,11 @@ import {
   ApiResponse,
   ApiQuery,
 } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
 
 @ApiTags("task-templates")
 @ApiBearerAuth()

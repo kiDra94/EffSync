@@ -3,7 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import request from "supertest";
 import { App } from "supertest/types";
 import { AppModule } from "../src/app.module";
-import { GoogleAuthGuard } from "../src/modules/auth/guards/google-auth.guard";
+import { GoogleAuthGuard } from "../src/contexts/identity-access/presentation/security/google-auth.guard";
 import { createTestApp } from "./setup/create-test-app";
 
 // Login, OAuth redirect and CSRF-by-design (GOALS.md M9, T49, T116, Q9, T13).

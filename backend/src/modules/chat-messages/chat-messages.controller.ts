@@ -14,10 +14,12 @@ import {
 import { ChatMessagesService } from "./chat-messages.service";
 import { CreateChatMessageDto } from "./dto/create-chat-message.dto";
 import { UpdateChatMessageDto } from "./dto/update-chat-message.dto";
-import type { AuthenticatedRequest } from "../auth/types/authenticated-request";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
+import type { AuthenticatedRequest } from "../../shared/presentation/security";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("chat-rooms")

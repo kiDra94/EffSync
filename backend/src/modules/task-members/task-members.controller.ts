@@ -11,10 +11,12 @@ import {
   HttpStatus,
   Req,
 } from "@nestjs/common";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
-import { Permissions } from "../auth/decorators/permissions.decorator";
-import { PermissionFlag } from "../permissions/permissions.service";
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  Permissions,
+} from "../../shared/presentation/security";
+import { PermissionFlag } from "../../contexts/identity-access/application";
 import {
   TaskMembersService,
   TaskPermissionFlags,
