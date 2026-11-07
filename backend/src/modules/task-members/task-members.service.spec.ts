@@ -8,7 +8,7 @@ import {
   TaskMembersService,
   TaskPermissionFlags,
 } from "./task-members.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 
 describe("TaskMembersService - Bitwise Permission Checks (rwx-Modell)", () => {
   let service: TaskMembersService;

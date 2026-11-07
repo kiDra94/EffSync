@@ -3,7 +3,7 @@
  * one of these roles", based on the RoleName enum.
  */
 import { PermissionsService } from "./permissions.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { RoleName, STAFF_ROLES } from "../../config/role-permissions.config";
 
 describe("PermissionsService.hasAnyRole", () => {

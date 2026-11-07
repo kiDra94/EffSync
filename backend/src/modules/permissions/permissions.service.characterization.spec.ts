@@ -3,7 +3,7 @@
  * window, flag bitmask, name aliases, the role fallback and the OR/AND helpers.
  */
 import { PermissionFlag, PermissionsService } from "./permissions.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 
 type NameWhere = {
   where: { permissions?: { name?: string }; roles?: unknown };

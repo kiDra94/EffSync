@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy, Profile, VerifyCallback } from "passport-google-oauth20";
-import { PrismaService } from "../../../prisma/prisma.service";
+import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { isRoleIn, RoleName } from "../../../config/role-permissions.config";
 
 @Injectable()

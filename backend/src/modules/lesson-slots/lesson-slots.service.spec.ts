@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { LessonSlotService } from "./lesson-slots.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 
 describe("LessonSlotService", () => {
   let service: LessonSlotService;

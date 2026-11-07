@@ -3,7 +3,7 @@
  */
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { ChatRoomsService } from "./chat-rooms.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 
 function createPrismaMock() {
   const prisma = {

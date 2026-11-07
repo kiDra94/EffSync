@@ -359,7 +359,7 @@ Rules for all milestones:
 
 ### Domain-driven restructuring and thesis alignment per context
 
-- [ ] **M10: Context skeleton and dependency rules (warn mode)**
+- [x] **M10: Context skeleton and dependency rules (warn mode)**
   - Why: L1. Sets up the target architecture before anything moves.
   - Steps:
     1. Create `src/contexts/<context>/{domain,application,infrastructure,presentation}` for the seven contexts, plus `src/shared/`.

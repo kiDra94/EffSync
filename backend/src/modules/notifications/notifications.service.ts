@@ -5,7 +5,7 @@ import {
   forwardRef,
 } from "@nestjs/common";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 
 @Injectable()

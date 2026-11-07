@@ -12,7 +12,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { TasksService } from "./tasks.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { TaskActivityLogService } from "../task-activity-log/task-activity-log.service";
 import { PermissionsService } from "../permissions/permissions.service";

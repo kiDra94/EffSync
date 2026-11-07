@@ -6,7 +6,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { jwtModuleOptions } from "../../config/auth.config";
 import { LocalStrategy } from "./strategies/local.strategy";
-import { PrismaModule } from "../../prisma/prisma.module";
+import { PrismaModule } from "../../shared/infrastructure/prisma/prisma.module";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { RolesGuard } from "./guards/roles.guard";

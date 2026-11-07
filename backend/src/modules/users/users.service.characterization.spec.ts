@@ -3,7 +3,7 @@
  */
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { UsersService } from "./users.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { RolePermissionsService } from "../roles/role-permissions.service";
 
 const DAY = 24 * 60 * 60 * 1000;

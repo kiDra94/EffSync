@@ -2,7 +2,7 @@ import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { Test, TestingModule } from "@nestjs/testing";
 import { TaskActivityLogService } from "./task-activity-log.service";
 import { TaskActivityLogController } from "./task-activity-log.controller";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 
 describe("TaskActivityLogController", () => {
   let controller: TaskActivityLogController;

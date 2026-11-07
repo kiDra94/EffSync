@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { PermissionsService, PermissionFlag } from "./permissions.service";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { RoleName } from "../../config/role-permissions.config";
 
 describe("PermissionsService", () => {

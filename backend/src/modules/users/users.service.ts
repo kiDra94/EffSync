@@ -6,7 +6,7 @@ import {
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { hash, genSalt } from "bcrypt";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { RoleName } from "../../config/role-permissions.config";
 import { BCRYPT_COST } from "../../config/auth.config";
 import { RolePermissionsService } from "../roles/role-permissions.service";

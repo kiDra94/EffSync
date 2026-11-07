@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { CreateChatMessageDto } from "./dto/create-chat-message.dto";
 import { UpdateChatMessageDto } from "./dto/update-chat-message.dto";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()

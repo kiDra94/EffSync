@@ -2,7 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
-import { PrismaService } from "../src/prisma/prisma.service";
+import { PrismaService } from "../src/shared/infrastructure/prisma/prisma.service";
 import { createTestApp } from "./setup/create-test-app";
 
 // THESIS: T130 – the controller prefix already contains `api/`, so with the global

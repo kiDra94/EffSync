@@ -8,7 +8,7 @@ import { createReadStream, existsSync } from "fs";
 import { unlink } from "fs/promises";
 import { basename, extname, isAbsolute, relative, resolve } from "path";
 import { Readable } from "stream";
-import { PrismaService } from "../../prisma/prisma.service";
+import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import {
   isRoleIn,
   PRIVILEGED_ROLES,

@@ -12,9 +12,9 @@ import { NotesModule } from "./modules/notes/notes.module";
 import { SchedulesModule } from "./modules/schedules/schedules.module";
 import { ClassesModule } from "./modules/classes/classes.module";
 import { DepartmentsModule } from "./modules/departments/departments.module";
-import { PrismaModule } from "./prisma/prisma.module";
+import { PrismaModule } from "./shared/infrastructure/prisma/prisma.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { validateEnv } from "./config/env.validation";
+import { validateEnv } from "./shared/infrastructure/config/env.validation";
 import {
   ThrottlerGuard,
   ThrottlerModule,

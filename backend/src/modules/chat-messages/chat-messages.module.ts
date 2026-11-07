@@ -1,7 +1,7 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { ChatMessagesService } from "./chat-messages.service";
 import { ChatMessagesController } from "./chat-messages.controller";
-import { PrismaModule } from "../../prisma/prisma.module";
+import { PrismaModule } from "../../shared/infrastructure/prisma/prisma.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({

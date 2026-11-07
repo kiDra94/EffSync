@@ -441,3 +441,56 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - `main.ts` still calls `dotenv.config()`, which `ConfigModule` makes redundant; it is harmless and goes with the context migration.
 
 **Failed / open:** none.
+
+## 2026-11-07 – M10: Context skeleton and dependency rules (warn mode)
+
+**Done:**
+- `src/contexts/<context>/{domain,application,infrastructure,presentation}` for the seven contexts (`identity-access`, `task-management`, `communication`, `documents-notes`, `school-organization`, `notifications`, `reporting`), plus `src/shared/{domain,application,infrastructure,presentation}`. `src/contexts/README.md` describes the layers and rules. Each context's NestJS module (`<context>.module.ts`) lives at the context root, outside the layers.
+- Moved to `shared/infrastructure`: `PrismaModule` and `PrismaService` (`shared/infrastructure/prisma/`) and the config validation (`shared/infrastructure/config/env.validation.ts`). A script rewrote 75 relative imports. Nothing else moved; `config/auth.config.ts` and `role-permissions.config.ts` go with identity-access in M11.
+- Unit of work:
+  - `UnitOfWork` (port, `shared/application`) and `Transaction` (opaque type, `shared/domain`, so repository ports in `domain/` can name it) are implemented by `PrismaUnitOfWork` with `prisma.$transaction`.
+  - A nested `run()` joins the open transaction through `AsyncLocalStorage`. So a use case that calls another context's use case stays in one transaction, e.g. grading → `completeIfAllStudentsGraded`.
+  - Repositories get the open transaction via `prismaTransaction(tx)` or `PrismaUnitOfWork.client()`.
+  - `PrismaModule` provides `UnitOfWork`.
+- dependency-cruiser 18.7.0 (installed with npm 10) with `.dependency-cruiser.cjs`. All rules are severity `warn`; specs are excluded.
+  - `domain-no-framework`: `domain/` imports only its own `domain/` and `shared/domain/`.
+  - `layers-inward`:
+    - `application/` imports neither `infrastructure/`/`presentation/` nor Prisma
+    - `infrastructure/` doesn't import `presentation/`
+    - `presentation/` doesn't import `infrastructure/`
+  - `context-via-application`:
+    - other contexts only through their `application/index.ts`
+    - the legacy `src/modules/` count as other contexts in both directions
+    - `shared/` depends on no context, except the planned `shared/presentation/security/` re-export of identity-access's guards
+  - `no-circular`: `identity-access` depends on no other context or legacy module. Cycles between contexts are checked at context level by `scripts/check-context-cycles.cjs` on depcruise's JSON output (`npm run depcruise:contexts`). dependency-cruiser's `circular` only sees cycles between files, and type-only imports don't count.
+- CI (backend job): `npx depcruise src --config .dependency-cruiser.cjs` and `npm run depcruise:contexts`, both in warn mode until M34.
+
+**Verified:**
+- **Baseline:** 0 violations of the four rules (166 modules, 580 dependencies), 0 cycles between contexts. Nothing has moved into the contexts yet.
+- **Extra baseline outside the rules:** 3 file cycles in the legacy modules: chat-messages ↔ websocket ↔ notifications and chat-rooms ↔ websocket. They become relevant in M21/M23.
+- **Each rule really fires.** I used temporary files, deleted afterwards. Reported:
+  - a domain importing `@nestjs/common`
+  - `shared/domain` importing infrastructure
+  - `application` importing infrastructure, `application` importing `@prisma/client`, and infrastructure ↔ presentation
+  - a context importing another context's internals, a context → legacy module, a legacy module → context internals, and `shared` → context internals
+  - identity-access depending on another context, and a context cycle through the two `index.ts` files
+
+  Not reported, correctly: a type-only cycle inside a domain, and the context-root module file importing infrastructure.
+- `UnitOfWork` tests: result, failure propagation, a nested `run()` sharing one transaction, and `client()` inside and outside a transaction.
+- Backend 363 unit and 54 E2E tests, frontend 160; tsc, lint (0 errors, 481 warnings), knip and build pass. `act`: all three jobs succeeded, with both new steps green.
+- `code-review` (high), 10 findings, all fixed:
+  1. `Transaction` lived in `application`, so domain ports couldn't use it.
+  2. The unit of work wasn't re-entrant.
+  3. Cycles between contexts went unnoticed through different files.
+  4. Legacy modules weren't checked.
+  5. `shared` → context internals wasn't checked.
+  6. Type-only and in-context file cycles counted.
+  7. There was no place for the module files.
+  8. `application` → Prisma wasn't checked.
+  9. The baseline wasn't recorded yet.
+  10. The stale T85 path in THESIS_ALIGNMENT.md, and the name of the rollback test.
+
+**Learned (for later milestones):**
+- The migration milestones (M11–M24) move code into the contexts. The `context-via-application` warnings for legacy-module edges show the remaining coupling and should fall to 0 by M24.
+
+**Failed / open:** none.
