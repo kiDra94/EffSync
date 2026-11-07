@@ -27,6 +27,8 @@ onMounted(async () => {
     // Put the token into the store and localStorage so authApi calls work
     authStore.token = token.value
     localStorage.setItem('authToken', token.value)
+    // the reset token starts no session (M12): drop a previous session's refresh token
+    localStorage.removeItem('refreshToken')
   }
 })
 watch(isDark, (val) => document.body.classList.toggle('dark-mode', val))

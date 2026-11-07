@@ -10,7 +10,7 @@ export function jwtModuleOptions(config: ConfigService): JwtModuleOptions {
   return {
     secret: jwtSecret(config),
     signOptions: {
-      expiresIn: (config.get<string>("JWT_EXPIRATION") ?? "1h") as never,
+      expiresIn: (config.get<string>("JWT_EXPIRATION") ?? "15m") as never,
     },
   };
 }

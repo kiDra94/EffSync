@@ -8,12 +8,14 @@ import { PermissionsService } from "./application/permissions.service";
 import { RolePermissionsService } from "./application/role-permissions.service";
 import { RolesService } from "./application/roles.service";
 import { UsersService } from "./application/users.service";
+import { SessionService } from "./application/session.service";
 import {
   PermissionRepository,
   RolePermissionRepository,
   RoleRepository,
 } from "./application/ports/access.repositories";
 import { UserRepository } from "./application/ports/user.repository";
+import { RefreshTokenRepository } from "./application/ports/refresh-token.repository";
 import { jwtModuleOptions } from "./infrastructure/jwt.config";
 import {
   PrismaPermissionRepository,
@@ -21,9 +23,11 @@ import {
   PrismaRoleRepository,
 } from "./infrastructure/persistence/prisma-access.repositories";
 import { PrismaUserRepository } from "./infrastructure/persistence/prisma-user.repository";
+import { PrismaRefreshTokenRepository } from "./infrastructure/persistence/prisma-refresh-token.repository";
 import { GoogleStrategy } from "./infrastructure/security/google.strategy";
 import { JwtStrategy } from "./infrastructure/security/jwt.strategy";
 import { LocalStrategy } from "./infrastructure/security/local.strategy";
+import { SessionCleanupJob } from "./infrastructure/session-cleanup.job";
 import { AuthController } from "./presentation/auth.controller";
 import { PermissionsController } from "./presentation/permissions.controller";
 import { RolesController } from "./presentation/roles.controller";
@@ -58,6 +62,7 @@ import { RolesGuard } from "./presentation/security/roles.guard";
     RolesService,
     RolePermissionsService,
     PermissionsService,
+    SessionService,
     { provide: UserRepository, useClass: PrismaUserRepository },
     { provide: PermissionRepository, useClass: PrismaPermissionRepository },
     { provide: RoleRepository, useClass: PrismaRoleRepository },
@@ -65,9 +70,11 @@ import { RolesGuard } from "./presentation/security/roles.guard";
       provide: RolePermissionRepository,
       useClass: PrismaRolePermissionRepository,
     },
+    { provide: RefreshTokenRepository, useClass: PrismaRefreshTokenRepository },
     JwtStrategy,
     LocalStrategy,
     GoogleStrategy,
+    SessionCleanupJob,
     RolesGuard,
     PermissionsGuard,
   ],

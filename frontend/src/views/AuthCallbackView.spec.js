@@ -50,9 +50,9 @@ describe('AuthCallbackView', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  it('reads the token from the fragment, loads the profile and navigates to the dashboard', async () => {
-    window.history.replaceState(null, '', '/auth-callback#token=oauth.jwt.token')
-    routeMock.hash = '#token=oauth.jwt.token'
+  it('reads the tokens from the fragment, loads the profile and navigates to the dashboard', async () => {
+    window.history.replaceState(null, '', '/auth-callback#token=oauth.jwt.token&refreshToken=oauth-refresh')
+    routeMock.hash = '#token=oauth.jwt.token&refreshToken=oauth-refresh'
     getAuthProfile.mockImplementation(async () => {
       // the request already carries the token (httpClient reads it from localStorage)
       expect(localStorage.getItem('authToken')).toBe('oauth.jwt.token')
@@ -72,6 +72,8 @@ describe('AuthCallbackView', () => {
     expect(authStoreMock.userDetails.username).toBe('oauth.user')
     expect(localStorage.getItem('userId')).toBe('20')
     expect(localStorage.getItem('userRole')).toBe('student')
+    // M12: the refresh token is kept for httpClient's refresh on 401
+    expect(localStorage.getItem('refreshToken')).toBe('oauth-refresh')
     expect(pushMock).toHaveBeenCalledWith({ name: 'Dashboard' })
   })
 
@@ -99,7 +101,7 @@ describe('AuthCallbackView', () => {
   })
 
   it('redirects to the login when loading the profile fails', async () => {
-    routeMock.hash = '#token=expired.jwt.token'
+    routeMock.hash = '#token=expired.jwt.token&refreshToken=r'
     getAuthProfile.mockRejectedValue(new Error('401'))
 
     const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
@@ -108,5 +110,18 @@ describe('AuthCallbackView', () => {
 
     expect(pushMock).toHaveBeenCalledWith({ name: 'Login' })
     expect(localStorage.getItem('authToken')).toBeNull()
+    expect(localStorage.getItem('refreshToken')).toBeNull()
+  })
+
+  it('forgets an old refresh token when the fragment carries none', async () => {
+    localStorage.setItem('refreshToken', 'previous.user')
+    routeMock.hash = '#token=oauth.jwt.token'
+    getAuthProfile.mockResolvedValue({ data: { userId: 20, role: 'student' } })
+
+    const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
+    mount(AuthCallbackView)
+    await flushPromises()
+
+    expect(localStorage.getItem('refreshToken')).toBeNull()
   })
 })

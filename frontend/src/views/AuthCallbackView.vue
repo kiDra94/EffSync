@@ -3,17 +3,17 @@ import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { authApi } from '@/api/authService'
-import { takeTokenFromHash } from '@/utils/tokenFromHash'
+import { takeTokensFromHash } from '@/utils/tokenFromHash'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-// decision Q9: the Google callback sends the token in the URL fragment
-// (/auth-callback#token=…); the user comes from GET /auth/profile
+// decision Q9: the Google callback sends the tokens in the URL fragment
+// (/auth-callback#token=…&refreshToken=…, M12); the user comes from GET /auth/profile
 onMounted(async () => {
-  // the token must not stay in the address bar or the browser history
-  const token = await takeTokenFromHash(route, router)
+  // the tokens must not stay in the address bar or the browser history
+  const { token, refreshToken } = await takeTokensFromHash(route, router)
 
   if (!token) {
     console.error('❌ Kein Token in Auth-Callback erhalten')
@@ -24,6 +24,12 @@ onMounted(async () => {
   try {
     // httpClient reads the token from localStorage for the profile request
     localStorage.setItem('authToken', token)
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken)
+    } else {
+      // never keep a previous session's refresh token next to this token
+      localStorage.removeItem('refreshToken')
+    }
     const { data: user } = await authApi.getAuthProfile()
 
     authStore.token = token
@@ -38,6 +44,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('❌ Fehler beim Verarbeiten des Auth-Callbacks:', error)
     localStorage.removeItem('authToken')
+    localStorage.removeItem('refreshToken')
     router.push({ name: 'Login' })
   }
 })

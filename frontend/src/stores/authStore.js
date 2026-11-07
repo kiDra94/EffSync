@@ -49,6 +49,13 @@ export const useAuthStore = defineStore('auth', () => {
             userDetails.value = user
 
             localStorage.setItem('authToken', newToken)
+            // T51 (M12): httpClient renews the 15-minute access token with it
+            if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken)
+            } else {
+                // never keep a previous session's refresh token next to this token
+                localStorage.removeItem('refreshToken')
+            }
             localStorage.setItem('userId', userId.value)
             localStorage.setItem('userRole', userRole.value || '')
 
@@ -72,8 +79,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function logout() {
         try {
-            if (!isDevMode) {
-                await authApi.logout()
+            // T123 (M12): revokes only this session; other devices stay signed in
+            const refreshToken = localStorage.getItem('refreshToken')
+            if (!isDevMode && refreshToken) {
+                await authApi.logout(refreshToken)
             }
         } catch (error) {
             console.error('Logout failed:', error)
@@ -84,6 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
             userRole.value = null
             userDetails.value = null
             localStorage.removeItem('authToken')
+            localStorage.removeItem('refreshToken')
             localStorage.removeItem('userId')
             localStorage.removeItem('userRole')
             await router.push({ name: 'Login' })

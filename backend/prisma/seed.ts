@@ -25,6 +25,7 @@ async function main() {
   try {
     // --- CLEANUP ---
     const tableNames = [
+      "refresh_tokens",
       "email_logs",
       "email_preferences",
       "comments",

@@ -376,7 +376,7 @@ Rules for all milestones:
   - Done when: these modules live only under `contexts/identity-access`, it has 0 dependency-cruiser violations, all M2 tests pass unchanged, and `GET /api-json` is unchanged.
   - Risk: medium. Every controller imports the guards, so the re-export path must be stable before the other contexts move.
 
-- [ ] **M12: Token model per thesis: access, refresh, logout**
+- [x] **M12: Token model per thesis: access, refresh, logout**
   - Why: T51 (access token 15 min, refresh token 7 days, `05_…:550-551`) and T123 (`/api/auth/logout`, `08_…:123`).
   - Steps:
     1. Issue a 15-minute access token plus a 7-day refresh token.
@@ -395,7 +395,8 @@ Rules for all milestones:
     3. Accept the token in `set-new-password`.
     4. Keep the Google reset path.
     5. Found in M11: `GoogleStrategy` looks an account up by `username` = the Google e-mail and otherwise creates a new user, so a local account whose username differs from its e-mail collides on the unique `email` and the callback fails with 500. Look accounts up by `google_id`, then by e-mail, and move the user provisioning (with the default role) from the strategy into `AuthService` behind `UserRepository`, so registration and Google sign-in share one rule.
-  - Done when: an E2E test requests a reset, reads the token from the test mail transport and sets a new password; reusing the same link afterwards and using an expired link both return 401; the frontend flow works against the real backend.
+    6. Found in M12: setting a new password (reset link or Google reset) leaves the user's refresh tokens active, so a stolen session keeps refreshing. Revoke all of the user's sessions in `refresh_tokens` when the password changes.
+  - Done when: an E2E test requests a reset, reads the token from the test mail transport and sets a new password; reusing the same link afterwards and using an expired link both return 401; a refresh token issued before the password change returns 401 afterwards; the frontend flow works against the real backend.
   - Risk: low–medium. No schema change. `set-new-password` must tell a reset token apart from a normal access token by its purpose claim.
 
 - [ ] **M14: Ghost-user anonymization on account deletion (DSGVO)**

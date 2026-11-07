@@ -547,3 +547,58 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - A `@Global` context module is convenient for the guards but invisible to dependency-cruiser. The later contexts should export narrow providers and import identity-access explicitly where they need more than the guards.
 
 **Failed / open:** none.
+
+## 2026-11-07 – M12: Access and refresh tokens, logout
+
+**Done:**
+- Backend (identity-access):
+  - Access tokens last 15 minutes (`jwt.config.ts` default, `.env.example`, `.env.test`; T51).
+  - The new table `refresh_tokens` (decision Q8b, migration `20261107140000_add_refresh_tokens`) holds only the SHA-256 hash of a random 32-byte token. Both seeds clear it.
+  - `SessionService` (port `RefreshTokenRepository`, Prisma repository on the unit of work):
+    - `start` opens a session that is valid 7 days.
+    - `refresh` rotates the token in one unit of work. A conditional revoke stops two parallel refreshes with the same token. The new row keeps the login's expiry, so a session ends 7 days after login however often it rotates.
+    - `logout` revokes only the current session, in one query.
+    - `deleteExpired` runs nightly via `SessionCleanupJob`, so the table stays bounded.
+  - Login returns `refreshToken` next to `token`. `POST /auth/refresh` returns 201 with the rotated pair; an unknown, revoked, rotated or expired token gets 401, and a missing one gets 400. `POST /auth/logout` returns 204 (T123).
+  - The Google sign-in callback passes `#token=…&refreshToken=…` (decision Q9). The reset-password callback passes only the access token and starts no session.
+- Frontend:
+  - `httpClient`: on a 401, one refresh is shared by all parallel requests, then the request is retried. The user is logged out only when the server refuses the refresh token. A network error, 429 or 500 keeps the session.
+    - If another tab rotated the shared token first, the client takes that tab's tokens.
+    - A request that went out with a token already replaced is retried without a new refresh.
+    - Login, register, refresh, logout and `set-new-password` never trigger a refresh.
+  - `authStore` stores the refresh token, and logout sends it. A login or callback without a refresh token removes an old one, and so does the reset page.
+  - WebSocket (`socketAuth.js`):
+    - Both sockets read the current token at every (re)connect.
+    - After the gateway drops a connection with an expired token, the client refreshes and reconnects, at most once a minute.
+  - `StatusDistributionChart` uses `apiClient` instead of a raw `fetch` with a copied token.
+
+**Verified:**
+- Done when:
+  - `test/session.e2e-spec.ts` covers:
+    - login, then refresh, then logout
+    - an expired access token gets 401
+    - a rotated or revoked refresh token gets 401
+    - logout on one session leaves another session working
+    - rotation keeps the expiry
+    - no `Set-Cookie` on refresh or logout (T13)
+  - Vitest covers the frontend refresh (`httpClient.spec.js`, 11 tests), the WebSocket reconnect, the store, the callback and the reset view.
+- Backend: 372 unit and 60 E2E tests. Frontend: 182 tests. tsc, lint (0 errors, 431 warnings), knip, dependency-cruiser (0 violations, 0 context cycles) and the build pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings:
+  - fixed:
+    - logging out across tabs (1)
+    - sockets dying after the server dropped an expired token (2)
+    - the chart's raw `fetch` (3)
+    - logging out on a network error or 429 (4)
+    - the sliding 7-day expiry (5)
+    - a stale refresh token next to a reset token (8)
+    - logout's double query and the unbounded table (9)
+    - a second rotation for a stale request (10)
+  - planned: (7) revoking all sessions on a password change goes into M13 as step 6, with a Done-when check, because M13 owns the password flows.
+  - open: (6) reuse detection, meaning revoking the whole session chain when a rotated token comes back. Two tabs of one browser reuse a token legitimately (finding 1), so this needs coordination between tabs first, for example `navigator.locks`. Not in the thesis.
+
+**Learned (for later milestones):**
+- `vitest.setup.js` mocks `@/stores/authStore` globally. A spec of the real store loads it with `vi.importActual`.
+- `act -j backend-e2e` needs port 5433. Stop the local test DB first (`docker compose -f docker-compose.test.yml down`) and start it again for local E2E runs.
+- The WebSocket gateway checks the JWT only at the handshake. An open connection stays alive after the token expires; only a reconnect needs a fresh token.
+
+**Failed / open:** reuse detection (finding 6, see above).

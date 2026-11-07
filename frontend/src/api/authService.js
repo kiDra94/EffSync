@@ -5,8 +5,9 @@ export const authApi = {
     return apiClient.post('/auth/login', credentials)
   },
 
-  logout() {
-    return apiClient.post('/auth/logout')
+  // revokes the session of this refresh token (T123, M12)
+  logout(refreshToken) {
+    return apiClient.post('/auth/logout', { refreshToken })
   },
 
   getUserProfile() {

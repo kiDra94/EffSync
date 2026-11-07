@@ -425,6 +425,7 @@ model users {
   taskTemplates                          task_templates[]
   task_members                           task_members[]
   chat_rooms_created                     chat_rooms[]        @relation("chat_rooms_created")
+  refresh_tokens                         refresh_tokens[]
 }
 
 model email_preferences {
@@ -459,4 +460,17 @@ enum task_status {
   IN_REVIEW
   ON_HOLD
   COMPLETED
+}
+
+/// One login session (decision Q8b, T51): only the SHA-256 hash of the refresh
+/// token is stored; refresh rotates it (revoked_at set, new row), logout revokes it.
+model refresh_tokens {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token_hash String    @unique @db.VarChar(64)
+  expires_at DateTime  @db.Timestamp(6)
+  revoked_at DateTime? @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
 }

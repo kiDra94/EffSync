@@ -25,8 +25,6 @@ const isDarkMode = () => document.body.classList.contains('dark-mode');
 
 onMounted(async () => {
   try {
-    const token = localStorage.getItem('authToken');
-    
     // Load chart data
     const data = await fetchMetrics('status-distribution');
     chartData.value = {
@@ -50,12 +48,8 @@ onMounted(async () => {
     };
 
     // Load tasks by status
-    const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/metrics/tasks-by-status`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    tasksByStatus.value = await response.json();
+    // through apiClient, so an expired access token is refreshed (M12)
+    tasksByStatus.value = await fetchMetrics('tasks-by-status');
   } catch (error) {
     console.error('Fehler beim Laden der Status-Verteilung:', error);
   } finally {

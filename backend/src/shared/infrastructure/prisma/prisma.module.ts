@@ -6,9 +6,11 @@ import { UnitOfWork } from "../../application/unit-of-work";
 @Module({
   providers: [
     PrismaService,
-    // the transaction boundary for use cases (L1); contexts inject UnitOfWork
-    { provide: UnitOfWork, useClass: PrismaUnitOfWork },
+    // the transaction boundary for use cases (L1); contexts inject UnitOfWork,
+    // their Prisma repositories PrismaUnitOfWork (for the open transaction)
+    PrismaUnitOfWork,
+    { provide: UnitOfWork, useExisting: PrismaUnitOfWork },
   ],
-  exports: [PrismaService, UnitOfWork],
+  exports: [PrismaService, UnitOfWork, PrismaUnitOfWork],
 })
 export class PrismaModule {}

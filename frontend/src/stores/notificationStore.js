@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { io } from 'socket.io-client';
+import { socketAuth, reconnectWithFreshToken } from '@/api/socketAuth';
 import { fetchAllNotifications, markNotificationAsRead, deleteNotification as apiDeleteNotification } from '@/api/notification';
 
 let notificationSocket = null;
@@ -148,11 +149,11 @@ export const useNotificationStore = defineStore('notification', () => {
 
     function initSocketListeners() {
         if (!notificationSocket) {
-            const token = localStorage.getItem('authToken');
             notificationSocket = io(import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || '', {
-                auth: { token },
+                auth: socketAuth(),
                 transports: ['websocket'],
             });
+            reconnectWithFreshToken(notificationSocket);
         }
 
         // Feature #27: Handle deadline notifications

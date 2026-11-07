@@ -56,8 +56,9 @@ describe("Authentication (e2e)", () => {
     expect(response.headers["set-cookie"]).toBeUndefined();
   });
 
-  // decision Q9: token in the URL fragment, no query parameters, no user object
-  it("redirects the Google callback with the token in the fragment and no query", async () => {
+  // decision Q9: tokens in the URL fragment, no query parameters, no user object;
+  // M12: the refresh token travels the same way
+  it("redirects the Google callback with the tokens in the fragment and no query", async () => {
     const response = await request(app.getHttpServer())
       .get("/api/auth/google/callback")
       .expect(302);
@@ -65,7 +66,9 @@ describe("Authentication (e2e)", () => {
     const location = new URL(response.headers.location);
     expect(location.pathname).toBe("/auth-callback");
     expect(location.search).toBe("");
-    expect(location.hash).toMatch(/^#token=[\w-]+\.[\w-]+\.[\w-]+$/);
+    expect(location.hash).toMatch(
+      /^#token=[\w-]+\.[\w-]+\.[\w-]+&refreshToken=[\w-]{43}$/,
+    );
     // THESIS: T13
     expect(response.headers["set-cookie"]).toBeUndefined();
   });
