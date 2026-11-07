@@ -14,6 +14,7 @@ import { ClassesModule } from "./modules/classes/classes.module";
 import { DepartmentsModule } from "./modules/departments/departments.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { validateEnv } from "./config/env.validation";
 import {
   ThrottlerGuard,
   ThrottlerModule,
@@ -41,6 +42,8 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
       // E2E runs take their whole environment from .env.test
       // (test/setup/test-env.ts); keys missing there must not come from .env
       ignoreEnvFile: process.env.NODE_ENV === "test",
+      // the app refuses to start without JWT_SECRET and DATABASE_URL (M9)
+      validate: validateEnv,
       cache: true,
     }),
     ThrottlerModule.forRootAsync({

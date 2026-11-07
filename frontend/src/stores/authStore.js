@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function login(credentials) {
         try {
-            if (isDevMode && credentials.username === import.meta.env.VITE_DEV_USERNAME) {
+            if (isDevMode && credentials.identifier === import.meta.env.VITE_DEV_USERNAME) {
                 initDevMode()
                 console.log('Dev mode login successful:')
                 return { token: token.value, user: userDetails.value }
@@ -42,11 +42,6 @@ export const useAuthStore = defineStore('auth', () => {
             const data = response.data;
             const newToken = data.token;
             const user = data.user || data;
-
-            // Debug logging
-            console.log('📝 Login Response Data:', data)
-            console.log('👤 User from response:', user)
-            console.log('🔐 User role from response:', user.role)
 
             token.value = newToken
             userId.value = user.user_id ?? user.id ?? null
@@ -107,10 +102,6 @@ export const useAuthStore = defineStore('auth', () => {
             const response = await authApi.getUserProfile()
             // Adjust to the backend's response shape (often response.data or response.data.user)
             const user = response.data.user || response.data
-            console.log('📋 Full Response:', JSON.stringify(response, null, 2))
-            console.log('📋 LoadUser Response:', user)
-            console.log('🔐 User role from profile:', user.role)
-            console.log('🔐 User object keys:', Object.keys(user))
             
             userId.value = user.user_id || user.id
             userRole.value = user.role ? user.role.toLowerCase() : null

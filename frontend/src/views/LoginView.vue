@@ -6,7 +6,8 @@ import { useAuthStore } from '@/stores/authStore'
 const router = useRouter()
 const authStore = useAuthStore()
 
-const credentials = reactive({ username: '', password: '' })
+// identifier: username or e-mail address (T49)
+const credentials = reactive({ identifier: '', password: '' })
 const errorMessage = ref('')
 const isLoading = ref(false)
 
@@ -74,15 +75,15 @@ const handleGoogleLogin = () => {
 
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label>Benutzername</label>
+          <label>Benutzername oder E-Mail</label>
 
-          <input type="text" v-model="credentials.username" required minlength="3" maxlength="32"
-            placeholder="Benutzername" />
+          <input type="text" v-model="credentials.identifier" required minlength="3" maxlength="254"
+            placeholder="Benutzername oder E-Mail" autocomplete="username" />
         </div>
 
         <div class="form-group">
           <label>Passwort</label>
-          <input type="password" v-model="credentials.password" required minlength="8" maxlength="32"
+          <input type="password" v-model="credentials.password" required maxlength="128"
             placeholder="Passwort" />
         </div>
 

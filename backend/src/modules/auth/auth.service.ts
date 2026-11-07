@@ -1,10 +1,13 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { CreateUserDto } from "../users/dto/create-user.dto";
-import { LoginDto } from "./dto/login.dto";
 import * as bcrypt from "bcrypt";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RoleName } from "../../config/role-permissions.config";
+import { BCRYPT_COST } from "../../config/auth.config";
+
+// compared against when no account matches, so a failed login always costs one bcrypt run
+const DUMMY_HASH = bcrypt.hashSync("no-such-account", BCRYPT_COST);
 
 @Injectable()
 export class AuthService {
@@ -13,7 +16,10 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
   async register(createUserDto: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      BCRYPT_COST,
+    );
     const { password, ...userWithoutPassword } = createUserDto;
     const user = await this.prisma.users.create({
       data: {
@@ -41,29 +47,38 @@ export class AuthService {
     return user;
   }
 
-  async login(LoginDto: LoginDto) {
-    const user = await this.prisma.users.findUnique({
-      where: { username: LoginDto.username },
-      include: {
-        user_roles: {
-          include: { roles: true },
-        },
-      },
-    });
-    if (!user) {
-      throw new UnauthorizedException("Username existiert nicht");
-    }
-    if (!user.password_hash) {
-      throw new UnauthorizedException("Passwort ist ungültig");
-    }
-    const isPasswordValid = await bcrypt.compare(
-      LoginDto.password,
-      user.password_hash,
-    );
-    if (!isPasswordValid) {
-      throw new UnauthorizedException("Passwort ist ungültig");
-    }
+  /**
+   * Checks username-or-e-mail and password (T49); used by LocalStrategy.
+   * The username is matched exactly first, then the e-mail address
+   * case-insensitively, so the result is deterministic even if one account's
+   * username equals another one's e-mail address.
+   */
+  async validateCredentials(identifier: string, password: string) {
+    const include = { user_roles: { include: { roles: true } } };
+    const user =
+      (await this.prisma.users.findFirst({
+        where: { username: identifier },
+        include,
+      })) ??
+      (await this.prisma.users.findFirst({
+        where: { email: { equals: identifier, mode: "insensitive" } },
+        include,
+      }));
 
+    // one message and one bcrypt run for every failure, so the answer doesn't
+    // reveal which usernames or e-mail addresses exist
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user?.password_hash ?? DUMMY_HASH,
+    );
+    if (!user || !user.password_hash || !isPasswordValid) {
+      throw new UnauthorizedException("Ungültige Zugangsdaten");
+    }
+    return user;
+  }
+
+  /** Issues the app token for a user returned by validateCredentials. */
+  issueToken(user: Awaited<ReturnType<AuthService["validateCredentials"]>>) {
     // Take the user's first role (primary role)
     const primaryRole =
       user.user_roles && user.user_roles.length > 0
@@ -76,7 +91,6 @@ export class AuthService {
       username: user.username,
       role: primaryRole, // Add the role!
     };
-    // const dummyToken = 'TEST_TOKEN_123456';
     return {
       ...userWithNoPassword,
       role: primaryRole, // Also return the role in the response
@@ -100,7 +114,7 @@ export class AuthService {
   }
 
   async setNewPassword(userId: number, newPassword: string) {
-    const hashed = await bcrypt.hash(newPassword, 10);
+    const hashed = await bcrypt.hash(newPassword, BCRYPT_COST);
     return await this.prisma.users.update({
       where: { user_id: userId },
       data: { password_hash: hashed },

@@ -14,7 +14,9 @@ export function configureApp(app: NestExpressApplication) {
   app.use(helmet());
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    // a list, so the header is only sent for a matching origin (T13): with a
+    // plain string, cors answers every origin with FRONTEND_URL
+    origin: [process.env.FRONTEND_URL || "http://localhost:5173"],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -48,7 +50,14 @@ function setupSwagger(app: NestExpressApplication) {
     .setDescription("School Management & Task System - AP 4.6")
     .setVersion("1.0")
     .addBearerAuth(
-      { type: "http", scheme: "bearer", bearerFormat: "JWT" },
+      {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        // CSRF by design (T13, decision Q3)
+        description:
+          "Send the JWT in the Authorization header. The API sets no auth cookies, so cross-site requests can't carry credentials (CSRF protection by design), and CORS only allows FRONTEND_URL.",
+      },
       "bearer",
     )
     .addTag("auth", "Authentication & Authorization")

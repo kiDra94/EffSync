@@ -116,7 +116,7 @@ cp .env.example .env
 Set at least these values in `.env`:
 
 - `DATABASE_URL`: e.g. `postgresql://postgres:postgres@localhost:5432/effsync?schema=public`
-- `JWT_SECRET`
+- `JWT_SECRET` (required: the backend refuses to start without it and without `DATABASE_URL`)
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: only needed for Google sign-in, see [`documents/GOOGLE_OAUTH_SETUP.md`](documents/GOOGLE_OAUTH_SETUP.md)
 
 Then create the database, fill it with test data and start the server:
@@ -141,6 +141,10 @@ npm run frontend
 The frontend runs at `http://localhost:5173`. After seeding you can log in, for example as admin with the username `adminadmin` and the password `password123`.
 
 > The seed data (`backend/prisma/seed.ts` and `backend/prisma/test-seed.ts`), including the demo login above, is for development, demos and tests only. Never seed a production database with it.
+
+### Authentication and CSRF
+
+The API authenticates with a JWT that the frontend sends in the `Authorization: Bearer …` header. No endpoint sets an auth cookie, so a request from another site can't carry the user's credentials; this is the CSRF protection (by design, no CSRF tokens needed). CORS only allows the origin in `FRONTEND_URL`. Login accepts the username or the e-mail address. After Google sign-in, the token arrives in the URL fragment (`/auth-callback#token=…`), which browsers never send to a server; the frontend removes it from the address bar and loads the user from `GET /api/auth/profile`.
 
 ### Tests
 

@@ -333,7 +333,7 @@ Rules for all milestones:
   - Done when: every `@Permissions()` call has at least one argument (checked by grep), flag tests exist, the M1 `remove` tests pass unchanged, and E2E covers 403 for `POST /tasks` without `create_tasks`.
   - Risk: medium. Tightening permissions can lock out seeded users, so check the seed against the new table.
 
-- [ ] **M9: Login, hashing and secrets per thesis**
+- [x] **M9: Login, hashing and secrets per thesis**
   - Why:
     - T116: `LocalAuthGuard` with `passport-local`.
     - T49: login with username or e-mail.

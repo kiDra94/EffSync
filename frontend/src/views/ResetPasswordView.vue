@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi } from '@/api/authService'
 import { useAuthStore } from '@/stores/authStore'
+import { takeTokenFromHash } from '@/utils/tokenFromHash'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,9 +17,10 @@ const errorMessage = ref('')
 const isDark = ref(false)
 const token = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
   isDark.value = document.body.classList.contains('dark-mode')
-  token.value = route.query.token
+  // the Google reset callback sends the token in the URL fragment (decision Q9)
+  token.value = await takeTokenFromHash(route, router)
   if (!token.value) {
     errorMessage.value = 'Ungültiger oder abgelaufener Link. Bitte starte den Vorgang erneut.'
   } else {

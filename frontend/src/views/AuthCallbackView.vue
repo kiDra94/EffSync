@@ -2,14 +2,18 @@
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { authApi } from '@/api/authService'
+import { takeTokenFromHash } from '@/utils/tokenFromHash'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
+// decision Q9: the Google callback sends the token in the URL fragment
+// (/auth-callback#token=…); the user comes from GET /auth/profile
 onMounted(async () => {
-  const token = route.query.token
-  const userJson = route.query.user
+  // the token must not stay in the address bar or the browser history
+  const token = await takeTokenFromHash(route, router)
 
   if (!token) {
     console.error('❌ Kein Token in Auth-Callback erhalten')
@@ -18,29 +22,22 @@ onMounted(async () => {
   }
 
   try {
-    // Parse user data from query param
-    const user = userJson ? JSON.parse(decodeURIComponent(userJson)) : {}
+    // httpClient reads the token from localStorage for the profile request
+    localStorage.setItem('authToken', token)
+    const { data: user } = await authApi.getAuthProfile()
 
-    // Update auth store directly (these are refs)
     authStore.token = token
-    authStore.userId = user.userId || user.id
+    authStore.userId = user.userId ?? user.id
     authStore.userRole = user.role || 'student'
     authStore.userDetails = user
 
-    // Also save to localStorage
-    localStorage.setItem('authToken', token)
-    localStorage.setItem('userId', String(user.userId || user.id))
+    localStorage.setItem('userId', String(user.userId ?? user.id))
     localStorage.setItem('userRole', String(user.role || 'student'))
 
-    console.log('✅ Google OAuth erfolgreich!')
-    console.log('👤 User:', user)
-    
-    // Give a moment for reactivity to update
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
     router.push({ name: 'Dashboard' })
   } catch (error) {
     console.error('❌ Fehler beim Verarbeiten des Auth-Callbacks:', error)
+    localStorage.removeItem('authToken')
     router.push({ name: 'Login' })
   }
 })

@@ -13,6 +13,11 @@ export const authApi = {
     return apiClient.get('/users/profile')
   },
 
+  // the user behind the token, e.g. after the Google callback (decision Q9)
+  getAuthProfile() {
+    return apiClient.get('/auth/profile')
+  },
+
   register(userData) {
     // Expects: { email, password, username?, firstname?, lastname? }
     return apiClient.post('/auth/register', userData)

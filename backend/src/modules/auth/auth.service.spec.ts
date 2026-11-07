@@ -27,6 +27,7 @@ describe("AuthService", () => {
     users: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
   };
 
@@ -53,6 +54,12 @@ describe("AuthService", () => {
     jest.clearAllMocks();
   });
 
+  // POST /auth/login = LocalStrategy (validateCredentials) + issueToken
+  const login = async (dto: { identifier: string; password: string }) =>
+    service.issueToken(
+      await service.validateCredentials(dto.identifier, dto.password),
+    );
+
   it("should be defined", () => {
     expect(service).toBeDefined();
   });
@@ -74,7 +81,7 @@ describe("AuthService", () => {
         email: "new@example.com",
       });
       const result = await service.register(createUserDto);
-      expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith("password123", 12);
       expect(mockPrismaService.users.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           username: "newuser",
@@ -89,13 +96,13 @@ describe("AuthService", () => {
   describe("login", () => {
     it("sollte Token zurückgeben bei korrekten Credentials", async () => {
       const loginDto = {
-        username: "testuser",
+        identifier: "testuser",
         password: "password123",
       };
 
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.users.findFirst.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      const result = await service.login(loginDto);
+      const result = await login(loginDto);
       expect(bcrypt.compare).toHaveBeenCalledWith(
         "password123",
         mockUser.password_hash,
@@ -107,45 +114,35 @@ describe("AuthService", () => {
 
     it("sollte UnauthorizedException werfen wenn User nicht existiert", async () => {
       const loginDto = {
-        username: "nonexistent",
+        identifier: "nonexistent",
         password: "password123",
       };
-      mockPrismaService.users.findUnique.mockResolvedValue(null);
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        "Username existiert nicht",
-      );
+      mockPrismaService.users.findFirst.mockResolvedValue(null);
+      await expect(login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(login(loginDto)).rejects.toThrow("Ungültige Zugangsdaten");
     });
 
     it("sollte UnauthorizedException werfen bei falschem Passwort", async () => {
       const loginDto = {
-        username: "testuser",
+        identifier: "testuser",
         password: "wrongpassword",
       };
-      mockPrismaService.users.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.users.findFirst.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        "Passwort ist ungültig",
-      );
+      await expect(login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(login(loginDto)).rejects.toThrow("Ungültige Zugangsdaten");
     });
 
     it("sollte UnauthorizedException werfen wenn password_hash null ist", async () => {
       const loginDto = {
-        username: "testuser",
+        identifier: "testuser",
         password: "password123",
       };
-      mockPrismaService.users.findUnique.mockResolvedValue({
+      mockPrismaService.users.findFirst.mockResolvedValue({
         ...mockUser,
         password_hash: null,
       });
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
   });
 

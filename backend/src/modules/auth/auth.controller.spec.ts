@@ -8,6 +8,7 @@ describe("AuthController", () => {
   const mockAuthService = {
     register: jest.fn(),
     login: jest.fn(),
+    issueToken: jest.fn(),
     generateJwtFromGoogleUser: jest.fn(),
   };
 
@@ -47,14 +48,16 @@ describe("AuthController", () => {
     expect(result).toEqual(expected);
   });
 
-  it("sollte login an AuthService weiterleiten", async () => {
-    const dto = { username: "testuser", password: "password123" };
+  // M9: LocalAuthGuard validates the credentials; the handler issues the token for req.user
+  it("issues the token for the user LocalAuthGuard validated", () => {
+    const dto = { identifier: "testuser", password: "password123" };
+    const user = { user_id: 1, username: "testuser" };
     const expected = { token: "jwt.token", user_id: 1 };
-    mockAuthService.login.mockResolvedValue(expected);
+    mockAuthService.issueToken.mockReturnValue(expected);
 
-    const result = await controller.login(dto as any);
+    const result = controller.login({ user } as any, dto);
 
-    expect(mockAuthService.login).toHaveBeenCalledWith(dto);
+    expect(mockAuthService.issueToken).toHaveBeenCalledWith(user);
     expect(result).toEqual(expected);
   });
 
@@ -80,10 +83,10 @@ describe("AuthController", () => {
       req.user,
     );
     expect(redirect).toHaveBeenCalledTimes(1);
+    // decision Q9 (M9): token in the fragment, no query parameters, no user object
     const redirectUrl = redirect.mock.calls[0][0] as string;
-    expect(redirectUrl).toContain(
-      "http://localhost:5173/auth-callback?token=google.jwt.token",
+    expect(redirectUrl).toBe(
+      "http://localhost:5173/auth-callback#token=google.jwt.token",
     );
-    expect(redirectUrl).toContain("user=");
   });
 });

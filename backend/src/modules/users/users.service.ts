@@ -8,6 +8,7 @@ import { UpdateUserDto } from "./dto/update-user.dto";
 import { hash, genSalt } from "bcrypt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RoleName } from "../../config/role-permissions.config";
+import { BCRYPT_COST } from "../../config/auth.config";
 import { RolePermissionsService } from "../roles/role-permissions.service";
 
 @Injectable()
@@ -18,8 +19,7 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const saltRound = 10; // default for web apps: 2^10 rounds
-    const salt = await genSalt(saltRound);
+    const salt = await genSalt(BCRYPT_COST);
     const hashPassword = await hash(createUserDto.password, salt);
     const { password, ...userWithoutPassword } = createUserDto;
     return await this.prisma.users.create({

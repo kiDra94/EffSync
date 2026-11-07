@@ -394,3 +394,50 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - `TaskActivityLogController`: `POST /task-activity` lets any user with `edit_tasks` write log entries for any task. Logging belongs inside the task use cases (T32, M15).
 
 **Failed / open:** none.
+
+## 2026-11-07 – M9: Login, hashing and secrets per thesis
+
+**Done:**
+- `POST /auth/login` goes through `LocalAuthGuard` + `LocalStrategy` (passport-local, T116). The body field is `identifier`: a username or an e-mail address (T49). The username is matched exactly first, then the e-mail address case-insensitively, so the result is deterministic even if one account's username equals another account's e-mail address. Every failure answers "Ungültige Zugangsdaten" and runs one bcrypt compare, so the response doesn't reveal which accounts exist. `LocalStrategy` checks the input types itself, because the guard runs before the `ValidationPipe`. `LoginDto` has no password length rule any more: registration allowed 7 characters and the reset 6, so a minimum of 8 would have locked those accounts out.
+- bcrypt cost 12 (`BCRYPT_COST` in `config/auth.config.ts`) for registration, password change, `POST /users` and both seeds (T50). Existing hashes with cost 10 stay valid; they aren't rehashed.
+- Secrets (T14, problem 8):
+  - `JWT_SECRET` is read only through `ConfigService` in `config/auth.config.ts` (`jwtSecret`, `jwtModuleOptions`), used by both `JwtModule`s and `JwtStrategy`; the gateway and `WsJwtGuard` use the module's secret.
+  - The fallback secret in `jwt.strategy.ts` is gone.
+  - `ConfigModule.forRoot({ validate: validateEnv })` requires `JWT_SECRET` and `DATABASE_URL`. In production it also refuses a secret shorter than 32 characters or the `.env.example` placeholder, and requires `FRONTEND_URL`.
+- Google callback (decision Q9, problem 9): `/auth-callback#token=…` and `/reset-password#token=…`; no query parameters and no user object in the URL any more. `AuthCallbackView` loads the user from `GET /auth/profile`. Both views take the token through the shared `takeTokenFromHash`, which removes the fragment with `router.replace`; a plain `history.replaceState` would have been undone by vue-router on the next push.
+- CSRF by design (T13, decision Q3): documented in the README and in the Swagger bearer description. CORS now only answers `FRONTEND_URL`. Before, a plain origin string made `cors` send `Access-Control-Allow-Origin: <FRONTEND_URL>` to every origin; the Socket.IO gateway had the same issue and now checks the origin per request.
+- Frontend: `LoginView` has one "Benutzername oder E-Mail" field (`identifier`), the dev-mode check in `authStore` follows, and the debug logs that printed the token are gone. The Cypress OAuth test uses the fragment.
+- knip: the `passport-local` ignore (planned for M9) is removed.
+
+**Verified:**
+- Done-when:
+  - The M2 tests T49 and T50 are flipped (username-or-e-mail lookup, cost 12 in auth and users).
+  - Without `JWT_SECRET` the built app exits with code 1 and "Missing required environment variable: JWT_SECRET". I ran `dist/src/main.js` in an empty directory with only `DATABASE_URL` set.
+  - `grep -rn "process.env.JWT_SECRET" backend/src` finds nothing.
+  - E2E `test/auth.e2e-spec.ts` covers:
+    - login with the username and with the e-mail address in mixed case
+    - the Google callback redirect: `/auth-callback`, an empty query and `#token=` with a JWT
+    - no `Set-Cookie` on login and on the callback (`// THESIS: T13`)
+    - no `Access-Control-Allow-Origin` for a foreign origin's preflight, and the allowed origin for `FRONTEND_URL`
+    - the fourth login within a minute gets 429 (the throttle still runs before the guard)
+  - `AuthCallbackView` has Vitest tests for the fragment, the profile, the router-based cleanup, the old query format and a failing profile; `takeTokenFromHash` and the `LoginView` identifier have their own tests.
+- Unit tests for `LocalStrategy` (types, delegation, 401) and `validateEnv` (missing values, production rules).
+- Backend 359 unit and 54 E2E tests, frontend 160; tsc, lint (0 errors, 481 warnings; ratchet 484 → 481), knip and build pass. `act`: all three jobs succeeded.
+- `code-review` (high), 10 findings, all fixed:
+  1. The history replacement was undone by vue-router.
+  2. Non-string credentials gave 500.
+  3. The username/e-mail lookup was ambiguous.
+  4. The e-mail lookup was case-sensitive.
+  5. The error messages and timing revealed which accounts exist.
+  6. The login password minimum conflicted with registration and reset.
+  7. The placeholder secret was accepted.
+  8. Token logging in `authStore`.
+  9. The gateway CORS was plain-string and read at import time; production also had no `FRONTEND_URL` check.
+  10. The duplicated fragment code and the dead `AuthService.login`.
+
+**Learned (for later milestones):**
+- The password rules differ: registration requires 7–32 characters, `set-new-password` and `ResetPasswordView` 6. One policy belongs to the password-reset rework (T52, M13).
+- Hashes with cost 10 are not upgraded on login. A rehash on successful login would move existing accounts to cost 12 over time (optional, M13).
+- `main.ts` still calls `dotenv.config()`, which `ConfigModule` makes redundant; it is harmless and goes with the context migration.
+
+**Failed / open:** none.

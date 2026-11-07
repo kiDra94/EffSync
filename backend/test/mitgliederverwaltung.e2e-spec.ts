@@ -123,7 +123,7 @@ describe("Mitgliederverwaltung E2E", () => {
   ): Promise<string> {
     const response = await request(app.getHttpServer())
       .post("/api/auth/login")
-      .send({ username, password });
+      .send({ identifier: username, password });
 
     if (!response.body.token) {
       console.error("Login response:", response.body);

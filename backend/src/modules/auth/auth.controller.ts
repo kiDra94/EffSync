@@ -12,6 +12,7 @@ import { AuthService } from "./auth.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { LoginDto } from "./dto/login.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
 import { GoogleResetAuthGuard } from "./guards/google-reset-auth.guard";
 import { Throttle } from "@nestjs/throttler";
@@ -26,10 +27,13 @@ export class AuthController {
     return this.authService.register(CreateUserDto);
   }
 
+  // LocalAuthGuard checks username-or-e-mail and password (T116, T49);
+  // the DTO keeps the body validated and documented
   @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(LocalAuthGuard)
   @Post("login")
-  login(@Body() LoginDto: LoginDto) {
-    return this.authService.login(LoginDto);
+  login(@Req() req, @Body() _credentials: LoginDto) {
+    return this.authService.issueToken(req.user);
   }
 
   @UseGuards(GoogleAuthGuard)
@@ -47,18 +51,16 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @Get("google/callback")
   googleAuthCallback(@Req() req, @Res() res) {
-    console.log("🔐 Google OAuth Callback - User:", req.user);
-
     const token = this.authService.generateJwtFromGoogleUser(req.user);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const state = req.query?.state;
 
+    // decision Q9: the token travels in the URL fragment, which never reaches a
+    // server or proxy log; the frontend loads the user from GET /auth/profile
     if (state === "reset-password") {
-      res.redirect(`${frontendUrl}/reset-password?token=${token}`);
+      res.redirect(`${frontendUrl}/reset-password#token=${token}`);
     } else {
-      res.redirect(
-        `${frontendUrl}/auth-callback?token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`,
-      );
+      res.redirect(`${frontendUrl}/auth-callback#token=${token}`);
     }
   }
 

@@ -1,17 +1,18 @@
-import { IsEmail, IsString, MaxLength, MinLength } from "class-validator";
+import { IsString, MaxLength, MinLength } from "class-validator";
 
 export class LoginDto {
+  // username or e-mail address (T49)
   @IsString()
   @MinLength(3, {
-    message: "Der Username muss mindestens 3 Zeichen lang sein.",
+    message: "Benutzername oder E-Mail muss mindestens 3 Zeichen lang sein.",
   })
-  @MaxLength(32, { message: "Der Username soll maximal 32 Zeichen lang sein." })
-  username: string;
+  @MaxLength(254, {
+    message: "Benutzername oder E-Mail soll maximal 254 Zeichen lang sein.",
+  })
+  identifier: string;
 
+  // no length rules: a login must not reject passwords other flows accepted
   @IsString()
-  @MinLength(8, {
-    message: "Das Passwort muss mindestens 8 Zeichen lang sein.",
-  })
-  @MaxLength(32, { message: "Das Passwort soll maximal 32 Zeichen lang sein." })
+  @MaxLength(128)
   password: string;
 }

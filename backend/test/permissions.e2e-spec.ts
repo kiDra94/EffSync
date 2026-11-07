@@ -19,7 +19,7 @@ describe("Endpoint permissions (e2e)", () => {
   async function login(username: string): Promise<string> {
     const response = await request(app.getHttpServer())
       .post("/api/auth/login")
-      .send({ username, password: "password123" })
+      .send({ identifier: username, password: "password123" })
       .expect(201);
     return (response.body as { token: string }).token;
   }

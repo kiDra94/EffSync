@@ -51,8 +51,8 @@ describe("UsersService (characterization, M2)", () => {
 
   afterEach(() => jest.restoreAllMocks());
 
-  // THESIS: T50 – bcrypt cost factor 10 instead of 12
-  it("creates a user with a bcrypt hash of cost 10 and without the plain password", async () => {
+  // THESIS: T50 (flipped in M9) – bcrypt cost factor 12
+  it("creates a user with a bcrypt hash of cost 12 and without the plain password", async () => {
     await service.create({
       firstname: "Max",
       lastname: "M",
@@ -65,7 +65,7 @@ describe("UsersService (characterization, M2)", () => {
       prisma.users.create.mock.calls[0][0] as { data: Record<string, unknown> }
     ).data;
     expect(data).not.toHaveProperty("password");
-    expect(String(data.password_hash)).toMatch(/^\$2[aby]\$10\$/);
+    expect(String(data.password_hash)).toMatch(/^\$2[aby]\$12\$/);
     expect(data.username).toBe("maxm");
   });
 

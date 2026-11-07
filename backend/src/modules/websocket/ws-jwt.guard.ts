@@ -16,9 +16,7 @@ export class WsJwtGuard implements CanActivate {
         throw new WsException("You do not have a Token!!!");
       }
 
-      const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
+      const payload = this.jwtService.verify(token);
 
       client.data.user = {
         userId: payload.sub,

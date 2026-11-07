@@ -1,10 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
   // E2E specs (test/jest-e2e.json) and the test seed run by their globalSetup
-  "entry": ["src/main.ts", "test/**/*.e2e-spec.ts", "prisma/test-seed.ts"],
-  "ignoreDependencies": [
-    // Planned: LocalStrategy + LocalAuthGuard for login, GOALS.md M9 (thesis T116)
-    "passport-local",
-    "@types/passport-local"
-  ]
+  "entry": ["src/main.ts", "test/**/*.e2e-spec.ts", "prisma/test-seed.ts"]
 }

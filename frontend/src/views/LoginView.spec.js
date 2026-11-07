@@ -47,4 +47,19 @@ describe('LoginView (Google OAuth)', () => {
     expect(window.location.href).toContain('/auth/google')
     expect(window.location.href).toContain('http://localhost:3000/api')
   })
+
+  // T49 (M9): one field for username or e-mail, sent as `identifier`
+  it('sends the username or e-mail address as identifier', async () => {
+    loginMock.mockResolvedValue({})
+    const { default: LoginView } = await import('./LoginView.vue')
+    const wrapper = mount(LoginView, { global: { stubs: { RouterLink: true } } })
+
+    await wrapper.find('input[type="text"]').setValue('felix@student.htl.at')
+    await wrapper.find('input[type="password"]').setValue('password123')
+    await wrapper.find('form').trigger('submit')
+
+    expect(loginMock).toHaveBeenCalledWith(
+      expect.objectContaining({ identifier: 'felix@student.htl.at', password: 'password123' }),
+    )
+  })
 })
