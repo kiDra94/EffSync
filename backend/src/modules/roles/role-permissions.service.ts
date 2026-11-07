@@ -47,7 +47,7 @@ export class RolePermissionsService {
    * Assigns all default permissions of a role to a user
    * @param userId - the user ID
    * @param roleId - the role ID
-   * @param roleName - the role's name (e.g. 'Student')
+   * @param roleName - the role's name (e.g. RoleName.STUDENT)
    */
   async assignDefaultPermissionsForRole(
     userId: number,

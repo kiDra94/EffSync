@@ -6,19 +6,21 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PermissionsService } from "../../permissions/permissions.service";
+import { ROLES_KEY } from "../decorators/roles.decorator";
+import { RoleName } from "../../../config/role-permissions.config";
 
 /**
- * RolesGuard - role-based access control
+ * RolesGuard - role-based access control (T92)
  *
- * Used together with the @Roles() decorator.
+ * Used together with the @Roles() decorator, between JwtAuthGuard and
+ * PermissionsGuard, so the check order is token → role → permission (T97).
  *
  * Example:
- * @Get()
- * @UseGuards(JwtAuthGuard, RolesGuard)
- * @Roles('Teacher', 'Admin')
+ * @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+ * @Roles(RoleName.TEACHER, RoleName.ADMIN)
  * async findAll() { ... }
  *
- * Only users with the role "Teacher" OR "Admin" can access this method.
+ * Only users with the role Teacher OR Admin can access this method.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -28,34 +30,30 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Read the required roles from the @Roles() decorator
-    const requiredRoles = this.reflector.get<string[]>(
-      "roles",
+    const requiredRoles = this.reflector.get<RoleName[] | undefined>(
+      ROLES_KEY,
       context.getHandler(),
     );
 
-    // No roles defined: allow (no protection)
-    if (!requiredRoles) {
+    // No @Roles() on the handler: no role restriction
+    if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-    // Get the request and the current user
-    const request = context.switchToHttp().getRequest();
-    const userId = request.user?.id;
+    const request = context
+      .switchToHttp()
+      .getRequest<{ user?: { userId?: number } }>();
+    const userId = request.user?.userId;
 
     if (!userId) {
       throw new ForbiddenException("No user ID found in request");
     }
 
-    // Check: does the user have AT LEAST ONE of the required roles?
-    for (const role of requiredRoles) {
-      const hasRole = await this.permissionsService.hasRole(userId, role);
-      if (hasRole) {
-        return true; // Has one of the required roles → access granted
-      }
+    // at least one of the required roles, checked in one query
+    if (await this.permissionsService.hasAnyRole(userId, requiredRoles)) {
+      return true;
     }
 
-    // The user has none of the required roles
     throw new ForbiddenException(
       `Insufficient role. Required: ${requiredRoles.join(" OR ")}`,
     );

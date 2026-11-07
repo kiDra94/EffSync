@@ -1,13 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import {
+  isRoleIn,
+  PRIVILEGED_ROLES,
+} from "../../config/role-permissions.config";
 
 @Injectable()
 export class MetricsService {
   constructor(private prisma: PrismaService) {}
 
   private buildTaskVisibilityFilter(user: any) {
-    const role = String(user?.role || "").toLowerCase();
-    if (role === "admin" || role === "superuser") {
+    if (isRoleIn(user?.role, PRIVILEGED_ROLES)) {
       return {};
     }
 

@@ -272,3 +272,50 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - Login is throttled to 3 per minute per app instance, so an E2E file can log in at most three users.
 
 **Failed / open:** none.
+
+## 2026-11-07 – M7: `RolesGuard` and role checks per thesis (+ search bug)
+
+**First step (decisions Q10, C1), role names of every database in use:**
+- `devdb` (local dev DB, port 5432), queried in a read-only session: `Superuser, Student, Teacher, Admin`.
+- The test DB `effsync_test` is rebuilt from `prisma/test-seed.ts` on every run; `seed.ts` and `test-seed.ts` both create `Superuser, Student, Teacher, Admin`.
+- The user confirmed on 2026-11-07 that no other database is in use. All names are English, so the German aliases could be removed without a rename.
+
+**Done:**
+- `RolesGuard` + `@Roles(...)` (T92) with the order token → role → permission (T97): `@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)` on the tasks and documents controllers. The guard checks the roles in the database with one query (`PermissionsService.hasAnyRole`); `@Roles` takes `RoleName` values.
+- `@Roles(...STAFF_ROLES)` on `PATCH /documents/:id/grade` and `PATCH /documents/:id/allow-resubmit`. The services no longer check the JWT's first role there, so a user with several roles gets the same answer from guard and service.
+- `PATCH /tasks/:id/deadline-unlock` had no check at all (any user could unlock any task, although it was documented as "only teachers"). It is now staff **or the task's creator**, checked in the service; `TaskForm` offers unlocking to creators, so a pure `@Roles` would have locked them out.
+- Role names in one place (problem 4): `RoleName`, `STAFF_ROLES`, `PRIVILEGED_ROLES` and `isRoleIn()` in `config/role-permissions.config.ts` replace the string comparisons in tasks, documents, metrics, users, auth and the Google strategy. `TasksService.findAll` queries the role once instead of twice. `hasRole` is `hasAnyRole` with one role; both compare case-insensitively.
+- German role aliases removed (decision Q10): `normalizeRole` in `documents.service.ts` and `DocumentView.vue`; `frontend/mockdb.json` now has `Admin`, `Teacher`, `Student`.
+- Search bug (problem 1): search and visibility are combined with `AND`, so a student's search applies within their visible tasks.
+
+**Verified:**
+- Tests first, red before the change:
+  - M1 tests flipped: one role query, student search with `AND`
+  - the M1 alias test flipped (`"Lehrer"` is no teacher any more)
+  - the M2 registration test now uses `RoleName.STUDENT`
+  - new tests for `hasAnyRole`, `RolesGuard` and the deadline rule
+  - `test/guard-order.e2e-spec.ts` (a test controller with `@Roles(Teacher)` and `@Permissions("manage_users")` in the real app): 401 without a token, the role 403 for a student before the permission is looked at, and the permission 403 ("Missing permission: manage_users") for a teacher; 403 for a student on grade and allow-resubmit; on its own task, 403 for a student who isn't the creator and 200 for another teacher
+- Done-when greps:
+  - `grep -rnE "['\"](Teacher|Student|Admin|Superuser)['\"]" backend/src/modules` (both quote styles, also lower case) finds nothing outside the specs. The milestone's single-quote pattern alone would have missed the double-quoted code after M4's formatting.
+  - The alias grep finds only UI texts and surnames in test data ("Lehrer").
+- Backend 341 unit and 38 E2E tests, frontend 154; tsc, lint (0 errors, 493 warnings; ratchet 499 → 493), knip and build pass. `act`: all three jobs succeeded.
+- `code-review` (high), 10 findings:
+  - fixed:
+    - the deadline-unlock lockout of creators
+    - case-sensitive `hasAnyRole`
+    - JWT-role checks behind the new guard (multi-role users)
+    - the remaining role literals in the Google strategy
+    - the misplaced JSDoc and the unused `hasRole`
+    - the three-way filter merge (now always `AND`)
+    - the E2E test that changed seed task 1
+  - documented: the database check (finding 4), which is recorded above
+  - not done:
+    - subtasks that don't match the search are still added to a student's page (decision B3, M17)
+    - `DocumentsService` still decides read access from the JWT's first role plus its own role query (see Learned)
+
+**Learned (for later milestones):**
+- Prisma ignores `mode: "insensitive"` on `in`; the case-insensitive role check is an `OR` of `equals` filters. Only the E2E test against the real database caught this; the mocked unit test passed.
+- `DocumentsService` still uses `req.user.role` (the first role, without `orderBy`) for read access and the UI flags (`can_grade` …), plus its own `users.findUnique` role lookup in `canUserReadAllDocumentsContext` and `isStudentContext`. Moving it to `hasAnyRole` changes its "student context" semantics (a student profile or a student role); that belongs to the documents context migration.
+- The first role in the JWT depends on the unordered `user_roles` read in `auth.service.ts`; give it an order when the token is reworked (M9).
+
+**Failed / open:** none.

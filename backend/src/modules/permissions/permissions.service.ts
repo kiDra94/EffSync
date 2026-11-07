@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { RoleName } from "../../config/role-permissions.config";
 
 /**
  * PermissionChecker Service
  *
  * Distinguishes between:
- * - ROLE: binary, no validity period (e.g. "Teacher", "Admin")
+ * - ROLE: binary, no validity period (e.g. RoleName.TEACHER, RoleName.ADMIN)
  * - PERMISSION: binary with flags (READ=4, WRITE=2, EXECUTE=1), with a validity period
  */
 
@@ -23,16 +24,29 @@ export class PermissionsService {
    * Checks whether the user has a ROLE (simple and fast)
    * Roles have NO validity periods!
    */
-  async hasRole(userId: number, roleName: string): Promise<boolean> {
-    const userRole = await this.prisma.user_roles.findFirst({
+  async hasRole(userId: number, roleName: RoleName): Promise<boolean> {
+    return this.hasAnyRole(userId, [roleName]);
+  }
+
+  /**
+   * Checks with one query whether the user has at least one of the roles (T92).
+   */
+  async hasAnyRole(
+    userId: number,
+    roleNames: readonly RoleName[],
+  ): Promise<boolean> {
+    const count = await this.prisma.user_roles.count({
       where: {
         user_id: userId,
-        roles: { name: roleName },
+        // case-insensitive, like isRoleIn for the JWT role (Prisma ignores `mode` on `in`)
+        roles: {
+          OR: roleNames.map((name) => ({
+            name: { equals: name, mode: "insensitive" as const },
+          })),
+        },
       },
-      include: { roles: true },
     });
-
-    return !!userRole;
+    return count > 0;
   }
 
   /**

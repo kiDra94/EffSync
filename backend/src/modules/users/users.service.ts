@@ -7,6 +7,7 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { hash, genSalt } from "bcrypt";
 import { PrismaService } from "../../prisma/prisma.service";
+import { RoleName } from "../../config/role-permissions.config";
 import { RolePermissionsService } from "../roles/role-permissions.service";
 
 @Injectable()
@@ -362,7 +363,7 @@ export class UsersService {
       throw new NotFoundException("User hat diese Rolle nicht");
     }
 
-    const criticalRoles = ["Superuser", "Admin"];
+    const criticalRoles: string[] = [RoleName.SUPERUSER, RoleName.ADMIN];
     if (role.name && criticalRoles.includes(role.name)) {
       const countWithRole = await this.prisma.user_roles.count({
         where: { role_id: roleId },

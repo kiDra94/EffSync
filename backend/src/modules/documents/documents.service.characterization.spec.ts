@@ -211,14 +211,25 @@ describe("DocumentsService (characterization, M1)", () => {
       });
     });
 
-    // DECISION: Q10 – the German role aliases are removed in M7
-    it('maps the German role alias "Lehrer" to teacher', async () => {
+    // DECISION: Q10 (applied in M7) – German role aliases are gone; only RoleName counts
+    it('no longer treats the German alias "Lehrer" as a teacher', async () => {
       prisma.users.findUnique.mockResolvedValue({
         students: null,
         user_roles: [],
       });
 
       await service.findAll(4, "Lehrer");
+
+      expect(findManyWhere()).toBeDefined();
+    });
+
+    it("still accepts the English role name in any case", async () => {
+      prisma.users.findUnique.mockResolvedValue({
+        students: null,
+        user_roles: [],
+      });
+
+      await service.findAll(4, "Teacher");
 
       expect(findManyWhere()).toBeUndefined();
     });
@@ -425,7 +436,9 @@ describe("DocumentsService (characterization, M1)", () => {
       prisma.documents.update.mockResolvedValue({ document_id: 1 });
     });
 
-    it("rejects a student grading, even an own document, with 403", async () => {
+    // M7: the role is checked by RolesGuard on PATCH /documents/:id/grade from the
+    // DB roles (test/guard-order.e2e-spec.ts); the service no longer reads the JWT role
+    it("rejects grading one's own upload, whatever the role", async () => {
       prisma.documents.findUnique.mockResolvedValue(doc());
       prisma.documents.count.mockResolvedValue(1);
 
@@ -711,10 +724,12 @@ describe("DocumentsService (characterization, M1)", () => {
   });
 
   describe("allowResubmit", () => {
-    it("rejects non-teachers", async () => {
+    // M7: the role is checked by RolesGuard on the route (DB roles), not from the JWT role
+    it("no longer rejects by the JWT role; the route guard does", async () => {
+      prisma.documents.findUnique.mockResolvedValue(doc());
       await expect(
         service.allowResubmit(1, undefined, 21, "student"),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it("rejects an ungraded document", async () => {

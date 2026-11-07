@@ -9,6 +9,12 @@ import { unlink } from "fs/promises";
 import { basename, extname, isAbsolute, relative, resolve } from "path";
 import { Readable } from "stream";
 import { PrismaService } from "../../prisma/prisma.service";
+import {
+  isRoleIn,
+  PRIVILEGED_ROLES,
+  RoleName,
+  STAFF_ROLES,
+} from "../../config/role-permissions.config";
 import { NotificationsService } from "../notifications/notifications.service";
 import { GradeDocumentDto } from "./dto/grade-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
@@ -187,30 +193,17 @@ export class DocumentsService {
     return null;
   }
 
-  private normalizeRole(role?: string) {
-    const normalized = (role || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
-
-    if (["schuler", "schueler"].includes(normalized)) return "student";
-    if (["lehrer", "dozent"].includes(normalized)) return "teacher";
-    if (["administrator"].includes(normalized)) return "admin";
-
-    return normalized;
-  }
-
+  // role names come from the JWT (first role, lower case); German aliases are gone (Q10)
   private isPrivileged(role?: string) {
-    return ["superuser", "admin"].includes(this.normalizeRole(role));
+    return isRoleIn(role, PRIVILEGED_ROLES);
   }
 
   private isTeacher(role?: string) {
-    return ["teacher", "admin", "superuser"].includes(this.normalizeRole(role));
+    return isRoleIn(role, STAFF_ROLES);
   }
 
   private isStudent(role?: string) {
-    return this.normalizeRole(role) === "student";
+    return isRoleIn(role, [RoleName.STUDENT]);
   }
 
   private canUserReadAllDocuments(role?: string) {
@@ -242,15 +235,11 @@ export class DocumentsService {
       },
     });
 
-    const roleNames = Array.isArray(user?.user_roles)
-      ? user.user_roles
-          .map((entry) => entry.roles?.name?.toLowerCase?.())
-          .filter((value): value is string => Boolean(value))
-      : [];
-
-    return roleNames.some((name) =>
-      ["teacher", "admin", "superuser"].includes(name),
-    );
+    return Array.isArray(user?.user_roles)
+      ? user.user_roles.some((entry) =>
+          isRoleIn(entry.roles?.name, STAFF_ROLES),
+        )
+      : false;
   }
 
   private async isStudentContext(userId: number, role?: string) {
@@ -284,8 +273,8 @@ export class DocumentsService {
 
     const hasStudentProfile = Boolean(user.students?.student_id);
     const hasStudentRole = Array.isArray(user.user_roles)
-      ? user.user_roles.some(
-          (entry) => entry.roles?.name?.toLowerCase?.() === "student",
+      ? user.user_roles.some((entry) =>
+          isRoleIn(entry.roles?.name, [RoleName.STUDENT]),
         )
       : false;
 
@@ -297,7 +286,7 @@ export class DocumentsService {
       where: {
         roles: {
           name: {
-            in: ["Teacher", "Admin", "Superuser"],
+            in: [...STAFF_ROLES],
           },
         },
       },
@@ -369,11 +358,12 @@ export class DocumentsService {
   }
 
   private documentBelongsToStudent(document: any) {
-    const roles = document?.users?.user_roles?.map((entry) =>
-      entry.roles?.name?.toLowerCase(),
-    );
-
-    if (Array.isArray(roles) && roles.includes("student")) {
+    const roles: { roles?: { name?: string } }[] | undefined =
+      document?.users?.user_roles;
+    if (
+      Array.isArray(roles) &&
+      roles.some((entry) => isRoleIn(entry.roles?.name, [RoleName.STUDENT]))
+    ) {
       return true;
     }
 
@@ -436,8 +426,12 @@ export class DocumentsService {
   }
 
   private canGradeDocument(document: any, userId: number, role?: string) {
+    return this.isTeacher(role) && this.isGradeableBy(document, userId);
+  }
+
+  // the role part is checked by RolesGuard on PATCH /documents/:id/grade (DB roles, M7)
+  private isGradeableBy(document: any, userId: number) {
     return (
-      this.isTeacher(role) &&
       Number(document?.added_by) !== Number(userId) &&
       this.documentBelongsToStudent(document)
     );
@@ -512,8 +506,8 @@ export class DocumentsService {
       .filter((user) => {
         const hasStudentProfile = Boolean(user.students?.student_id);
         const hasStudentRole = Array.isArray(user.user_roles)
-          ? user.user_roles.some(
-              (entry) => entry.roles?.name?.toLowerCase?.() === "student",
+          ? user.user_roles.some((entry) =>
+              isRoleIn(entry.roles?.name, [RoleName.STUDENT]),
             )
           : false;
         return hasStudentProfile || hasStudentRole;
@@ -946,7 +940,7 @@ export class DocumentsService {
       throw new ForbiddenException("Kein Zugriff auf dieses Dokument");
     }
 
-    if (!this.canGradeDocument(document, graderId, role)) {
+    if (!this.isGradeableBy(document, graderId)) {
       throw new ForbiddenException(
         "Nur Lehrkräfte dürfen Schülerdokumente bewerten",
       );
@@ -1220,13 +1214,7 @@ export class DocumentsService {
     teacherId?: number,
     role?: string,
   ) {
-    // Permission check: teacher/admin only
-    if (!this.isTeacher(role)) {
-      throw new ForbiddenException(
-        "Nur Lehrer dürfen Wiedereinreichung erlauben",
-      );
-    }
-
+    // the role is checked by RolesGuard on PATCH /documents/:id/allow-resubmit (DB roles, M7)
     const document = await this.getDocumentById(documentId);
     if (!document) {
       throw new NotFoundException("Dokument nicht gefunden");

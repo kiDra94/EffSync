@@ -5,13 +5,38 @@
  */
 
 /**
- * @public used by RolesGuard and @Roles() in GOALS.md M7
+ * The role names, as stored in the `roles` table.
  */
 export enum RoleName {
   SUPERUSER = "Superuser",
   ADMIN = "Admin",
   TEACHER = "Teacher",
   STUDENT = "Student",
+}
+
+/** Roles that see all tasks and documents and grade submissions. */
+export const STAFF_ROLES: readonly RoleName[] = [
+  RoleName.TEACHER,
+  RoleName.ADMIN,
+  RoleName.SUPERUSER,
+];
+
+/** Roles that may edit and delete everything. */
+export const PRIVILEGED_ROLES: readonly RoleName[] = [
+  RoleName.ADMIN,
+  RoleName.SUPERUSER,
+];
+
+/**
+ * Compares a role name case-insensitively with a list of roles. The JWT
+ * carries the user's first role in lower case (auth.service.ts login).
+ */
+export function isRoleIn(
+  role: string | null | undefined,
+  roles: readonly RoleName[],
+): boolean {
+  const name = (role ?? "").trim().toLowerCase();
+  return roles.some((candidate) => candidate.toLowerCase() === name);
 }
 
 /**

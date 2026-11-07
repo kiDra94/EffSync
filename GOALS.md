@@ -302,7 +302,7 @@ Rules for all milestones:
   - Done when: the M2 `// THESIS: T02` tests are flipped and unauthorized attempts get 403. `GET /api-json` has no `/chat/` route left. E2E tests cover leave, kick by the creator, kick by a non-creator (403), add by the creator, and add by a non-creator member (403).
   - Risk: medium. The frontend `chatStore` and `api/chat.js:4-5` call these routes and have to change in the same milestone.
 
-- [ ] **M7: `RolesGuard` and role checks per thesis (+ search bug)**
+- [x] **M7: `RolesGuard` and role checks per thesis (+ search bug)**
   - Why:
     - T92/T97: `RolesGuard` + `@Roles(...)` and the check order token → role → permission (UNUSED_CODE.md: Planned).
     - Problem 4: role-name checks duplicated in `tasks.service.ts:122`, `:151` and `documents.service.ts:185-286`, `:288`.

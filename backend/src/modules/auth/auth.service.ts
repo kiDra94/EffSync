@@ -4,6 +4,7 @@ import { LoginDto } from "./dto/login.dto";
 import * as bcrypt from "bcrypt";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../../prisma/prisma.service";
+import { RoleName } from "../../config/role-permissions.config";
 
 @Injectable()
 export class AuthService {
@@ -24,7 +25,7 @@ export class AuthService {
     // Assign default role: Student (role_id=2)
     try {
       const studentRole = await this.prisma.roles.findFirst({
-        where: { name: { in: ["Student", "student"] } },
+        where: { name: RoleName.STUDENT },
       });
       const roleId = studentRole?.role_id ?? 2;
       await this.prisma.user_roles.create({

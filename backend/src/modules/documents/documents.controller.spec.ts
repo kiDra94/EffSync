@@ -3,6 +3,7 @@ import { DocumentsService } from "./documents.service";
 import { DocumentsController } from "./documents.controller";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
 
 describe("DocumentsController", () => {
   let controller: DocumentsController;
@@ -30,6 +31,8 @@ describe("DocumentsController", () => {
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

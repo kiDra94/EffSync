@@ -46,6 +46,7 @@ function createPrismaMock() {
     user_roles: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
+      count: jest.fn().mockResolvedValue(0),
     },
     user_permissions: { findFirst: jest.fn().mockResolvedValue(null) },
     task_documents: {
@@ -71,6 +72,7 @@ function createPrismaMock() {
 }
 
 const studentRoles = [{ roles: { name: "Student" } }];
+// hasAnyRole counts the user's staff roles (Teacher, Admin, Superuser)
 const teacherRoles = [{ roles: { name: "Teacher" } }];
 
 describe("TasksService (characterization, M1)", () => {
@@ -87,7 +89,7 @@ describe("TasksService (characterization, M1)", () => {
       prisma as unknown as PrismaService,
       gateway as unknown as WebsocketGateway,
       activityLog as unknown as TaskActivityLogService,
-      {} as PermissionsService,
+      new PermissionsService(prisma as unknown as PrismaService),
     );
     jest.spyOn(console, "error").mockImplementation(() => undefined);
     jest.spyOn(console, "log").mockImplementation(() => undefined);
@@ -96,6 +98,9 @@ describe("TasksService (characterization, M1)", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
+
+  const asStaff = (staff: boolean) =>
+    prisma.user_roles.count.mockResolvedValue(staff ? 1 : 0);
 
   const firstFindManyWhere = () =>
     (
@@ -160,7 +165,7 @@ describe("TasksService (characterization, M1)", () => {
 
   describe("findAll", () => {
     it("shows all tasks to a teacher and uses the DB count as total", async () => {
-      prisma.user_roles.findMany.mockResolvedValue(teacherRoles);
+      asStaff(true);
       prisma.tasks.findMany.mockResolvedValue([{ task_id: 1, status: "OPEN" }]);
       prisma.tasks.count.mockResolvedValue(42);
 
@@ -177,32 +182,37 @@ describe("TasksService (characterization, M1)", () => {
     });
 
     it("limits a student to created, assigned or member tasks", async () => {
-      prisma.user_roles.findMany.mockResolvedValue(studentRoles);
+      asStaff(false);
 
       await service.findAll({}, 7);
 
       expect(firstFindManyWhere()).toEqual({
-        OR: [
-          { created_by: 7 },
-          { assigned_to: 7 },
-          { task_members: { some: { user_id: 7 } } },
+        AND: [
+          {
+            OR: [
+              { created_by: 7 },
+              { assigned_to: 7 },
+              { task_members: { some: { user_id: 7 } } },
+            ],
+          },
         ],
       });
     });
 
-    // BUG (problem 4, M7): the role lookup runs twice per request (tasks.service.ts:118 and :153)
-    it("looks up the user's roles twice per request", async () => {
-      prisma.user_roles.findMany.mockResolvedValue(studentRoles);
+    // problem 4 (fixed in M7): one role query per request, through PermissionsService.hasAnyRole
+    it("looks up the user's roles once per request", async () => {
+      asStaff(false);
 
       await service.findAll({}, 7);
 
-      expect(prisma.user_roles.findMany).toHaveBeenCalledTimes(2);
+      expect(prisma.user_roles.count).toHaveBeenCalledTimes(1);
+      expect(prisma.user_roles.findMany).not.toHaveBeenCalled();
     });
 
     // BUG (decision B3, fixed in M17): a student's page also contains all descendants
     // of the page's tasks, and meta.total counts only this merged list.
     it("adds all descendants of a student page and counts only the merged list", async () => {
-      prisma.user_roles.findMany.mockResolvedValue(studentRoles);
+      asStaff(false);
       prisma.tasks.count.mockResolvedValue(1);
       prisma.tasks.findMany.mockImplementation((args: FindManyArgs) => {
         const parent = args.where?.parent_task_id;
@@ -226,29 +236,42 @@ describe("TasksService (characterization, M1)", () => {
       expect(result.meta.totalPages).toBe(3);
     });
 
-    // BUG (problem 1, fixed in M7): the visibility filter overwrites where.OR, so a student's search is ignored
-    it("drops the search term for students", async () => {
-      prisma.user_roles.findMany.mockResolvedValue(studentRoles);
+    // problem 1 (fixed in M7): search and visibility are combined with AND
+    it("applies the search term for students within their visible tasks", async () => {
+      asStaff(false);
 
       await service.findAll({ search: "mathe" }, 7);
 
       const where = firstFindManyWhere();
-      expect(JSON.stringify(where)).not.toContain("mathe");
-      expect(where.OR).toEqual([
-        { created_by: 7 },
-        { assigned_to: 7 },
-        { task_members: { some: { user_id: 7 } } },
+      expect(where.AND).toEqual([
+        {
+          OR: [
+            { title: { contains: "mathe", mode: "insensitive" } },
+            { description: { contains: "mathe", mode: "insensitive" } },
+          ],
+        },
+        {
+          OR: [
+            { created_by: 7 },
+            { assigned_to: 7 },
+            { task_members: { some: { user_id: 7 } } },
+          ],
+        },
       ]);
     });
 
     it("applies the search term for teachers", async () => {
-      prisma.user_roles.findMany.mockResolvedValue(teacherRoles);
+      asStaff(true);
 
       await service.findAll({ search: "mathe" }, 7);
 
-      expect(firstFindManyWhere().OR).toEqual([
-        { title: { contains: "mathe", mode: "insensitive" } },
-        { description: { contains: "mathe", mode: "insensitive" } },
+      expect(firstFindManyWhere().AND).toEqual([
+        {
+          OR: [
+            { title: { contains: "mathe", mode: "insensitive" } },
+            { description: { contains: "mathe", mode: "insensitive" } },
+          ],
+        },
       ]);
     });
 
@@ -277,7 +300,7 @@ describe("TasksService (characterization, M1)", () => {
         }),
       );
       // without a user there is no role lookup and no visibility filter
-      expect(prisma.user_roles.findMany).not.toHaveBeenCalled();
+      expect(prisma.user_roles.count).not.toHaveBeenCalled();
     });
   });
 
@@ -594,7 +617,7 @@ describe("TasksService (characterization, M1)", () => {
       prisma.tasks.update.mockResolvedValue({ task_id: 1 });
       const deadline = new Date("2026-12-24T10:00:00Z");
 
-      await service.updateDeadlineAndUnlockIfNeeded(1, deadline);
+      await service.updateDeadlineAndUnlockIfNeeded(1, deadline, 5);
 
       expect(prisma.tasks.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -614,6 +637,27 @@ describe("TasksService (characterization, M1)", () => {
         5,
         false,
       );
+    });
+
+    // M7: the route had no check at all; now staff or the task's creator (TaskForm offers it to creators)
+    it("lets staff change the deadline of someone else's task", async () => {
+      prisma.tasks.findUnique.mockResolvedValue({ task_id: 1, created_by: 5 });
+      prisma.tasks.update.mockResolvedValue({ task_id: 1 });
+      asStaff(true);
+
+      await service.updateDeadlineAndUnlockIfNeeded(1, new Date(), 9);
+
+      expect(prisma.tasks.update).toHaveBeenCalled();
+    });
+
+    it("rejects anyone else with 403 and changes nothing", async () => {
+      prisma.tasks.findUnique.mockResolvedValue({ task_id: 1, created_by: 5 });
+      asStaff(false);
+
+      await expect(
+        service.updateDeadlineAndUnlockIfNeeded(1, new Date(), 9),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.tasks.update).not.toHaveBeenCalled();
     });
   });
 

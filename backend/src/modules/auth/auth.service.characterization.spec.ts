@@ -73,7 +73,8 @@ describe("AuthService (characterization, M2)", () => {
     } as never);
 
     expect(prisma.roles.findFirst).toHaveBeenCalledWith({
-      where: { name: { in: ["Student", "student"] } },
+      // DECISION: Q10 (M7) – looked up by RoleName only, no lower-case variant
+      where: { name: "Student" },
     });
     expect(prisma.user_roles.create).toHaveBeenCalledWith({
       data: { user_id: 7, role_id: 3 },

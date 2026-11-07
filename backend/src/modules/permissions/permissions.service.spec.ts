@@ -1,14 +1,17 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { PermissionsService, PermissionFlag } from "./permissions.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { RoleName } from "../../config/role-permissions.config";
 
 describe("PermissionsService", () => {
   let service: PermissionsService;
   let prisma: PrismaService;
   let userRolesFindFirst: jest.Mock;
+  let userRolesCount: jest.Mock;
 
   beforeEach(async () => {
     userRolesFindFirst = jest.fn();
+    userRolesCount = jest.fn();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PermissionsService,
@@ -17,6 +20,7 @@ describe("PermissionsService", () => {
           useValue: {
             user_roles: {
               findFirst: userRolesFindFirst,
+              count: userRolesCount,
               findMany: jest.fn(),
             },
             permissions: {
@@ -35,30 +39,28 @@ describe("PermissionsService", () => {
     prisma = module.get<PrismaService>(PrismaService);
   });
 
+  // M7: hasRole is hasAnyRole with one role (one count query, case-insensitive)
   describe("hasRole", () => {
     it("should return true if user has role", async () => {
-      userRolesFindFirst.mockResolvedValue({
-        user_id: 1,
-        role_id: 3,
-        roles: { name: "Teacher" },
-      });
+      userRolesCount.mockResolvedValue(1);
 
-      const result = await service.hasRole(1, "Teacher");
+      const result = await service.hasRole(1, RoleName.TEACHER);
 
       expect(result).toBe(true);
-      expect(userRolesFindFirst).toHaveBeenCalledWith({
+      expect(userRolesCount).toHaveBeenCalledWith({
         where: {
           user_id: 1,
-          roles: { name: "Teacher" },
+          roles: {
+            OR: [{ name: { equals: RoleName.TEACHER, mode: "insensitive" } }],
+          },
         },
-        include: { roles: true },
       });
     });
 
     it("should return false if user does not have role", async () => {
-      userRolesFindFirst.mockResolvedValue(null);
+      userRolesCount.mockResolvedValue(0);
 
-      const result = await service.hasRole(1, "Admin");
+      const result = await service.hasRole(1, RoleName.ADMIN);
 
       expect(result).toBe(false);
     });

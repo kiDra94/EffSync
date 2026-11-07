@@ -16,6 +16,11 @@ import {
   PermissionFlag,
   PermissionsService,
 } from "../permissions/permissions.service";
+import {
+  isRoleIn,
+  RoleName,
+  STAFF_ROLES,
+} from "../../config/role-permissions.config";
 
 @Injectable()
 export class TasksService {
@@ -116,38 +121,34 @@ export class TasksService {
       where.parent_task_id = parent_task_id === 0 ? null : parent_task_id;
     }
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
-    }
+    const searchFilter = search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : undefined;
 
-    // **SECURITY**: filter tasks by the user's permissions
-    if (userId) {
-      // Check whether the user is a teacher/admin
-      const userRoles = await this.prisma.user_roles.findMany({
-        where: { user_id: userId },
-        include: { roles: true },
-      });
+    // **SECURITY**: filter tasks by the user's permissions.
+    // Teacher, Admin and Superuser see all tasks (for grading); everyone else
+    // only the tasks they created, are assigned to or are a member of.
+    const isTeacher = userId
+      ? await this.permissionsService.hasAnyRole(userId, STAFF_ROLES)
+      : true;
+    const visibilityFilter = isTeacher
+      ? undefined
+      : {
+          OR: [
+            { created_by: userId },
+            { assigned_to: userId },
+            { task_members: { some: { user_id: userId } } },
+          ],
+        };
 
-      const isTeacher = userRoles.some(
-        (ur) =>
-          ur.roles.name === "Teacher" ||
-          ur.roles.name === "Admin" ||
-          ur.roles.name === "Superuser",
-      );
-
-      // NOT a teacher → show only their own tasks
-      if (!isTeacher) {
-        where.OR = [
-          { created_by: userId }, // The user created the task
-          { assigned_to: userId }, // The task is assigned to the user
-          { task_members: { some: { user_id: userId } } }, // The user is a member
-        ];
-      }
-      // Teacher → show ALL tasks for grading
-    }
+    // search and visibility are combined with AND (problem 1)
+    const filters = [searchFilter, visibilityFilter].filter(Boolean);
+    if (filters.length > 0) where.AND = filters;
 
     const skip = (page - 1) * limit;
 
@@ -161,21 +162,6 @@ export class TasksService {
       }),
       this.prisma.tasks.count({ where }),
     ]);
-
-    const isTeacher = await (async () => {
-      if (!userId) return true;
-      const userRoles = await this.prisma.user_roles.findMany({
-        where: { user_id: userId },
-        include: { roles: true },
-      });
-
-      return userRoles.some(
-        (ur) =>
-          ur.roles.name === "Teacher" ||
-          ur.roles.name === "Admin" ||
-          ur.roles.name === "Superuser",
-      );
-    })();
 
     const collectDescendants = async (
       parentIds: number[],
@@ -462,11 +448,25 @@ export class TasksService {
    * @param newDeadline - the new deadline
    * @returns the updated, unlocked task
    */
-  async updateDeadlineAndUnlockIfNeeded(taskId: number, newDeadline: Date) {
+  async updateDeadlineAndUnlockIfNeeded(
+    taskId: number,
+    newDeadline: Date,
+    userId: number,
+  ) {
     const task = await this.findOne(taskId, false);
 
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);
+    }
+
+    // staff, or the task's creator (TaskForm offers unlocking to creators)
+    const mayChange =
+      Number(task.created_by) === Number(userId) ||
+      (await this.permissionsService.hasAnyRole(userId, STAFF_ROLES));
+    if (!mayChange) {
+      throw new ForbiddenException(
+        "Only teachers or the task's creator may change the deadline",
+      );
     }
 
     const updated = await this.prisma.tasks.update({
@@ -792,8 +792,8 @@ export class TasksService {
       .filter((user) => {
         const hasStudentProfile = Boolean(user.students?.student_id);
         const hasStudentRole = Array.isArray(user.user_roles)
-          ? user.user_roles.some(
-              (entry) => entry.roles?.name?.toLowerCase?.() === "student",
+          ? user.user_roles.some((entry) =>
+              isRoleIn(entry.roles?.name, [RoleName.STUDENT]),
             )
           : false;
         return hasStudentProfile || hasStudentRole;

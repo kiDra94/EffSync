@@ -25,6 +25,9 @@ import type { Response } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { Permissions } from "../auth/decorators/permissions.decorator";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { STAFF_ROLES } from "../../config/role-permissions.config";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { GradeDocumentDto } from "./dto/grade-document.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
@@ -53,7 +56,8 @@ const ALLOWED_UPLOAD_EXTENSIONS = [
   ".odp",
 ];
 
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+// check order token → role → permission (T97)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Controller("documents")
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
@@ -177,6 +181,7 @@ export class DocumentsController {
   }
 
   @Patch(":id/grade")
+  @Roles(...STAFF_ROLES)
   @Permissions()
   grade(
     @Param("id", ParseIntPipe) id: number,
@@ -197,6 +202,7 @@ export class DocumentsController {
    * Only a teacher may do this
    */
   @Patch(":id/allow-resubmit")
+  @Roles(...STAFF_ROLES)
   @Permissions()
   allowResubmit(
     @Param("id", ParseIntPipe) id: number,

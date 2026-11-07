@@ -16,9 +16,12 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { Permissions } from "../auth/decorators/permissions.decorator";
+import type { AuthenticatedRequest } from "../auth/types/authenticated-request";
+import { RolesGuard } from "../auth/guards/roles.guard";
 import { QueryTasksDto } from "./dto/query-tasks.dto";
 
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+// check order token → role → permission (T97)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Controller("tasks")
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
@@ -63,11 +66,13 @@ export class TasksController {
    * Updates the deadline and unlocks a task after grading
    * Only teachers may use this action
    */
+  // staff or the task's creator; checked in the service, because a role alone isn't enough
   @Patch(":id/deadline-unlock")
   @Permissions()
   updateDeadlineAndUnlock(
     @Param("id") id: string,
     @Body() body: { deadline: string | Date },
+    @Req() req: AuthenticatedRequest,
   ) {
     if (!body.deadline) {
       throw new Error("deadline erforderlich im Body");
@@ -75,6 +80,7 @@ export class TasksController {
     return this.tasksService.updateDeadlineAndUnlockIfNeeded(
       +id,
       new Date(body.deadline),
+      req.user.userId,
     );
   }
 

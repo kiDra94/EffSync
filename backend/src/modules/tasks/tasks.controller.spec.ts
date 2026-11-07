@@ -3,6 +3,7 @@ import { TasksController } from "./tasks.controller";
 import { TasksService } from "./tasks.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
 
 describe("TasksController", () => {
   let controller: TasksController;
@@ -28,6 +29,8 @@ describe("TasksController", () => {
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

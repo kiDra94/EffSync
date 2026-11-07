@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy, Profile, VerifyCallback } from "passport-google-oauth20";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { isRoleIn, RoleName } from "../../../config/role-permissions.config";
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
@@ -60,8 +61,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
         // Find the student role among the existing roles
         try {
           const roles = await this.prisma.roles.findMany();
-          const studentRole = roles.find(
-            (r) => r.name?.toLowerCase() === "student",
+          const studentRole = roles.find((r) =>
+            isRoleIn(r.name, [RoleName.STUDENT]),
           );
 
           if (studentRole && newUser.user_id) {
@@ -90,7 +91,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
       const primaryRole =
         user?.user_roles && user.user_roles.length > 0
           ? user.user_roles[0].roles?.name?.toLowerCase()
-          : "student";
+          : RoleName.STUDENT.toLowerCase();
 
       return done(null, {
         id: user?.user_id,

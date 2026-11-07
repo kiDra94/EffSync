@@ -33,6 +33,12 @@ describe("TasksService", () => {
     },
   };
 
+  const mockPermissionsService = {
+    hasPermission: jest.fn(),
+    hasAnyPermission: jest.fn(),
+    hasAnyRole: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -44,7 +50,7 @@ describe("TasksService", () => {
         { provide: TaskActivityLogService, useValue: { create: jest.fn() } },
         {
           provide: PermissionsService,
-          useValue: { hasPermission: jest.fn(), hasAnyPermission: jest.fn() },
+          useValue: mockPermissionsService,
         },
       ],
     }).compile();
@@ -112,9 +118,7 @@ describe("TasksService", () => {
   });
 
   it("recalculates task statuses in findAll response", async () => {
-    mockPrismaService.user_roles.findMany.mockResolvedValue([
-      { roles: { name: "Teacher" } },
-    ]);
+    mockPermissionsService.hasAnyRole.mockResolvedValue(true);
 
     mockPrismaService.tasks.findMany.mockResolvedValue([
       {

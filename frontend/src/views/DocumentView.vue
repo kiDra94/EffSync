@@ -267,19 +267,8 @@ const ALLOWED_EXTENSIONS = [
 const PREVIEWABLE_MIME_PREFIXES = ['image/', 'text/'];
 const PREVIEWABLE_MIME_SUBSTRINGS = ['pdf'];
 
-const normalizeRole = (role) => {
-  const raw = String(role || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-  if (raw === 'schuler' || raw === 'schueler') return 'student';
-  if (raw === 'lehrer' || raw === 'dozent') return 'teacher';
-  if (raw === 'administrator') return 'admin';
-
-  return raw;
-};
+// role names as in the backend's RoleName enum; German aliases are gone (decision Q10)
+const normalizeRole = (role) => String(role || '').toLowerCase().trim();
 
 const normalizedRole = computed(() => normalizeRole(authStore.userRole));
 const canUpload = computed(() => ['student', 'teacher', 'admin', 'superuser'].includes(normalizedRole.value));

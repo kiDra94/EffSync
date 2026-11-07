@@ -1,3 +1,4 @@
+import { RoleName } from "../../../config/role-permissions.config";
 import { SetMetadata } from "@nestjs/common";
 
 /**
@@ -7,16 +8,18 @@ import { SetMetadata } from "@nestjs/common";
  * Defines the roles an endpoint requires.
  *
  * Examples:
- * @Roles('Teacher')
- * @Roles('Admin', 'Manager')
+ * @Roles(RoleName.TEACHER)
+ * @Roles(RoleName.ADMIN, RoleName.SUPERUSER)
  * @Roles()  // empty array = no RolesGuard protection
  *
  * Usage in a controller:
  * @Get()
  * @UseGuards(JwtAuthGuard, RolesGuard)
- * @Roles('Teacher', 'Admin')
+ * @Roles(RoleName.TEACHER, RoleName.ADMIN)
  * async findAll() {
  *   // Only users with the role Teacher OR Admin can call this endpoint
  * }
  */
-export const Roles = (...roles: string[]) => SetMetadata("roles", roles);
+export const ROLES_KEY = "roles";
+
+export const Roles = (...roles: RoleName[]) => SetMetadata(ROLES_KEY, roles);
