@@ -655,3 +655,61 @@ Tick the milestone checkbox in GOALS.md only when its "Done when" condition is v
 - `NODE_ENV=test` now switches the e-mail transport. E2E files that trigger mail can read `MAIL_OUTBOX_DIR`.
 
 **Failed / open:** none beyond the accepted points above.
+
+## 2026-11-07 – M14: Ghost-user anonymization on account deletion
+
+**Decision asked first:** H1 (GOALS.md, 2026-11-07). M14 names only `chat_messages`, the task authorship, `comments` and `task_grade`; about a dozen other tables reference `users` with `NoAction`. The user chose the recommended option on all four questions: shared content to the ghost, personal rows deleted, task uploads kept, own notes deleted, and teachers blocked while still assigned.
+
+**Done:**
+- The ghost user 0 "Gelöschter Nutzer" (`domain/ghost-user.ts`, thesis 03_…:295-299):
+  - It has no password and no Google id.
+  - `seed.ts` and `test-seed.ts` create it with an explicit id, which doesn't move the sequence, so all other seed ids stay the same.
+  - The data migration `20261107160000_add_ghost_user` adds it to existing databases (`ON CONFLICT DO NOTHING`).
+  - It can't be changed, deleted, given roles or permissions (400), linked to Google (409) or sent a reset mail. It is left out of the chat user list and the admin user list.
+- `DELETE /users/:id` anonymizes (T10, decision H1). It runs in one unit of work:
+  - it locks the `users` and `teachers` rows (`FOR UPDATE`), so concurrent assignments and a second delete wait
+  - 404 for an unknown user
+  - 409 while the teacher is still head teacher, class teacher or has lesson slots
+  - 400 for the own account or the last Superuser/Admin
+  - then `anonymizeAndDelete`
+- `anonymizeAndDelete`, following decision H1:
+  - Moved to user 0: `chat_messages`, `tasks.created_by`, `comments`, `task_comments`, `chat_rooms.created_by`, `task_activity_log`, `task_templates.created_by`, `documents.graded_by`, and `documents.added_by` for documents attached to a task.
+  - Set to NULL: `tasks.assigned_to` and `teachers.supervisor_id`.
+  - Deleted: `user_roles`, `chat_room_users`, `document_shares`, `notifications`, the uploads that belong to no task, the user's own notes with their shares and document links, the `notes_users` entries, and the `students`/`teachers` row.
+  - Cascades: `user_permissions`, `email_*`, `refresh_tokens` and `task_members`.
+  - In other members' chat notifications, the name prefix `💬 Vorname Nachname:` becomes `💬 Gelöschter Nutzer:`.
+- The plain `UserRepository.delete` is removed, so nothing can skip the anonymization.
+
+**Verified:**
+- Done when:
+  - The M2 `// THESIS: T10` test is flipped: it now checks the reassignment to user 0 and the delete of the user row.
+  - `test/account-deletion.e2e-spec.ts` creates its own user, with a class-chat membership and message, a task, a comment, a task upload, a private note with a file, and notifications. It deletes the user as admin and shows:
+    - the class chat intact, with the message under "Gelöschter Nutzer" and the seed messages in order
+    - the task and the comment under user 0
+    - the personal rows gone, the private file gone, the task upload under user 0
+    - the name replaced in Anna's notification
+    - no login for the deleted account
+  - The same file checks 400 for deleting or patching the ghost, 400 for deleting the own account, 409 for the class teacher Peter and 404 for an unknown user.
+  - The FK check: the review compared all 25 `REFERENCES "users"` constraints in the migrations with `anonymizeAndDelete`. Each one is handled.
+- Backend: 434 unit and 69 E2E tests. Frontend: 184 tests. tsc, lint (0 errors, 431 warnings), knip, dependency-cruiser (0 violations, 0 context cycles) and the build pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings:
+  - fixed:
+    - the last Superuser/Admin or the own account could be deleted (1)
+    - the ghost could be changed, and Google could link to it (2)
+    - the name stayed in other users' notifications (3)
+    - private files survived under the ghost (4)
+    - checks outside the transaction, and races (5, 6)
+    - the migration conflict target (8)
+    - the dead `delete` (9)
+    - the notes relation filter (10, partly)
+  - planned:
+    - (7) The ghost as task member, mention target or notification recipient: M16 step 6.
+    - (10) identity-access writes other contexts' tables directly (rule 4): an account-deletion port in M15 step 6, then M19, M20 and M22 for their tables.
+  - accepted: two admins deleting the only two Admins at the same moment can both pass the last-holder check, because the role rows aren't locked.
+
+**Learned (for later milestones):**
+- Before M14, deleting any user with a role failed on `user_roles` (`NoAction`), so `DELETE /users/:id` never worked for real accounts.
+- A milestone that adds a table with a user FK (M25 `user_settings`, M27 `user_avatars`, M32 `user_two_factor`) has to extend `anonymizeAndDelete` and the E2E test. GOALS.md says this in T10's "Why"; with `NoAction` the delete fails otherwise.
+- The data migration and the seeds both create user 0: the migration for existing databases, the seed after its `TRUNCATE`.
+
+**Failed / open:** see "accepted" above.

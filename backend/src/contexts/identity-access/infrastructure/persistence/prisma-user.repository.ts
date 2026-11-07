@@ -1,6 +1,7 @@
 import { Injectable, Optional } from "@nestjs/common";
 import { PrismaService } from "../../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
+import { GHOST_USER, GHOST_USER_ID } from "../../domain/ghost-user";
 import {
   NewUser,
   UserChanges,
@@ -89,8 +90,10 @@ export class PrismaUserRepository extends UserRepository {
     });
   }
 
+  // the ghost user (M14) is left out of both lists
   findAllForChat() {
     return this.prisma.users.findMany({
+      where: { user_id: { not: GHOST_USER_ID } },
       select: {
         user_id: true,
         firstname: true,
@@ -103,6 +106,7 @@ export class PrismaUserRepository extends UserRepository {
 
   findAllWithAccess() {
     return this.prisma.users.findMany({
+      where: { user_id: { not: GHOST_USER_ID } },
       select: {
         user_id: true,
         firstname: true,
@@ -130,8 +134,126 @@ export class PrismaUserRepository extends UserRepository {
     });
   }
 
-  delete(userId: number) {
-    return this.prisma.users.delete({ where: { user_id: userId } });
+  // the account deletion's queries join the unit of work (M14)
+  private db() {
+    return this.unitOfWork?.client() ?? this.prisma;
+  }
+
+  async lockForDeletion(userId: number) {
+    const db = this.db();
+    // FK inserts (a new class teacher, a new message) take KEY SHARE locks on
+    // these rows, so they wait for the deletion; so does a second deletion
+    await db.$queryRaw`SELECT 1 FROM "users" WHERE "user_id" = ${userId} FOR UPDATE`;
+    await db.$queryRaw`SELECT 1 FROM "teachers" WHERE "teacher_id" = ${userId} FOR UPDATE`;
+    return db.users.findUnique({ where: { user_id: userId } });
+  }
+
+  async countTeacherAssignments(userId: number) {
+    const db = this.db();
+    const [headOf, teaches, slots] = await Promise.all([
+      db.classes.count({ where: { head_teacher_id: userId } }),
+      db.classes_teachers.count({ where: { teacher_id: userId } }),
+      db.lesson_slots.count({ where: { teacher_id: userId } }),
+    ]);
+    return headOf + teaches + slots;
+  }
+
+  async anonymizeAndDelete(userId: number) {
+    const tx = this.db();
+    const user = await tx.users.findUniqueOrThrow({
+      where: { user_id: userId },
+      select: { firstname: true, lastname: true, username: true },
+    });
+
+    // the user's own notes, with their shares and document links
+    const ownNotes = { where: { notes: { created_by: userId } } };
+    await tx.note_documents.deleteMany(ownNotes);
+    await tx.notes_users.deleteMany(ownNotes);
+    await tx.notes.deleteMany({ where: { created_by: userId } });
+
+    // uploads that belong to no task are private files: deleted
+    const privateDocuments = {
+      added_by: userId,
+      task_documents: { none: {} },
+    };
+    await tx.document_shares.deleteMany({
+      where: { documents: privateDocuments },
+    });
+    await tx.note_documents.deleteMany({
+      where: { documents: privateDocuments },
+    });
+    await tx.documents.deleteMany({ where: privateDocuments });
+
+    // shared content: the chat history and the task work stay, under the ghost user
+    const toGhost = { user_id: GHOST_USER_ID };
+    await tx.chat_messages.updateMany({
+      where: { user_id: userId },
+      data: toGhost,
+    });
+    await tx.task_comments.updateMany({
+      where: { user_id: userId },
+      data: toGhost,
+    });
+    await tx.task_activity_log.updateMany({
+      where: { user_id: userId },
+      data: toGhost,
+    });
+    const createdBy = { created_by: GHOST_USER_ID };
+    await tx.tasks.updateMany({
+      where: { created_by: userId },
+      data: createdBy,
+    });
+    await tx.comments.updateMany({
+      where: { created_by: userId },
+      data: createdBy,
+    });
+    await tx.chat_rooms.updateMany({
+      where: { created_by: userId },
+      data: createdBy,
+    });
+    await tx.task_templates.updateMany({
+      where: { created_by: userId },
+      data: createdBy,
+    });
+    await tx.documents.updateMany({
+      where: { added_by: userId },
+      data: { added_by: GHOST_USER_ID },
+    });
+    await tx.documents.updateMany({
+      where: { graded_by: userId },
+      data: { graded_by: GHOST_USER_ID },
+    });
+
+    // other members' chat notifications start with the sender's name
+    // (chat-messages.service.ts); the name goes, the message stays
+    const senderName =
+      `${user.firstname} ${user.lastname}`.trim() || user.username;
+    const prefix = `💬 ${senderName}:`;
+    const ghostPrefix = `💬 ${GHOST_USER.firstname} ${GHOST_USER.lastname}:`;
+    await tx.$executeRaw`UPDATE "notifications" SET "text" = ${ghostPrefix} || substr("text", char_length(${prefix}) + 1) WHERE "type" = 'chat_message' AND starts_with("text", ${prefix})`;
+
+    // references that mean nothing for a ghost
+    await tx.tasks.updateMany({
+      where: { assigned_to: userId },
+      data: { assigned_to: null },
+    });
+    await tx.teachers.updateMany({
+      where: { supervisor_id: userId },
+      data: { supervisor_id: null },
+    });
+
+    // personal rows
+    const ownRows = { where: { user_id: userId } };
+    await tx.user_roles.deleteMany(ownRows);
+    await tx.chat_room_users.deleteMany(ownRows);
+    await tx.document_shares.deleteMany(ownRows);
+    await tx.notifications.deleteMany(ownRows);
+    await tx.notes_users.deleteMany(ownRows);
+    await tx.students.deleteMany({ where: { student_id: userId } });
+    await tx.teachers.deleteMany({ where: { teacher_id: userId } });
+
+    // user_permissions, email_*, refresh_tokens and task_members cascade
+    return tx.users.delete({ where: { user_id: userId } });
   }
 
   findRoleById(roleId: number) {
@@ -162,7 +284,7 @@ export class PrismaUserRepository extends UserRepository {
   }
 
   countUsersWithRole(roleId: number) {
-    return this.prisma.user_roles.count({ where: { role_id: roleId } });
+    return this.db().user_roles.count({ where: { role_id: roleId } });
   }
 
   removeRole(userId: number, roleId: number) {
@@ -173,7 +295,7 @@ export class PrismaUserRepository extends UserRepository {
   }
 
   findRolesWithPermissions(userId: number) {
-    return this.prisma.user_roles.findMany({
+    return this.db().user_roles.findMany({
       where: { user_id: userId },
       include: ROLE_WITH_PERMISSIONS,
     });

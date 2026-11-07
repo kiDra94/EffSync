@@ -67,6 +67,15 @@ describe("PasswordResetService", () => {
       );
     });
 
+    it("never mails a reset link for the ghost user (M14)", async () => {
+      users.findByEmailWithRoles.mockResolvedValue({ ...user, user_id: 0 });
+
+      await service.requestReset("ghost@effsync.invalid");
+      await new Promise(setImmediate);
+
+      expect(mailer.sendResetLink).not.toHaveBeenCalled();
+    });
+
     it("does nothing for an unknown address and never reveals it", async () => {
       users.findByEmailWithRoles.mockResolvedValue(null);
 

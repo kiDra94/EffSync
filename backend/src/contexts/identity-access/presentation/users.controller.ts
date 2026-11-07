@@ -135,8 +135,8 @@ export class UsersController {
    */
   @Delete(":id")
   @Permissions("manage_users", PermissionFlag.EXECUTE)
-  remove(@Param("id") id: string) {
-    return this.usersService.remove(+id);
+  remove(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
+    return this.usersService.remove(+id, req.user.userId);
   }
 
   /**

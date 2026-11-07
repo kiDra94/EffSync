@@ -5,6 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcrypt";
 import {
   BCRYPT_COST,
+  GHOST_USER,
   getPermissionsForRole,
 } from "../src/contexts/identity-access/application";
 
@@ -346,6 +347,9 @@ async function main() {
     ];
 
     await prisma.users.createMany({ data: usersData });
+    // T10 (M14): deleted accounts' content moves to the ghost user 0; an
+    // explicit id doesn't advance the sequence, so the IDs above stay the same
+    await prisma.users.create({ data: GHOST_USER });
     console.log(
       `✓ ${usersData.length} Einträge in users erstellt (davon 3 mit Google OAuth)`,
     );

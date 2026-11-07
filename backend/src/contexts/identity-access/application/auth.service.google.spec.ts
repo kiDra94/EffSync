@@ -139,4 +139,17 @@ describe("AuthService.signInWithGoogle", () => {
     ).rejects.toThrow(ConflictException);
     expect(users.linkGoogleId).not.toHaveBeenCalled();
   });
+
+  // review M14 (2): nobody signs in as the ghost user
+  it("never links a Google account to the ghost user", async () => {
+    users.findByEmailWithRoles.mockResolvedValue({
+      ...withRoles(0),
+      google_id: null,
+    });
+
+    await expect(service.signInWithGoogle(profile)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(users.linkGoogleId).not.toHaveBeenCalled();
+  });
 });

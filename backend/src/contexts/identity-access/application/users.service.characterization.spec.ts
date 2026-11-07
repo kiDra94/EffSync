@@ -10,13 +10,43 @@ import { RolePermissionsService } from "./role-permissions.service";
 const DAY = 24 * 60 * 60 * 1000;
 
 function createPrismaMock() {
-  return {
+  // M14: the account deletion's transaction runs on the same mock
+  const updateMany = () => ({ updateMany: jest.fn(), deleteMany: jest.fn() });
+  const mock = {
+    $transaction: jest.fn(),
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    $executeRaw: jest.fn(),
+    chat_messages: updateMany(),
+    tasks: updateMany(),
+    comments: updateMany(),
+    task_comments: updateMany(),
+    chat_rooms: updateMany(),
+    documents: updateMany(),
+    task_activity_log: updateMany(),
+    task_templates: updateMany(),
+    teachers: { ...updateMany(), findUnique: jest.fn() },
+    chat_room_users: updateMany(),
+    document_shares: updateMany(),
+    notifications: updateMany(),
+    notes: { ...updateMany(), findMany: jest.fn().mockResolvedValue([]) },
+    notes_users: updateMany(),
+    note_documents: updateMany(),
+    students: updateMany(),
+    classes: { count: jest.fn().mockResolvedValue(0) },
+    classes_teachers: { count: jest.fn().mockResolvedValue(0) },
+    lesson_slots: { count: jest.fn().mockResolvedValue(0) },
     users: {
       create: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn(),
       delete: jest.fn(),
+      findUniqueOrThrow: jest.fn().mockResolvedValue({
+        user_id: 3,
+        firstname: "Peter",
+        lastname: "Schmidt",
+        username: "pschmidt",
+      }),
     },
     permissions: { findUnique: jest.fn() },
     roles: { findUnique: jest.fn() },
@@ -31,9 +61,14 @@ function createPrismaMock() {
       findUnique: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      deleteMany: jest.fn(),
       count: jest.fn(),
     },
   };
+  mock.$transaction.mockImplementation(
+    (work: (tx: typeof mock) => Promise<unknown>) => work(mock),
+  );
+  return mock;
 }
 
 describe("UsersService (characterization, M2)", () => {
@@ -47,6 +82,7 @@ describe("UsersService (characterization, M2)", () => {
     service = new UsersService(
       new PrismaUserRepository(prisma as unknown as PrismaService),
       rolePermissions as unknown as RolePermissionsService,
+      { run: (work: () => Promise<unknown>) => work() } as never,
     );
   });
 
@@ -121,12 +157,23 @@ describe("UsersService (characterization, M2)", () => {
     });
   });
 
-  // THESIS: T10 – account deletion is a hard delete, no ghost-user anonymization
-  it("hard-deletes the user row", async () => {
-    await service.remove(3);
+  // THESIS: T10 (flipped in M14) – account deletion anonymizes: shared content
+  // moves to the ghost user 0, then the personal record is deleted, in one transaction
+  it("reassigns the chat messages and tasks to the ghost user, then deletes the user row", async () => {
+    prisma.users.findUnique.mockResolvedValue({ user_id: 3 });
+    prisma.users.delete.mockResolvedValue({ user_id: 3, password_hash: "h" });
 
+    await service.remove(3, 1);
+
+    expect(prisma.chat_messages.updateMany).toHaveBeenCalledWith({
+      where: { user_id: 3 },
+      data: { user_id: 0 },
+    });
+    expect(prisma.tasks.updateMany).toHaveBeenCalledWith({
+      where: { created_by: 3 },
+      data: { created_by: 0 },
+    });
     expect(prisma.users.delete).toHaveBeenCalledWith({ where: { user_id: 3 } });
-    expect(prisma.users.update).not.toHaveBeenCalled();
   });
 
   describe("permissions and roles", () => {

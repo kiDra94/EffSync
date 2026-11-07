@@ -48,7 +48,19 @@ export abstract class UserRepository {
     userId: number,
     passwordHash: string,
   ): Promise<UserRecord>;
-  abstract delete(userId: number): Promise<UserRecord>;
+  /** Classes the user heads, teaches, and lesson slots they hold (M14). */
+  abstract countTeacherAssignments(userId: number): Promise<number>;
+  /**
+   * Locks the user's row (and teacher row) until the unit of work ends and
+   * returns the user; null if there is none. Run inside a unit of work.
+   */
+  abstract lockForDeletion(userId: number): Promise<UserRecord | null>;
+  /**
+   * Account deletion (T10, decision H1): shared content moves to the ghost
+   * user, personal rows are deleted, then the user row. Run inside a unit of
+   * work, after lockForDeletion.
+   */
+  abstract anonymizeAndDelete(userId: number): Promise<UserRecord>;
 
   abstract findRoleById(roleId: number): Promise<RoleRecord | null>;
   abstract findRoleByName(name: string): Promise<RoleRecord | null>;

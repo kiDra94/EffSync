@@ -9,6 +9,7 @@ import { JwtService } from "@nestjs/jwt";
 import { UserRepository } from "./ports/user.repository";
 import { UserWithRoles } from "./ports/identity-records";
 import { RoleName } from "../domain/role-permissions";
+import { GHOST_USER_ID } from "../domain/ghost-user";
 import { BCRYPT_COST } from "./password-hashing";
 import { withoutPasswordHash } from "./public-user";
 
@@ -72,7 +73,7 @@ export class AuthService {
 
     if (!user && profile.email && profile.emailVerified) {
       user = await this.users.findByEmailWithRoles(profile.email);
-      if (user?.google_id) {
+      if (user?.google_id || user?.user_id === GHOST_USER_ID) {
         throw new ConflictException(
           "Dieses Konto ist mit einem anderen Google-Konto verknüpft",
         );

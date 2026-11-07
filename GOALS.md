@@ -399,7 +399,7 @@ Rules for all milestones:
   - Done when: an E2E test requests a reset, reads the token from the test mail transport and sets a new password; reusing the same link afterwards and using an expired link both return 401; a refresh token issued before the password change returns 401 afterwards; the frontend flow works against the real backend.
   - Risk: low–medium. No schema change. `set-new-password` must tell a reset token apart from a normal access token by its purpose claim.
 
-- [ ] **M14: Ghost-user anonymization on account deletion (DSGVO)**
+- [x] **M14: Ghost-user anonymization on account deletion (DSGVO)**
   - Why: T10 (`03_…:295-299`). Deleting an account must anonymize instead of hard-deleting (per-user rows in `refresh_tokens`, `user_settings`, `user_avatars` and `user_two_factor` are deleted with the personal record; a milestone that adds one of these tables after M14 extends the deletion and its test): messages are reassigned to a ghost user with `user_id 0`, which the seed creates.
   - Steps:
     1. Seed user 0 (and `test-seed.ts`).
@@ -429,6 +429,7 @@ Rules for all milestones:
        4. Deleting a task deletes its comments and grading remarks, as it deletes `task_comments` today.
        5. Update `seed.ts` and `test-seed.ts`.
     5. Take over the remaining `task-members`, `task-templates` and `task-activity-log` code into the context and remove the old modules.
+    6. Found in M14: `PrismaUserRepository.anonymizeAndDelete` (identity-access) writes the task tables directly (`tasks`, `comments`, `task_comments`, `task_activity_log`, `task_templates`). Move that part behind an account-deletion port that task-management implements and identity-access calls inside the same unit of work, so rule 4 holds. M19 (documents, notes), M20 (chat) and M22 (teachers, students, classes) do the same for their tables.
   - Done when:
     - The task code lives only under `contexts/task-management`, with 0 dependency-cruiser violations.
     - A test makes the activity-log write fail and shows the task change rolled back.
@@ -451,6 +452,7 @@ Rules for all milestones:
     3. Send realtime updates to creator, assignee and members.
     4. Notify on create/assign, member add/remove and status change through the `notifications` application port.
     5. Creating a subtask (`POST /tasks` with `parent_task_id`, `createSubTask`) requires being the creator or a member of the root task, otherwise 403. Creating a top-level task starts a new project and stays open to every authenticated user with `create_tasks`.
+    6. Found in M14: the ghost user 0 is no real person. It can't be added as a task member (400), an `@geloeschter-nutzer` mention sends no mail, and no notification is created for user 0 (for example when a ghost-owned document is graded).
   - Done when: the `// THESIS: T100/T107` tests are flipped, new tests cover each notification type, the frontend checkbox has a Vitest test, and E2E shows a non-member getting 403 when creating a subtask and a member succeeding.
   - Risk: medium. Auto-completion and the cascade-to-children logic set progress themselves and must keep working. The membership check is a behavior change: check the seed and the frontend's subtask flow for users who aren't members today.
 
@@ -736,6 +738,7 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **F3 School administration permission** (decided 2026-11-07): subjects, rooms, departments, schedules and lesson slots use `manage_classes` instead of the non-existent `manage_subjects`/`manage_rooms`/`manage_departments`/`manage_schedules`. Affects: M8, M36.
 - **F4 Permissions in existing databases** (decided 2026-11-07): `seed.ts` and `test-seed.ts` follow `contexts/identity-access/domain/role-permissions.ts`, and a data migration inserts the missing `roles_permissions` rows by name into existing databases. Affects: M8.
 - **G1 Migration with repository ports** (decided 2026-11-07, found in M11): services in `application/` work through repository ports; Prisma repositories in `infrastructure/` make exactly today's queries. "M2 tests pass unchanged" means every test case, mock and assertion stays the same; only the line that constructs the service under test (and import paths) change. Applies to all context migrations (M11–M24).
+- **H1 Rows of a deleted account** (decided 2026-11-07, found in M14): shared content moves to the ghost user 0 (`chat_messages`, `tasks.created_by`, `comments`, `task_comments`/task_grade, `chat_rooms.created_by`, `documents.added_by` for documents attached to a task and `graded_by`, `task_activity_log`, `task_templates.created_by`); `tasks.assigned_to` and `teachers.supervisor_id` become NULL; personal rows are deleted (`user_roles`, `chat_room_users`, `document_shares`, `notifications`, the user's uploads that belong to no task, the user's `notes` with their shares and document links, the user's `notes_users` entries, the `students`/`teachers` row; cascades: `user_permissions`, `email_*`, `refresh_tokens`, `task_members`), and the name is replaced in other members' chat notifications. A teacher who is still head teacher, class teacher or has lesson slots can't be deleted (409) until an admin reassigns them. Nobody can delete their own account or the last Superuser/Admin (400, the same rule as removing a role), and the ghost user can't be changed or deleted. Affects: T10, M14, M15, M16.
 - **Q8g Activity log on task delete** (decided 2026-11-06): no schema change. The delete transaction writes a "deleted" entry with the task title, sets `task_id = null` on the task's log rows, then deletes the task. Affects: T32, M15, M27, M33.
 
 ## Open questions

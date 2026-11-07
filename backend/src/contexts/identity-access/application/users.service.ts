@@ -2,11 +2,14 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from "@nestjs/common";
 import { CreateUserInput, UpdateUserInput } from "./user-inputs";
 import { hash, genSalt } from "bcrypt";
 import { UserRepository } from "./ports/user.repository";
 import { RoleName } from "../domain/role-permissions";
+import { GHOST_USER_ID } from "../domain/ghost-user";
+import { UnitOfWork } from "../../../shared/application/unit-of-work";
 import { BCRYPT_COST } from "./password-hashing";
 import { withoutPasswordHash } from "./public-user";
 
@@ -23,6 +26,7 @@ export class UsersService {
   constructor(
     private readonly users: UserRepository,
     private rolePermissionsService: RolePermissionsService,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   async create(createUserDto: CreateUserInput) {
@@ -59,11 +63,60 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserInput) {
+    this.assertNotGhost(id);
     return withoutPasswordHash(await this.users.update(id, updateUserDto));
   }
 
-  async remove(id: number) {
-    return withoutPasswordHash(await this.users.delete(id));
+  /**
+   * Deletes an account by anonymizing it (T10, decision H1): its chats and
+   * task work stay under the ghost user, the personal record is deleted.
+   * Lock, checks and deletion run in one unit of work.
+   */
+  async remove(id: number, actingUserId: number) {
+    this.assertNotGhost(id);
+    if (id === actingUserId) {
+      throw new BadRequestException(
+        "Das eigene Konto kann nicht gelöscht werden",
+      );
+    }
+    return this.unitOfWork.run(async () => {
+      if (!(await this.users.lockForDeletion(id))) {
+        throw new NotFoundException(`User ${id} nicht gefunden`);
+      }
+      if ((await this.users.countTeacherAssignments(id)) > 0) {
+        throw new ConflictException(
+          "Die Lehrkraft ist noch Klassenvorstand, unterrichtet eine Klasse oder hat Unterrichtsstunden. Bitte zuerst neu zuweisen.",
+        );
+      }
+      await this.assertNotLastCriticalRoleHolder(id);
+      return withoutPasswordHash(await this.users.anonymizeAndDelete(id));
+    });
+  }
+
+  // the same rule as removeRoleFromUser: one Superuser and one Admin remain
+  private async assertNotLastCriticalRoleHolder(userId: number) {
+    const criticalRoles: string[] = [RoleName.SUPERUSER, RoleName.ADMIN];
+    for (const { role_id, roles } of await this.users.findRolesWithPermissions(
+      userId,
+    )) {
+      if (
+        criticalRoles.includes(roles.name ?? "") &&
+        (await this.users.countUsersWithRole(role_id)) <= 1
+      ) {
+        throw new BadRequestException(
+          `Kann nicht durchgeführt werden: Es muss mindestens 1 ${roles.name} existieren`,
+        );
+      }
+    }
+  }
+
+  // the ghost user's name stands for every deleted account (M14)
+  private assertNotGhost(userId: number) {
+    if (userId === GHOST_USER_ID) {
+      throw new BadRequestException(
+        "Der Ghost-User kann nicht geändert werden",
+      );
+    }
   }
 
   async getUserPermissions(userId: number) {
@@ -131,6 +184,7 @@ export class UsersService {
     validFrom?: Date | null,
     validTo?: Date | null,
   ) {
+    this.assertNotGhost(userId);
     // Check: the user exists
     const user = await this.users.findById(userId);
 
@@ -185,6 +239,7 @@ export class UsersService {
    * @param roleId - the role ID
    */
   async addRoleToUser(userId: number, roleId: number) {
+    this.assertNotGhost(userId);
     const user = await this.users.findById(userId);
 
     if (!user) {

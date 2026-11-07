@@ -5,6 +5,7 @@ import { PasswordResetMailer } from "./ports/password-reset-mailer";
 import { RefreshTokenRepository } from "./ports/refresh-token.repository";
 import { ResetTokens } from "./ports/reset-tokens";
 import { UserRepository } from "./ports/user.repository";
+import { GHOST_USER_ID } from "../domain/ghost-user";
 
 /** Password reset by e-mail (T52, decision Q8a) and the password change itself. */
 @Injectable()
@@ -27,7 +28,8 @@ export class PasswordResetService {
    */
   async requestReset(email: string): Promise<void> {
     const user = await this.users.findByEmailWithRoles(email);
-    if (!user?.email) return;
+    // the ghost user has no mailbox and must never get a password (M14)
+    if (!user?.email || user.user_id === GHOST_USER_ID) return;
 
     const token = this.tokens.sign(user.user_id, user.password_hash ?? "");
     this.mailer
