@@ -915,3 +915,58 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - `created_by`, `assigned_to`, `parent_task_id` and `task_members.user_id` are read by the visibility queries on every request. M30 adds the FK indexes (decision Q8h).
 
 **Failed / open:** none beyond the documented point above.
+
+## 2026-11-08 – M18: Task list, priorities and templates per thesis
+
+**Decision asked first:** H2 (GOALS.md, 2026-11-08). A template stores only `name` and `description`, as in the thesis schema (`prisma_schema.tex:286`); there is no schema change for defaults. "Save as template" stores the title as the name; applying a template fills title and description, and the user sets deadline, priority and assignee (07_…:225).
+
+**Done:**
+- T57: `useTaskFilters` gets a priority filter and a due-date filter (overdue = past and not completed, today, the next 7 days, no deadline), with two more selects in `TaskFilters.vue`. Callers without the new filters keep working.
+- T58, decision Q15: migration `20261108090000_four_priorities`, data only.
+  - Notes chose their priority by name (`resolvePriorityId`: low/medium/high), never through TaskForm's IDs, so all notes move by their old name, IDs 1–4 included: Niedrig → 1, Normal → 2, Wichtig/Sehr Wichtig/Hoch → 3, Sehr Hoch/Dringend/Kritisch/Blocker → 4.
+  - Tasks keep IDs 1–4, which TaskForm has always shown as Niedrig/Mittel/Hoch/Dringend; IDs 5–10 move by name (→ 3 or → 4).
+  - An unknown name falls back to Mittel.
+  - Then IDs 1–4 are renamed, IDs 5–10 deleted, and the sequence set to 4.
+  - Both seeds have the four priorities; three dev-seed tasks on ID 5 ("Sehr Wichtig") move to 3.
+  - `config/priorities.js` is the one list in the frontend (TaskForm, SubtaskBuilder, TaskFilters, TaskCard).
+- T110, decisions H2 and E1:
+  - The template API works: the include had non-existent columns (fixed), and `CreateTaskTemplateDto` has `name` and `description` only.
+  - Templates are private. `GET /tasks/templates` lists the requester's own; reading, changing or deleting someone else's gives 404; the author comes with name only, no e-mail. The ownership checks use a lean query.
+  - Deleting a template keeps the tasks created from it and removes only their link. Before, a used template could never be deleted, and the answer was 404.
+  - `POST /tasks` and `PATCH /tasks/:id` accept `template_id`, only of an own template.
+  - `TaskForm`: "Als Vorlage speichern", and `applyTemplate` fills title and description and sets the link; "Keine Vorlage" drops the link again. `TemplateForm` and `TemplateCard` lost the `default_*` fields.
+  - Account deletion: templates are deleted as personal rows (note on H1), because the ghost user couldn't use private templates.
+- T59, decision Q8e: migration `20261108100000_add_tags` adds `tags(tag_id, name UNIQUE)` and `task_tags(task_id, tag_id)`, with cascades, so deleting a task removes its `task_tags` rows.
+  - Tags are set through `tags` in the task create and update DTOs. Names are trimmed, single-spaced and lowercase, so "Mathe" and "mathe" are one tag, and at most 50 characters after normalizing (else 400).
+  - The tags are written in the use case's unit of work, on update before the task is read, so the answer carries the new ones.
+  - Tasks are read with `task_tags`. `TaskForm` has a tag field and sends tags only when the field changed. `TaskCard` shows `#tag` chips.
+
+**Verified:**
+- Done when:
+  - `useTaskFilters.spec.js` covers priority, every due-date option (including the 7-day boundary), the combination and the old call.
+  - `test/priorities.e2e-spec.ts` checks the four priorities after the seed.
+  - `test/templates-and-tags.e2e-spec.ts` saves a task as a template and creates a task from it (`template_id` set). It also checks that another user neither lists nor reads the template nor can link it (404), that there is no e-mail in the response, and that deleting the template keeps the task.
+  - The same file creates a task with the tags `Mathe`, ` Projekt ` and `mathe` and reads back `mathe` and `projekt`. A `PATCH` replaces them, and after deleting the task no `task_tags` row is left.
+- The migration test the risk asks for: on a throwaway database with every earlier migration, the old 10 dev-seed priorities, and tasks and notes on every ID 1–10, the new migration gives:
+  - tasks 1→1, 2→2, 3→3, 4→4, 5→3, 6→3, 7–10→4;
+  - notes 1→1, 2→1, 3→2, 4→3, 5→3, 6→3, 7–10→4;
+  - priorities `1=Niedrig, 2=Mittel, 3=Hoch, 4=Dringend`.
+- Backend: 491 unit and 95 E2E tests. Frontend: 25 files. tsc, lint (0 errors), knip and dependency-cruiser (0 violations) pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings, all fixed except one part of (8):
+  - (1) stale tags in the update answer
+  - (2) `template_id` unchecked on update, and ID 0 on create
+  - (3) notes changing meaning in the migration
+  - (4) tags wiped by a save without `task_tags`
+  - (5) a deselected template staying linked
+  - (6) templates moved to the ghost user
+  - (7) the ownership check loading all tasks
+  - (8, partly) the length after lowercasing
+  - (9) "7 days" covering 8 days
+  - (10) five copies of the priority labels
+  - From (8), unused tags are kept on purpose: they are a shared vocabulary for reuse, and deleting them while another transaction links them would race.
+
+**Learned (for later milestones):**
+- A decision's consequences can collide later (H1's ghost move with E1's privacy). The fix goes into the code, and the decision gets a note.
+- Replace-semantics fields (tags) must be sent only when the user changed them, because some views open the form with an incomplete task object.
+
+**Failed / open:** none beyond the kept tags above.

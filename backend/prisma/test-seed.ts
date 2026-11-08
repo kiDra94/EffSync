@@ -31,6 +31,8 @@ async function main() {
       "email_preferences",
       "comments",
       "task_grade",
+      "task_tags",
+      "tags",
       "task_activity_log",
       "task_documents",
       "task_members",
@@ -75,11 +77,12 @@ async function main() {
     const departmentsData = [{ name: "Informatik" }, { name: "Medientechnik" }];
     await prisma.departments.createMany({ data: departmentsData });
 
+    // T58 (M18, decision Q15): the four priorities the UI shows, IDs 1-4
     const prioritiesData = [
       { name: "Niedrig" },
-      { name: "Normal" },
-      { name: "Wichtig" },
-      { name: "Sehr Wichtig" },
+      { name: "Mittel" },
+      { name: "Hoch" },
+      { name: "Dringend" },
     ];
     await prisma.priorities.createMany({ data: prioritiesData });
 

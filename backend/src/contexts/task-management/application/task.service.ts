@@ -19,6 +19,7 @@ import {
   isCompletionWithoutFullProgress,
   isOwnParent,
   mayChangeLockedTask,
+  normalizeTags,
   wouldCreateCycle,
 } from "../domain/task";
 import { TaskActivityLogService } from "./activity-log.service";
@@ -29,6 +30,7 @@ import { TaskRepository } from "./ports/task.repository";
 import { TaskCompletionService } from "./task-completion.service";
 import { TaskNotificationsService } from "./task-notifications.service";
 import { TaskVisibilityService } from "./task-visibility.service";
+import { TaskTemplatesService } from "./task-templates.service";
 import type {
   CreateTaskInput,
   TaskQuery,
@@ -55,6 +57,7 @@ export class TaskService {
     private readonly unitOfWork: UnitOfWork,
     private readonly notifications: TaskNotificationsService,
     private readonly visibility: TaskVisibilityService,
+    private readonly templates: TaskTemplatesService,
   ) {}
 
   async create(input: CreateTaskInput, userId: number) {
@@ -62,6 +65,7 @@ export class TaskService {
       parent_task_id,
       created_by: _ignoredCreator,
       priority_id,
+      tags,
       ...taskData
     } = input;
 
@@ -69,6 +73,11 @@ export class TaskService {
       throw new BadRequestException(COMPLETED_NEEDS_FULL_PROGRESS);
     }
     assertNotGhostAssignee(taskData.assigned_to);
+    // a task from a template links only one of the requester's (E1)
+    if (taskData.template_id !== undefined && taskData.template_id !== null) {
+      await this.templates.assertOwner(taskData.template_id, userId);
+    }
+    const tagNames = tags ? validTags(tags) : [];
     if (parent_task_id) {
       const parent = await this.tasks.findById(parent_task_id);
       if (!parent) {
@@ -99,6 +108,10 @@ export class TaskService {
       );
       // the creator is a member of their task
       await this.tasks.addMember(task.task_id, userId);
+      if (tagNames.length > 0) {
+        await this.tasks.setTags(task.task_id, tagNames);
+        return (await this.tasks.findRow(task.task_id, true)) ?? task;
+      }
       return task;
     });
     await this.notifications.taskAssigned(created, userId);
@@ -235,6 +248,7 @@ export class TaskService {
       is_locked: _ignoredIsLocked,
       locked_reason: _ignoredLockedReason,
       locked_until: _ignoredLockedUntil,
+      tags,
       ...taskData
     } = input;
 
@@ -252,6 +266,14 @@ export class TaskService {
       }
     }
     assertNotGhostAssignee(input.assigned_to);
+    if (
+      input.template_id !== undefined &&
+      input.template_id !== null &&
+      userId !== undefined
+    ) {
+      await this.templates.assertOwner(input.template_id, userId);
+    }
+    const tagNames = tags !== undefined ? validTags(tags) : undefined;
     if (
       priority_id !== undefined &&
       priority_id !== null &&
@@ -277,6 +299,10 @@ export class TaskService {
         : [];
 
     const { updated, parentChanges } = await this.unitOfWork.run(async () => {
+      // first the tags, so the update reads and returns the new ones
+      if (tagNames !== undefined) {
+        await this.tasks.setTags(taskId, tagNames);
+      }
       const updated = await this.tasks.update(taskId, {
         ...taskData,
         parent_task_id,
@@ -448,4 +474,15 @@ function assertNotGhostAssignee(assignedTo: number | null | undefined) {
       "Der Ghost-User kann nicht zugewiesen werden",
     );
   }
+}
+
+/** The stored tag names (T59); the column holds 50 characters after normalizing. */
+function validTags(names: string[]): string[] {
+  const normalized = normalizeTags(names);
+  if (normalized.some((name) => name.length > 50)) {
+    throw new BadRequestException(
+      "Ein Tag darf höchstens 50 Zeichen lang sein",
+    );
+  }
+  return normalized;
 }

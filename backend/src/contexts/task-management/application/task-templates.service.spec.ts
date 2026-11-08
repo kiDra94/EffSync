@@ -1,264 +1,134 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { TaskTemplatesService } from "./task-templates.service";
+import { NotFoundException } from "@nestjs/common";
+import { UnitOfWork } from "../../../shared/application/unit-of-work";
+import type { Transaction } from "../../../shared/domain/transaction";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { PrismaTaskTemplateRepository } from "../infrastructure/persistence/prisma-task-template.repository";
-import { TaskTemplateRepository } from "./ports/task-template.repository";
-import { NotFoundException } from "@nestjs/common";
+import { TaskTemplatesService } from "./task-templates.service";
 
+// T110 (M18): templates store a name and a description (decision H2) and are
+// private (decision E1): each user sees, changes and deletes only their own,
+// and responses carry the author's name but no e-mail
 describe("TaskTemplatesService", () => {
+  const AUTHOR = {
+    user: { select: { user_id: true, firstname: true, lastname: true } },
+  };
+  const template = {
+    template_id: 3,
+    created_by: 1,
+    name: "Hausübung",
+    description: "Kapitel lesen",
+  };
+
+  let prisma: {
+    task_templates: Record<string, jest.Mock>;
+    tasks: { updateMany: jest.Mock };
+  };
   let service: TaskTemplatesService;
 
-  const mockTemplate = {
-    template_id: 1,
-    name: "Hausaufgaben Template",
-    description: "Standard Hausaufgaben Vorlage",
-    default_priority: "MEDIUM",
-    default_status: "TODO",
-    estimated_duration: 120,
-    created_by: 1,
-    created_at: new Date(),
-    updated_at: new Date(),
-  };
-
-  const mockUser = {
-    user_id: 1,
-    email: "test@example.com",
-    first_name: "Test",
-    last_name: "User",
-  };
-
-  const mockPrismaService = {
-    task_templates: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-    tasks: {
-      count: jest.fn(),
-    },
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TaskTemplatesService,
-        PrismaUnitOfWork,
-        {
-          provide: TaskTemplateRepository,
-          useClass: PrismaTaskTemplateRepository,
-        },
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-      ],
-    }).compile();
-    service = module.get<TaskTemplatesService>(TaskTemplatesService);
-    jest.clearAllMocks();
+  beforeEach(() => {
+    prisma = {
+      task_templates: {
+        create: jest.fn().mockResolvedValue(template),
+        findMany: jest.fn().mockResolvedValue([template]),
+        findUnique: jest.fn().mockResolvedValue(template),
+        update: jest.fn().mockResolvedValue(template),
+        delete: jest.fn().mockResolvedValue(template),
+      },
+      tasks: { updateMany: jest.fn() },
+    };
+    const unitOfWork = new PrismaUnitOfWork(prisma as unknown as PrismaService);
+    service = new TaskTemplatesService(
+      new PrismaTaskTemplateRepository(unitOfWork),
+      {
+        run: (work: (tx: Transaction) => Promise<unknown>) =>
+          work({} as Transaction),
+      } as unknown as UnitOfWork,
+    );
   });
 
-  it("should be defined", () => {
-    expect(service).toBeDefined();
-  });
+  it("creates a template with name and description for its author", async () => {
+    await service.create(
+      { name: "Hausübung", description: "Kapitel lesen" },
+      1,
+    );
 
-  describe("create", () => {
-    it("sollte Template mit Relations erstellen", async () => {
-      const createDto = {
-        name: "Neues Template",
-        description: "Test Beschreibung",
-        default_priority: "HIGH" as never,
-        default_status: "TODO" as never,
-        estimated_duration: 60,
-      };
-
-      mockPrismaService.task_templates.create.mockResolvedValue({
-        ...mockTemplate,
-        ...createDto,
-        user: mockUser,
-      });
-
-      const result = await service.create(createDto, 1, true);
-
-      expect(mockPrismaService.task_templates.create).toHaveBeenCalledWith({
-        data: {
-          ...createDto,
-          created_by: 1,
-        },
-        include: expect.objectContaining({
-          user: expect.any(Object) as unknown,
-        }) as unknown,
-      });
-      expect(result).toHaveProperty("name", "Neues Template");
-    });
-
-    it("sollte Template ohne Relations erstellen", async () => {
-      const createDto = {
-        name: "Minimal Template",
-        description: "Nur Daten",
-        default_priority: "LOW" as never,
-        default_status: "TODO" as never,
-      };
-
-      mockPrismaService.task_templates.create.mockResolvedValue({
-        ...mockTemplate,
-        ...createDto,
-      });
-
-      const result = await service.create(createDto, 1, false);
-
-      expect(mockPrismaService.task_templates.create).toHaveBeenCalledWith({
-        data: {
-          ...createDto,
-          created_by: 1,
-        },
-        include: undefined,
-      });
+    expect(prisma.task_templates.create).toHaveBeenCalledWith({
+      data: { name: "Hausübung", description: "Kapitel lesen", created_by: 1 },
+      include: AUTHOR,
     });
   });
 
-  describe("findAll", () => {
-    it("sollte alle Templates eines Users zurückgeben", async () => {
-      mockPrismaService.task_templates.findMany.mockResolvedValue([
-        mockTemplate,
-      ]);
+  it("lists only the requester's templates, newest first", async () => {
+    await service.findAll(1);
 
-      const result = await service.findAll(1, true);
-
-      expect(mockPrismaService.task_templates.findMany).toHaveBeenCalledWith({
-        where: { created_by: 1 },
-        include: expect.any(Object) as unknown,
-        orderBy: { created_at: "desc" },
-      });
-      expect(result).toHaveLength(1);
-    });
-
-    it("sollte alle Templates zurückgeben wenn kein createdBy angegeben", async () => {
-      mockPrismaService.task_templates.findMany.mockResolvedValue([
-        mockTemplate,
-      ]);
-
-      const result = await service.findAll(undefined, false);
-
-      expect(mockPrismaService.task_templates.findMany).toHaveBeenCalledWith({
-        where: undefined,
-        include: undefined,
-        orderBy: { created_at: "desc" },
-      });
+    expect(prisma.task_templates.findMany).toHaveBeenCalledWith({
+      where: { created_by: 1 },
+      include: AUTHOR,
+      orderBy: { created_at: "desc" },
     });
   });
 
-  describe("findOne", () => {
-    it("sollte Template zurückgeben wenn es existiert", async () => {
-      mockPrismaService.task_templates.findUnique.mockResolvedValue({
-        ...mockTemplate,
-        user: mockUser,
-      });
-
-      const result = await service.findOne(1, true);
-
-      expect(mockPrismaService.task_templates.findUnique).toHaveBeenCalledWith({
-        where: { template_id: 1 },
-        include: expect.any(Object) as unknown,
-      });
-      expect(result).toHaveProperty("template_id", 1);
-    });
-
-    it("sollte NotFoundException werfen wenn Template nicht existiert", async () => {
-      mockPrismaService.task_templates.findUnique.mockResolvedValue(null);
-
-      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
-      await expect(service.findOne(999)).rejects.toThrow(
-        "Task-Template with ID 999 not found!",
-      );
+  it("shows a template with its tasks to its author", async () => {
+    await expect(service.findOne(3, 1)).resolves.toEqual(template);
+    expect(prisma.task_templates.findUnique).toHaveBeenCalledWith({
+      where: { template_id: 3 },
+      include: {
+        ...AUTHOR,
+        tasks: { select: { task_id: true, title: true, created_at: true } },
+      },
     });
   });
 
-  describe("update", () => {
-    it("sollte Template aktualisieren", async () => {
-      const updateDto = {
-        name: "Aktualisiertes Template",
-        description: "Neue Beschreibung",
-      };
+  it("answers 404 for someone else's template and for a missing one", async () => {
+    await expect(service.findOne(3, 2)).rejects.toThrow(NotFoundException);
+    await expect(service.update(3, 2, { name: "x" })).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(service.remove(3, 2)).rejects.toThrow(NotFoundException);
+    prisma.task_templates.findUnique.mockResolvedValue(null);
+    await expect(service.findOne(9, 1)).rejects.toThrow(NotFoundException);
+    expect(prisma.task_templates.update).not.toHaveBeenCalled();
+    expect(prisma.task_templates.delete).not.toHaveBeenCalled();
+  });
 
-      mockPrismaService.task_templates.findUnique.mockResolvedValue(
-        mockTemplate,
-      );
-      mockPrismaService.task_templates.update.mockResolvedValue({
-        ...mockTemplate,
-        ...updateDto,
-      });
+  it("updates the author's template", async () => {
+    await service.update(3, 1, { description: "neu" });
 
-      const result = await service.update(1, updateDto, true);
-
-      expect(mockPrismaService.task_templates.findUnique).toHaveBeenCalledWith({
-        where: { template_id: 1 },
-        include: expect.any(Object) as unknown,
-      });
-      expect(mockPrismaService.task_templates.update).toHaveBeenCalledWith({
-        where: { template_id: 1 },
-        data: {
-          ...updateDto,
-          updated_at: expect.any(Date) as unknown,
-        },
-        include: expect.any(Object) as unknown,
-      });
-      expect(result).toHaveProperty("name", "Aktualisiertes Template");
-    });
-
-    it("sollte NotFoundException werfen wenn Template nicht existiert", async () => {
-      const updateDto = { name: "Test" };
-
-      mockPrismaService.task_templates.findUnique.mockResolvedValue(null);
-
-      await expect(service.update(999, updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
+    expect(prisma.task_templates.update).toHaveBeenCalledWith({
+      where: { template_id: 3 },
+      data: { description: "neu", updated_at: expect.any(Date) as unknown },
+      include: AUTHOR,
     });
   });
 
-  describe("remove", () => {
-    it("sollte Template löschen wenn keine Tasks verknüpft sind", async () => {
-      mockPrismaService.task_templates.findUnique.mockResolvedValue(
-        mockTemplate,
-      );
-      mockPrismaService.tasks.count.mockResolvedValue(0);
-      mockPrismaService.task_templates.delete.mockResolvedValue(mockTemplate);
-
-      const result = await service.remove(1);
-
-      expect(mockPrismaService.tasks.count).toHaveBeenCalledWith({
-        where: { template_id: 1 },
-      });
-      expect(mockPrismaService.task_templates.delete).toHaveBeenCalledWith({
-        where: { template_id: 1 },
-      });
-      expect(result).toEqual({
-        message: "Template deleted successfully",
-        template_id: 1,
-      });
+  it("deletes the author's template and keeps the tasks created from it", async () => {
+    await expect(service.remove(3, 1)).resolves.toEqual({
+      message: "Template deleted successfully",
+      template_id: 3,
     });
 
-    it("sollte NotFoundException werfen wenn Tasks verknüpft sind", async () => {
-      mockPrismaService.task_templates.findUnique.mockResolvedValue(
-        mockTemplate,
-      );
-      mockPrismaService.tasks.count.mockResolvedValue(5);
-
-      await expect(service.remove(1)).rejects.toThrow(NotFoundException);
-      await expect(service.remove(1)).rejects.toThrow(
-        "Cannot delete template with 5 associated task(s)",
-      );
-      expect(mockPrismaService.task_templates.delete).not.toHaveBeenCalled();
+    expect(prisma.tasks.updateMany).toHaveBeenCalledWith({
+      where: { template_id: 3 },
+      data: { template_id: null },
     });
-
-    it("sollte NotFoundException werfen wenn Template nicht existiert", async () => {
-      mockPrismaService.task_templates.findUnique.mockResolvedValue(null);
-
-      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
+    expect(prisma.task_templates.delete).toHaveBeenCalledWith({
+      where: { template_id: 3 },
     });
+  });
+
+  // review M18 (7): changing or deleting checks the owner without the tasks
+  it("checks the owner of an update or delete with a lean query", async () => {
+    await service.update(3, 1, { name: "neu" });
+    await service.remove(3, 1);
+
+    for (const [args] of prisma.task_templates.findUnique.mock.calls as [
+      { select?: unknown; include?: unknown },
+    ][]) {
+      expect(args).toEqual({
+        where: { template_id: 3 },
+        select: { created_by: true },
+      });
+    }
   });
 });

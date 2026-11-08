@@ -31,6 +31,8 @@ async function main() {
       "email_preferences",
       "comments",
       "task_grade",
+      "task_tags",
+      "tags",
       "task_activity_log",
       "task_documents",
       "task_members",
@@ -87,20 +89,15 @@ async function main() {
     await prisma.departments.createMany({ data: departmentsData });
     console.log(`✓ 10 Einträge in departments erstellt`);
 
+    // T58 (M18, decision Q15): the four priorities the UI shows, IDs 1-4
     const prioritiesData = [
-      { name: "Sehr Niedrig" },
       { name: "Niedrig" },
-      { name: "Normal" },
-      { name: "Wichtig" },
-      { name: "Sehr Wichtig" },
+      { name: "Mittel" },
       { name: "Hoch" },
-      { name: "Sehr Hoch" },
       { name: "Dringend" },
-      { name: "Kritisch" },
-      { name: "Blocker" },
     ];
     await prisma.priorities.createMany({ data: prioritiesData });
-    console.log(`✓ 10 Einträge in priorities erstellt`);
+    console.log(`✓ ${prioritiesData.length} Einträge in priorities erstellt`);
 
     // Flags: READ=4, WRITE=2, EXECUTE=1
     const permissionsData = [
@@ -628,7 +625,7 @@ async function main() {
         created_by: 2,
         assigned_to: 7,
         template_id: 1,
-        priority_id: 5, // Important
+        priority_id: 3, // Hoch (formerly 5, Sehr Wichtig; Q15)
         deadline: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000), // +1 day
       },
       // This week, Wednesday
@@ -652,7 +649,7 @@ async function main() {
         created_by: 2,
         assigned_to: 9,
         template_id: 3,
-        priority_id: 5, // Important
+        priority_id: 3, // Hoch (formerly 5, Sehr Wichtig; Q15)
         deadline: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000), // +5 days
       },
       // Next week, Monday
@@ -688,7 +685,7 @@ async function main() {
         created_by: 2,
         assigned_to: 12,
         template_id: 6,
-        priority_id: 5, // Important
+        priority_id: 3, // Hoch (formerly 5, Sehr Wichtig; Q15)
         deadline: new Date(today.getTime() + 12 * 24 * 60 * 60 * 1000), // +12 days
       },
       // In two weeks

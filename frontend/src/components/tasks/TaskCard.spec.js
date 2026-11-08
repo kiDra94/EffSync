@@ -45,3 +45,20 @@ describe('TaskCard completion checkbox', () => {
     expect(wrapper.find('input.task-checkbox').attributes('disabled')).toBeUndefined()
   })
 })
+
+// T59 (M18, decision Q8e): the task's tags as chips
+describe('TaskCard tags', () => {
+  it('shows the tags as chips', () => {
+    const wrapper = mount(TaskCard, {
+      props: {
+        task: {
+          task_id: 1, title: 'Referat', priority_id: 2, status: 'TODO', progress: 0,
+          task_tags: [{ tags: { tag_id: 1, name: 'mathe' } }, { tags: { tag_id: 2, name: 'projekt' } }],
+        },
+      },
+      global: { stubs: { RuleVisualizer: true } },
+    })
+
+    expect(wrapper.findAll('.tag-chip').map((chip) => chip.text())).toEqual(['#mathe', '#projekt'])
+  })
+})

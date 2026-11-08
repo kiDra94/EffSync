@@ -1,41 +1,31 @@
 import type { Prisma } from "@prisma/client";
-import type { TaskRecord } from "./task-records";
 
 type TaskTemplateRecord = Prisma.task_templatesGetPayload<object>;
 
-/** The fields of CreateTaskTemplateDto; the `default_*` ones aren't columns yet (M18). */
+/** What a template stores (decision H2): a name and a description. */
 export interface TaskTemplateFields {
   name?: string;
   description?: string;
-  default_title?: string;
-  default_description?: string;
-  default_status?: NonNullable<TaskRecord["status"]>;
 }
 
-/**
- * Task templates (port); the queries TaskTemplatesService made before M15.
- * Their include selects columns that don't exist, so they answer 500 until
- * M18 step 3 fixes them (and adds decision E1's privacy).
- */
+/** Task templates (port; Prisma in infrastructure). Private per author (decision E1). */
 export abstract class TaskTemplateRepository {
   abstract create(
     fields: TaskTemplateFields,
     userId: number,
-    includeRelations: boolean,
   ): Promise<TaskTemplateRecord>;
-  abstract findAll(
-    createdBy: number | undefined,
-    includeRelations: boolean,
-  ): Promise<TaskTemplateRecord[]>;
-  abstract findOne(
+  abstract findAllOf(userId: number): Promise<TaskTemplateRecord[]>;
+  /** The template with its author and the tasks created from it. */
+  abstract findOne(templateId: number): Promise<TaskTemplateRecord | null>;
+  /** Only the author, for the ownership checks. */
+  abstract findAuthor(
     templateId: number,
-    includeRelations: boolean,
-  ): Promise<TaskTemplateRecord | null>;
+  ): Promise<{ created_by: number } | null>;
   abstract update(
     templateId: number,
     fields: TaskTemplateFields,
-    includeRelations: boolean,
   ): Promise<TaskTemplateRecord>;
-  abstract countTasksFrom(templateId: number): Promise<number>;
+  /** Tasks created from the template keep everything but the link. */
+  abstract detachTasks(templateId: number): Promise<void>;
   abstract delete(templateId: number): Promise<void>;
 }

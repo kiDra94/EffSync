@@ -40,10 +40,9 @@
     await templateStore.getTemplates();
   });
   
+  // "-- Keine Vorlage --" is a choice too: null drops the template link (M18)
   const applyTemplate = () => {
-    if (selectedTemplate.value) {
-      emit('templateSelected', selectedTemplate.value);
-    }
+    emit('templateSelected', selectedTemplate.value ?? null);
   };
   </script>
   

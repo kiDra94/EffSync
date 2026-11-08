@@ -20,6 +20,8 @@ const TASK_RELATIONS = {
   priorities: true,
   tasks: true, // parent task
   task_members: { select: { user_id: true } },
+  // T59 (M18): the task's tags
+  task_tags: { select: { tags: { select: { tag_id: true, name: true } } } },
 } as const;
 
 const relationsIf = (includeRelations: boolean) =>
@@ -193,6 +195,23 @@ export class PrismaTaskRepository extends TaskRepository {
       where: { task_id_user_id: { task_id: taskId, user_id: userId } },
       update: {},
       create: { task_id: taskId, user_id: userId },
+    });
+  }
+
+  async setTags(taskId: number, names: string[]) {
+    const tx = this.db;
+    await tx.task_tags.deleteMany({ where: { task_id: taskId } });
+    if (names.length === 0) return;
+    await tx.tags.createMany({
+      data: names.map((name) => ({ name })),
+      skipDuplicates: true,
+    });
+    const tags = await tx.tags.findMany({
+      where: { name: { in: names } },
+      select: { tag_id: true },
+    });
+    await tx.task_tags.createMany({
+      data: tags.map(({ tag_id }) => ({ task_id: taskId, tag_id })),
     });
   }
 

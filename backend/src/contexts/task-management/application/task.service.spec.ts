@@ -15,6 +15,7 @@ import { TaskCompletionService } from "./task-completion.service";
 import { TaskService } from "./task.service";
 import { TaskNotificationsService } from "./task-notifications.service";
 import { TaskVisibilityService } from "./task-visibility.service";
+import { TaskTemplatesService } from "./task-templates.service";
 import {
   BadRequestException,
   ForbiddenException,
@@ -77,6 +78,7 @@ describe("TaskService", () => {
         TaskService,
         TaskCompletionService,
         TaskVisibilityService,
+        { provide: TaskTemplatesService, useValue: { assertOwner: jest.fn() } },
         PrismaUnitOfWork,
         { provide: UnitOfWork, useExisting: PrismaUnitOfWork },
         { provide: TaskRepository, useClass: PrismaTaskRepository },

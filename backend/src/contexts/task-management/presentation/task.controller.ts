@@ -95,7 +95,7 @@ export class TaskController {
     });
   }
 
-  // ---- templates (T110; privacy and field fixes in M18) ----
+  // ---- templates (T110): name and description (H2), private (E1) ----
 
   @Post("templates")
   @Permissions("create_tasks", PermissionFlag.WRITE)
@@ -108,14 +108,17 @@ export class TaskController {
 
   @Get("templates")
   @Permissions("view_dashboard")
-  findTemplates(@Query("created_by") createdBy?: string) {
-    return this.templates.findAll(createdBy ? Number(createdBy) : undefined);
+  findTemplates(@Req() req: AuthenticatedRequest) {
+    return this.templates.findAll(req.user.userId);
   }
 
   @Get("templates/:templateId")
   @Permissions("view_dashboard")
-  findTemplate(@Param("templateId", ParseIntPipe) templateId: number) {
-    return this.templates.findOne(templateId);
+  findTemplate(
+    @Param("templateId", ParseIntPipe) templateId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.templates.findOne(templateId, req.user.userId);
   }
 
   @Patch("templates/:templateId")
@@ -123,14 +126,18 @@ export class TaskController {
   updateTemplate(
     @Param("templateId", ParseIntPipe) templateId: number,
     @Body() dto: UpdateTaskTemplateDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.templates.update(templateId, dto);
+    return this.templates.update(templateId, req.user.userId, dto);
   }
 
   @Delete("templates/:templateId")
   @Permissions("create_tasks", PermissionFlag.WRITE)
-  removeTemplate(@Param("templateId", ParseIntPipe) templateId: number) {
-    return this.templates.remove(templateId);
+  removeTemplate(
+    @Param("templateId", ParseIntPipe) templateId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.templates.remove(templateId, req.user.userId);
   }
 
   // ---- one task ----

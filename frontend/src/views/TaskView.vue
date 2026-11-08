@@ -30,12 +30,15 @@ const newlyCreatedTask = ref(null);
 const searchQuery = ref('');
 const filterStatus = ref('all');
 const sortBy = ref('date');
+const filterPriority = ref('all');
+const filterDue = ref('all');
 
 const { filteredAndSorted: filteredAndSortedTasks } = useTaskFilters(
   computed(() => taskStore.tasks),
   searchQuery,
   filterStatus,
-  sortBy
+  sortBy,
+  { filterPriority, filterDue }
 );
 
 const subtasksForRuleBuilder = computed(() => {
@@ -256,7 +259,8 @@ const saveRule = async ({ rule, autoComplete }) => {
       </button>
     </div>
 
-    <TaskFilters v-model:searchQuery="searchQuery" v-model:filterStatus="filterStatus" v-model:sortBy="sortBy" />
+    <TaskFilters v-model:searchQuery="searchQuery" v-model:filterStatus="filterStatus" v-model:sortBy="sortBy"
+      v-model:filterPriority="filterPriority" v-model:filterDue="filterDue" />
 
     <TaskList :tasks="filteredAndSortedTasks" @edit="openTaskForm" @delete="openDeleteDialog"
       @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" @edit-rule="openRuleBuilder" @grade="openGradeModal" />

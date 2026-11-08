@@ -40,6 +40,17 @@ export function involvedUsers(
   return [...new Set(ids)];
 }
 
+/**
+ * Tag names (T59, decision Q8e): trimmed, single spaces, lowercase, unique,
+ * so "Mathe" and "mathe " are one tag.
+ */
+export function normalizeTags(names: string[]): string[] {
+  const normalized = names
+    .map((name) => name.trim().replace(/\s+/g, " ").toLowerCase())
+    .filter((name) => name.length > 0);
+  return [...new Set(normalized)];
+}
+
 /** How long a lock holds (overdue and manual locks). */
 export const LOCK_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 

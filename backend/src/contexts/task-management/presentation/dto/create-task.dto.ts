@@ -1,4 +1,7 @@
 import {
+  ArrayMaxSize,
+  IsArray,
+  MaxLength,
   IsInt,
   IsNotEmpty,
   IsString,
@@ -20,4 +23,13 @@ export class CreateTaskDto {
   @IsInt() @IsOptional() assigned_to?: number;
   @IsInt() @IsOptional() parent_task_id?: number;
   @IsInt() @IsOptional() priority_id?: number;
+  /** the requester's template the task was created from (T110, M18) */
+  @IsInt() @IsOptional() template_id?: number;
+  /** tag names (T59, decision Q8e); on update they replace the task's tags */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  tags?: string[];
 }

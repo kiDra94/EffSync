@@ -15,6 +15,10 @@ export interface CreateTaskInput {
   assigned_to?: number;
   parent_task_id?: number;
   priority_id?: number;
+  /** the requester's own template the task is created from (T110) */
+  template_id?: number;
+  /** tag names (T59); on update they replace the task's tags */
+  tags?: string[];
 }
 
 /** What an update use case accepts (UpdateTaskDto satisfies it). */

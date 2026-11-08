@@ -341,6 +341,7 @@ model tasks {
   chat_rooms                     chat_rooms[]
   task_activity_log              task_activity_log[]
   task_grade                     task_grade[]
+  task_tags                      task_tags[]
   task_documents                 task_documents[]
   task_members                   task_members[]
   comments                       comments[]
@@ -474,4 +475,21 @@ model refresh_tokens {
   users      users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@index([user_id])
+}
+
+/// Tags/labels on tasks (T59, FA-25, decision Q8e, M18)
+model tags {
+  tag_id    Int         @id @default(autoincrement())
+  name      String      @unique @db.VarChar(50)
+  task_tags task_tags[]
+}
+
+model task_tags {
+  task_id Int
+  tag_id  Int
+  tasks   tasks @relation(fields: [task_id], references: [task_id], onDelete: Cascade)
+  tags    tags  @relation(fields: [tag_id], references: [tag_id], onDelete: Cascade)
+
+  @@id([task_id, tag_id])
+  @@index([tag_id])
 }

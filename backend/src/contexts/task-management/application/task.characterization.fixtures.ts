@@ -18,6 +18,7 @@ import { TaskLockingService } from "./task-locking.service";
 import { TaskService } from "./task.service";
 import { TaskNotificationsService } from "./task-notifications.service";
 import { TaskVisibilityService } from "./task-visibility.service";
+import { TaskTemplatesService } from "./task-templates.service";
 
 export type FindManyArgs = {
   where?: {
@@ -113,6 +114,8 @@ export function createTaskServices(
     // M16: the notifications are covered in task-notifications.service.spec.ts
     notifications,
     new TaskVisibilityService(tasks, permissions),
+    // M18: templates have their own spec
+    { assertOwner: jest.fn() } as unknown as TaskTemplatesService,
   );
   const locking = new TaskLockingService(
     tasks,

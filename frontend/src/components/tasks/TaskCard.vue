@@ -34,6 +34,8 @@
         <span class="date-badge" :style="{ color: task.status === 'COMPLETED' ? '#aaa' : '#555' }">
           📅 {{ formatDate(task.deadline) }}
         </span>
+        <!-- T59 (M18, decision Q8e): tags -->
+        <span v-for="tag in tagNames" :key="tag" class="tag-chip">#{{ tag }}</span>
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
         </span>
@@ -107,6 +109,7 @@ import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
 import RuleVisualizer from './RuleVisualizer.vue';
+import { priorityLabel } from '@/config/priorities';
 
 const props = defineProps({
   task: {
@@ -170,6 +173,10 @@ const deleteTask = () => {
 const COMPLETE_HINT = 'Erst bei 100 % Fortschritt abschließbar';
 const canComplete = (task) => task.status === 'COMPLETED' || (task.progress ?? 0) >= 100;
 
+const tagNames = computed(() =>
+  (props.task?.task_tags || []).map((entry) => entry.tags?.name).filter(Boolean)
+);
+
 const toggleStatus = () => {
   if (!canComplete(props.task)) return;
   emit('toggle-status', props.task);
@@ -232,15 +239,8 @@ const getPriorityGradient = (prio_id) => {
   return gradients[prio_id] || 'linear-gradient(to bottom, #4b5563 0%, #d1d5db 100%)';
 };
 
-const getPriorityLabel = (priorityId) => {
-  const labels = {
-    1: 'Niedrig',
-    2: 'Mittel',
-    3: 'Hoch',
-    4: 'Dringend'
-  };
-  return labels[priorityId] || '';
-};
+// the shared list (M18)
+const getPriorityLabel = (priorityId) => priorityLabel(priorityId);
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Kein Datum';
@@ -349,6 +349,16 @@ const formatDate = (dateString) => {
 }
 
 .date-badge,
+.tag-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .progress-badge,
 .lock-badge {
   font-size: 0.75rem;

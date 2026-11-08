@@ -1,4 +1,8 @@
-import { involvedUsers, isCompletionWithoutFullProgress } from "./task";
+import {
+  involvedUsers,
+  isCompletionWithoutFullProgress,
+  normalizeTags,
+} from "./task";
 
 // T100 (M16): COMPLETED only at 100 %; T107/T44: who is involved in a task
 describe("Task rules", () => {
@@ -22,5 +26,14 @@ describe("Task rules", () => {
     expect(involvedUsers({ created_by: null, assigned_to: null }, [])).toEqual(
       [],
     );
+  });
+});
+
+// T59, decision Q8e (M18): tag names are trimmed, lowercase and unique
+describe("normalizeTags", () => {
+  it("trims, lowercases, drops empty names and duplicates", () => {
+    expect(
+      normalizeTags([" Mathe ", "mathe", "", "Projekt  Woche", "   "]),
+    ).toEqual(["mathe", "projekt woche"]);
   });
 });

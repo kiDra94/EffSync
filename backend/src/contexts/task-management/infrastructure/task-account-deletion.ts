@@ -35,10 +35,13 @@ export class TaskAccountDeletion
       where: { created_by: userId },
       data: createdBy,
     });
-    await tx.task_templates.updateMany({
-      where: { created_by: userId },
-      data: createdBy,
+    // templates are private (decision E1), so they are personal rows: the
+    // tasks created from them keep everything but the link
+    await tx.tasks.updateMany({
+      where: { task_templates: { created_by: userId } },
+      data: { template_id: null },
     });
+    await tx.task_templates.deleteMany({ where: { created_by: userId } });
     const toGhost = { user_id: GHOST_USER_ID };
     await tx.task_grade.updateMany({
       where: { user_id: userId },

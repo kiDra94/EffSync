@@ -5,28 +5,12 @@ import {
   TaskTemplateRepository,
 } from "../../application/ports/task-template.repository";
 
-/**
- * Task templates on Prisma: the queries TaskTemplatesService made before
- * M15, unchanged. BUG (M18 step 3): `first_name`/`last_name` and `task` don't
- * exist (the columns are `firstname`/`lastname`, the relation is `tasks`), so
- * Prisma rejects every query that includes them.
- */
-function basicInclude(includeTask = false) {
-  return {
-    user: {
-      select: {
-        user_id: true,
-        email: true,
-        first_name: true,
-        last_name: true,
-      },
-    },
-    task: includeTask
-      ? { select: { task_id: true, title: true, created_at: true } }
-      : undefined,
-  } as never;
-}
+// the author's name, no e-mail (decision E1)
+const AUTHOR = {
+  user: { select: { user_id: true, firstname: true, lastname: true } },
+} as const;
 
+/** Task templates on Prisma (M18: the include fixed, name and description only). */
 @Injectable()
 export class PrismaTaskTemplateRepository extends TaskTemplateRepository {
   constructor(private readonly unitOfWork: PrismaUnitOfWork) {
@@ -37,51 +21,54 @@ export class PrismaTaskTemplateRepository extends TaskTemplateRepository {
     return this.unitOfWork.client();
   }
 
-  create(
-    fields: TaskTemplateFields,
-    userId: number,
-    includeRelations: boolean,
-  ) {
+  create(fields: TaskTemplateFields, userId: number) {
     return this.db.task_templates.create({
-      data: { ...fields, created_by: userId } as never,
-      include: includeRelations ? basicInclude() : undefined,
+      data: { ...fields, created_by: userId },
+      include: AUTHOR,
     });
   }
 
-  findAll(createdBy: number | undefined, includeRelations: boolean) {
+  findAllOf(userId: number) {
     return this.db.task_templates.findMany({
-      where: createdBy ? { created_by: createdBy } : undefined,
-      include: includeRelations ? basicInclude() : undefined,
+      where: { created_by: userId },
+      include: AUTHOR,
       orderBy: { created_at: "desc" },
     });
   }
 
-  findOne(templateId: number, includeRelations: boolean) {
+  findOne(templateId: number) {
     return this.db.task_templates.findUnique({
       where: { template_id: templateId },
-      include: includeRelations ? basicInclude(true) : undefined,
+      include: {
+        ...AUTHOR,
+        tasks: { select: { task_id: true, title: true, created_at: true } },
+      },
     });
   }
 
-  update(
-    templateId: number,
-    fields: TaskTemplateFields,
-    includeRelations: boolean,
-  ) {
+  findAuthor(templateId: number) {
+    return this.db.task_templates.findUnique({
+      where: { template_id: templateId },
+      select: { created_by: true },
+    });
+  }
+
+  update(templateId: number, fields: TaskTemplateFields) {
     return this.db.task_templates.update({
       where: { template_id: templateId },
-      data: { ...fields, updated_at: new Date() } as never,
-      include: includeRelations ? basicInclude() : undefined,
+      data: { ...fields, updated_at: new Date() },
+      include: AUTHOR,
     });
   }
 
-  countTasksFrom(templateId: number) {
-    return this.db.tasks.count({ where: { template_id: templateId } });
+  async detachTasks(templateId: number) {
+    await this.db.tasks.updateMany({
+      where: { template_id: templateId },
+      data: { template_id: null },
+    });
   }
 
   async delete(templateId: number) {
-    await this.db.task_templates.delete({
-      where: { template_id: templateId },
-    });
+    await this.db.task_templates.delete({ where: { template_id: templateId } });
   }
 }

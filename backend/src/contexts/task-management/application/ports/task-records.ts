@@ -16,6 +16,7 @@ type TaskRelations = {
   priorities: true;
   tasks: true;
   task_members: { select: { user_id: true } };
+  task_tags: { select: { tags: { select: { tag_id: true; name: true } } } };
 };
 
 export type TaskRecord = Prisma.tasksGetPayload<object>;

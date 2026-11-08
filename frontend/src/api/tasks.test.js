@@ -66,6 +66,16 @@ describe('Tasks API', () => {
         })
     })
 
+    // M18: tags (T59) and the template link (T110) reach the backend
+    describe('task payload', () => {
+        it('sends tags and template_id', async () => {
+            mock.onPost('/tasks').reply(201, { task_id: '9' });
+            await createTask({ title: 'A', tags: ['mathe'], template_id: 3, unknown: 'x' });
+            expect(JSON.parse(mock.history.post[0].data)).toMatchObject({ tags: ['mathe'], template_id: 3 });
+            expect(JSON.parse(mock.history.post[0].data)).not.toHaveProperty('unknown');
+        })
+    })
+
     describe('fetchTaskById', () => {
         it('fetching a Task by ID', async () => {
             const mockTask = { id: '1', title: 'Task 1', status: 'TODO' };

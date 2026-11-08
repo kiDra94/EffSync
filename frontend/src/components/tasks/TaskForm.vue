@@ -72,10 +72,7 @@
         <div class="form-group">
           <label for="priority_id">Priorität *</label>
           <select v-model.number="formData.priority_id" id="priority_id" @change="validateDescription" :disabled="isTaskLocked">
-            <option :value="1">Niedrig</option>
-            <option :value="2">Mittel</option>
-            <option :value="3">Hoch</option>
-            <option :value="4">Dringend</option>
+            <option v-for="priority in PRIORITIES" :key="priority.id" :value="priority.id">{{ priority.label }}</option>
           </select>
         </div>
 
@@ -85,6 +82,12 @@
             @change="validateDeadline(formData.deadline)" :disabled="isTaskLocked" />
           <span v-if="errors.deadline" class="error-message">{{ errors.deadline }}</span>
           <span v-if="warnings.deadline" class="warning-message">{{ warnings.deadline }}</span>
+        </div>
+
+        <!-- T59 (M18, decision Q8e): tags, comma-separated -->
+        <div class="form-group">
+          <label for="tags">Tags</label>
+          <input v-model="formData.tags" id="tags" type="text" placeholder="z.B. Mathe, Projekt" :disabled="isTaskLocked" />
         </div>
 
         <div class="form-group" :class="{ 'has-error': errors.status }">
@@ -177,6 +180,12 @@
           <button type="button" @click="close" class="btn-secondary">
             Abbrechen
           </button>
+          <!-- T110 (M18): save the task as a template (name and description, decision H2) -->
+          <button type="button" class="btn-secondary" data-test="save-as-template"
+            :disabled="!formData.title" @click="saveAsTemplate">
+            Als Vorlage speichern
+          </button>
+          <span v-if="templateMessage" class="info-message">{{ templateMessage }}</span>
         </div>
       </form>
     </div>
@@ -187,6 +196,8 @@
 import { reactive, ref, computed, onMounted } from 'vue';
 import { useTaskValidation } from '@/composables/useTaskValidation';
 import TaskTemplateSelector from '@/components/tasks/TaskTemplateSelector.vue';
+import { useTemplateStore } from '@/stores/entities/templateStore';
+import { PRIORITIES } from '@/config/priorities';
 import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
 import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
@@ -300,8 +311,18 @@ const formData = reactive({
   deadline: formatForInput(props.task?.deadline) || '',
   priority_id: props.task?.priority_id || 2,
   status: props.task?.status || 'TODO',
-  progress: props.task?.progress || 0
+  progress: props.task?.progress || 0,
+  // T59 (M18): the tag names, edited as one comma-separated text
+  tags: (props.task?.task_tags || []).map((t) => t.tags?.name).filter(Boolean).join(', '),
+  // T110 (M18): the template the new task is created from
+  template_id: null
 });
+
+// an update replaces the tags, so they are sent only after a change (M18)
+const initialTags = formData.tags;
+
+const parseTags = (text) =>
+  String(text || '').split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0);
 
 const subtasks = ref(
   props.task?.task_id ? taskStore.getSubtasks(props.task.task_id).map(st => ({
@@ -336,14 +357,27 @@ onMounted(async () => {
   }
 });
 
+// T110 (07_…:225, decision H2): the template fills title and description;
+// the user sets deadline, priority and assignee
 const applyTemplate = (template) => {
-  if (template.default_title) { formData.title = template.default_title; }
-  if (template.default_description) { formData.description = template.default_description; }
-  if (template.default_priority_id) { formData.priority_id = template.default_priority_id; }
-  if (template.default_deadline_days) {
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + template.default_deadline_days);
-    formData.deadline = formatForInput(futureDate.toISOString());
+  // "Keine Vorlage": the link goes, what the user typed stays
+  if (!template) {
+    formData.template_id = null;
+    return;
+  }
+  formData.title = template.name || '';
+  formData.description = template.description || '';
+  formData.template_id = template.template_id ?? null;
+};
+
+const templateMessage = ref('');
+const saveAsTemplate = async () => {
+  try {
+    // the store only when it's needed, so the form works without templates
+    await useTemplateStore().addTemplate({ name: formData.title, description: formData.description || '' });
+    templateMessage.value = 'Als Vorlage gespeichert';
+  } catch {
+    templateMessage.value = 'Vorlage konnte nicht gespeichert werden';
   }
 };
 
@@ -364,6 +398,8 @@ const submitTask = () => {
     priority_id: formData.priority_id || 2,
     status: formData.status || 'TODO',
     progress: formData.progress ?? 0,
+    ...(formData.tags !== initialTags && { tags: parseTags(formData.tags) }),
+    ...(formData.template_id && { template_id: formData.template_id }),
     ...(props.task?.task_id && { task_id: props.task.task_id })
   };
 

@@ -20,6 +20,9 @@ const ALLOWED_TASK_FIELDS = new Set([
     'priority_id',
     'auto_complete',
     'completion_rule',
+    // M18: tags (T59) and the template a task was created from (T110)
+    'tags',
+    'template_id',
 ]);
 
 const sanitizeTaskPayload = (payload) => {

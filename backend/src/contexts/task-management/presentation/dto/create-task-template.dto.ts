@@ -1,30 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { task_status } from "@prisma/client";
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
 
+/** A template is a name and a description (decision H2, M18). */
 export class CreateTaskTemplateDto {
-  @ApiProperty({ example: "Hausaufgaben-Vorlage" })
+  @ApiProperty({ example: "Hausübung" })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
   name: string;
 
-  @ApiPropertyOptional({ example: "Standardvorlage für Hausaufgaben" })
+  @ApiPropertyOptional({ example: "Kapitel lesen und die Aufgaben lösen" })
   @IsString()
   @IsOptional()
+  @MaxLength(5000)
   description?: string;
-
-  @ApiPropertyOptional({ example: "Hausaufgabe {{fach}}" })
-  @IsString()
-  @IsOptional()
-  default_title?: string;
-
-  @ApiPropertyOptional({ example: "Aufgaben lösen" })
-  @IsString()
-  @IsOptional()
-  default_description?: string;
-
-  @ApiPropertyOptional({ enum: task_status, default: "TODO" })
-  @IsEnum(task_status)
-  @IsOptional()
-  default_status?: task_status;
 }

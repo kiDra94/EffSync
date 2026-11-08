@@ -61,6 +61,8 @@ export abstract class TaskRepository {
 
   abstract create(data: NewTask): Promise<TaskWithRelations>;
   abstract addMember(taskId: number, userId: number): Promise<void>;
+  /** Replaces the task's tags; unknown names become new tags (T59). */
+  abstract setTags(taskId: number, names: string[]): Promise<void>;
   abstract update(
     taskId: number,
     data: TaskChanges,
