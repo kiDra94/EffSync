@@ -1,71 +1,53 @@
 import {
-  PermissionFlag,
-  STAFF_ROLES,
-} from "../../contexts/identity-access/application";
-import {
   BadRequestException,
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  Patch,
+  Get,
+  MaxFileSizeValidator,
+  Param,
+  ParseFilePipe,
   ParseIntPipe,
+  Patch,
+  Post,
   Req,
   Res,
   StreamableFile,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
-  ParseFilePipe,
-  MaxFileSizeValidator,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { DocumentsService } from "./documents.service";
-import { memoryStorage } from "multer";
-import { extname } from "path";
+import { Throttle } from "@nestjs/throttler";
 import type { Response } from "express";
+import { memoryStorage } from "multer";
+import { PermissionFlag, STAFF_ROLES } from "../../identity-access/application";
 import {
   JwtAuthGuard,
-  PermissionsGuard,
   Permissions,
-  RolesGuard,
+  PermissionsGuard,
   Roles,
-} from "../../shared/presentation/security";
-import { UpdateDocumentDto } from "./dto/update-document.dto";
+  RolesGuard,
+} from "../../../shared/presentation/security";
+import type { AuthenticatedRequest } from "../../../shared/presentation/security";
+import { DocumentGradingService } from "../application/document-grading.service";
+import { DocumentQueriesService } from "../application/document-queries.service";
+import { DocumentUploadsService } from "../application/document-uploads.service";
+import { ALLOWED_EXTENSIONS, extensionOf } from "../domain/file-type";
+import { AllowResubmitDto } from "./dto/allow-resubmit.dto";
 import { GradeDocumentDto } from "./dto/grade-document.dto";
+import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
-import { Throttle } from "@nestjs/throttler";
-
-const ALLOWED_UPLOAD_EXTENSIONS = [
-  ".pdf",
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".gif",
-  ".bmp",
-  ".webp",
-  ".doc",
-  ".docx",
-  ".odt",
-  ".rtf",
-  ".txt",
-  ".md",
-  ".csv",
-  ".xls",
-  ".xlsx",
-  ".ppt",
-  ".pptx",
-  ".ods",
-  ".odp",
-];
 
 // check order token → role → permission (T97)
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Controller("documents")
 export class DocumentsController {
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly queries: DocumentQueriesService,
+    private readonly uploads: DocumentUploadsService,
+    private readonly grading: DocumentGradingService,
+  ) {}
 
   @Post("upload")
   @Permissions("view_dashboard")
@@ -74,9 +56,7 @@ export class DocumentsController {
     FileInterceptor("file", {
       storage: memoryStorage(),
       fileFilter: (req, file, callback) => {
-        const extension = extname(file.originalname || "").toLowerCase();
-
-        if (!ALLOWED_UPLOAD_EXTENSIONS.includes(extension)) {
+        if (!ALLOWED_EXTENSIONS.has(extensionOf(file.originalname || ""))) {
           callback(
             new BadRequestException(
               "Erlaubte Formate: PDF, JPG, JPEG, PNG, GIF, BMP, WEBP, DOC, DOCX, ODT, RTF, TXT, MD, CSV, XLS, XLSX, PPT, PPTX, ODS, ODP.",
@@ -85,12 +65,11 @@ export class DocumentsController {
           );
           return;
         }
-
         callback(null, true);
       },
     }),
   )
-  async uploadFile(
+  uploadFile(
     @UploadedFile(
       new ParseFilePipe({
         validators: [new MaxFileSizeValidator({ maxSize: 25 * 1024 * 1024 })],
@@ -98,9 +77,9 @@ export class DocumentsController {
     )
     file: Express.Multer.File,
     @Body() body: UploadDocumentDto,
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.documentsService.create(
+    return this.uploads.create(
       file,
       req.user.userId,
       file.mimetype,
@@ -111,32 +90,25 @@ export class DocumentsController {
 
   @Get()
   @Permissions("view_dashboard")
-  findAll(@Req() req) {
-    return this.documentsService.findAll(req.user.userId, req.user.role);
+  findAll(@Req() req: AuthenticatedRequest) {
+    return this.queries.findAll(req.user.userId, req.user.role);
   }
 
-  /**
-   * GET /documents/my-grades
-   * Returns all grades of the current student
-   */
+  /** The current student's grades. */
   @Get("my-grades")
   @Permissions("view_grades")
-  async getMyGrades(@Req() req) {
-    return this.documentsService.getMyGrades(req.user.userId);
+  getMyGrades(@Req() req: AuthenticatedRequest) {
+    return this.queries.getMyGrades(req.user.userId);
   }
 
-  /**
-   * GET /documents/by-task/:taskId
-   * Returns all documents linked to a task
-   * Only for the task's teacher/admin or the document's uploader
-   */
+  /** The documents linked to a task: for staff and the task's creator. */
   @Get("by-task/:taskId")
   @Permissions("view_dashboard")
-  async getDocumentsByTask(
+  getDocumentsByTask(
     @Param("taskId", ParseIntPipe) taskId: number,
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.documentsService.getDocumentsByTask(
+    return this.queries.getDocumentsByTask(
       taskId,
       req.user.userId,
       req.user.role,
@@ -147,10 +119,10 @@ export class DocumentsController {
   @Permissions("view_dashboard")
   async download(
     @Param("id", ParseIntPipe) id: number,
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const file = await this.documentsService.getDownloadPayload(
+    const file = await this.queries.getDownloadPayload(
       id,
       req.user.userId,
       req.user.role,
@@ -161,29 +133,26 @@ export class DocumentsController {
       "Content-Disposition",
       `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
     );
-
     return new StreamableFile(file.stream);
   }
 
   @Get(":id")
   @Permissions("view_dashboard")
-  findOne(@Param("id") id: string, @Req() req) {
-    return this.documentsService.findOne(id, req.user.userId, req.user.role);
+  findOne(
+    @Param("id", ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.queries.findOne(id, req.user.userId, req.user.role);
   }
 
   @Patch(":id")
   @Permissions("view_dashboard")
   update(
     @Param("id", ParseIntPipe) id: number,
-    @Body() updateDocumentDto: UpdateDocumentDto,
-    @Req() req,
+    @Body() dto: UpdateDocumentDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.documentsService.update(
-      id,
-      updateDocumentDto,
-      req.user.userId,
-      req.user.role,
-    );
+    return this.uploads.update(id, dto, req.user.userId, req.user.role);
   }
 
   @Patch(":id/grade")
@@ -191,41 +160,32 @@ export class DocumentsController {
   @Permissions("edit_grades", PermissionFlag.WRITE)
   grade(
     @Param("id", ParseIntPipe) id: number,
-    @Body() gradeDocumentDto: GradeDocumentDto,
-    @Req() req,
+    @Body() dto: GradeDocumentDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.documentsService.grade(
-      id,
-      gradeDocumentDto,
-      req.user.userId,
-      req.user.role,
-    );
+    return this.grading.grade(id, dto, req.user.userId, req.user.role);
   }
 
-  /**
-   * PATCH /documents/:id/allow-resubmit
-   * Lets the student upload again - unlocks the task
-   * Only a teacher may do this
-   */
+  /** Lets the student upload again: unlocks the task (staff only). */
   @Patch(":id/allow-resubmit")
   @Roles(...STAFF_ROLES)
   @Permissions("edit_grades", PermissionFlag.WRITE)
   allowResubmit(
     @Param("id", ParseIntPipe) id: number,
-    @Body() body: { new_deadline?: string },
-    @Req() req,
+    @Body() body: AllowResubmitDto,
   ) {
-    return this.documentsService.allowResubmit(
+    return this.grading.allowResubmit(
       id,
       body.new_deadline ? new Date(body.new_deadline) : undefined,
-      req.user.userId,
-      req.user.role,
     );
   }
 
   @Delete(":id")
   @Permissions("view_dashboard")
-  remove(@Param("id") id: string, @Req() req) {
-    return this.documentsService.remove(id, req.user.userId, req.user.role);
+  remove(
+    @Param("id", ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.uploads.remove(id, req.user.userId, req.user.role);
   }
 }

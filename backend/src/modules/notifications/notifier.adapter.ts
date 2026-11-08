@@ -17,7 +17,6 @@ export class NotifierAdapter extends Notifier {
       user_id: userId,
       type,
       text,
-      is_read: false,
     });
   }
 }

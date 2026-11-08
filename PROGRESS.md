@@ -970,3 +970,41 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - Replace-semantics fields (tags) must be sent only when the user changed them, because some views open the form with an incomplete task object.
 
 **Failed / open:** none beyond the kept tags above.
+
+## 2026-11-08 – M19: Migrate documents-notes into its bounded context
+
+**Done:**
+- `src/contexts/documents-notes` replaces `src/modules/documents` (the 1,153-line `DocumentsService`) and `src/modules/notes`.
+  - Domain: the access policy (T96) in `document-access.ts` (who may see, edit, delete, grade or release a document) and the upload rules in `file-type.ts` (allowed extensions, expected MIME types, safe file name). Both are pure.
+  - Application: `DocumentAccessService` (requester, access check, task link check) and three use-case services: `DocumentQueriesService` (lists, one document, grades, download, a task's documents), `DocumentUploadsService` (upload, rename, delete) and `DocumentGradingService` (grade, allow resubmit). `toDocumentView` is the UI mapping. `NotesService` moved here.
+  - Ports: `DocumentRepository`, `NoteRepository`, `DocumentStorage` and `FileInspector`. Infrastructure: Prisma repositories with the old queries (decision G1), `LocalDocumentStorage` (files under `UPLOAD_DIR`) and `MagicByteFileInspector`.
+  - Presentation: the same routes, guards and DTOs. `AllowResubmitDto` is new: `new_deadline` must be an ISO date.
+- Grading completes tasks through `TaskCompletionService` (M17). Releasing a resubmission goes through the new `TaskResubmissionService` in task-management. Grade plus completion, and the reopen, each run in one unit of work; the notifications follow the commit.
+- Notifications go through the `Notifier` port. `NotifierAdapter` no longer sends `is_read: false`; the column defaults to false.
+- Account deletion: `DocumentsAccountDeletion` takes over the notes and documents rows from `PrismaUserRepository.anonymizeAndDelete` (GOALS.md M15 step 6): own notes and private uploads are deleted, task uploads and grades move to the ghost user, shares with the user are deleted.
+- Bugs fixed (each with a test):
+  - BUG (M19): releasing a resubmission set `locked_until` to the new deadline, so the unlocked task looked "locked until" that date. It is now `null`.
+  - Notes were read with a `tasks` include, a relation notes don't have, so every read with relations failed.
+  - A note with a document link or a share couldn't be deleted (NoAction foreign keys). The links are deleted first, in one transaction.
+  - Problem 10 (review M19): `GET /documents/by-task/:taskId` read `users?.[0]` from a single relation, so the uploader was always `null`.
+  - Review M19: `GET` and `DELETE /documents/:id` with a non-numeric ID, and `allow-resubmit` with a deadline that isn't a date, answered 500; now 400.
+- Lint: documents-notes has 0 `no-unsafe-*` findings and the rules are `error` there (decision Q13). The backend ratchet goes from 285 to 101 warnings.
+
+**Verified:**
+- Done when:
+  - No documents-notes file is over 500 lines (the largest is the grading spec, 378). The M1 spec is split by service into `document-{queries,uploads,grading}.characterization.spec.ts` with `documents.fixtures.ts`; the old service spec into `document-uploads.service.spec.ts` and `document-grading.service.spec.ts`.
+  - dependency-cruiser: 0 violations, 0 context cycles.
+  - The M1 document tests pass. Beyond the construction lines and imports (G1), two M1 tests were flipped for the bugs above (`locked_until`, uploader). Two more changes: the `allowResubmit` calls lost the unused teacher-ID and role arguments (the role check has been the route guard's since M7), and asymmetric matchers got `as unknown` for the strict lint rules.
+- `test/documents-notes.e2e-spec.ts`: notes list and read (200, 404 for another user), deleting a note with a document and a share, grading plus resubmission (`is_locked` false, `locked_until` null, new deadline, one notification, uploader in the task's documents), and 400 for non-numeric IDs and an invalid deadline.
+- Backend: 493 unit and 99 E2E tests. Frontend unchanged. tsc, lint (0 errors, 101 warnings), knip, dependency-cruiser and build pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings. Fixed: (1) grading and resubmission not in one transaction, (3) a stale staged copy of the old spec, (4) the always-null uploader, (5) 500s for bad IDs and deadlines, (6) the E2E notification count not scoped to its task, (10) the redundant scope branch. Kept, with reasons:
+  - (2) Reopening leaves a completed task COMPLETED. Completion follows from grades since M17 and the old grade stays, so the read-time recalculation would complete it again. What a resubmission does to the status is a product decision GOALS.md doesn't cover yet, so it stays open.
+  - (7, 8) `DocumentAccessService` repeats role queries and reads identity tables through its own port instead of `PermissionsService`. G1 keeps the old queries in this migration; switching to identity-access's facade is a follow-up.
+  - (9) `TaskResubmissionService` doesn't write an activity-log entry like `TaskLockingService.updateDeadlineAndUnlockIfNeeded`. The M1 test pins the exact update; the log entry belongs with (2).
+  - (10, part) The in-memory student filter after the student-scoped query stays, because an M1 test pins it.
+
+**Learned (for later milestones):**
+- A mock object whose `$transaction` refers to the object itself is typed `any` and floods the strict lint rules. Set the implementation after the object is defined.
+- `git mv` followed by deleting the target leaves a staged rename in the index. Check `git status` for `RD` before committing.
+
+**Failed / open:** (2), (7, 8) and (9) above.

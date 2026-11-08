@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { DocumentsModule } from "./modules/documents/documents.module";
 import { ChatRoomsModule } from "./modules/chat-rooms/chat-rooms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { EmailModule } from "./modules/email/email.module";
@@ -9,7 +8,7 @@ import { EmailPortsModule } from "./modules/email/email-ports.module";
 import { NotificationPortsModule } from "./modules/notifications/notification-ports.module";
 import { WebsocketPortsModule } from "./modules/websocket/websocket-ports.module";
 import { TaskManagementModule } from "./contexts/task-management/task-management.module";
-import { NotesModule } from "./modules/notes/notes.module";
+import { DocumentsNotesModule } from "./contexts/documents-notes/documents-notes.module";
 import { SchedulesModule } from "./modules/schedules/schedules.module";
 import { ClassesModule } from "./modules/classes/classes.module";
 import { DepartmentsModule } from "./modules/departments/departments.module";
@@ -55,7 +54,6 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
       }),
     }),
     IdentityAccessModule,
-    DocumentsModule,
     ChatRoomsModule,
     ChatMessagesModule,
     NotificationsModule,
@@ -64,7 +62,7 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     NotificationPortsModule,
     WebsocketPortsModule,
     TaskManagementModule,
-    NotesModule,
+    DocumentsNotesModule,
     SchedulesModule,
     ClassesModule,
     DepartmentsModule,

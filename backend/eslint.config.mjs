@@ -41,10 +41,11 @@ export default tseslint.config(
     },
   },
   {
-    // decision Q13: a migrated context keeps 0 no-unsafe-* findings (M11 identity-access, M15 task-management)
+    // decision Q13: a migrated context keeps 0 no-unsafe-* findings (M11 identity-access, M15 task-management, M19 documents-notes)
     files: [
       "src/contexts/identity-access/**/*.ts",
       "src/contexts/task-management/**/*.ts",
+      "src/contexts/documents-notes/**/*.ts",
     ],
     rules: {
       '@typescript-eslint/no-unsafe-member-access': 'error',

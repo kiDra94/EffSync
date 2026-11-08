@@ -1,33 +1,27 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { DocumentsService } from "./documents.service";
+import { DocumentGradingService } from "../application/document-grading.service";
+import { DocumentQueriesService } from "../application/document-queries.service";
+import { DocumentUploadsService } from "../application/document-uploads.service";
 import { DocumentsController } from "./documents.controller";
 import {
   JwtAuthGuard,
   PermissionsGuard,
   RolesGuard,
-} from "../../shared/presentation/security";
+} from "../../../shared/presentation/security";
+import type { AuthenticatedRequest } from "../../../shared/presentation/security";
 
 describe("DocumentsController", () => {
   let controller: DocumentsController;
 
-  const mockDocumentsService = {
-    create: jest.fn(),
-    findAll: jest.fn(),
-    findOne: jest.fn(),
-    update: jest.fn(),
-    grade: jest.fn(),
-    remove: jest.fn(),
-    getDownloadPayload: jest.fn(),
-  };
+  const mockUploads = { create: jest.fn() };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DocumentsController],
       providers: [
-        {
-          provide: DocumentsService,
-          useValue: mockDocumentsService,
-        },
+        { provide: DocumentUploadsService, useValue: mockUploads },
+        { provide: DocumentQueriesService, useValue: {} },
+        { provide: DocumentGradingService, useValue: {} },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -46,7 +40,7 @@ describe("DocumentsController", () => {
   });
 
   it("uses the authenticated user for uploads", async () => {
-    mockDocumentsService.create.mockResolvedValue({ document_id: 1 });
+    mockUploads.create.mockResolvedValue({ document_id: 1 });
 
     await controller.uploadFile(
       {
@@ -54,10 +48,10 @@ describe("DocumentsController", () => {
         mimetype: "application/pdf",
       } as Express.Multer.File,
       {},
-      { user: { userId: 17, role: "student" } },
+      { user: { userId: 17, role: "student" } } as AuthenticatedRequest,
     );
 
-    expect(mockDocumentsService.create).toHaveBeenCalledWith(
+    expect(mockUploads.create).toHaveBeenCalledWith(
       expect.objectContaining({ originalname: "arbeit.pdf" }),
       17,
       "application/pdf",

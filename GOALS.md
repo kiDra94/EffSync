@@ -484,7 +484,7 @@ Rules for all milestones:
   - Done when: `useTaskFilters` tests cover the new filters, a seed test checks the four priorities, E2E creates a template from a task and applies it, and E2E creates a task with two tags and reads them back.
   - Risk: medium. The data migration rewrites `priority_id` on existing tasks and notes; a migration test on a copy of the seeded DB checks the mapping. Notes resolve priorities by name (`notes.service.ts:142-158`) and keep working with the four names.
 
-- [ ] **M19: Migrate `documents-notes`**
+- [x] **M19: Migrate `documents-notes`**
   - Why: L1 and problem 10. `documents.service.ts` has 1,197 lines mixing file validation, storage, access control, grading and UI mapping.
   - Steps:
     1. Domain: the access policy (`document_shares`, T96).

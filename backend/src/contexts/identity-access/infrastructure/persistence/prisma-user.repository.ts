@@ -165,27 +165,9 @@ export class PrismaUserRepository extends UserRepository {
       select: { firstname: true, lastname: true, username: true },
     });
 
-    // the user's own notes, with their shares and document links
-    const ownNotes = { where: { notes: { created_by: userId } } };
-    await tx.note_documents.deleteMany(ownNotes);
-    await tx.notes_users.deleteMany(ownNotes);
-    await tx.notes.deleteMany({ where: { created_by: userId } });
-
-    // uploads that belong to no task are private files: deleted
-    const privateDocuments = {
-      added_by: userId,
-      task_documents: { none: {} },
-    };
-    await tx.document_shares.deleteMany({
-      where: { documents: privateDocuments },
-    });
-    await tx.note_documents.deleteMany({
-      where: { documents: privateDocuments },
-    });
-    await tx.documents.deleteMany({ where: privateDocuments });
-
-    // shared content: the chat history stays, under the ghost user (the task
-    // tables are task-management's AccountDeletionParticipant, M15)
+    // shared content: the chat history stays, under the ghost user (tasks,
+    // documents and notes are their contexts' AccountDeletionParticipants,
+    // M15, M19)
     const toGhost = { user_id: GHOST_USER_ID };
     await tx.chat_messages.updateMany({
       where: { user_id: userId },
@@ -195,14 +177,6 @@ export class PrismaUserRepository extends UserRepository {
     await tx.chat_rooms.updateMany({
       where: { created_by: userId },
       data: createdBy,
-    });
-    await tx.documents.updateMany({
-      where: { added_by: userId },
-      data: { added_by: GHOST_USER_ID },
-    });
-    await tx.documents.updateMany({
-      where: { graded_by: userId },
-      data: { graded_by: GHOST_USER_ID },
     });
 
     // other members' chat notifications start with the sender's name
@@ -223,9 +197,7 @@ export class PrismaUserRepository extends UserRepository {
     const ownRows = { where: { user_id: userId } };
     await tx.user_roles.deleteMany(ownRows);
     await tx.chat_room_users.deleteMany(ownRows);
-    await tx.document_shares.deleteMany(ownRows);
     await tx.notifications.deleteMany(ownRows);
-    await tx.notes_users.deleteMany(ownRows);
     await tx.students.deleteMany({ where: { student_id: userId } });
     await tx.teachers.deleteMany({ where: { teacher_id: userId } });
 

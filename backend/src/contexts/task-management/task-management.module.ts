@@ -16,6 +16,7 @@ import { TaskTemplatesService } from "./application/task-templates.service";
 import { TaskService } from "./application/task.service";
 import { TaskNotificationsService } from "./application/task-notifications.service";
 import { TaskVisibilityService } from "./application/task-visibility.service";
+import { TaskResubmissionService } from "./application/task-resubmission.service";
 import { PrismaActivityLogRepository } from "./infrastructure/persistence/prisma-activity-log.repository";
 import { PrismaCommentRepository } from "./infrastructure/persistence/prisma-comment.repository";
 import { PrismaGradeRemarkRepository } from "./infrastructure/persistence/prisma-grade-remark.repository";
@@ -32,9 +33,8 @@ import { TaskController } from "./presentation/task.controller";
  * e-mail modules' global bindings; PermissionsService and the account
  * deletion registry from identity-access (global).
  */
-// global for TaskCompletionService: grading in the legacy documents module
-// completes tasks through it (M17), and a legacy module may not import a
-// context's module file (dependency rule context-via-application)
+// global for TaskCompletionService and TaskResubmissionService: grading in
+// documents-notes completes and reopens tasks through them (M17, M19)
 @Global()
 @Module({
   imports: [PrismaModule],
@@ -50,6 +50,7 @@ import { TaskController } from "./presentation/task.controller";
     GradeRemarksService,
     TaskNotificationsService,
     TaskVisibilityService,
+    TaskResubmissionService,
     TaskAccountDeletion,
     { provide: TaskRepository, useClass: PrismaTaskRepository },
     { provide: ActivityLogRepository, useClass: PrismaActivityLogRepository },
@@ -58,6 +59,6 @@ import { TaskController } from "./presentation/task.controller";
     { provide: CommentRepository, useClass: PrismaCommentRepository },
     { provide: GradeRemarkRepository, useClass: PrismaGradeRemarkRepository },
   ],
-  exports: [TaskCompletionService],
+  exports: [TaskCompletionService, TaskResubmissionService],
 })
 export class TaskManagementModule {}

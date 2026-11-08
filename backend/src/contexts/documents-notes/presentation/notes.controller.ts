@@ -1,32 +1,33 @@
 import {
   BadRequestException,
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
   Req,
   UseGuards,
-  Query,
-  ParseIntPipe,
 } from "@nestjs/common";
-import { NotesService } from "./notes.service";
-import { CreateNoteDto } from "./dto/create-note.dto";
-import { UpdateNoteDto } from "./dto/update-note.dto";
 import {
   JwtAuthGuard,
-  PermissionsGuard,
   Permissions,
-} from "../../shared/presentation/security";
+  PermissionsGuard,
+} from "../../../shared/presentation/security";
+import type { AuthenticatedRequest } from "../../../shared/presentation/security";
+import { NotesService } from "../application/notes.service";
+import { CreateNoteDto } from "./dto/create-note.dto";
+import { UpdateNoteDto } from "./dto/update-note.dto";
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("notes")
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
-  private getUserId(req: any): number {
+  private getUserId(req: AuthenticatedRequest): number {
     const userId = req?.user?.userId ?? req?.user?.id;
     if (!userId) {
       throw new BadRequestException("Missing authenticated user id");
@@ -36,20 +37,26 @@ export class NotesController {
 
   @Post()
   @Permissions("view_dashboard")
-  create(@Body() createNoteDto: CreateNoteDto, @Req() req) {
-    return this.notesService.create(createNoteDto, this.getUserId(req));
+  create(@Body() dto: CreateNoteDto, @Req() req: AuthenticatedRequest) {
+    return this.notesService.create(dto, this.getUserId(req));
   }
 
   @Get()
   @Permissions("view_dashboard")
-  findAll(@Req() req, @Query("subject_id") subjectId?: string) {
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query("subject_id") subjectId?: string,
+  ) {
     const parsedId = subjectId ? parseInt(subjectId, 10) : undefined;
     return this.notesService.findAll(this.getUserId(req), parsedId);
   }
 
   @Get(":id")
   @Permissions("view_dashboard")
-  findOne(@Param("id", ParseIntPipe) noteId: number, @Req() req) {
+  findOne(
+    @Param("id", ParseIntPipe) noteId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.notesService.findOne(noteId, this.getUserId(req));
   }
 
@@ -57,15 +64,18 @@ export class NotesController {
   @Permissions("view_dashboard")
   update(
     @Param("id", ParseIntPipe) noteId: number,
-    @Req() req,
-    @Body() updateNoteDto: UpdateNoteDto,
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: UpdateNoteDto,
   ) {
-    return this.notesService.update(noteId, this.getUserId(req), updateNoteDto);
+    return this.notesService.update(noteId, this.getUserId(req), dto);
   }
 
   @Delete(":id")
   @Permissions("view_dashboard")
-  remove(@Param("id", ParseIntPipe) noteId: number, @Req() req) {
+  remove(
+    @Param("id", ParseIntPipe) noteId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.notesService.remove(noteId, this.getUserId(req));
   }
 }

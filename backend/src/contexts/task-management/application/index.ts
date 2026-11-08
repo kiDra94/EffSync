@@ -5,5 +5,6 @@
  * in documents calls (M17).
  */
 export { TaskCompletionService } from "./task-completion.service";
+export { TaskResubmissionService } from "./task-resubmission.service";
 export { TaskRealtime } from "./ports/task-realtime";
 export { MentionMailer } from "./ports/mention-mailer";

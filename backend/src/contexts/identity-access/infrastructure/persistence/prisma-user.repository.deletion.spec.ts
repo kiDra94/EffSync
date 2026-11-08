@@ -14,17 +14,12 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     comments: table(),
     task_grade: table(),
     chat_rooms: table(),
-    documents: table(),
     task_activity_log: table(),
     task_templates: table(),
     teachers: table(),
     user_roles: table(),
     chat_room_users: table(),
-    document_shares: table(),
     notifications: table(),
-    notes: table(),
-    notes_users: table(),
-    note_documents: table(),
     students: table(),
     users: {
       findUniqueOrThrow: jest.fn().mockResolvedValue({
@@ -40,10 +35,6 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     {} as PrismaService,
     { client: () => tx } as unknown as PrismaUnitOfWork,
   );
-  const privateDocuments = {
-    added_by: 5,
-    task_documents: { none: {} },
-  };
 
   beforeAll(async () => {
     await repository.anonymizeAndDelete(5);
@@ -56,8 +47,6 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
   it.each([
     ["chat_messages", "user_id"],
     ["chat_rooms", "created_by"],
-    ["documents", "added_by"],
-    ["documents", "graded_by"],
   ] as const)("moves %s.%s to the ghost user", (name, column) => {
     expect(tx[name].updateMany).toHaveBeenCalledWith({
       where: { [column]: 5 },
@@ -75,46 +64,22 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     },
   );
 
-  it("deletes the personal rows and the user's own notes", () => {
+  it("deletes the personal rows", () => {
     for (const name of [
       "user_roles",
       "chat_room_users",
-      "document_shares",
       "notifications",
-      "notes_users",
     ] as const) {
       expect(tx[name].deleteMany).toHaveBeenCalledWith({
         where: { user_id: 5 },
       });
     }
-    const ownNotes = { where: { notes: { created_by: 5 } } };
-    expect(tx.note_documents.deleteMany).toHaveBeenCalledWith(ownNotes);
-    expect(tx.notes_users.deleteMany).toHaveBeenCalledWith(ownNotes);
-    expect(tx.notes.deleteMany).toHaveBeenCalledWith({
-      where: { created_by: 5 },
-    });
     expect(tx.students.deleteMany).toHaveBeenCalledWith({
       where: { student_id: 5 },
     });
     expect(tx.teachers.deleteMany).toHaveBeenCalledWith({
       where: { teacher_id: 5 },
     });
-  });
-
-  // review M14 (4): only uploads attached to a task stay, under the ghost user
-  it("deletes the user's uploads that belong to no task, with their links", () => {
-    expect(tx.document_shares.deleteMany).toHaveBeenCalledWith({
-      where: { documents: privateDocuments },
-    });
-    expect(tx.note_documents.deleteMany).toHaveBeenCalledWith({
-      where: { documents: privateDocuments },
-    });
-    expect(tx.documents.deleteMany).toHaveBeenCalledWith({
-      where: privateDocuments,
-    });
-    expect(tx.documents.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
-      tx.documents.updateMany.mock.invocationCallOrder[0],
-    );
   });
 
   // review M14 (3): the chat notifications of other members carry the name

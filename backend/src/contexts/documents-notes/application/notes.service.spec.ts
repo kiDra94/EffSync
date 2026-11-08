@@ -1,13 +1,14 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { NotesService } from "./notes.service";
-import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
+import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
+import { PrismaNoteRepository } from "../infrastructure/persistence/prisma-note.repository";
+import { NotesService } from "./notes.service";
 
 describe("NotesService", () => {
   let service: NotesService;
-  let prisma: any;
 
-  const mockPrismaService = {
+  const prisma = {
+    $transaction: jest.fn(),
     notes: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -25,23 +26,22 @@ describe("NotesService", () => {
     priorities: {
       findFirst: jest.fn(),
     },
+    // M19: a note's links are deleted before the note
+    note_documents: { deleteMany: jest.fn() },
+    notes_users: { deleteMany: jest.fn() },
   };
 
-  beforeEach(async () => {
+  prisma.$transaction.mockImplementation((callback: (tx: unknown) => unknown) =>
+    Promise.resolve(callback(prisma)),
+  );
+
+  beforeEach(() => {
     jest.clearAllMocks();
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        NotesService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<NotesService>(NotesService);
-    prisma = module.get<PrismaService>(PrismaService);
+    const unitOfWork = new PrismaUnitOfWork(prisma as unknown as PrismaService);
+    service = new NotesService(
+      new PrismaNoteRepository(unitOfWork),
+      unitOfWork,
+    );
   });
 
   it("should be defined", () => {
@@ -85,7 +85,7 @@ describe("NotesService", () => {
             subject_id: 3,
             created_by: 7,
             priority_id: 2,
-          }),
+          }) as unknown,
         }),
       );
       expect(result).toEqual(
@@ -127,6 +127,23 @@ describe("NotesService", () => {
     });
   });
 
+  // M19: the include named `tasks`, a relation notes don't have, so every
+  // read with relations failed at runtime
+  it("reads a note with its author, subject and priority only", async () => {
+    prisma.notes.findMany.mockResolvedValue([]);
+
+    await service.findAll(42);
+
+    const [args] = prisma.notes.findMany.mock.calls[0] as [
+      { include: Record<string, unknown> },
+    ];
+    expect(Object.keys(args.include).sort()).toEqual([
+      "priorities",
+      "subjects",
+      "users",
+    ]);
+  });
+
   describe("findAll", () => {
     it("should query only notes of current creator", async () => {
       prisma.notes.findMany.mockResolvedValue([]);
@@ -135,7 +152,7 @@ describe("NotesService", () => {
 
       expect(prisma.notes.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ created_by: 42 }),
+          where: expect.objectContaining({ created_by: 42 }) as unknown,
         }),
       );
     });
@@ -184,6 +201,22 @@ describe("NotesService", () => {
         where: { note_id: 1 },
       });
       expect(res).toEqual({ message: "Note deleted successfully", note_id: 1 });
+    });
+
+    // M19: the foreign keys of note_documents and notes_users are NoAction,
+    // so a note with a document or a share couldn't be deleted
+    it("deletes the note's document links and shares first, in one transaction", async () => {
+      prisma.notes.findFirst.mockResolvedValue({ note_id: 1, created_by: 5 });
+
+      await service.remove(1, 5);
+
+      const where = { where: { note_id: 1 } };
+      expect(prisma.note_documents.deleteMany).toHaveBeenCalledWith(where);
+      expect(prisma.notes_users.deleteMany).toHaveBeenCalledWith(where);
+      expect(
+        prisma.notes_users.deleteMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(prisma.notes.delete.mock.invocationCallOrder[0]);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     });
   });
 });

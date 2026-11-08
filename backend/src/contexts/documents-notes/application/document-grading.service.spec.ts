@@ -1,20 +1,9 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { DocumentsService } from "./documents.service";
-import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
-import { NotificationsService } from "../notifications/notifications.service";
-import { TaskCompletionService } from "../../contexts/task-management/application";
-import { PrismaTaskRepository } from "../../contexts/task-management/infrastructure/persistence/prisma-task.repository";
-import { PrismaUnitOfWork } from "../../shared/infrastructure/prisma/prisma-unit-of-work";
-import type { TaskRealtime } from "../../contexts/task-management/application";
-import type { TaskNotificationsService } from "../../contexts/task-management/application/task-notifications.service";
+import { createDocumentServices } from "./documents.fixtures";
 
-describe("DocumentsService", () => {
-  let service: DocumentsService;
-
+// Grading and completing tasks end to end on a Prisma mock (DocumentsService until M19)
+describe("grading use cases", () => {
   const mockPrismaService = {
-    $transaction: jest.fn((callback) =>
-      Promise.resolve(callback(mockPrismaService)),
-    ),
+    $transaction: jest.fn(),
     documents: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -62,122 +51,23 @@ describe("DocumentsService", () => {
     },
   };
 
+  mockPrismaService.$transaction.mockImplementation(
+    (callback: (tx: unknown) => unknown) =>
+      Promise.resolve(callback(mockPrismaService)),
+  );
+
   const mockNotificationsService = {
     create: jest.fn(),
   };
 
-  beforeEach(async () => {
+  let grading: ReturnType<typeof createDocumentServices>["grading"];
+
+  beforeEach(() => {
     jest.clearAllMocks();
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DocumentsService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: NotificationsService,
-          useValue: mockNotificationsService,
-        },
-        // M17: grading completes tasks through task-management's one rule
-        {
-          provide: TaskCompletionService,
-          inject: [PrismaService],
-          useFactory: (prisma: PrismaService) =>
-            new TaskCompletionService(
-              new PrismaTaskRepository(new PrismaUnitOfWork(prisma)),
-              {} as TaskRealtime,
-              {
-                statusChanged: jest.fn(),
-              } as unknown as TaskNotificationsService,
-            ),
-        },
-      ],
-    }).compile();
-
-    service = module.get<DocumentsService>(DocumentsService);
-  });
-
-  it("should be defined", () => {
-    expect(service).toBeDefined();
-  });
-
-  it("notifies teachers when a student uploads a document", async () => {
-    const file = {
-      originalname: "abgabe.pdf",
-      buffer: Buffer.from("pdf data"),
-      size: 8,
-      mimetype: "application/pdf",
-    } as Express.Multer.File;
-
-    mockPrismaService.documents.create.mockResolvedValue({ document_id: 12 });
-    mockPrismaService.documents.findUnique.mockResolvedValue({
-      document_id: 12,
-      name: "abgabe.pdf",
-      file_path: null,
-      file_size: 8,
-      mime_type: "application/pdf",
-      added_by: 15,
-      created_at: new Date().toISOString(),
-      users: {
-        user_id: 15,
-        firstname: "Max",
-        lastname: "Schüler",
-        username: "max",
-        students: { student_id: 15 },
-        user_roles: [{ roles: { name: "Student" } }],
-      },
-      graded_by_user: null,
-      task_documents: [],
-    });
-    mockPrismaService.user_roles.findMany.mockResolvedValue([
-      { user_id: 2 },
-      { user_id: 3 },
-    ]);
-
-    await service.create(file, 15, "application/pdf", "student");
-
-    expect(mockNotificationsService.create).toHaveBeenCalledTimes(2);
-    expect(mockNotificationsService.create).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        user_id: 2,
-        type: "document_uploaded",
-      }),
-    );
-    expect(mockNotificationsService.create).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        user_id: 3,
-        type: "document_uploaded",
-      }),
-    );
-  });
-
-  it("allows a student to rename their own document", async () => {
-    mockPrismaService.documents.findUnique.mockResolvedValue({
-      document_id: 7,
-      name: "alt.pdf",
-      added_by: 15,
-      users: {
-        user_id: 15,
-        firstname: "Max",
-        lastname: "Mustermann",
-        username: "max",
-        user_roles: [{ roles: { name: "Student" } }],
-      },
-      graded_by_user: null,
-    });
-    mockPrismaService.documents.update.mockResolvedValue({ document_id: 7 });
-
-    const result = await service.update(7, { name: "neu.pdf" }, 15, "student");
-
-    expect(mockPrismaService.documents.update).toHaveBeenCalledWith({
-      where: { document_id: 7 },
-      data: { name: "neu.pdf" },
-    });
-    expect(result.permissions.can_edit).toBe(true);
+    ({ grading } = createDocumentServices(
+      mockPrismaService,
+      mockNotificationsService,
+    ));
   });
 
   it("sends a notification when a teacher grades a student document", async () => {
@@ -222,7 +112,7 @@ describe("DocumentsService", () => {
       });
     mockPrismaService.documents.update.mockResolvedValue({ document_id: 9 });
 
-    const result = await service.grade(
+    const result = await grading.grade(
       9,
       { grade: "1", feedback: "Sehr gut" },
       4,
@@ -311,7 +201,7 @@ describe("DocumentsService", () => {
       { added_by: 22, task_documents: [{ task_id: 77 }] },
     ]);
 
-    await service.grade(19, { grade: "2", feedback: "Passt" }, 4, "teacher");
+    await grading.grade(19, { grade: "2", feedback: "Passt" }, 4, "teacher");
 
     expect(mockPrismaService.tasks.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -319,7 +209,7 @@ describe("DocumentsService", () => {
         data: expect.objectContaining({
           status: "COMPLETED",
           progress: 100,
-        }),
+        }) as unknown,
       }),
     );
   });
@@ -395,12 +285,12 @@ describe("DocumentsService", () => {
       { added_by: 21, task_documents: [{ task_id: 88 }] },
     ]);
 
-    await service.grade(20, { grade: "3", feedback: "ok" }, 4, "teacher");
+    await grading.grade(20, { grade: "3", feedback: "ok" }, 4, "teacher");
 
     expect(mockPrismaService.tasks.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({
         where: { task_id: { in: [88] } },
-        data: expect.objectContaining({ status: "COMPLETED" }),
+        data: expect.objectContaining({ status: "COMPLETED" }) as unknown,
       }),
     );
   });
@@ -476,139 +366,12 @@ describe("DocumentsService", () => {
       { added_by: 22, task_documents: [{ task_id: 99 }] },
     ]);
 
-    await service.grade(30, { grade: "2", feedback: "gut" }, 4, "teacher");
+    await grading.grade(30, { grade: "2", feedback: "gut" }, 4, "teacher");
 
     expect(mockPrismaService.tasks.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({
         where: { task_id: { in: [99] } },
-        data: expect.objectContaining({ status: "COMPLETED" }),
-      }),
-    );
-  });
-
-  it("allows a student to delete own linked document without FK errors", async () => {
-    mockPrismaService.documents.findUnique.mockReset();
-    mockPrismaService.documents.findUnique.mockResolvedValue({
-      document_id: 11,
-      name: "abgabe.pdf",
-      file_path: null,
-      added_by: 15,
-      users: {
-        user_id: 15,
-        firstname: "Max",
-        lastname: "Schüler",
-        username: "max",
-        students: { student_id: 15 },
-        user_roles: [{ roles: { name: "Student" } }],
-      },
-      graded_by_user: null,
-      task_documents: [{ task_id: 77 }],
-    });
-
-    const result = await service.remove("11", 15, "student");
-
-    expect(mockPrismaService.document_shares.deleteMany).toHaveBeenCalledWith({
-      where: { document_id: 11 },
-    });
-    expect(mockPrismaService.note_documents.deleteMany).toHaveBeenCalledWith({
-      where: { document_id: 11 },
-    });
-    expect(mockPrismaService.task_documents.deleteMany).toHaveBeenCalledWith({
-      where: { document_id: 11 },
-    });
-    expect(mockPrismaService.documents.delete).toHaveBeenCalledWith({
-      where: { document_id: 11 },
-    });
-    expect(result).toEqual({
-      message: "Dokument erfolgreich gelöscht",
-      document_id: 11,
-    });
-  });
-
-  it("returns a valid binary stream for blob downloads", async () => {
-    const sampleBytes = Uint8Array.from([0x25, 0x50, 0x44, 0x46]); // %PDF
-
-    mockPrismaService.documents.findUnique.mockResolvedValue({
-      document_id: 42,
-      name: "probe.pdf",
-      mime_type: "application/pdf",
-      file_blob: sampleBytes,
-      added_by: 21,
-      users: {
-        user_id: 21,
-        firstname: "Lisa",
-        lastname: "Schüler",
-        username: "lisa",
-        user_roles: [{ roles: { name: "Student" } }],
-      },
-      graded_by_user: null,
-      task_documents: [],
-    });
-
-    const payload = await service.getDownloadPayload(42, 4, "teacher");
-    const chunks: Buffer[] = [];
-
-    for await (const chunk of payload.stream as any) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-
-    expect(payload.fileName).toBe("probe.pdf");
-    expect(payload.mimeType).toBe("application/pdf");
-    expect(Buffer.concat(chunks)).toEqual(Buffer.from(sampleBytes));
-  });
-
-  it("rejects upload when detected file content does not match extension", async () => {
-    const fakePng = {
-      originalname: "bild.png",
-      buffer: Buffer.from("%PDF-1.4 test content", "utf8"),
-      size: 24,
-      mimetype: "image/png",
-    } as Express.Multer.File;
-
-    await expect(
-      service.create(fakePng, 15, "image/png", "student"),
-    ).rejects.toThrow("Dateiinhalt passt nicht zur Endung (.png)");
-
-    expect(mockPrismaService.documents.create).not.toHaveBeenCalled();
-  });
-
-  it("sanitizes uploaded file names before persisting", async () => {
-    const file = {
-      originalname: "../../boese<script>.pdf",
-      buffer: Buffer.from("pdf data"),
-      size: 8,
-      mimetype: "application/pdf",
-    } as Express.Multer.File;
-
-    mockPrismaService.documents.create.mockResolvedValue({ document_id: 99 });
-    mockPrismaService.documents.findUnique.mockResolvedValue({
-      document_id: 99,
-      name: "boese_script_.pdf",
-      file_path: null,
-      file_size: 8,
-      mime_type: "application/pdf",
-      added_by: 15,
-      created_at: new Date().toISOString(),
-      users: {
-        user_id: 15,
-        firstname: "Max",
-        lastname: "Schüler",
-        username: "max",
-        students: { student_id: 15 },
-        user_roles: [{ roles: { name: "Student" } }],
-      },
-      graded_by_user: null,
-      task_documents: [],
-    });
-    mockPrismaService.user_roles.findMany.mockResolvedValue([]);
-
-    await service.create(file, 15, "application/pdf", "student");
-
-    expect(mockPrismaService.documents.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          name: "boese_script_.pdf",
-        }),
+        data: expect.objectContaining({ status: "COMPLETED" }) as unknown,
       }),
     );
   });
