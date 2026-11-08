@@ -1,7 +1,7 @@
 import { Injectable, Optional } from "@nestjs/common";
 import { PrismaService } from "../../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
-import { GHOST_USER, GHOST_USER_ID } from "../../domain/ghost-user";
+import { GHOST_USER_ID } from "../../domain/ghost-user";
 import {
   NewUser,
   UserChanges,
@@ -150,27 +150,9 @@ export class PrismaUserRepository extends UserRepository {
 
   async anonymizeAndDelete(userId: number) {
     const tx = this.db();
-    const user = await tx.users.findUniqueOrThrow({
-      where: { user_id: userId },
-      select: { firstname: true, lastname: true, username: true },
-    });
-
-    // tasks, documents, notes, chats and the school profiles are their
-    // contexts' AccountDeletionParticipants (M15, M19, M20, M22)
-
-    // other members' chat notifications start with the sender's name
-    // (communication's ChatMessagesService); the name goes, the message
-    // stays. The notifications table is identity-access's here until M23.
-    const senderName =
-      `${user.firstname} ${user.lastname}`.trim() || user.username;
-    const prefix = `💬 ${senderName}:`;
-    const ghostPrefix = `💬 ${GHOST_USER.firstname} ${GHOST_USER.lastname}:`;
-    await tx.$executeRaw`UPDATE "notifications" SET "text" = ${ghostPrefix} || substr("text", char_length(${prefix}) + 1) WHERE "type" = 'chat_message' AND starts_with("text", ${prefix})`;
-
-    // personal rows
-    const ownRows = { where: { user_id: userId } };
-    await tx.user_roles.deleteMany(ownRows);
-    await tx.notifications.deleteMany(ownRows);
+    // tasks, documents, notes, chats, school profiles and notifications are
+    // their contexts' AccountDeletionParticipants (M15, M19, M20, M22, M23)
+    await tx.user_roles.deleteMany({ where: { user_id: userId } });
 
     // user_permissions, email_*, refresh_tokens and task_members cascade
     return tx.users.delete({ where: { user_id: userId } });

@@ -1136,3 +1136,35 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - Deleting a class that has a class chat answers 409 (M36's rule); the class chat has to go first.
 
 **Failed / open:** (8) above, by decision.
+
+## 2026-11-09 – M23: Migrate notifications (e-mail, preferences); deadline jobs in task-management
+
+**Deviation recorded:** GOALS.md moves "cron jobs" into notifications. The deadline jobs went to task-management instead (`TaskDeadlinesService`, scheduled by `TaskDeadlineJobs`): the hourly job locks tasks, which is task-management's rule (feature #27, `TaskLockingService.lockOverdueTask`), and task-management already depends on notifications (Notifier, the mailers). Jobs in notifications would need notifications → task-management, a cycle between contexts, which `depcruise:contexts` forbids. The jobs reach mail and in-app notifications only through notifications' ports, which is what the milestone's "other contexts trigger them only through notifications/application" asks.
+
+**Done:**
+- `src/contexts/notifications` replaces `modules/notifications` and `modules/email`:
+  - Application: `NotificationsService` (the in-app notifications, `notification:new` through `RealtimePublisher`), `InAppNotifier` (the `Notifier` port of M16), `EmailService` (deadline, @mention and password-reset mails on the `MailTransport` port, each logged in `email_logs`; templates moved, user text now escaped), `DeadlineMailService` (the deadline mail only with `email_on_deadline`), `PasswordResetMail` (identity-access's `PasswordResetMailer`), `EmailPreferencesService`.
+  - Ports exported to other contexts: `Notifier`, `MentionMailer` (moved from task-management, so the dependency runs task-management → notifications only) and `DeadlineMailer`.
+  - Infrastructure: Prisma repositories, `NodemailerMailTransport` (the M13 environments and the test outbox, unchanged), `NotificationsAccountDeletion` (own notifications deleted, the sender's name in other members' chat notifications replaced by the ghost user's; moved from `PrismaUserRepository`).
+  - Presentation: `/notifications` (same routes; a duplicate unreachable `GET unread-count` handler removed) and `/email-preferences` (same envelope; the body is validated now).
+- task-management: `TaskDeadlinesService` with the daily reminder (08:00) and the hourly overdue lock, the queries `findDueBetween`/`findOverdueUnlocked`, and `TaskDeadlineJobs` with the two `@Cron`s. The lock goes through `lockOverdueTask` (7 days, reason OVERDUE, and now `task:locked` to the assignee).
+- `ScheduleModule.forRoot()` moved to AppModule (it ran from EmailModule); `frontendUrl()` moved to `shared/application`. The unused `sendCommentEmail` and `sendTestEmail` are gone.
+- Lint: notifications has 0 `no-unsafe-*` findings and the rules are `error` there (Q13). Ratchet 75 → 43.
+
+**Verified:**
+- Done when:
+  - 0 dependency violations, 0 context cycles (5 contexts with dependencies).
+  - The e-mail cron (T46): `task-deadlines.service.spec.ts` (range from now to the end of the third day, mail and in-app reminder, calendar days, a failing task doesn't stop the others), `email.service.spec.ts` (subject by the days left), `DeadlineMailService` (mails by default and with the preference, not when it is off or without an address), `task-deadline.jobs.spec.ts` (daily at 8, hourly; a failing run is logged).
+  - The @mention mail (T09): `email.service.spec.ts` (recipient, subject, commenter, task and excerpt in the HTML, logged as `mention`, a failed send logged and answered with false) and the existing T09 tests of `comments.service.spec.ts` against the moved port.
+  - The hourly overdue job: locks each overdue task, mails and notifies its assignee, nothing without overdue tasks.
+- `test/notifications.e2e-spec.ts` (own user): default preferences on first read, changing them, 400 for an invalid frequency, listing/counting/marking notifications, 404 for someone else's notification.
+- Backend: 554 unit and 111 E2E tests. tsc, lint (0 errors, 43 warnings), knip, dependency-cruiser and build pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings, 8 fixed: (1) `GET /notifications/:id` showed anyone's notification (now 404), (2) user text was put unescaped into the mail HTML, (3) the mail links used `APP_URL` instead of `FRONTEND_URL`, (4) the in-app reminder counted days differently from the mail, (5) the daily reminder repeated the overdue mail for tasks already past and locked, (7) a race on the first preferences read (now one upsert), (8) one failing task stopped the run, (10) the E2E test changed seed data. Kept:
+  - (6) The `email_on_mention` check stays in task-management's comment repository, which reads `email_preferences`; the T09 tests pin it there. Moving it into a `MentionMailer` implementation like `DeadlineMailService` is a follow-up.
+  - (9) The hourly job reads each task again in `lockOverdueTask` and the preferences per task (N+1); fine at school size.
+
+**Learned (for later milestones):**
+- A context dependency can force a job into the context whose data it changes, even when the milestone names another; the ports keep the boundary.
+- knip runs in the backend CI job: an export only a spec might use still fails it.
+
+**Failed / open:** (6) and (9) above.

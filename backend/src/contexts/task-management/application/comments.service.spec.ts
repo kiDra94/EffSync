@@ -5,7 +5,7 @@ import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-u
 import { PrismaCommentRepository } from "../infrastructure/persistence/prisma-comment.repository";
 import { CommentsService } from "./comments.service";
 import { CommentRepository } from "./ports/comment.repository";
-import { MentionMailer } from "./ports/mention-mailer";
+import { MentionMailer } from "../../notifications/application";
 import { TaskVisibilityService } from "./task-visibility.service";
 
 // The @mention tests of task-comments.service.spec.ts (T09), against the

@@ -528,7 +528,7 @@ Rules for all milestones:
   - Done when: no view under `views/` writes school data to localStorage (grep), each store has Vitest tests, E2E covers creating a class, assigning two students and a teacher, reading them back, and a teacher of another class getting 403; the manual click-through of all five areas is documented in PROGRESS.md.
   - Risk: medium. Data that so far exists only in a browser's localStorage is not migrated (it was never shared); the seed provides the demo data. Opening the class views to teachers is a visible change for that role.
 
-- [ ] **M23: Migrate `notifications`**
+- [x] **M23: Migrate `notifications`**
   - Why: L1. Notifications, e-mail service, preferences and cron jobs move here, and other contexts trigger them only through `notifications/application` (M16's port).
   - Done when: there are 0 violations, the e-mail cron (T46) and @mention mail (T09) are covered by tests, and the hourly overdue job has a test.
   - Risk: low.

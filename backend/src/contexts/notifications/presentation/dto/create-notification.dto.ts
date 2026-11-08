@@ -9,15 +9,15 @@ import {
 export class CreateNotificationDto {
   @IsInt()
   @IsNotEmpty()
-  user_id: number;
+  user_id!: number;
 
   @IsString()
   @IsNotEmpty()
-  type: string;
+  type!: string;
 
   @IsString()
   @IsNotEmpty()
-  text: string;
+  text!: string;
 
   @IsBoolean()
   @IsOptional()

@@ -1,16 +1,17 @@
-import { EmailPasswordResetMailer } from "./email-password-reset.mailer";
+import { PasswordResetMail } from "./password-reset-mail";
 import { EmailService } from "./email.service";
 
 // M13: the link points to the frontend's reset page, the token in the fragment
 // (decision Q9), so it never reaches a server log
-describe("EmailPasswordResetMailer", () => {
+describe("PasswordResetMail", () => {
   it("sends the reset link to the frontend's /reset-password page", async () => {
     process.env.FRONTEND_URL = "https://effsync.example";
     const email = { sendPasswordResetEmail: jest.fn().mockResolvedValue(true) };
 
-    await new EmailPasswordResetMailer(
-      email as unknown as EmailService,
-    ).sendResetLink({ user_id: 9, email: "t@htl.at" }, "reset.jwt");
+    await new PasswordResetMail(email as unknown as EmailService).sendResetLink(
+      { user_id: 9, email: "t@htl.at" },
+      "reset.jwt",
+    );
 
     expect(email.sendPasswordResetEmail).toHaveBeenCalledWith(
       9,
@@ -27,9 +28,10 @@ describe("EmailPasswordResetMailer", () => {
     };
 
     await expect(
-      new EmailPasswordResetMailer(
-        email as unknown as EmailService,
-      ).sendResetLink({ user_id: 9, email: "t@htl.at" }, "reset.jwt"),
+      new PasswordResetMail(email as unknown as EmailService).sendResetLink(
+        { user_id: 9, email: "t@htl.at" },
+        "reset.jwt",
+      ),
     ).rejects.toThrow();
   });
 });

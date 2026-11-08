@@ -1,12 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotificationsController } from "./notifications.controller";
-import { NotificationsService } from "./notifications.service";
-import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
-import { RealtimePublisher } from "../../shared/application/realtime";
+import { NotificationsService } from "../application/notifications.service";
 import {
   JwtAuthGuard,
   PermissionsGuard,
-} from "../../shared/presentation/security";
+} from "../../../shared/presentation/security";
 
 describe("NotificationsController", () => {
   let controller: NotificationsController;
@@ -27,9 +25,7 @@ describe("NotificationsController", () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationsController],
       providers: [
-        NotificationsService,
-        { provide: PrismaService, useValue: mockPrismaService },
-        { provide: RealtimePublisher, useValue: {} },
+        { provide: NotificationsService, useValue: mockPrismaService },
       ],
     })
       .overrideGuard(JwtAuthGuard)

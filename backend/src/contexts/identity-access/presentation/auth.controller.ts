@@ -29,7 +29,7 @@ import { LocalAuthGuard } from "./security/local-auth.guard";
 import { GoogleAuthGuard } from "./security/google-auth.guard";
 import { GoogleResetAuthGuard } from "./security/google-reset-auth.guard";
 import { Throttle } from "@nestjs/throttler";
-import { frontendUrl } from "../../../shared/presentation/frontend-url";
+import { frontendUrl } from "../../../shared/application/frontend-url";
 
 @Controller("auth")
 export class AuthController {

@@ -8,21 +8,13 @@ import { GHOST_USER_ID } from "../../domain/ghost-user";
 describe("PrismaUserRepository.anonymizeAndDelete", () => {
   const table = () => ({ updateMany: jest.fn(), deleteMany: jest.fn() });
   const tx = {
-    $executeRaw: jest.fn(),
     tasks: table(),
     comments: table(),
     task_grade: table(),
     task_activity_log: table(),
     task_templates: table(),
     user_roles: table(),
-    notifications: table(),
     users: {
-      findUniqueOrThrow: jest.fn().mockResolvedValue({
-        user_id: 5,
-        firstname: "Lea",
-        lastname: "Verlassen",
-        username: "lverlassen",
-      }),
       delete: jest.fn().mockResolvedValue({ user_id: 5 }),
     },
   };
@@ -40,31 +32,17 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
   });
 
   it("deletes the personal rows", () => {
-    for (const name of ["user_roles", "notifications"] as const) {
-      expect(tx[name].deleteMany).toHaveBeenCalledWith({
-        where: { user_id: 5 },
-      });
-    }
-  });
-
-  // review M14 (3): the chat notifications of other members carry the name
-  it("replaces the name in other members' chat notifications", () => {
-    expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
-    const [, ...values] = tx.$executeRaw.mock.calls[0] as unknown[];
-    expect(values).toEqual(
-      expect.arrayContaining(["💬 Lea Verlassen:", "💬 Gelöschter Nutzer:"]),
-    );
+    expect(tx.user_roles.deleteMany).toHaveBeenCalledWith({
+      where: { user_id: 5 },
+    });
   });
 
   it("deletes the user row last", () => {
     expect(tx.users.delete).toHaveBeenCalledWith({ where: { user_id: 5 } });
     const deleteOrder = tx.users.delete.mock.invocationCallOrder[0];
-    expect(
-      Math.max(
-        ...tx.notifications.deleteMany.mock.invocationCallOrder,
-        ...tx.$executeRaw.mock.invocationCallOrder,
-      ),
-    ).toBeLessThan(deleteOrder);
+    expect(tx.user_roles.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+      deleteOrder,
+    );
   });
 });
 

@@ -1,5 +1,7 @@
 /**
- * Public entry point of notifications (rule 3). Until M23 this is only the
- * port the other contexts notify through.
+ * Public entry point of notifications (rule 3): other contexts notify users
+ * only through these ports (M16, M23).
  */
-export { Notifier, type NotificationRequest } from "./notifier";
+export { Notifier } from "./notifier";
+export { MentionMailer } from "./mention-mailer";
+export { DeadlineMailer } from "./deadline-mailer";

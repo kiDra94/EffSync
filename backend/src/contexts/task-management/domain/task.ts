@@ -137,3 +137,15 @@ export function buildTree<T extends TaskState>(
 
   return taskMap.get(taskId);
 }
+
+/**
+ * Whole calendar days from today to the deadline (0 today), the same count
+ * as the deadline mail (review M23).
+ */
+export function calendarDaysUntil(deadline: Date, now = new Date()): number {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const day = new Date(deadline);
+  day.setHours(0, 0, 0, 0);
+  return Math.round((day.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}

@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { GHOST_USER_ID } from "../../identity-access/application";
 import { CommentRepository } from "./ports/comment.repository";
-import { MentionMailer } from "./ports/mention-mailer";
+import { MentionMailer } from "../../notifications/application";
 
 /**
  * Discussion comments on a task (decision Q16: the `comments` table) with

@@ -46,6 +46,13 @@ export abstract class TaskRepository {
   abstract findVisibleTaskIds(userId: number): Promise<number[]>;
   /** Whether the task is in the user's visible set: one upward query, false for a missing task. */
   abstract isVisibleTo(taskId: number, userId: number): Promise<boolean>;
+  /**
+   * Open, unlocked tasks with an assignee and a deadline in the range, with
+   * the assignee's ID and e-mail (the daily reminder, T46, M23).
+   */
+  abstract findDueBetween(from: Date, to: Date): Promise<DeadlineTask[]>;
+  /** Open, unlocked tasks with an assignee whose deadline has passed (feature #27). */
+  abstract findOverdueUnlocked(now: Date): Promise<DeadlineTask[]>;
   /** The title and the people of a task (creator, assignee, members), for its chat (M21). */
   abstract findChatParticipants(taskId: number): Promise<{
     title: string | null;
@@ -103,4 +110,12 @@ export abstract class TaskRepository {
     userId: number,
   ): Promise<StudentSubmission[]>;
   abstract findDocuments(taskId: number): Promise<DocumentRecord[]>;
+}
+
+/** A task the deadline jobs work on, with its assignee (M23). */
+export interface DeadlineTask {
+  task_id: number;
+  title: string | null;
+  deadline: Date | null;
+  assignee: { user_id: number; email: string | null };
 }

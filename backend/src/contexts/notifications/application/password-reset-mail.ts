@@ -1,15 +1,15 @@
 import { Injectable } from "@nestjs/common";
-import { PasswordResetMailer } from "../../contexts/identity-access/application";
+import { PasswordResetMailer } from "../../identity-access/application";
+import { frontendUrl } from "../../../shared/application/frontend-url";
 import { EmailService } from "./email.service";
-import { frontendUrl } from "../../shared/presentation/frontend-url";
 
 /**
- * identity-access's PasswordResetMailer on the existing EmailService (M13),
- * until M23 moves e-mail into the notifications context. The token travels in
- * the URL fragment (decision Q9), which never reaches a server log.
+ * identity-access's PasswordResetMailer (M13), in notifications since M23.
+ * The token travels in the URL fragment (decision Q9), which never reaches a
+ * server log.
  */
 @Injectable()
-export class EmailPasswordResetMailer extends PasswordResetMailer {
+export class PasswordResetMail extends PasswordResetMailer {
   constructor(private readonly email: EmailService) {
     super();
   }

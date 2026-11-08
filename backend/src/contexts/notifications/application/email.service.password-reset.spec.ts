@@ -1,6 +1,9 @@
 import { EmailService } from "./email.service";
-import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
+import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
+import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import type { Transporter } from "nodemailer";
+import { NodemailerMailTransport } from "../infrastructure/mail-transport";
+import { PrismaEmailLogRepository } from "../infrastructure/persistence/prisma-email.repository";
 
 // M13: the reset mail, and (review M13, 7) at most one per account every
 // 5 minutes, so nobody can flood an inbox through POST /auth/forgot-password
@@ -20,8 +23,10 @@ describe("EmailService.sendPasswordResetEmail", () => {
       sendMail: jest.fn().mockResolvedValue({ messageId: "m-1" }),
     };
     service = new EmailService(
-      prisma as unknown as PrismaService,
-      transporter as unknown as Transporter,
+      new PrismaEmailLogRepository(
+        new PrismaUnitOfWork(prisma as unknown as PrismaService),
+      ),
+      new NodemailerMailTransport(transporter as unknown as Transporter),
     );
   });
 

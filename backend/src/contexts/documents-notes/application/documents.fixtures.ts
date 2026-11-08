@@ -5,8 +5,8 @@
  */
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
-import { NotificationsService } from "../../../modules/notifications/notifications.service";
-import { NotifierAdapter } from "../../../modules/notifications/notifier.adapter";
+import type { NotificationsService } from "../../notifications/application/notifications.service";
+import { InAppNotifier } from "../../notifications/application/in-app-notifier";
 import {
   TaskCompletionService,
   TaskResubmissionService,
@@ -127,7 +127,7 @@ export function createDocumentServices(
   const documents = new PrismaDocumentRepository(unitOfWork);
   const access = new DocumentAccessService(documents);
   const storage = new LocalDocumentStorage();
-  const notifier = new NotifierAdapter(
+  const notifier = new InAppNotifier(
     notifications as unknown as NotificationsService,
   );
   const tasks = new PrismaTaskRepository(unitOfWork);

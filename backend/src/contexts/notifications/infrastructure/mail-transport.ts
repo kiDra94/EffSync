@@ -3,9 +3,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as nodemailer from "nodemailer";
 import type { Transport } from "nodemailer";
-
-/** Injection token of the nodemailer transporter the EmailService sends with. */
-export const MAIL_TRANSPORT = "MAIL_TRANSPORT";
+import {
+  MailTransport,
+  type OutgoingMail,
+} from "../application/ports/mail-transport";
 
 /**
  * Test transport (M13): writes each mail as {to, subject, html} JSON into a
@@ -63,4 +64,23 @@ export function createMailTransport(): nodemailer.Transporter {
       pass: process.env.ETHEREAL_PASSWORD || "test-password",
     },
   });
+}
+
+/** The MailTransport port on nodemailer, from the sender EMAIL_FROM. */
+export class NodemailerMailTransport extends MailTransport {
+  constructor(
+    private readonly transporter: nodemailer.Transporter = createMailTransport(),
+  ) {
+    super();
+  }
+
+  async send({ to, subject, html }: OutgoingMail) {
+    const info = (await this.transporter.sendMail({
+      from: process.env.EMAIL_FROM || '"EffSync" <noreply@effsync.local>',
+      to,
+      subject,
+      html,
+    })) as { messageId: string };
+    return info.messageId;
+  }
 }

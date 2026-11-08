@@ -2,10 +2,8 @@ import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { CommunicationModule } from "./contexts/communication/communication.module";
-import { NotificationsModule } from "./modules/notifications/notifications.module";
-import { EmailModule } from "./modules/email/email.module";
-import { EmailPortsModule } from "./modules/email/email-ports.module";
-import { NotificationPortsModule } from "./modules/notifications/notification-ports.module";
+import { NotificationsModule } from "./contexts/notifications/notifications.module";
+import { ScheduleModule } from "@nestjs/schedule";
 import { RealtimeModule } from "./shared/infrastructure/realtime/realtime.module";
 import { TaskManagementModule } from "./contexts/task-management/task-management.module";
 import { SchoolOrganizationModule } from "./contexts/school-organization/school-organization.module";
@@ -48,10 +46,9 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     }),
     IdentityAccessModule,
     CommunicationModule,
+    // the cron scheduler for every @Cron (deadline jobs, session cleanup)
+    ScheduleModule.forRoot(),
     NotificationsModule,
-    EmailModule,
-    EmailPortsModule,
-    NotificationPortsModule,
     RealtimeModule,
     TaskManagementModule,
     DocumentsNotesModule,

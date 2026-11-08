@@ -19,6 +19,8 @@ import { TaskNotificationsService } from "./application/task-notifications.servi
 import { TaskVisibilityService } from "./application/task-visibility.service";
 import { TaskResubmissionService } from "./application/task-resubmission.service";
 import { TaskChatService } from "./application/task-chat.service";
+import { TaskDeadlinesService } from "./application/task-deadlines.service";
+import { TaskDeadlineJobs } from "./infrastructure/task-deadline.jobs";
 import { PrismaActivityLogRepository } from "./infrastructure/persistence/prisma-activity-log.repository";
 import { PrismaCommentRepository } from "./infrastructure/persistence/prisma-comment.repository";
 import { PrismaGradeRemarkRepository } from "./infrastructure/persistence/prisma-grade-remark.repository";
@@ -32,10 +34,10 @@ import { TaskController } from "./presentation/task.controller";
 /**
  * task-management (GOALS.md M15, L1 core): tasks, subtasks, completion rules,
  * locking, members, templates, comments, grading remarks and the activity
- * log. Task events go out through the shared realtime transport (M20);
- * MentionMailer comes from the legacy e-mail module's global binding,
- * PermissionsService and the account deletion registry from identity-access
- * (global).
+ * log, and the deadline jobs (M23). Task events go out through the shared
+ * realtime transport (M20); Notifier, MentionMailer and DeadlineMailer come
+ * from notifications, PermissionsService and the account deletion registry
+ * from identity-access (all global).
  */
 // global for TaskCompletionService and TaskResubmissionService (grading in
 // documents-notes, M17, M19) and TaskChatService (task chats in
@@ -57,6 +59,8 @@ import { TaskController } from "./presentation/task.controller";
     TaskVisibilityService,
     TaskResubmissionService,
     TaskChatService,
+    TaskDeadlinesService,
+    TaskDeadlineJobs,
     TaskAccountDeletion,
     { provide: TaskRepository, useClass: PrismaTaskRepository },
     { provide: TaskRealtime, useClass: RealtimeTaskEvents },

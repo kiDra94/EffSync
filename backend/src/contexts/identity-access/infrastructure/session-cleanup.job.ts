@@ -5,7 +5,7 @@ import { SessionService } from "../application/session.service";
 /**
  * Removes expired refresh tokens once a night, so `refresh_tokens` stays
  * bounded (M12). The cron scheduler is registered by `ScheduleModule.forRoot()`
- * in EmailModule; it runs every `@Cron` in the app.
+ * in AppModule; it runs every `@Cron` in the app.
  */
 @Injectable()
 export class SessionCleanupJob {

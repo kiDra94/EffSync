@@ -266,6 +266,43 @@ export class PrismaTaskRepository extends TaskRepository {
     });
   }
 
+  // the queries of the deadline jobs (EmailCronService before M23)
+  findDueBetween(from: Date, to: Date) {
+    return this.deadlineTasks({
+      deadline: { gte: from, lte: to },
+      status: { not: "COMPLETED" },
+      assigned_to: { not: null },
+      is_locked: false,
+    });
+  }
+
+  findOverdueUnlocked(now: Date) {
+    return this.deadlineTasks({
+      deadline: { lt: now },
+      status: { not: "COMPLETED" },
+      assigned_to: { not: null },
+      is_locked: false,
+    });
+  }
+
+  private async deadlineTasks(where: Prisma.tasksWhereInput) {
+    const rows = await this.db.tasks.findMany({
+      where,
+      select: {
+        task_id: true,
+        title: true,
+        deadline: true,
+        users_tasks_assigned_toTousers: {
+          select: { user_id: true, email: true },
+        },
+      },
+    });
+    return rows.flatMap(
+      ({ users_tasks_assigned_toTousers: assignee, ...task }) =>
+        assignee ? [{ ...task, assignee }] : [],
+    );
+  }
+
   findChatParticipants(taskId: number) {
     return this.db.tasks.findUnique({
       where: { task_id: taskId },
