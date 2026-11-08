@@ -141,21 +141,11 @@ export class PrismaUserRepository extends UserRepository {
 
   async lockForDeletion(userId: number) {
     const db = this.db();
-    // FK inserts (a new class teacher, a new message) take KEY SHARE locks on
-    // these rows, so they wait for the deletion; so does a second deletion
+    // FK inserts (a new message, a new assignment) take KEY SHARE locks on
+    // the row, so they wait for the deletion; so does a second deletion (the
+    // teacher row is school-organization's lock, M22)
     await db.$queryRaw`SELECT 1 FROM "users" WHERE "user_id" = ${userId} FOR UPDATE`;
-    await db.$queryRaw`SELECT 1 FROM "teachers" WHERE "teacher_id" = ${userId} FOR UPDATE`;
     return db.users.findUnique({ where: { user_id: userId } });
-  }
-
-  async countTeacherAssignments(userId: number) {
-    const db = this.db();
-    const [headOf, teaches, slots] = await Promise.all([
-      db.classes.count({ where: { head_teacher_id: userId } }),
-      db.classes_teachers.count({ where: { teacher_id: userId } }),
-      db.lesson_slots.count({ where: { teacher_id: userId } }),
-    ]);
-    return headOf + teaches + slots;
   }
 
   async anonymizeAndDelete(userId: number) {
@@ -165,8 +155,8 @@ export class PrismaUserRepository extends UserRepository {
       select: { firstname: true, lastname: true, username: true },
     });
 
-    // tasks, documents, notes and chats are their contexts'
-    // AccountDeletionParticipants (M15, M19, M20)
+    // tasks, documents, notes, chats and the school profiles are their
+    // contexts' AccountDeletionParticipants (M15, M19, M20, M22)
 
     // other members' chat notifications start with the sender's name
     // (communication's ChatMessagesService); the name goes, the message
@@ -177,18 +167,10 @@ export class PrismaUserRepository extends UserRepository {
     const ghostPrefix = `💬 ${GHOST_USER.firstname} ${GHOST_USER.lastname}:`;
     await tx.$executeRaw`UPDATE "notifications" SET "text" = ${ghostPrefix} || substr("text", char_length(${prefix}) + 1) WHERE "type" = 'chat_message' AND starts_with("text", ${prefix})`;
 
-    // references that mean nothing for a ghost
-    await tx.teachers.updateMany({
-      where: { supervisor_id: userId },
-      data: { supervisor_id: null },
-    });
-
     // personal rows
     const ownRows = { where: { user_id: userId } };
     await tx.user_roles.deleteMany(ownRows);
     await tx.notifications.deleteMany(ownRows);
-    await tx.students.deleteMany({ where: { student_id: userId } });
-    await tx.teachers.deleteMany({ where: { teacher_id: userId } });
 
     // user_permissions, email_*, refresh_tokens and task_members cascade
     return tx.users.delete({ where: { user_id: userId } });

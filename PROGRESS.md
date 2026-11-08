@@ -1046,3 +1046,30 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - A failed `docker compose up` (port taken by an `act` service container) leaves the test DB container without a port mapping; `down` and `up` again.
 
 **Failed / open:** (6), (8), (9) and the connect race above.
+
+## 2026-11-08 – M22: Migrate school-organization
+
+**Done:**
+- `src/contexts/school-organization` replaces `modules/classes`, `departments`, `subjects`, `rooms`, `schedules` and `lesson-slots` (features from `05_…:60`).
+  - Domain: the schedule period rule (`isValidPeriod`). Application: the six services with their old class names; schedules and lesson slots on `ScheduleRepository` and `LessonSlotRepository` (the old queries, G1, typed records); input types in `school-inputs.ts`, so application doesn't import the DTOs. Classes, departments, subjects and rooms stay stubs until M36.
+  - Presentation: the same controllers, routes, permissions and DTO class names; the controllers are registered in the order of the old modules.
+  - The room create route passed the DTO class instead of the request body to the (stub) service; it passes the body now.
+- Account deletion (GOALS.md M15 step 6): `AccountDeletionParticipant` gets an optional `assertDeletable`, which `UsersService.remove` runs after locking the user row and before anything is written. `SchoolAccountDeletion` (application, on the `SchoolProfileRepository` port) locks the teacher row, refuses a teacher who still heads or teaches a class or has lessons (409, same message, decision H1), and deletes the student and teacher profiles and clears supervisor references. `PrismaUserRepository` no longer touches `teachers`, `students`, `classes`, `classes_teachers` or `lesson_slots`.
+- Lint: school-organization has 0 `no-unsafe-*` findings and the rules are `error` there (Q13). The ratchet stays at 75 (the remaining findings are the stubs' unused parameters, which M36 replaces).
+
+**Verified:**
+- Done when:
+  - 0 dependency violations, 0 context cycles.
+  - All existing tests pass: 508 unit and 101 E2E (including the 409 for a teacher who is still class teacher in `account-deletion.e2e-spec.ts`).
+  - `GET /api-json`: captured from a build of HEAD before the change and from a build after it, both against the test database; the two files are identical byte for byte.
+- New specs: `schedules.service.spec.ts` (period check on create and update against the stored end, 404, delete only without lessons; before, the spec only checked "defined"), `lesson-slots.service.spec.ts`, `school-account-deletion.spec.ts` (409 per assignment table, lock before counting, profile deletion); the identity specs follow the move.
+- tsc, lint (0 errors, 75 warnings), knip, dependency-cruiser and build pass. `act`: all three jobs succeeded.
+- `code-review` (high): no new bugs; the hand-off keeps the transaction, the lock order and the 409. 9 findings. Fixed: (3) untyped schedule records, (4) the 409 rule in infrastructure (now an application participant on a port), (5) mocks shared between tests, (6) a Prisma mock in the stub spec, (7) two input-typing conventions, (8) leftover `include: {}`, (9) duplicated period checks. Kept for M36, where these services become real:
+  - (1) `PATCH`/`DELETE /lesson-slots/:id` for a missing slot answers 500 (Prisma P2025), `GET` answers 200 with an empty body (as before).
+  - (2) Deleting a schedule while a slot is added can fail the foreign key (500 instead of 400), as before.
+
+**Learned (for later milestones):**
+- A participant that can refuse runs its check before any participant writes, inside the same unit of work, so the locks of identity-access and the other context are taken in a fixed order (user, then the context's rows).
+- A `GET /api-json` comparison needs a build of the old state first; the controller registration order shapes the file.
+
+**Failed / open:** (1) and (2) for M36.

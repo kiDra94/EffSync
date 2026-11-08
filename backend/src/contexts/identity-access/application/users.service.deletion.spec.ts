@@ -15,13 +15,12 @@ describe("UsersService.remove", () => {
   const ADMIN = 1;
   let users: Record<string, jest.Mock>;
   let unitOfWork: { run: jest.Mock };
-  let accountDeletion: { anonymizeUser: jest.Mock };
+  let accountDeletion: { assertDeletable: jest.Mock; anonymizeUser: jest.Mock };
   let service: UsersService;
 
   beforeEach(() => {
     users = {
       lockForDeletion: jest.fn().mockResolvedValue({ user_id: 4 }),
-      countTeacherAssignments: jest.fn().mockResolvedValue(0),
       findRolesWithPermissions: jest
         .fn()
         .mockResolvedValue([{ role_id: 2, roles: { name: "Student" } }]),
@@ -34,7 +33,10 @@ describe("UsersService.remove", () => {
       findById: jest.fn(),
       update: jest.fn(),
     };
-    accountDeletion = { anonymizeUser: jest.fn().mockResolvedValue(undefined) };
+    accountDeletion = {
+      assertDeletable: jest.fn().mockResolvedValue(undefined),
+      anonymizeUser: jest.fn().mockResolvedValue(undefined),
+    };
     unitOfWork = {
       run: jest.fn((work: (tx: Transaction) => Promise<unknown>) =>
         work({} as Transaction),
@@ -105,10 +107,14 @@ describe("UsersService.remove", () => {
     await expect(service.remove(99, ADMIN)).rejects.toThrow(NotFoundException);
   });
 
-  it("answers 409 while the user is still head teacher, class teacher or has lesson slots", async () => {
-    users.countTeacherAssignments.mockResolvedValue(2);
+  // the teacher check is school-organization's participant since M22
+  // (school-account-deletion.spec.ts); a refusal stops the deletion
+  it("answers 409 while a context refuses, e.g. a teacher still assigned", async () => {
+    accountDeletion.assertDeletable.mockRejectedValue(new ConflictException());
 
     await expect(service.remove(3, ADMIN)).rejects.toThrow(ConflictException);
+    expect(accountDeletion.assertDeletable).toHaveBeenCalledWith(3);
+    expect(accountDeletion.anonymizeUser).not.toHaveBeenCalled();
     expect(users.anonymizeAndDelete).not.toHaveBeenCalled();
   });
 

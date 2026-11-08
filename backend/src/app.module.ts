@@ -8,10 +8,8 @@ import { EmailPortsModule } from "./modules/email/email-ports.module";
 import { NotificationPortsModule } from "./modules/notifications/notification-ports.module";
 import { RealtimeModule } from "./shared/infrastructure/realtime/realtime.module";
 import { TaskManagementModule } from "./contexts/task-management/task-management.module";
+import { SchoolOrganizationModule } from "./contexts/school-organization/school-organization.module";
 import { DocumentsNotesModule } from "./contexts/documents-notes/documents-notes.module";
-import { SchedulesModule } from "./modules/schedules/schedules.module";
-import { ClassesModule } from "./modules/classes/classes.module";
-import { DepartmentsModule } from "./modules/departments/departments.module";
 import { PrismaModule } from "./shared/infrastructure/prisma/prisma.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { IdentityAccessModule } from "./contexts/identity-access/identity-access.module";
@@ -21,10 +19,7 @@ import {
   ThrottlerModule,
   ThrottlerModuleOptions,
 } from "@nestjs/throttler";
-import { RoomsModule } from "./modules/rooms/room.module";
-import { LessonSlotsModule } from "./modules/lesson-slots/lesson-slots.module";
 import { APP_GUARD } from "@nestjs/core";
-import { SubjectsModule } from "./modules/subjects/subjects.module";
 import { MetricsModule } from "./modules/metrics/metrics.module";
 
 @Module({
@@ -60,13 +55,8 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     RealtimeModule,
     TaskManagementModule,
     DocumentsNotesModule,
-    SchedulesModule,
-    ClassesModule,
-    DepartmentsModule,
+    SchoolOrganizationModule,
     PrismaModule,
-    LessonSlotsModule,
-    RoomsModule,
-    SubjectsModule,
     MetricsModule,
   ],
   controllers: [AppController],

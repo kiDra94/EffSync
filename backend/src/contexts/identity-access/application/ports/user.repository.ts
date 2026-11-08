@@ -48,10 +48,8 @@ export abstract class UserRepository {
     userId: number,
     passwordHash: string,
   ): Promise<UserRecord>;
-  /** Classes the user heads, teaches, and lesson slots they hold (M14). */
-  abstract countTeacherAssignments(userId: number): Promise<number>;
   /**
-   * Locks the user's row (and teacher row) until the unit of work ends and
+   * Locks the user's row until the unit of work ends and
    * returns the user; null if there is none. Run inside a unit of work.
    */
   abstract lockForDeletion(userId: number): Promise<UserRecord | null>;

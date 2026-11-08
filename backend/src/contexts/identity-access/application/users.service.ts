@@ -85,11 +85,8 @@ export class UsersService {
       if (!(await this.users.lockForDeletion(id))) {
         throw new NotFoundException(`User ${id} nicht gefunden`);
       }
-      if ((await this.users.countTeacherAssignments(id)) > 0) {
-        throw new ConflictException(
-          "Die Lehrkraft ist noch Klassenvorstand, unterrichtet eine Klasse oder hat Unterrichtsstunden. Bitte zuerst neu zuweisen.",
-        );
-      }
+      // e.g. school-organization refuses a teacher still assigned (M22)
+      await this.accountDeletion.assertDeletable(id);
       await this.assertNotLastCriticalRoleHolder(id);
       // the other contexts' rows first (tasks, M15), then identity-access's own
       await this.accountDeletion.anonymizeUser(id);

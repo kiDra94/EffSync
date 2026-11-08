@@ -509,7 +509,7 @@ Rules for all milestones:
   - Done when: an E2E test creates the same DM twice and gets one room ID, and a task's chat can be opened from the task card with `task_id` set.
   - Risk: low–medium. Duplicate DMs that already exist need a one-off merge or must be accepted; document which.
 
-- [ ] **M22: Migrate `school-organization`**
+- [x] **M22: Migrate `school-organization`**
   - Why: L1. Classes, departments, subjects, rooms, schedules and lesson slots move into their own context. This context isn't named in the thesis; its features are listed in `05_…:60`.
   - Done when: there are 0 violations, all existing tests pass and `GET /api-json` is unchanged.
   - Risk: low. These are mostly CRUD modules.

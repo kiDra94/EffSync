@@ -14,10 +14,8 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     task_grade: table(),
     task_activity_log: table(),
     task_templates: table(),
-    teachers: table(),
     user_roles: table(),
     notifications: table(),
-    students: table(),
     users: {
       findUniqueOrThrow: jest.fn().mockResolvedValue({
         user_id: 5,
@@ -41,28 +39,12 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     expect(GHOST_USER_ID).toBe(0);
   });
 
-  it.each([["teachers", "supervisor_id"]] as const)(
-    "sets %s.%s to NULL",
-    (name, column) => {
-      expect(tx[name].updateMany).toHaveBeenCalledWith({
-        where: { [column]: 5 },
-        data: { [column]: null },
-      });
-    },
-  );
-
   it("deletes the personal rows", () => {
     for (const name of ["user_roles", "notifications"] as const) {
       expect(tx[name].deleteMany).toHaveBeenCalledWith({
         where: { user_id: 5 },
       });
     }
-    expect(tx.students.deleteMany).toHaveBeenCalledWith({
-      where: { student_id: 5 },
-    });
-    expect(tx.teachers.deleteMany).toHaveBeenCalledWith({
-      where: { teacher_id: 5 },
-    });
   });
 
   // review M14 (3): the chat notifications of other members carry the name
@@ -79,7 +61,7 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     const deleteOrder = tx.users.delete.mock.invocationCallOrder[0];
     expect(
       Math.max(
-        ...tx.teachers.deleteMany.mock.invocationCallOrder,
+        ...tx.notifications.deleteMany.mock.invocationCallOrder,
         ...tx.$executeRaw.mock.invocationCallOrder,
       ),
     ).toBeLessThan(deleteOrder);
@@ -89,7 +71,8 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
 // review M14 (5): the row locks serialize the delete with concurrent
 // assignments (FK inserts take KEY SHARE locks) and with a second delete
 describe("PrismaUserRepository.lockForDeletion", () => {
-  it("locks the user and teacher rows, then reads the user", async () => {
+  // the teacher row is school-organization's lock since M22
+  it("locks the user row, then reads the user", async () => {
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([]),
       users: { findUnique: jest.fn().mockResolvedValue({ user_id: 5 }) },
@@ -102,12 +85,11 @@ describe("PrismaUserRepository.lockForDeletion", () => {
     await expect(repository.lockForDeletion(5)).resolves.toEqual({
       user_id: 5,
     });
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
     const sql = (tx.$queryRaw.mock.calls as [TemplateStringsArray][])
       .map(([strings]) => strings.join("?"))
       .join(" ");
     expect(sql).toMatch(/FROM "users".*FOR UPDATE/);
-    expect(sql).toMatch(/FROM "teachers".*FOR UPDATE/);
   });
 });
 
