@@ -9,16 +9,13 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
   const table = () => ({ updateMany: jest.fn(), deleteMany: jest.fn() });
   const tx = {
     $executeRaw: jest.fn(),
-    chat_messages: table(),
     tasks: table(),
     comments: table(),
     task_grade: table(),
-    chat_rooms: table(),
     task_activity_log: table(),
     task_templates: table(),
     teachers: table(),
     user_roles: table(),
-    chat_room_users: table(),
     notifications: table(),
     students: table(),
     users: {
@@ -44,16 +41,6 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     expect(GHOST_USER_ID).toBe(0);
   });
 
-  it.each([
-    ["chat_messages", "user_id"],
-    ["chat_rooms", "created_by"],
-  ] as const)("moves %s.%s to the ghost user", (name, column) => {
-    expect(tx[name].updateMany).toHaveBeenCalledWith({
-      where: { [column]: 5 },
-      data: { [column]: 0 },
-    });
-  });
-
   it.each([["teachers", "supervisor_id"]] as const)(
     "sets %s.%s to NULL",
     (name, column) => {
@@ -65,11 +52,7 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
   );
 
   it("deletes the personal rows", () => {
-    for (const name of [
-      "user_roles",
-      "chat_room_users",
-      "notifications",
-    ] as const) {
+    for (const name of ["user_roles", "notifications"] as const) {
       expect(tx[name].deleteMany).toHaveBeenCalledWith({
         where: { user_id: 5 },
       });
@@ -96,7 +79,6 @@ describe("PrismaUserRepository.anonymizeAndDelete", () => {
     const deleteOrder = tx.users.delete.mock.invocationCallOrder[0];
     expect(
       Math.max(
-        ...tx.chat_messages.updateMany.mock.invocationCallOrder,
         ...tx.teachers.deleteMany.mock.invocationCallOrder,
         ...tx.$executeRaw.mock.invocationCallOrder,
       ),

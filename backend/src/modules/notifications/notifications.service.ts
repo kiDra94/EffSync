@@ -1,20 +1,14 @@
-import {
-  Injectable,
-  NotFoundException,
-  Inject,
-  forwardRef,
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
-import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { RealtimePublisher } from "../../shared/application/realtime";
 import { GHOST_USER_ID } from "../../contexts/identity-access/application";
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => WebsocketGateway))
-    private readonly websocketGateway: WebsocketGateway,
+    private readonly realtime: RealtimePublisher,
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
@@ -32,7 +26,7 @@ export class NotificationsService {
     const notification = await this.prisma.notifications.create({
       data: { ...createNotificationDto },
     });
-    this.websocketGateway.emitToUser(
+    this.realtime.toUser(
       createNotificationDto.user_id,
       "notification:new",
       notification,

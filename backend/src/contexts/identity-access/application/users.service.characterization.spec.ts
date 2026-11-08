@@ -7,6 +7,8 @@ import { UsersService } from "./users.service";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { RolePermissionsService } from "./role-permissions.service";
 import { AccountDeletionRegistry } from "./account-deletion";
+import { CommunicationAccountDeletion } from "../../communication/infrastructure/communication-account-deletion";
+import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -80,11 +82,17 @@ describe("UsersService (characterization, M2)", () => {
   beforeEach(() => {
     prisma = createPrismaMock();
     rolePermissions = { assignDefaultPermissionsForRole: jest.fn() };
+    // the chat tables are communication's part of the deletion since M20
+    const accountDeletion = new AccountDeletionRegistry();
+    new CommunicationAccountDeletion(
+      { client: () => prisma } as unknown as PrismaUnitOfWork,
+      accountDeletion,
+    ).onModuleInit();
     service = new UsersService(
       new PrismaUserRepository(prisma as unknown as PrismaService),
       rolePermissions as unknown as RolePermissionsService,
       { run: (work: () => Promise<unknown>) => work() } as never,
-      new AccountDeletionRegistry(),
+      accountDeletion,
     );
   });
 

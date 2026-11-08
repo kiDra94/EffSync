@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { ChatRoomsModule } from "./modules/chat-rooms/chat-rooms.module";
+import { CommunicationModule } from "./contexts/communication/communication.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { EmailModule } from "./modules/email/email.module";
 import { EmailPortsModule } from "./modules/email/email-ports.module";
 import { NotificationPortsModule } from "./modules/notifications/notification-ports.module";
-import { WebsocketPortsModule } from "./modules/websocket/websocket-ports.module";
+import { RealtimeModule } from "./shared/infrastructure/realtime/realtime.module";
 import { TaskManagementModule } from "./contexts/task-management/task-management.module";
 import { DocumentsNotesModule } from "./contexts/documents-notes/documents-notes.module";
 import { SchedulesModule } from "./modules/schedules/schedules.module";
@@ -21,12 +21,10 @@ import {
   ThrottlerModule,
   ThrottlerModuleOptions,
 } from "@nestjs/throttler";
-import { ChatMessagesModule } from "./modules/chat-messages/chat-messages.module";
 import { RoomsModule } from "./modules/rooms/room.module";
 import { LessonSlotsModule } from "./modules/lesson-slots/lesson-slots.module";
 import { APP_GUARD } from "@nestjs/core";
 import { SubjectsModule } from "./modules/subjects/subjects.module";
-import { WebsocketModule } from "./modules/websocket/websocket.module";
 import { MetricsModule } from "./modules/metrics/metrics.module";
 
 @Module({
@@ -54,13 +52,12 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
       }),
     }),
     IdentityAccessModule,
-    ChatRoomsModule,
-    ChatMessagesModule,
+    CommunicationModule,
     NotificationsModule,
     EmailModule,
     EmailPortsModule,
     NotificationPortsModule,
-    WebsocketPortsModule,
+    RealtimeModule,
     TaskManagementModule,
     DocumentsNotesModule,
     SchedulesModule,
@@ -70,7 +67,6 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     LessonSlotsModule,
     RoomsModule,
     SubjectsModule,
-    WebsocketModule,
     MetricsModule,
   ],
   controllers: [AppController],

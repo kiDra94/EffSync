@@ -494,7 +494,7 @@ Rules for all milestones:
   - Done when: no file is over 500 lines, there are 0 violations, and the M1 document tests pass unchanged.
   - Risk: medium. The access rules are subtle.
 
-- [ ] **M20: Migrate `communication`**
+- [x] **M20: Migrate `communication`**
   - Why: L1. Chat rooms, messages and the chat handlers of `websocket.gateway.ts` go into one context. The Socket.io transport moves to `shared/infrastructure/realtime`, and contexts publish through a port.
   - Done when: there are 0 violations, the M6 tests pass, and the cross-browser chat check from `08_…:216` (two browsers, both directions, reload keeps the history) passes manually and is documented in PROGRESS.md.
   - Risk: medium. The gateway also emits task and notification events, which need to move to ports without changing event names.

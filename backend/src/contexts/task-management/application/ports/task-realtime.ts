@@ -1,6 +1,6 @@
 /**
- * Realtime events for tasks (port). The WebSocket gateway implements it
- * (modules/websocket) until M20 moves the transport to shared/infrastructure.
+ * Realtime events for tasks (port). RealtimeTaskEvents implements it on the
+ * shared realtime transport (M20); the event names are the frontend's.
  */
 export abstract class TaskRealtime {
   abstract emitTaskUpdated(userId: number, task: unknown): void;

@@ -1008,3 +1008,41 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - `git mv` followed by deleting the target leaves a staged rename in the index. Check `git status` for `RD` before committing.
 
 **Failed / open:** (2), (7, 8) and (9) above.
+
+## 2026-11-08 – M20: Migrate communication, realtime transport in shared
+
+**Done:**
+- Shared realtime transport (`shared/infrastructure/realtime`, port in `shared/application/realtime.ts`):
+  - `RealtimePublisher` (`toUser`, `toChannel`, `removeUserFromChannel`) is the port contexts publish through; `SocketIoRealtime` implements it on Socket.io.
+  - `SocketIoRealtime` also accepts sockets: the token is checked through the `RealtimeAuthenticator` port (identity-access's `JwtRealtimeAuthenticator`: a valid access token and `view_dashboard`, T54, decision F1). The socket joins `user_<id>` and the channels the contexts register in `RealtimeChannelRegistry`.
+  - Emit errors are logged and don't fail the use case that already committed (as the old gateway's try/catch did).
+  - `REALTIME_GATEWAY_OPTIONS` (CORS: only `FRONTEND_URL`, T13) is shared by both gateways on the one Socket.io server.
+- `src/contexts/communication` replaces `modules/chat-rooms`, `modules/chat-messages` and the chat part of `modules/websocket`:
+  - Domain: the chat notification text and the channel name (`roomChannel`). Application: `ChatRoomsService`, `ChatMessagesService` and `ChatRealtime` (the user's room channels on connecting, unsubscribing a removed member) with `ChatRoomRepository` and `ChatMessageRepository`. Infrastructure: Prisma repositories with the old queries (G1) and `CommunicationAccountDeletion`.
+  - Presentation: the same routes and DTOs, and `ChatGateway` with the same socket events (`join:room`, `invite:room`, `leave:room`, `delete:room`, `chat:send`, `chat:edit`, `chat:delete`, `chat:typing`).
+  - Chat notifications go through the `Notifier` port; room joins and leaves run in a unit of work.
+- Task events go through `RealtimeTaskEvents` (task-management infrastructure, `TaskRealtime` port), notifications through `RealtimePublisher`. The event names stay: `task:updated`, `task:locked`, `notification:new`, `chat:new`, `chat:edited`, `chat:deleted`, `room:new`, `room:user-joined`, `delete:room`, `chat:typing`.
+- Account deletion (GOALS.md M15 step 6): chat messages and rooms move to the ghost user, memberships are deleted, now in `CommunicationAccountDeletion`. The rename in other members' chat notifications stays in identity-access until M23 migrates notifications.
+- `modules/websocket` (gateway, `WebsocketPortsModule`, the unused `WsJwtGuard`), `modules/chat-rooms` and `modules/chat-messages` are deleted.
+- Lint: communication and the realtime transport have 0 `no-unsafe-*` findings and the rules are `error` there (Q13). Ratchet 101 → 75 warnings.
+- `socket.io-client` 4.8.3 (the frontend's version) is a backend dev dependency for the E2E test; the lock file was written with npm 10, as CI's `npm ci` needs.
+
+**Verified:**
+- Done when:
+  - 0 dependency violations, 0 context cycles.
+  - The M6 tests pass: the gateway handler tests in `chat.gateway.spec.ts` (only the construction changed); the connection tests (view_dashboard, room joins) and the unsubscribe test moved with their assertions to `socket-io-realtime.spec.ts`, wired with the real authenticator and `ChatRealtime`; the M2/M6 route and service specs with the new construction.
+  - Cross-browser chat check (`08_…:216`): two separate Chromium processes with their own sessions (alehrerin and ffuchs), frontend dev server against a backend on the test database (`effsync_test`, port 3001), driven by a Playwright script instead of by hand. A → B and B → A arrived live, and a reload in each browser kept the history. Screenshots were checked.
+- `test/realtime-chat.e2e-spec.ts` with two real Socket.io clients: both directions, `notification:new` for the chat message, the history over REST, and refusal of sockets without a token or with an invalid one.
+- Backend: 500 unit and 101 E2E tests. tsc, lint (0 errors, 75 warnings), knip, dependency-cruiser and build pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings. Fixed: (1) a race in the refusal test, (2) a fixed wait in the E2E test (it now retries `join:room` until confirmed), (3) emit errors failing use cases, (4) the authenticator throwing on bad tokens and the catch-all hiding channel errors, (5) channel names spelled out in the gateway (now `roomChannel` and `userChannel`), (7) the connection loading whole rooms with members just for their IDs (`findActiveRoomIds`). Kept, with reasons:
+  - (6) The active-membership query exists in both repositories (three forms). G1 keeps the old queries; one membership helper is M21's (already noted in M6).
+  - (8) Chat notifications are sent one after another, as before. Batching belongs to M23 (notifications).
+  - (9) Adding a member over REST doesn't put their open sockets into the room or send `room:new` (as before M20). That's chat behaviour for M21.
+  - (10) The gateway options live in `shared/application`, because both the transport (infrastructure) and `ChatGateway` (presentation) need them and the layer rules allow neither to import the other.
+
+**Learned (for later milestones):**
+- `npm install` with the local npm 11 rewrites the lock file in a way CI's npm 10 `npm ci` rejects. Install with `npx npm@10`.
+- The socket's token check runs after the client's `connect` event, so a `join:room` sent right away gets an `error` (also in the frontend). A Socket.io middleware for the check would remove that race (M21).
+- A failed `docker compose up` (port taken by an `act` service container) leaves the test DB container without a port mapping; `down` and `up` again.
+
+**Failed / open:** (6), (8), (9) and the connect race above.

@@ -165,22 +165,12 @@ export class PrismaUserRepository extends UserRepository {
       select: { firstname: true, lastname: true, username: true },
     });
 
-    // shared content: the chat history stays, under the ghost user (tasks,
-    // documents and notes are their contexts' AccountDeletionParticipants,
-    // M15, M19)
-    const toGhost = { user_id: GHOST_USER_ID };
-    await tx.chat_messages.updateMany({
-      where: { user_id: userId },
-      data: toGhost,
-    });
-    const createdBy = { created_by: GHOST_USER_ID };
-    await tx.chat_rooms.updateMany({
-      where: { created_by: userId },
-      data: createdBy,
-    });
+    // tasks, documents, notes and chats are their contexts'
+    // AccountDeletionParticipants (M15, M19, M20)
 
     // other members' chat notifications start with the sender's name
-    // (chat-messages.service.ts); the name goes, the message stays
+    // (communication's ChatMessagesService); the name goes, the message
+    // stays. The notifications table is identity-access's here until M23.
     const senderName =
       `${user.firstname} ${user.lastname}`.trim() || user.username;
     const prefix = `💬 ${senderName}:`;
@@ -196,7 +186,6 @@ export class PrismaUserRepository extends UserRepository {
     // personal rows
     const ownRows = { where: { user_id: userId } };
     await tx.user_roles.deleteMany(ownRows);
-    await tx.chat_room_users.deleteMany(ownRows);
     await tx.notifications.deleteMany(ownRows);
     await tx.students.deleteMany({ where: { student_id: userId } });
     await tx.teachers.deleteMany({ where: { teacher_id: userId } });

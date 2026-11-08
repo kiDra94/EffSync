@@ -1,4 +1,6 @@
 import { Global, Module } from "@nestjs/common";
+import { RealtimeAuthenticator } from "../../shared/application/realtime";
+import { JwtRealtimeAuthenticator } from "./infrastructure/jwt-realtime-authenticator";
 import { ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
@@ -70,6 +72,7 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     SessionService,
     PasswordResetService,
     AccountDeletionRegistry,
+    { provide: RealtimeAuthenticator, useClass: JwtRealtimeAuthenticator },
     { provide: ResetTokens, useClass: JwtResetTokens },
     { provide: UserRepository, useClass: PrismaUserRepository },
     { provide: PermissionRepository, useClass: PrismaPermissionRepository },
@@ -90,6 +93,7 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
   exports: [
     PermissionsService,
     AccountDeletionRegistry,
+    RealtimeAuthenticator,
     RolesGuard,
     PermissionsGuard,
     JwtModule,

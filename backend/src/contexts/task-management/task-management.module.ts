@@ -9,6 +9,7 @@ import { GradeRemarkRepository } from "./application/ports/grade-remark.reposito
 import { TaskMemberRepository } from "./application/ports/task-member.repository";
 import { TaskTemplateRepository } from "./application/ports/task-template.repository";
 import { TaskRepository } from "./application/ports/task.repository";
+import { TaskRealtime } from "./application/ports/task-realtime";
 import { TaskCompletionService } from "./application/task-completion.service";
 import { TaskLockingService } from "./application/task-locking.service";
 import { TaskMembersService } from "./application/task-members.service";
@@ -23,15 +24,17 @@ import { PrismaGradeRemarkRepository } from "./infrastructure/persistence/prisma
 import { PrismaTaskMemberRepository } from "./infrastructure/persistence/prisma-task-member.repository";
 import { PrismaTaskTemplateRepository } from "./infrastructure/persistence/prisma-task-template.repository";
 import { PrismaTaskRepository } from "./infrastructure/persistence/prisma-task.repository";
+import { RealtimeTaskEvents } from "./infrastructure/realtime-task-events";
 import { TaskAccountDeletion } from "./infrastructure/task-account-deletion";
 import { TaskController } from "./presentation/task.controller";
 
 /**
  * task-management (GOALS.md M15, L1 core): tasks, subtasks, completion rules,
  * locking, members, templates, comments, grading remarks and the activity
- * log. TaskRealtime and MentionMailer come from the legacy WebSocket and
- * e-mail modules' global bindings; PermissionsService and the account
- * deletion registry from identity-access (global).
+ * log. Task events go out through the shared realtime transport (M20);
+ * MentionMailer comes from the legacy e-mail module's global binding,
+ * PermissionsService and the account deletion registry from identity-access
+ * (global).
  */
 // global for TaskCompletionService and TaskResubmissionService: grading in
 // documents-notes completes and reopens tasks through them (M17, M19)
@@ -53,6 +56,7 @@ import { TaskController } from "./presentation/task.controller";
     TaskResubmissionService,
     TaskAccountDeletion,
     { provide: TaskRepository, useClass: PrismaTaskRepository },
+    { provide: TaskRealtime, useClass: RealtimeTaskEvents },
     { provide: ActivityLogRepository, useClass: PrismaActivityLogRepository },
     { provide: TaskMemberRepository, useClass: PrismaTaskMemberRepository },
     { provide: TaskTemplateRepository, useClass: PrismaTaskTemplateRepository },

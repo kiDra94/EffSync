@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotificationsService } from "./notifications.service";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
-import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { RealtimePublisher } from "../../shared/application/realtime";
 
 describe("NotificationsService", () => {
   let service: NotificationsService;
@@ -24,7 +24,7 @@ describe("NotificationsService", () => {
       providers: [
         NotificationsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: WebsocketGateway, useValue: { emitToUser: jest.fn() } },
+        { provide: RealtimePublisher, useValue: { toUser: jest.fn() } },
       ],
     }).compile();
 

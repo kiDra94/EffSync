@@ -2,7 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { NotificationsController } from "./notifications.controller";
 import { NotificationsService } from "./notifications.service";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
-import { WebsocketGateway } from "../websocket/websocket.gateway";
+import { RealtimePublisher } from "../../shared/application/realtime";
 import {
   JwtAuthGuard,
   PermissionsGuard,
@@ -29,7 +29,7 @@ describe("NotificationsController", () => {
       providers: [
         NotificationsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: WebsocketGateway, useValue: {} },
+        { provide: RealtimePublisher, useValue: {} },
       ],
     })
       .overrideGuard(JwtAuthGuard)
