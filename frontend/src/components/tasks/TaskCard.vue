@@ -59,6 +59,7 @@
       >
         📎
       </button>
+      <button @click="openTaskChat" class="task-btn task-btn-chat" title="Chat zur Aufgabe öffnen">💬</button>
       <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
@@ -108,6 +109,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useChatStore } from '@/stores/entities/chatStore';
 import RuleVisualizer from './RuleVisualizer.vue';
 import { priorityLabel } from '@/config/priorities';
 
@@ -124,6 +126,7 @@ const showSubtasks = ref(false);
 const router = useRouter();
 const taskStore = useTaskStore();
 const authStore = useAuthStore();
+const chatStore = useChatStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
 const allTasks = computed(() => taskStore.tasks);
 
@@ -196,6 +199,16 @@ const editRule = () => {
 
 const gradeTask = () => {
   emit('grade', props.task);
+};
+
+// T29 (M21): the task's chat, created on the first open, with task_id set
+const openTaskChat = async () => {
+  try {
+    const room = await chatStore.openTaskChat(props.task.task_id);
+    router.push({ name: 'Chat', query: { room: String(room.room_id) } });
+  } catch (error) {
+    console.error('Task-Chat konnte nicht geöffnet werden:', error);
+  }
 };
 
 const openUploadForTask = () => {

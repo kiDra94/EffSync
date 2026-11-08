@@ -1,16 +1,21 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { useChatStore } from '@/stores/entities/chatStore';
 import { useChat } from '@/composables/useChat';
 import ChatRoomList from '@/components/chat/ChatRoomList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
 
 const chatStore = useChatStore();
+const route = useRoute();
 const { connect, joinRoom, leaveRoom } = useChat();
 
 onMounted(async () => {
     connect();
     await chatStore.getRooms();
+    // a task or class chat opened elsewhere (M21): /chat?room=<id>
+    const roomId = Number(route.query.room);
+    if (roomId) await handleRoomSelect(roomId);
 });
 
 onUnmounted(() => {

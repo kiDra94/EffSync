@@ -46,6 +46,13 @@ export abstract class TaskRepository {
   abstract findVisibleTaskIds(userId: number): Promise<number[]>;
   /** Whether the task is in the user's visible set: one upward query, false for a missing task. */
   abstract isVisibleTo(taskId: number, userId: number): Promise<boolean>;
+  /** The title and the people of a task (creator, assignee, members), for its chat (M21). */
+  abstract findChatParticipants(taskId: number): Promise<{
+    title: string | null;
+    created_by: number | null;
+    assigned_to: number | null;
+    task_members: { user_id: number }[];
+  } | null>;
   abstract findSubtasks(
     parentId: number,
     includeRelations: boolean,

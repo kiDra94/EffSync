@@ -1107,3 +1107,32 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - `PartialType` makes required fields optional and accepts `null`; a field that must stay non-empty needs its own `ValidateIf` rule on update.
 
 **Failed / open:** (5) above.
+
+## 2026-11-08 – M21: DM deduplication, task- and class-linked chats
+
+**Decision recorded (the milestone's risk):** existing duplicate DMs are accepted, not merged. The app never sent a `direct_chat_hash` before M21 (the DM modal created a private room and invited the partner), so DMs made by the app have no hash and nothing collides with the new ones; they stay as they are. Only DMs created from M21 on are deduplicated. The seeds' DMs already use the server's format.
+
+**Done:**
+- T113 (`07_…:267-269`): `POST /chat-rooms/direct {user_id}` builds `direct_{min}_{max}` from both IDs (the seeds' format; the thesis' `user1_user2`). Under an advisory lock on the hash, in one unit of work, it returns the existing room or creates it with both people as members; a second request, from either side, gets the same room and both are (again) members. `POST /chat-rooms` ignores a client's `direct_chat_hash` (the M2 test flipped). A DM with oneself is a 400, with an unknown or inactive user a 404.
+- T29: `POST /chat-rooms/task/:taskId` and `POST /chat-rooms/class/:classId` find or create the linked group chat under an advisory lock.
+  - Task chat: for whoever sees the task (decision B3, else 404); its people are the creator, the assignee and the members; the task's creator owns it.
+  - Class chat: for the class's students and teachers (decision D2, else 403); the head teacher owns it. The seed's "5AHITM Klassenchat" is used, not duplicated.
+  - The opener is (again) a member; other people are added only if they never were, so leaving or a removal sticks.
+  - `POST /chat-rooms` ignores `task_id` and `class_id`, so nobody makes their own room a task's or class's chat.
+  - Facades: `TaskChatService` (task-management) and `ClassChatService` (school-organization, which gets an `application/index.ts` and becomes global like task-management).
+- Realtime: `RealtimePublisher.addUserToChannel`; added members' sockets join the room and get `room:new`, also when the creator adds a member over REST (open item (9) of M20).
+- Frontend: the DM modal uses `chatStore.openDirect`; the task card has a 💬 button and the class detail a "Klassenchat" button, both opening `/chat?room=<id>`, which `ChatView` selects. `room:new` only refreshes the room list (it used to switch the open conversation). `ChatRoomItem` shows Direkt, Gruppe, Aufgabe or Klasse from `is_private`, `task_id` and `class_id` instead of the member count.
+
+**Verified:**
+- Done when:
+  - `test/chat-links.e2e-spec.ts` creates the same DM twice and gets one room ID (`direct_4_6`, both members), and opens a task's chat twice, from the student and the teacher, with one room, `task_id` set and the task's people as members. It also covers the seed DM's hash, the 400 for oneself, the ignored client hash and `class_id`, that leaving a task chat sticks until one opens it again, the task creator as owner, the 404 for someone who doesn't see the task, and the class chat with every current class member.
+  - The task chat opens from the task card: Vitest (`TaskCard.spec.js`: the button calls the store with the task ID and opens `/chat?room=12`) and a browser check in Chromium against the test database: the 💬 button on a task card opened `/chat?room=7` with `task_id` set and the room selected; choosing the same DM partner twice in the modal left one room (`direct_2_6`). Screenshot checked.
+- Backend: 537 unit and 108 E2E tests. Frontend: 29 files, 246 tests. tsc, lint (backend 0 errors, 75 warnings; frontend clean), knip, dependency-cruiser and both builds pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings, 9 fixed: (1) the partner of a new DM wasn't subscribed live, (2) a self-made room could become a task's or class's chat, (3) `room:new` switched every added member's open chat, (4) the class page kept showing "wird geladen", (5) concurrent opens could create duplicate active memberships (now one locked unit of work for find, create and members, also for DMs), (6) leaving or a removal didn't stick, (7) the first opener owned the chat, (9) a redundant room list fetch, (10) a quadratic membership diff. Kept: (8) DMs from before M21 without a hash are not found by the hash (the decision above).
+
+**Learned (for later milestones):**
+- `pg_advisory_xact_lock` returns `void`, which Prisma's driver adapter can't read back; select a constant from it.
+- A find-or-create that relies on a UNIQUE violation can't catch the error inside the transaction; a lock around find and create avoids the violation instead.
+- Deleting a class that has a class chat answers 409 (M36's rule); the class chat has to go first.
+
+**Failed / open:** (8) above, by decision.

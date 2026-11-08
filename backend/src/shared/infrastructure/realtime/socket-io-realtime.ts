@@ -81,6 +81,12 @@ export class SocketIoRealtime
     this.safely(event, () => this.server.to(channel).emit(event, data));
   }
 
+  addUserToChannel(userId: number, channel: string) {
+    this.safely("join", () =>
+      this.server.in(userChannel(userId)).socketsJoin(channel),
+    );
+  }
+
   removeUserFromChannel(userId: number, channel: string) {
     this.safely("leave", () =>
       this.server.in(userChannel(userId)).socketsLeave(channel),

@@ -1,11 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useChatStore } from '@/stores/entities/chatStore';
-import { useChat } from '@/composables/useChat';
 
 const emit = defineEmits(['close', 'created']);
 const chatStore = useChatStore();
-const { inviteToRoom } = useChat();
 
 const searchQuery = ref('');
 const isLoading = ref(false);
@@ -31,11 +29,8 @@ const handleSelect = async (user) => {
     isLoading.value = true;
     error.value = '';
     try {
-        const room = await chatStore.createRoom(
-            { name: null, is_private: true },
-            [user.user_id],
-            inviteToRoom
-        );
+        // T113 (M21): the server returns the existing DM instead of a second one
+        const room = await chatStore.openDirect(user.user_id);
         emit('created', room);
     } catch {
         error.value = 'Fehler beim Erstellen der Direktnachricht.';

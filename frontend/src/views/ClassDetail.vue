@@ -3,12 +3,15 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useClassStore } from '@/stores/entities/schoolStores';
+import { useChatStore } from '@/stores/entities/chatStore';
 
 // GOALS.md M36 (decision D2): the class's real students and teachers from the API
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const classStore = useClassStore();
+const chatStore = useChatStore();
+const chatError = ref('');
 const classId = computed(() => Number(route.params.id));
 
 const activeTab = ref('overview');
@@ -53,6 +56,28 @@ const saveMembers = async () => {
   }
 };
 
+// T29 (M21): the class chat with its students and teachers (decision D2)
+const isMember = computed(() => {
+  const me = Number(authStore.userId);
+  const cls = classData.value;
+  return Boolean(
+    cls &&
+      (cls.head_teacher?.user_id === me ||
+        cls.teachers.some((t) => t.user_id === me) ||
+        cls.students.some((s) => s.user_id === me))
+  );
+});
+
+const openClassChat = async () => {
+  chatError.value = '';
+  try {
+    const room = await chatStore.openClassChat(classId.value);
+    router.push({ name: 'Chat', query: { room: String(room.room_id) } });
+  } catch {
+    chatError.value = 'Der Klassenchat konnte nicht geöffnet werden.';
+  }
+};
+
 const otherClassHint = (person) =>
   person.class_id && person.class_id !== classId.value ? ' (wechselt die Klasse)' : '';
 
@@ -68,9 +93,11 @@ onMounted(() => {
       <button @click="router.back()" class="btn-back">← Zurück</button>
       <h1 v-if="classData">{{ classData.name }}</h1>
       <h1 v-else-if="!classStore.catalog.error">Klasse wird geladen...</h1>
+      <button v-if="isMember" @click="openClassChat" class="btn-secondary class-chat-btn">💬 Klassenchat</button>
     </div>
 
     <p v-if="classStore.catalog.error" class="error-message">{{ classStore.catalog.error }}</p>
+    <p v-if="chatError" class="error-message">{{ chatError }}</p>
 
     <template v-if="classData">
       <div class="tabs">
@@ -186,6 +213,10 @@ onMounted(() => {
 .error-message {
   color: #b91c1c;
   margin-bottom: 12px;
+}
+
+.class-chat-btn {
+  margin-left: auto;
 }
 
 .section-header {

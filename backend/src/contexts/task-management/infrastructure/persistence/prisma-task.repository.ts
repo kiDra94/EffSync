@@ -266,6 +266,18 @@ export class PrismaTaskRepository extends TaskRepository {
     });
   }
 
+  findChatParticipants(taskId: number) {
+    return this.db.tasks.findUnique({
+      where: { task_id: taskId },
+      select: {
+        title: true,
+        created_by: true,
+        assigned_to: true,
+        task_members: { select: { user_id: true } },
+      },
+    });
+  }
+
   async isVisibleTo(taskId: number, userId: number) {
     // the task and its ancestors; it is visible if the user is the creator,
     // the assignee or a member of any of them (the visible set, downwards)

@@ -29,6 +29,14 @@ export class ChatRealtime implements RealtimeChannelSource, OnModuleInit {
     return roomIds.map(roomChannel);
   }
 
+  /** Added members get the room's live messages and a "room:new" (M21). */
+  subscribeUsersToRoom(userIds: number[], roomId: number) {
+    for (const userId of userIds) {
+      this.publisher.addUserToChannel(userId, roomChannel(roomId));
+      this.publisher.toUser(userId, "room:new", { roomId });
+    }
+  }
+
   /** The removed user stops receiving the room's live messages. */
   unsubscribeUserFromRoom(userId: number, roomId: number) {
     this.publisher.removeUserFromChannel(userId, roomChannel(roomId));

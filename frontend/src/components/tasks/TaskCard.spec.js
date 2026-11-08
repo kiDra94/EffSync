@@ -2,7 +2,12 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TaskCard from './TaskCard.vue'
 
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+const { push, openTaskChat } = vi.hoisted(() => ({
+  push: vi.fn(),
+  openTaskChat: vi.fn().mockResolvedValue({ room_id: 12 }),
+}))
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
+vi.mock('@/stores/entities/chatStore', () => ({ useChatStore: () => ({ openTaskChat }) }))
 vi.mock('@/stores/entities/taskStore', () => ({
   useTaskStore: () => ({ getSubtasks: () => [], tasks: [], isLogicFulfilled: () => null }),
 }))
@@ -60,5 +65,22 @@ describe('TaskCard tags', () => {
     })
 
     expect(wrapper.findAll('.tag-chip').map((chip) => chip.text())).toEqual(['#mathe', '#projekt'])
+  })
+})
+
+// GOALS.md M21 (T29): the task's chat opens from the card, with task_id set
+describe('TaskCard chat', () => {
+  it('opens the task chat and shows it in the chat view', async () => {
+    const wrapper = mount(TaskCard, {
+      props: { task: { task_id: 7, title: 'Referat', priority_id: 2, status: 'TODO', progress: 0 } },
+      global: { stubs: { RuleVisualizer: true } },
+    })
+
+    await wrapper.find('button.task-btn-chat').trigger('click')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(openTaskChat).toHaveBeenCalledWith(7)
+    expect(push).toHaveBeenCalledWith({ name: 'Chat', query: { room: '12' } })
   })
 })

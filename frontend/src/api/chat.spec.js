@@ -7,6 +7,9 @@ import {
   editMessage,
   deleteMessage,
   addMember,
+  openDirectChat,
+  openTaskChat,
+  openClassChat,
 } from './chat';
 import { apiClient } from './httpClient';
 
@@ -51,5 +54,18 @@ describe('chat api', () => {
     await addMember(2, 9);
 
     expect(apiClient.post).toHaveBeenCalledWith('/chat-rooms/2/members', { userId: 9 });
+  });
+
+  // M21: the server finds or creates the DM (T113) and the task and class chats (T29)
+  it('opens a DM, a task chat and a class chat through their routes', async () => {
+    apiClient.post = vi.fn().mockResolvedValue({ data: { room_id: 4 } });
+
+    await expect(openDirectChat(6)).resolves.toMatchObject({ room_id: 4 });
+    await openTaskChat(7);
+    await openClassChat(1);
+
+    expect(apiClient.post).toHaveBeenCalledWith('/chat-rooms/direct', { user_id: 6 });
+    expect(apiClient.post).toHaveBeenCalledWith('/chat-rooms/task/7');
+    expect(apiClient.post).toHaveBeenCalledWith('/chat-rooms/class/1');
   });
 });

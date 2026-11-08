@@ -23,6 +23,22 @@ export const createRoom = async (roomData) => {
     return normalizeEntity(response.data, ID_KEY);
 };
 
+// M21: the server finds or creates these rooms (T113 DM hash, T29 links)
+export const openDirectChat = async (userId) => {
+    const response = await apiClient.post(`${ROOMS_ENDPOINT}/direct`, { user_id: userId });
+    return normalizeEntity(response.data, ID_KEY);
+};
+
+export const openTaskChat = async (taskId) => {
+    const response = await apiClient.post(`${ROOMS_ENDPOINT}/task/${taskId}`);
+    return normalizeEntity(response.data, ID_KEY);
+};
+
+export const openClassChat = async (classId) => {
+    const response = await apiClient.post(`${ROOMS_ENDPOINT}/class/${classId}`);
+    return normalizeEntity(response.data, ID_KEY);
+};
+
 export const sendMessageRest = async (roomId, content) => {
     const response = await apiClient.post(MESSAGES_ENDPOINT(roomId), { message: content });
     return normalizeEntity(response.data, MSG_ID_KEY);

@@ -1,6 +1,7 @@
-import { Module } from "@nestjs/common";
+import { Global, Module } from "@nestjs/common";
 import { PrismaModule } from "../../shared/infrastructure/prisma/prisma.module";
 import { ClassesService } from "./application/classes.service";
+import { ClassChatService } from "./application/class-chat.service";
 import { DepartmentsService } from "./application/departments.service";
 import { LessonSlotService } from "./application/lesson-slots.service";
 import { LessonSlotRepository } from "./application/ports/lesson-slot.repository";
@@ -38,6 +39,9 @@ import { SubjectsController } from "./presentation/subjects.controller";
  * API since M36 (T26, decisions D1 and D2). PermissionsService and the
  * account deletion registry come from identity-access (global).
  */
+// global for ClassChatService: communication's class chats read the members
+// through it (M21), and a context may not import another's module file
+@Global()
 @Module({
   imports: [PrismaModule],
   // in the order of the modules they replace, so GET /api-json stays the same
@@ -57,6 +61,7 @@ import { SubjectsController } from "./presentation/subjects.controller";
     SchedulesService,
     LessonSlotService,
     SchoolAccountDeletion,
+    ClassChatService,
     { provide: ScheduleRepository, useClass: PrismaScheduleRepository },
     { provide: LessonSlotRepository, useClass: PrismaLessonSlotRepository },
     {
@@ -68,5 +73,6 @@ import { SubjectsController } from "./presentation/subjects.controller";
     { provide: SubjectRepository, useClass: PrismaSubjectRepository },
     { provide: RoomRepository, useClass: PrismaRoomRepository },
   ],
+  exports: [ClassChatService],
 })
 export class SchoolOrganizationModule {}

@@ -38,6 +38,9 @@ export type ChatMessageWithAuthor = Prisma.chat_messagesGetPayload<{
   };
 }>;
 
+/** What a group chat is linked to (T29, M21). */
+export type ChatLink = { task_id: number } | { class_id: number };
+
 export interface NewChatRoom {
   name?: string;
   task_id?: number;

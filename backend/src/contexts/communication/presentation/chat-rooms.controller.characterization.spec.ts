@@ -29,7 +29,10 @@ const REQUESTER = 5;
 describe("ChatRoomsController routes", () => {
   let app: INestApplication<App>;
   let rooms: Record<string, jest.Mock>;
-  let gateway: { unsubscribeUserFromRoom: jest.Mock };
+  let gateway: {
+    unsubscribeUserFromRoom: jest.Mock;
+    subscribeUsersToRoom: jest.Mock;
+  };
 
   beforeEach(async () => {
     rooms = {
@@ -44,7 +47,10 @@ describe("ChatRoomsController routes", () => {
       assertIsMember: jest.fn().mockResolvedValue(undefined),
     };
 
-    gateway = { unsubscribeUserFromRoom: jest.fn() };
+    gateway = {
+      unsubscribeUserFromRoom: jest.fn(),
+      subscribeUsersToRoom: jest.fn(),
+    };
     const moduleRef = await Test.createTestingModule({
       controllers: [ChatRoomsController],
       providers: [
@@ -109,6 +115,8 @@ describe("ChatRoomsController routes", () => {
 
     expect(rooms.assertIsCreator).toHaveBeenCalledWith(1, REQUESTER);
     expect(rooms.joinRoom).toHaveBeenCalledWith(1, 9);
+    // M21 (open item (9) of M20): the added user gets the room live
+    expect(gateway.subscribeUsersToRoom).toHaveBeenCalledWith([9], 1);
   });
 
   it("POST /:id/members answers 403 for anyone but the creator and adds nobody", async () => {

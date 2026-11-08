@@ -9,6 +9,8 @@ export abstract class RealtimePublisher {
   abstract toUser(userId: number, event: string, data: unknown): void;
   /** Sends an event to every socket in the channel. */
   abstract toChannel(channel: string, event: string, data: unknown): void;
+  /** Puts every open socket of the user into the channel (M21). */
+  abstract addUserToChannel(userId: number, channel: string): void;
   /** Removes every socket of the user from the channel. */
   abstract removeUserFromChannel(userId: number, channel: string): void;
 }

@@ -1,4 +1,5 @@
 import type {
+  ChatLink,
   ChatRoomRecord,
   ChatRoomWithMembers,
   MembershipRecord,
@@ -31,6 +32,31 @@ export abstract class ChatRoomRepository {
   ): Promise<ChatRoomRecord>;
   /** Deletes the room with its memberships and messages. */
   abstract delete(roomId: number): Promise<ChatRoomRecord>;
+
+  // T113, T29 (M21): DMs by their hash, chats linked to a task or a class.
+  // The find-or-create runs under lockDirect/lockLink in one unit of work.
+  abstract findByHash(hash: string): Promise<ChatRoomRecord | null>;
+  /** A private room with the hash and both users as members. */
+  abstract createDirect(
+    hash: string,
+    creatorId: number,
+    partnerId: number,
+  ): Promise<ChatRoomRecord>;
+  abstract lockDirect(hash: string): Promise<void>;
+  abstract findLinked(link: ChatLink): Promise<ChatRoomRecord | null>;
+  abstract createLinked(
+    link: ChatLink,
+    name: string,
+    ownerId: number,
+  ): Promise<ChatRoomRecord>;
+  abstract lockLink(link: ChatLink): Promise<void>;
+  /** Gives each user an active membership; returns those who got a new one. */
+  abstract ensureMembers(roomId: number, userIds: number[]): Promise<number[]>;
+  /**
+   * Adds only users who never were members, so leaving or a removal
+   * sticks; returns those added.
+   */
+  abstract addNewMembers(roomId: number, userIds: number[]): Promise<number[]>;
 
   abstract findActiveMembership(
     roomId: number,

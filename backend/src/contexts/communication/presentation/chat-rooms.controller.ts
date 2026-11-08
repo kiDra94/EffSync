@@ -15,6 +15,7 @@ import { ChatRoomsService } from "../application/chat-rooms.service";
 import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
 import { UpdateChatRoomDto } from "./dto/update-chat-room.dto";
 import { AddChatMemberDto } from "./dto/add-chat-member.dto";
+import { OpenDirectChatDto } from "./dto/open-direct-chat.dto";
 import type { AuthenticatedRequest } from "../../../shared/presentation/security";
 import {
   JwtAuthGuard,
@@ -37,6 +38,33 @@ export class ChatRoomsController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.chatRoomsService.createRoom(createChatRoomDto, req.user.userId);
+  }
+
+  /** The one DM with this user, created on the first call (T113, M21). */
+  @Post("direct")
+  @Permissions("view_dashboard")
+  openDirect(@Body() dto: OpenDirectChatDto, @Req() req: AuthenticatedRequest) {
+    return this.chatRoomsService.openDirect(req.user.userId, dto.user_id);
+  }
+
+  /** The task's chat, created on the first call (T29, M21). */
+  @Post("task/:taskId")
+  @Permissions("view_dashboard")
+  openTaskChat(
+    @Param("taskId", ParseIntPipe) taskId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.chatRoomsService.openTaskChat(taskId, req.user.userId);
+  }
+
+  /** The class's chat, created on the first call (T29, decision D2, M21). */
+  @Post("class/:classId")
+  @Permissions("view_dashboard")
+  openClassChat(
+    @Param("classId", ParseIntPipe) classId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.chatRoomsService.openClassChat(classId, req.user.userId);
   }
 
   @Get()
@@ -85,7 +113,13 @@ export class ChatRoomsController {
     @Req() req: AuthenticatedRequest,
   ) {
     await this.chatRoomsService.assertIsCreator(roomId, req.user.userId);
-    return this.chatRoomsService.joinRoom(roomId, addChatMemberDto.userId);
+    const membership = await this.chatRoomsService.joinRoom(
+      roomId,
+      addChatMemberDto.userId,
+    );
+    // the added user gets the room live (open item (9) of M20)
+    this.chatRealtime.subscribeUsersToRoom([addChatMemberDto.userId], roomId);
+    return membership;
   }
 
   @Delete(":id/members/:userId")

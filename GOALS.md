@@ -499,7 +499,7 @@ Rules for all milestones:
   - Done when: there are 0 violations, the M6 tests pass, and the cross-browser chat check from `08_…:216` (two browsers, both directions, reload keeps the history) passes manually and is documented in PROGRESS.md.
   - Risk: medium. The gateway also emits task and notification events, which need to move to ports without changing event names.
 
-- [ ] **M21: DM deduplication, and task- and class-linked chats**
+- [x] **M21: DM deduplication, and task- and class-linked chats**
   - Why:
     - T113 (`07_…:267-269`): the server builds a deterministic `direct_chat_hash` from both user IDs, and on a `UNIQUE` conflict returns the existing room's ID.
     - T29: group chats linked to a task (`task_id`) or a class (`class_id`).

@@ -11,6 +11,11 @@ describe("ChatRoomsService", () => {
     service = new ChatRoomsService(
       new PrismaChatRoomRepository(unitOfWork),
       unitOfWork,
+      // not used by these tests (M21: DMs and linked chats)
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
     );
   });
 

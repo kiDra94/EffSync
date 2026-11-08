@@ -41,11 +41,17 @@ describe("ChatRoomsService (characterization, M2)", () => {
     service = new ChatRoomsService(
       new PrismaChatRoomRepository(unitOfWork),
       unitOfWork,
+      // not used by these tests (M21: DMs and linked chats)
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
     );
   });
 
-  // T113: the client-supplied direct_chat_hash is stored as is; the server never builds it (M21)
-  it("creates a room with the creator as first member and stores a client-supplied DM hash", async () => {
+  // THESIS: T113 (flipped in M21) – a client-supplied direct_chat_hash is
+  // ignored; the server builds it for POST /chat-rooms/direct
+  it("creates a room with the creator as first member and ignores a client-supplied DM hash", async () => {
     await service.createRoom(
       { name: "DM", is_private: true, direct_chat_hash: "abc" } as never,
       5,
@@ -55,7 +61,7 @@ describe("ChatRoomsService (characterization, M2)", () => {
       data: expect.objectContaining({
         name: "DM",
         is_private: true,
-        direct_chat_hash: "abc",
+        direct_chat_hash: null,
         created_by: 5,
         chat_room_users: { create: { user_id: 5 } },
       }) as unknown,
