@@ -25,6 +25,7 @@ export abstract class ScheduleRepository {
     scheduleId: number,
     data: ScheduleData,
   ): Promise<ScheduleWithClassesAndSlots>;
-  abstract delete(scheduleId: number): Promise<ScheduleRecord>;
+  /** The deleted schedule; null while classes still refer to it (M36). */
+  abstract delete(scheduleId: number): Promise<ScheduleRecord | null>;
   abstract countLessonSlots(scheduleId: number): Promise<number>;
 }

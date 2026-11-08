@@ -105,6 +105,7 @@ describe("SchedulesService", () => {
     );
 
     mockPrismaService.lesson_slots.count.mockResolvedValue(0);
+    mockPrismaService.schedules.delete.mockResolvedValue({ schedule_id: 1 });
     await service.remove(1);
     expect(mockPrismaService.schedules.delete).toHaveBeenCalledWith({
       where: { schedule_id: 1 },

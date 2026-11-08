@@ -81,19 +81,32 @@ const routes = [
                 path: 'classes',
                 name: 'ClassList',
                 component: () => import('@/views/ClassListView.vue'),
-                meta: { roles: ['admin', 'superuser'] },
+                // teachers change the members of their classes (M36, UC-20)
+                meta: { roles: ['admin', 'superuser', 'teacher'] },
             },
             {
                 path: 'classes/:id',
                 name: 'ClassDetail',
                 component: () => import('@/views/ClassDetail.vue'),
                 props: true,
-                meta: { roles: ['admin', 'superuser'] },
+                meta: { roles: ['admin', 'superuser', 'teacher'] },
             },
             {
                 path: 'departments',
                 name: 'DepartmentList',
                 component: () => import('@/views/DepartmentView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                path: 'subjects',
+                name: 'SubjectList',
+                component: () => import('@/views/SubjectView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                path: 'rooms',
+                name: 'RoomList',
+                component: () => import('@/views/RoomView.vue'),
                 meta: { roles: ['admin', 'superuser'] },
             },
             {

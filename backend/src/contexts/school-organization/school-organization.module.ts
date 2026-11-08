@@ -12,6 +12,18 @@ import { PrismaLessonSlotRepository } from "./infrastructure/persistence/prisma-
 import { PrismaScheduleRepository } from "./infrastructure/persistence/prisma-schedule.repository";
 import { SchoolAccountDeletion } from "./application/school-account-deletion";
 import { SchoolProfileRepository } from "./application/ports/school-profile.repository";
+import { ClassRepository } from "./application/ports/class.repository";
+import {
+  DepartmentRepository,
+  RoomRepository,
+  SubjectRepository,
+} from "./application/ports/school-catalog.repository";
+import { PrismaClassRepository } from "./infrastructure/persistence/prisma-class.repository";
+import {
+  PrismaDepartmentRepository,
+  PrismaRoomRepository,
+  PrismaSubjectRepository,
+} from "./infrastructure/persistence/prisma-school-catalog.repository";
 import { PrismaSchoolProfileRepository } from "./infrastructure/persistence/prisma-school-profile.repository";
 import { ClassesController } from "./presentation/classes.controller";
 import { DepartmentsController } from "./presentation/departments.controller";
@@ -22,8 +34,9 @@ import { SubjectsController } from "./presentation/subjects.controller";
 
 /**
  * school-organization (GOALS.md M22, features from 05_…:60): classes,
- * departments, subjects, rooms, schedules and lesson slots. Classes,
- * departments, subjects and rooms are stubs until M36.
+ * departments, subjects, rooms, schedules and lesson slots, on the real
+ * API since M36 (T26, decisions D1 and D2). PermissionsService and the
+ * account deletion registry come from identity-access (global).
  */
 @Module({
   imports: [PrismaModule],
@@ -50,6 +63,10 @@ import { SubjectsController } from "./presentation/subjects.controller";
       provide: SchoolProfileRepository,
       useClass: PrismaSchoolProfileRepository,
     },
+    { provide: ClassRepository, useClass: PrismaClassRepository },
+    { provide: DepartmentRepository, useClass: PrismaDepartmentRepository },
+    { provide: SubjectRepository, useClass: PrismaSubjectRepository },
+    { provide: RoomRepository, useClass: PrismaRoomRepository },
   ],
 })
 export class SchoolOrganizationModule {}

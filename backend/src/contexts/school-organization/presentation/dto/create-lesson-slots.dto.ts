@@ -10,7 +10,7 @@ import {
 export class CreateLessonSlotDto {
   @IsInt()
   @IsNotEmpty()
-  schedule_id: number;
+  schedule_id!: number;
 
   @IsInt()
   @IsOptional()
@@ -27,10 +27,10 @@ export class CreateLessonSlotDto {
   @IsInt()
   @Min(1)
   @Max(7)
-  day_of_week: number;
+  day_of_week!: number;
 
   @IsInt()
-  lesson_number: number;
+  lesson_number!: number;
 
   @IsDateString()
   @IsOptional()

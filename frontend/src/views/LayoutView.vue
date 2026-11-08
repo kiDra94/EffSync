@@ -109,7 +109,7 @@ const navigateToResult = (result) => {
       <router-link :to="{ name: 'Dashboard' }" title="Dashboard">🏠</router-link>
       <router-link :to="{ name: 'Calendar' }" title="Kalender">🗓️</router-link>
       <router-link :to="{ name: 'DocumentList' }" title="Dokumente">📂</router-link>
-      <router-link v-if="authStore.isAdmin" :to="{ name: 'ClassList' }" title="Klassen">🏢</router-link>
+      <router-link v-if="authStore.isAdmin || authStore.userRole === 'teacher'" :to="{ name: 'ClassList' }" title="Klassen">🏢</router-link>
       <router-link :to="{ name: 'TaskList' }" title="Aufgaben">📋</router-link>
       <router-link :to="{ name: 'TemplateLists' }" title="Vorlagen">📄</router-link>
       <router-link :to="{ name: 'NoteLists' }" title="Notizen">📝</router-link>

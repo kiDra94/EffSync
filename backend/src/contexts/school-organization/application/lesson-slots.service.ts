@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { LessonSlotRepository } from "./ports/lesson-slot.repository";
 import type { LessonSlotInput, NewLessonSlot } from "./school-inputs";
 
@@ -14,15 +14,21 @@ export class LessonSlotService {
     return this.slots.findAll();
   }
 
-  findOne(id: number) {
-    return this.slots.findById(id);
+  // M36 (open item of M22): a missing slot is a 404, not a 500 or an empty 200
+  async findOne(id: number) {
+    const slot = await this.slots.findById(id);
+    if (!slot)
+      throw new NotFoundException(`Unterrichtsstunde ${id} nicht gefunden`);
+    return slot;
   }
 
-  update(id: number, slot: LessonSlotInput) {
+  async update(id: number, slot: LessonSlotInput) {
+    await this.findOne(id);
     return this.slots.update(id, slot);
   }
 
-  remove(id: number) {
+  async remove(id: number) {
+    await this.findOne(id);
     return this.slots.delete(id);
   }
 }

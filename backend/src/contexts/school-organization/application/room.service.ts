@@ -1,26 +1,42 @@
-import { Injectable } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { RoomRepository } from "./ports/school-catalog.repository";
 import type { RoomInput } from "./school-inputs";
 
-// a stub until M36 (school organization on the real API)
+/** Rooms (T26, M36): managed with manage_classes, read by everyone. */
 @Injectable()
 export class RoomsService {
-  create(createRoomDto: RoomInput) {
-    return "This action adds a new room";
+  constructor(private readonly rooms: RoomRepository) {}
+
+  create(input: RoomInput & { name: string }) {
+    return this.rooms.create(input);
   }
 
   findAll() {
-    return `This action returns all rooms`;
+    return this.rooms.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} room`;
+  async findOne(id: number) {
+    const found = await this.rooms.findById(id);
+    if (!found) throw new NotFoundException(`Raum ${id} nicht gefunden`);
+    return found;
   }
 
-  update(id: number, UpdateRoomDto: RoomInput) {
-    return `This action updates a #${id} room`;
+  async update(id: number, input: RoomInput) {
+    await this.findOne(id);
+    return this.rooms.update(id, input);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async remove(id: number) {
+    await this.findOne(id);
+    if (!(await this.rooms.delete(id))) {
+      throw new ConflictException(
+        `Raum ${id} wird noch verwendet (von Unterrichtsstunden)`,
+      );
+    }
+    return { message: "Raum gelöscht", room_id: id };
   }
 }

@@ -6,9 +6,14 @@ export interface ClassInput {
   schedule_id?: number;
 }
 
-/** Departments and subjects have no fields yet (stubs until M36). */
-export type DepartmentInput = object;
-export type SubjectInput = object;
+export interface DepartmentInput {
+  name?: string;
+}
+
+export interface SubjectInput {
+  name?: string;
+  short_name?: string;
+}
 
 export interface RoomInput {
   name?: string;

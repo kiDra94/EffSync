@@ -7,6 +7,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
 import { RoomsService } from "../application/room.service";
@@ -37,19 +38,22 @@ export class RoomsController {
 
   @Get(":id")
   @Permissions("view_schedules")
-  findOne(@Param("id") id: string) {
-    return this.roomsService.findOne(+id);
+  findOne(@Param("id", ParseIntPipe) id: number) {
+    return this.roomsService.findOne(id);
   }
 
   @Patch(":id")
   @Permissions("manage_classes", PermissionFlag.WRITE)
-  update(@Param("id") id: string, @Body() updateRoomDto: UpdateRoomDto) {
-    return this.roomsService.update(+id, updateRoomDto);
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateRoomDto: UpdateRoomDto,
+  ) {
+    return this.roomsService.update(id, updateRoomDto);
   }
 
   @Delete(":id")
   @Permissions("manage_classes", PermissionFlag.EXECUTE)
-  remove(@Param("id") id: string) {
-    return this.roomsService.remove(+id);
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.roomsService.remove(id);
   }
 }

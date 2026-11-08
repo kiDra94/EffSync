@@ -3,7 +3,7 @@ import { IsInt, IsNotEmpty, IsString, IsOptional, Min } from "class-validator";
 export class CreateRoomDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()

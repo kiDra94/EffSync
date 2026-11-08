@@ -514,7 +514,7 @@ Rules for all milestones:
   - Done when: there are 0 violations, all existing tests pass and `GET /api-json` is unchanged.
   - Risk: low. These are mostly CRUD modules.
 
-- [ ] **M36: School organization on the real API**
+- [x] **M36: School organization on the real API**
   - Why:
     - T26 (`05_…:60`, `:105`, UC-20 `:611`, decision D1): classes, departments, schedules, subjects and rooms are managed in the app, not per browser.
     - Decision D2: classes have real students and teachers, which the class chat (T29, M21) needs.

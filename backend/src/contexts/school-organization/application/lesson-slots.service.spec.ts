@@ -1,3 +1,4 @@
+import { NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { PrismaLessonSlotRepository } from "../infrastructure/persistence/prisma-lesson-slot.repository";
@@ -7,7 +8,7 @@ describe("LessonSlotService", () => {
   const lessonSlots = {
     create: jest.fn(),
     findMany: jest.fn(),
-    findUnique: jest.fn(),
+    findUnique: jest.fn().mockResolvedValue({ slot_id: 4 }),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -18,6 +19,13 @@ describe("LessonSlotService", () => {
       } as unknown as PrismaService),
     ),
   );
+
+  // M36: a missing slot is a 404
+  it("answers 404 for a missing slot", async () => {
+    lessonSlots.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.findOne(9)).rejects.toThrow(NotFoundException);
+  });
 
   it("reads, changes and deletes a slot by its slot_id", async () => {
     await service.findOne(4);

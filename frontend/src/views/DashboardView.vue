@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useNoteStore } from '@/stores/entities/noteStore';
@@ -91,8 +91,32 @@ const metrics = ref([
     icon: '🏢', 
     color: '#1abc9c',
     route: 'DepartmentList'
+  },
+  // GOALS.md M36: subjects and rooms are managed in the app
+  {
+    id: 7,
+    title: 'Fächer',
+    value: '0',
+    subtext: 'Im System',
+    icon: '📚',
+    color: '#34495e',
+    route: 'SubjectList',
+    adminOnly: true
+  },
+  {
+    id: 8,
+    title: 'Räume',
+    value: '0',
+    subtext: 'Im System',
+    icon: '🚪',
+    color: '#7f8c8d',
+    route: 'RoomList',
+    adminOnly: true
   }
 ]);
+
+// subjects and rooms are managed by Admin and Superuser only (M36)
+const visibleMetrics = computed(() => metrics.value.filter((item) => !item.adminOnly || authStore.isAdmin));
 
 const unwrapArray = (input) => {
   if (Array.isArray(input)) return input;
@@ -107,27 +131,19 @@ const unwrapArray = (input) => {
 // Updates the metrics
 const updateMetrics = async () => {
   // Load all counts in parallel through the API
-  const [taskProgressRes, classesRes, documentsRes, slotsRes, departmentsRes] = await Promise.allSettled([
-    fetchMetrics('task-progress'),
-    apiClient.get('/classes'),
-    apiClient.get('/documents'),
-    fetchAllLessonSlots(),
-    apiClient.get('/departments'),
-  ]);
+  const [taskProgressRes, classesRes, documentsRes, slotsRes, departmentsRes, subjectsRes, roomsRes] =
+    await Promise.allSettled([
+      fetchMetrics('task-progress'),
+      apiClient.get('/classes'),
+      apiClient.get('/documents'),
+      fetchAllLessonSlots(),
+      apiClient.get('/departments'),
+      authStore.isAdmin ? apiClient.get('/subjects') : Promise.reject(new Error('not shown')),
+      authStore.isAdmin ? apiClient.get('/rooms') : Promise.reject(new Error('not shown')),
+    ]);
 
-  const getCount = (result, fallbackKey, directArray = false) => {
-    if (result.status === 'fulfilled') {
-      const data = directArray ? unwrapArray(result.value) : unwrapArray(result.value);
-      return Array.isArray(data) ? data.length : 0;
-    }
-    // Fallback: the localStorage cache of the respective view
-    try {
-      const cached = localStorage.getItem(`effsync_${fallbackKey}`);
-      if (!cached) return 0;
-      const parsed = JSON.parse(cached);
-      return Array.isArray(parsed) ? parsed.length : 0;
-    } catch { return 0; }
-  };
+  // the school data comes only from the API (M36, decision D1): no browser cache
+  const getCount = (result) => (result.status === 'fulfilled' ? unwrapArray(result.value).length : 0);
 
   const currentUserId = Number(authStore.userId ?? localStorage.getItem('userId'));
   const documentsData = documentsRes.status === 'fulfilled' ? unwrapArray(documentsRes.value) : [];
@@ -145,19 +161,13 @@ const updateMetrics = async () => {
     : taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
 
   metrics.value[0].value = String(openTasks);
-  metrics.value[1].value = String(getCount(classesRes, 'classes'));
-  metrics.value[2].value = String(
-    documentsRes.status === 'fulfilled'
-      ? ownDocumentsCount
-      : getCount({ status: 'rejected' }, 'documents')
-  );
+  metrics.value[1].value = String(getCount(classesRes));
+  metrics.value[2].value = String(documentsRes.status === 'fulfilled' ? ownDocumentsCount : 0);
   metrics.value[3].value = String(noteStore.notes.length);
-  metrics.value[4].value = String(
-    slotsRes.status === 'fulfilled'
-      ? unwrapArray(slotsRes.value).length
-      : getCount({ status: 'rejected' }, 'schedules')
-  );
-  metrics.value[5].value = String(getCount(departmentsRes, 'departments'));
+  metrics.value[4].value = String(slotsRes.status === 'fulfilled' ? unwrapArray(slotsRes.value).length : 0);
+  metrics.value[5].value = String(getCount(departmentsRes));
+  metrics.value[6].value = String(getCount(subjectsRes));
+  metrics.value[7].value = String(getCount(roomsRes));
 };
 
 onMounted(() => {
@@ -187,7 +197,7 @@ const handleCardClick = (routeName) => {
     
     <div class="metrics-grid">
       <div 
-        v-for="item in metrics" 
+        v-for="item in visibleMetrics" 
         :key="item.id" 
         class="metric-card"
         :class="{ 'clickable': item.route }" 

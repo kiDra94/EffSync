@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -74,7 +75,14 @@ export class SchedulesService {
         `Stundenplan kann nicht gelöscht werden, da ${lessonSlotsCount} Stunden darin definiert sind`,
       );
     }
-    return this.schedules.delete(id);
+    // review M36: classes refer to schedules since M36
+    const deleted = await this.schedules.delete(id);
+    if (!deleted) {
+      throw new ConflictException(
+        `Stundenplan ${id} wird noch von Klassen verwendet`,
+      );
+    }
+    return deleted;
   }
 
   private async findExisting(id: number) {

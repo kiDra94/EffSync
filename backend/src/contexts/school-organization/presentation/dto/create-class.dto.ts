@@ -3,7 +3,7 @@ import { IsInt, IsNotEmpty, IsString, IsOptional } from "class-validator";
 export class CreateClassDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsInt()
   @IsOptional()

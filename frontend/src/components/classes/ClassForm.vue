@@ -20,24 +20,33 @@
         </div>
 
         <div class="form-group">
-          <label for="department_name">Abteilung *</label>
-          <select v-model="formData.department_name" id="department_name" required>
-            <option value="">-- Wählen --</option>
-            <option>Informationstechnologie</option>
-            <option>Elektrotechnik</option>
-            <option>Maschinenbau</option>
-            <option>Andere</option>
+          <label for="department_id">Abteilung</label>
+          <select v-model="formData.department_id" id="department_id">
+            <option :value="null">-- Keine --</option>
+            <option v-for="dept in departments" :key="dept.department_id" :value="dept.department_id">
+              {{ dept.name }}
+            </option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="head_teacher_name">Klassenvorstand</label>
-          <input
-            v-model="formData.head_teacher_name"
-            id="head_teacher_name"
-            type="text"
-            placeholder="Name des Klassenverstands"
-          />
+          <label for="head_teacher_id">Klassenvorstand</label>
+          <select v-model="formData.head_teacher_id" id="head_teacher_id">
+            <option :value="null">-- Keiner --</option>
+            <option v-for="teacher in teachers" :key="teacher.user_id" :value="teacher.user_id">
+              {{ teacher.firstname }} {{ teacher.lastname }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="schedule_id">Stundenplan</label>
+          <select v-model="formData.schedule_id" id="schedule_id">
+            <option :value="null">-- Keiner --</option>
+            <option v-for="schedule in schedules" :key="schedule.schedule_id" :value="schedule.schedule_id">
+              {{ schedule.name }}
+            </option>
+          </select>
         </div>
 
         <div class="modal-actions">
@@ -52,39 +61,37 @@
 <script setup>
 import { ref, watch } from 'vue';
 
+// GOALS.md M36: the class refers to a real department, head teacher and schedule
 const props = defineProps({
-  classObj: {
-    type: Object,
-    default: null,
-  },
+  classObj: { type: Object, default: null },
+  departments: { type: Array, default: () => [] },
+  teachers: { type: Array, default: () => [] },
+  schedules: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['save', 'close']);
 
-const formData = ref({
-  name: '',
-  department_name: '',
-  head_teacher_name: '',
-});
+const empty = () => ({ name: '', department_id: null, head_teacher_id: null, schedule_id: null });
+const formData = ref(empty());
 
 watch(
   () => props.classObj,
-  (newVal) => {
-    if (newVal) {
-      formData.value = { ...newVal };
-    } else {
-      formData.value = {
-        name: '',
-        department_name: '',
-        head_teacher_name: '',
-      };
-    }
+  (cls) => {
+    formData.value = cls
+      ? {
+          class_id: cls.class_id,
+          name: cls.name ?? '',
+          department_id: cls.department_id ?? null,
+          head_teacher_id: cls.head_teacher_id ?? null,
+          schedule_id: cls.schedule_id ?? null,
+        }
+      : empty();
   },
   { immediate: true }
 );
 
 const submitForm = () => {
-  emit('save', formData.value);
+  emit('save', { ...formData.value });
 };
 
 const close = () => {

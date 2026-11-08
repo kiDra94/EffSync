@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
+import type { ScheduleRecord } from "../../application/ports/school-records";
+import { deleteUnlessReferenced } from "./in-use";
 import {
   ScheduleRepository,
   type ScheduleData,
@@ -56,8 +58,14 @@ export class PrismaScheduleRepository extends ScheduleRepository {
     });
   }
 
-  delete(scheduleId: number) {
-    return this.db.schedules.delete({ where: { schedule_id: scheduleId } });
+  async delete(scheduleId: number) {
+    let deleted: ScheduleRecord | null = null;
+    const done = await deleteUnlessReferenced(async () => {
+      deleted = await this.db.schedules.delete({
+        where: { schedule_id: scheduleId },
+      });
+    });
+    return done ? deleted : null;
   }
 
   countLessonSlots(scheduleId: number) {

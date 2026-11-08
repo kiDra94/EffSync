@@ -1,26 +1,42 @@
-import { Injectable } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { SubjectRepository } from "./ports/school-catalog.repository";
 import type { SubjectInput } from "./school-inputs";
 
-// a stub until M36 (school organization on the real API)
+/** Subjects (T26, M36): managed with manage_classes, read by everyone. */
 @Injectable()
 export class SubjectsService {
-  create(createSubjectDto: SubjectInput) {
-    return "This action adds a new subject";
+  constructor(private readonly subjects: SubjectRepository) {}
+
+  create(input: SubjectInput & { name: string }) {
+    return this.subjects.create(input);
   }
 
   findAll() {
-    return `This action returns all subjects`;
+    return this.subjects.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} subject`;
+  async findOne(id: number) {
+    const found = await this.subjects.findById(id);
+    if (!found) throw new NotFoundException(`Fach ${id} nicht gefunden`);
+    return found;
   }
 
-  update(id: number, updateSubjectDto: SubjectInput) {
-    return `This action updates a #${id} subject`;
+  async update(id: number, input: SubjectInput) {
+    await this.findOne(id);
+    return this.subjects.update(id, input);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} subject`;
+  async remove(id: number) {
+    await this.findOne(id);
+    if (!(await this.subjects.delete(id))) {
+      throw new ConflictException(
+        `Fach ${id} wird noch verwendet (von Unterrichtsstunden oder Notizen)`,
+      );
+    }
+    return { message: "Fach gelöscht", subject_id: id };
   }
 }

@@ -1073,3 +1073,37 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - A `GET /api-json` comparison needs a build of the old state first; the controller registration order shapes the file.
 
 **Failed / open:** (1) and (2) for M36.
+
+## 2026-11-08 – M36: School organization on the real API
+
+**Done:**
+- Backend (school-organization context):
+  - Classes, departments, subjects and rooms are real CRUD on Prisma (they were stubs returning text). Lists are sorted by name; departments carry `class_count`, classes `department`, `head_teacher`, `student_count` and `teacher_count`.
+  - Decision D2, no schema change: `GET /classes/:id` returns the department, the schedule, the head teacher (`head_teacher_id`), the students (`students.class_id`) and the teachers (`classes_teachers`), with names and no e-mail. `PUT /classes/:id/students` and `PUT /classes/:id/teachers` replace the assignment in one transaction, with the profile checks inside it; IDs without a student or teacher profile are a 400.
+  - Rights (UC-20): `manage_classes` (Admin, Superuser) changes every class; a teacher who heads or teaches the class changes its members, otherwise 403. A teacher may add unassigned students but not take students out of another class; that move is the administration's.
+  - `GET /classes/assignable` lists the students (with their class) and teachers for the member editor; it is for `manage_classes` and teachers only (403 for students).
+  - Department, schedule and head teacher of a class must exist (400 instead of a 500). A delete that a foreign key still blocks answers 409 with a message (`deleteUnlessReferenced`): a department with classes, a subject or room with lessons, a schedule with classes, a class with a chat. Deleting a class removes its assignments in its own transaction.
+  - Update DTOs keep the name non-empty (`null` was accepted through `PartialType`). The class routes take `ParseIntPipe`.
+  - Lesson slots answer 404 for a missing slot (open item (1) of M22).
+- Frontend:
+  - `api/schoolOrganization.js` (one CRUD factory, plus the class membership calls) and `stores/entities/schoolStores.js`: stores for classes, departments, subjects, rooms and schedules; they keep the backend's message of a refusal (403, 409) for the page.
+  - `ClassListView`, `ClassDetail`, `DepartmentView`, `SchedulesView` and the dashboard work on the stores; the localStorage storage (`effsync_classes`, `effsync_departments`, `effsync_schedules`, the dashboard's `effsync_*` fallback) and the mock data in `ClassDetail` are gone. `ClassForm` picks department, head teacher and schedule from the API.
+  - `ClassDetail` shows and edits both member lists (checkbox editor) for Admin/Superuser and the class's own teachers.
+  - New `SubjectView` and `RoomView` (on the shared `SchoolCatalog` component) with routes `/subjects` and `/rooms` and dashboard cards (Admin/Superuser only); the class routes and the sidebar link are open to teachers.
+  - `SchedulesView` started in a `week` mode the template doesn't have, so the page was empty for every role; it starts with the list now.
+
+**Verified:**
+- Done when:
+  - `grep -rn "effsync_" frontend/src/views`: only `UserProfileView` (the profile cache, not school data; M25/M27). No view writes school data to localStorage.
+  - Vitest: `schoolOrganization.spec.js` (all five APIs), `schoolStores.spec.js` (each store: load, create, change, delete, the kept refusal message; nothing in localStorage), `SchoolCatalog.spec.js`.
+  - `test/school-organization.e2e-spec.ts`: creating a class, assigning two students and a teacher, reading them back (names, no e-mail; the old class keeps the other three), a teacher of another class getting 403, a teacher of the class changing its teachers, no move out of another class for a teacher, 400 for users without a profile, the assignable list (403 for a student), departments/subjects/rooms CRUD with 409 for one in use, 400 for an empty name, and 404 for a missing lesson slot.
+  - Click-through of all five areas, against a backend on the test database (`effsync_test`) and the frontend dev server, driven by a Playwright script in Chromium instead of by hand (run again after the review fixes): departments (create, rename, the 409 message for Informatik), subjects (create, edit, delete), rooms (create with capacity, delete), schedules (list from the API, create, detail), classes (create with department, head teacher and schedule; assign two students; a reload keeps them; the head teacher edits the teachers; a teacher of another class sees no edit button). Afterwards localStorage held only `userRole`, `refreshToken`, `userId` and `authToken`. Screenshots were checked.
+- Backend: 526 unit and 105 E2E tests. Frontend: 28 files, 240 tests. tsc, lint (backend 0 errors, 75 warnings; frontend clean), knip, dependency-cruiser and both builds pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings, 9 fixed: (1) deleting a schedule used by a class answered 500, (2) a teacher could take students out of other classes, (3) students could list everyone, (4) clearing an optional catalog field was lost, (6) `name: null` passed validation, (7) existence checks loaded the whole class twice, (8) profile checks outside the transaction, (9) the subject and room cards were shown to every role, (10) the member editor opened without candidates. Not done:
+  - (5) The frontend decides "can manage" by role (Admin, Superuser), the backend by the `manage_classes` permission. A Teacher with a direct `manage_classes` grant (seed scenarios 2 and 3) can use the API but sees no buttons. The frontend has no permission data yet; that belongs to M25 (stores and the `api/` layer).
+
+**Learned (for later milestones):**
+- A Postgres transaction is unusable after a failed statement, so a "delete unless referenced" must end its own transaction with the error rather than catch it inside an open one.
+- `PartialType` makes required fields optional and accepts `null`; a field that must stay non-empty needs its own `ValidateIf` rule on update.
+
+**Failed / open:** (5) above.

@@ -8,7 +8,7 @@ import {
 export class CreateScheduleDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsDateString()
   @IsOptional()

@@ -1,68 +1,43 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import ClassForm from '@/components/classes/ClassForm.vue';
 import ClassDeleteDialog from '@/components/classes/ClassDeleteDialog.vue';
 import { useAuthStore } from '@/stores/authStore';
+import { useClassStore, useDepartmentStore, useScheduleStore } from '@/stores/entities/schoolStores';
 
-const STORAGE_KEY = 'effsync_classes';
+// GOALS.md M36 (decision D1): the classes come from the API, nothing is stored in the browser
+const authStore = useAuthStore();
+const router = useRouter();
+const classStore = useClassStore();
+const departmentStore = useDepartmentStore();
+const scheduleStore = useScheduleStore();
 
-// Default mock data
-const defaultClasses = [
-  { class_id: 1, name: '3AKIFT', department_name: 'Informationstechnologie', head_teacher_name: 'Dr. Müller' },
-  { class_id: 2, name: '3AKITE', department_name: 'Informationstechnologie', head_teacher_name: 'Prof. Schmidt' },
-  { class_id: 3, name: '4AKIFT', department_name: 'Informationstechnologie', head_teacher_name: 'Dr. Weber' },
-];
-
-const classes = ref([]);
 const selectedClass = ref(null);
 const activeModal = ref(null);
 const searchQuery = ref('');
-const authStore = useAuthStore();
 
-const canManageClasses = computed(() => {
-  const role = (authStore.userRole || '').toLowerCase();
-  return ['admin', 'superuser', 'director'].includes(role);
-});
+const classes = computed(() => classStore.catalog.items);
+// manage_classes: Admin and Superuser; teachers open the detail to change members (UC-20)
+const canManageClasses = computed(() => authStore.isAdmin);
 
 const filteredClasses = computed(() => {
-  if (!searchQuery.value) return classes.value;
-  return classes.value.filter(cls =>
-    cls.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  const query = searchQuery.value.toLowerCase();
+  if (!query) return classes.value;
+  return classes.value.filter((cls) => (cls.name || '').toLowerCase().includes(query));
 });
 
-// localStorage functions
-const loadFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      classes.value = JSON.parse(stored);
-    } else {
-      classes.value = JSON.parse(JSON.stringify(defaultClasses));
-      saveToStorage();
-    }
-  } catch (error) {
-    console.error('Fehler beim Laden aus localStorage:', error);
-    classes.value = JSON.parse(JSON.stringify(defaultClasses));
-  }
-};
+const personName = (person) => (person ? `${person.firstname} ${person.lastname}` : '');
 
-const saveToStorage = () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(classes.value));
-  } catch (error) {
-    console.error('Fehler beim Speichern in localStorage:', error);
-  }
-};
-
-const openClassForm = (classObj = null) => {
+const openClassForm = async (classObj = null) => {
   if (!canManageClasses.value) return;
-  selectedClass.value = classObj ? JSON.parse(JSON.stringify(classObj)) : null;
+  await Promise.allSettled([departmentStore.load(), scheduleStore.load(), classStore.loadAssignable()]);
+  selectedClass.value = classObj;
   activeModal.value = 'form';
 };
 
 const openClassDetail = (classObj) => {
-  console.log('Detail für Klasse:', classObj);
+  router.push({ name: 'ClassDetail', params: { id: classObj.class_id } });
 };
 
 const openDeleteDialog = (classObj) => {
@@ -76,40 +51,27 @@ const closeModal = () => {
   selectedClass.value = null;
 };
 
-const saveClass = async (classData) => {
-  if (!canManageClasses.value) return;
+const saveClass = async ({ class_id, ...data }) => {
   try {
-    if (classData.class_id) {
-      const index = classes.value.findIndex(c => c.class_id === classData.class_id);
-      if (index !== -1) {
-        classes.value[index] = classData;
-      }
-    } else {
-      classData.class_id = Math.max(...classes.value.map(c => c.class_id), 0) + 1;
-      classes.value.push(classData);
-    }
-    saveToStorage();
+    if (class_id) await classStore.catalog.edit(class_id, data);
+    else await classStore.catalog.add(data);
     closeModal();
-  } catch (error) {
-    console.error('Fehler beim Speichern der Klasse:', error);
+  } catch {
+    // the store keeps the message for the page
   }
 };
 
 const deleteClass = async () => {
-  if (!canManageClasses.value) return;
-  if (selectedClass.value) {
-    try {
-      classes.value = classes.value.filter(c => c.class_id !== selectedClass.value.class_id);
-      saveToStorage();
-      closeModal();
-    } catch (error) {
-      console.error('Fehler beim Löschen der Klasse:', error);
-    }
+  try {
+    await classStore.catalog.remove(selectedClass.value.class_id);
+    closeModal();
+  } catch {
+    closeModal();
   }
 };
 
 onMounted(() => {
-  loadFromStorage();
+  classStore.catalog.load().catch(() => {});
 });
 </script>
 
@@ -121,6 +83,8 @@ onMounted(() => {
         + Neue Klasse
       </button>
     </div>
+
+    <p v-if="classStore.catalog.error" class="error-message">{{ classStore.catalog.error }}</p>
 
     <div class="filters" v-if="classes.length > 0">
       <input
@@ -142,8 +106,9 @@ onMounted(() => {
           </div>
         </div>
         <div class="card-body">
-          <p v-if="cls.department_name"><strong>Abteilung:</strong> {{ cls.department_name }}</p>
-          <p v-if="cls.head_teacher_name"><strong>Klassenvorstand:</strong> {{ cls.head_teacher_name }}</p>
+          <p v-if="cls.department"><strong>Abteilung:</strong> {{ cls.department.name }}</p>
+          <p v-if="cls.head_teacher"><strong>Klassenvorstand:</strong> {{ personName(cls.head_teacher) }}</p>
+          <p><strong>Schüler:</strong> {{ cls.student_count }} · <strong>Lehrer:</strong> {{ cls.teacher_count }}</p>
         </div>
       </div>
     </div>
@@ -151,15 +116,28 @@ onMounted(() => {
     <div v-else class="empty-state">
       <p>Noch keine Klassen vorhanden.</p>
       <button v-if="canManageClasses" @click="openClassForm()" class="btn-primary">Erste Klasse erstellen</button>
-      <p v-else>Du hast nur Leserechte für Klassen.</p>
+      <p v-else-if="!classStore.catalog.loading">Du hast nur Leserechte für Klassen.</p>
     </div>
 
-    <ClassForm v-if="activeModal === 'form'" :class-obj="selectedClass" @save="saveClass" @close="closeModal" />
+    <ClassForm
+      v-if="activeModal === 'form'"
+      :class-obj="selectedClass"
+      :departments="departmentStore.items"
+      :teachers="classStore.assignable.teachers"
+      :schedules="scheduleStore.items"
+      @save="saveClass"
+      @close="closeModal"
+    />
     <ClassDeleteDialog v-if="activeModal === 'delete'" :class-obj="selectedClass" @delete="deleteClass" @close="closeModal" />
   </div>
 </template>
 
 <style scoped>
+.error-message {
+  color: #b91c1c;
+  margin-bottom: 12px;
+}
+
 .class-view {
   max-width: 1200px;
   margin: 0 auto;

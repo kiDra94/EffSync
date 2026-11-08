@@ -7,6 +7,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
 import { DepartmentsService } from "../application/departments.service";
@@ -37,22 +38,22 @@ export class DepartmentsController {
 
   @Get(":id")
   @Permissions("view_schedules")
-  findOne(@Param("id") id: string) {
-    return this.departmentsService.findOne(+id);
+  findOne(@Param("id", ParseIntPipe) id: number) {
+    return this.departmentsService.findOne(id);
   }
 
   @Patch(":id")
   @Permissions("manage_classes", PermissionFlag.WRITE)
   update(
-    @Param("id") id: string,
+    @Param("id", ParseIntPipe) id: number,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
   ) {
-    return this.departmentsService.update(+id, updateDepartmentDto);
+    return this.departmentsService.update(id, updateDepartmentDto);
   }
 
   @Delete(":id")
   @Permissions("manage_classes", PermissionFlag.EXECUTE)
-  remove(@Param("id") id: string) {
-    return this.departmentsService.remove(+id);
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.departmentsService.remove(id);
   }
 }

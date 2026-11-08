@@ -7,6 +7,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
 import { LessonSlotService } from "../application/lesson-slots.service";
@@ -37,22 +38,22 @@ export class LessonSlotController {
 
   @Get(":id")
   @Permissions("view_schedules")
-  findOne(@Param("id") id: string) {
-    return this.lessonSlotService.findOne(+id);
+  findOne(@Param("id", ParseIntPipe) id: number) {
+    return this.lessonSlotService.findOne(id);
   }
 
   @Patch(":id")
   @Permissions("manage_classes", PermissionFlag.WRITE)
   update(
-    @Param("id") id: string,
+    @Param("id", ParseIntPipe) id: number,
     @Body() updateLessonSlotDto: UpdateLessonSlotDto,
   ) {
-    return this.lessonSlotService.update(+id, updateLessonSlotDto);
+    return this.lessonSlotService.update(id, updateLessonSlotDto);
   }
 
   @Delete(":id")
   @Permissions("manage_classes", PermissionFlag.EXECUTE)
-  remove(@Param("id") id: string) {
-    return this.lessonSlotService.remove(+id);
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.lessonSlotService.remove(id);
   }
 }
