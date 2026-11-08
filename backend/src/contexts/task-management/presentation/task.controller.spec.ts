@@ -13,6 +13,7 @@ import { TaskMembersService } from "../application/task-members.service";
 import { TaskTemplatesService } from "../application/task-templates.service";
 import { TaskService } from "../application/task.service";
 import { TaskController } from "./task.controller";
+import { TaskVisibilityGuard } from "./task-visibility.guard";
 
 // decision Q6 (M15): one controller for every task route
 describe("TaskController", () => {
@@ -41,6 +42,8 @@ describe("TaskController", () => {
       .overrideGuard(PermissionsGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(TaskVisibilityGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

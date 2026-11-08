@@ -17,6 +17,7 @@ import { TaskCompletionService } from "./task-completion.service";
 import { TaskLockingService } from "./task-locking.service";
 import { TaskService } from "./task.service";
 import { TaskNotificationsService } from "./task-notifications.service";
+import { TaskVisibilityService } from "./task-visibility.service";
 
 export type FindManyArgs = {
   where?: {
@@ -67,6 +68,8 @@ export function createPrismaMock() {
       deleteMany: jest.fn(),
     },
     chat_rooms: { updateMany: jest.fn() },
+    // M17: a student's visible set (recursive query)
+    $queryRaw: jest.fn().mockResolvedValue([]),
     $transaction: jest.fn(),
   };
   prisma.$transaction.mockImplementation(
@@ -94,7 +97,11 @@ export function createTaskServices(
   );
   const realtime = gateway as unknown as TaskRealtime;
   const log = activityLog as unknown as TaskActivityLogService;
-  const completion = new TaskCompletionService(tasks, realtime);
+  const notifications = {
+    taskAssigned: jest.fn(),
+    statusChanged: jest.fn(),
+  } as unknown as TaskNotificationsService;
+  const completion = new TaskCompletionService(tasks, realtime, notifications);
   const taskService = new TaskService(
     tasks,
     log,
@@ -104,10 +111,8 @@ export function createTaskServices(
     permissions,
     unitOfWork,
     // M16: the notifications are covered in task-notifications.service.spec.ts
-    {
-      taskAssigned: jest.fn(),
-      statusChanged: jest.fn(),
-    } as unknown as TaskNotificationsService,
+    notifications,
+    new TaskVisibilityService(tasks, permissions),
   );
   const locking = new TaskLockingService(
     tasks,

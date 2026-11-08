@@ -456,7 +456,7 @@ Rules for all milestones:
   - Done when: the `// THESIS: T100/T107` tests are flipped, new tests cover each notification type, the frontend checkbox has a Vitest test, and E2E shows a non-member getting 403 when creating a subtask and a member succeeding.
   - Risk: medium. Auto-completion and the cascade-to-children logic set progress themselves and must keep working. The membership check is a behavior change: check the seed and the frontend's subtask flow for users who aren't members today.
 
-- [ ] **M17: Unify completion from grades, keeping the read-time recalculation**
+- [x] **M17: Unify completion from grades, keeping the read-time recalculation**
   - Why: problems 2 and 3, T119. The thesis's own unit test (`08_…:84-90`) pins that `findOne` recalculates the status on read, so the recalculation stays. Decision B3: student pagination is wrong today (a page plus all its descendants, counted as `total`).
   - Steps:
     1. Keep one implementation of `completeIfAllStudentsGraded` in `task-management/application`, called by grading in `documents-notes` and by the read paths.

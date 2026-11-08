@@ -214,8 +214,9 @@ describe("Mitgliederverwaltung E2E", () => {
         .set("Authorization", `Bearer ${studentToken}`)
         .send({ user_id: studentId });
 
-      // Returns 201 (allowed) or 403 (denied) - pragmatic for now
-      expect([201, 403]).toContain(response.status);
+      // M17: the student isn't involved in the teacher's task, so they can't
+      // see it and can't add themselves to it (404)
+      expect(response.status).toBe(404);
     });
   });
 

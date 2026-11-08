@@ -16,6 +16,7 @@ import {
   STAFF_ROLES,
 } from "../../contexts/identity-access/application";
 import { NotificationsService } from "../notifications/notifications.service";
+import { TaskCompletionService } from "../../contexts/task-management/application";
 import { GradeDocumentDto } from "./dto/grade-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 
@@ -24,6 +25,7 @@ export class DocumentsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private readonly taskCompletion: TaskCompletionService,
   ) {}
 
   private readonly relationInclude = {
@@ -435,126 +437,6 @@ export class DocumentsService {
       Number(document?.added_by) !== Number(userId) &&
       this.documentBelongsToStudent(document)
     );
-  }
-
-  private async completeTaskIfAllParticipantsGraded(taskId: number) {
-    const task = await this.prisma.tasks.findUnique({
-      where: { task_id: taskId },
-      select: {
-        task_id: true,
-        status: true,
-        created_by: true,
-        assigned_to: true,
-      },
-    });
-
-    if (!task) {
-      return;
-    }
-
-    const participantIds = new Set<number>();
-
-    if (task.created_by) {
-      participantIds.add(Number(task.created_by));
-    }
-
-    if (task.assigned_to) {
-      participantIds.add(Number(task.assigned_to));
-    }
-
-    const explicitMembers = await this.prisma.task_members.findMany({
-      where: { task_id: taskId },
-      select: { user_id: true },
-    });
-
-    for (const member of explicitMembers) {
-      if (member.user_id) {
-        participantIds.add(Number(member.user_id));
-      }
-    }
-
-    if (participantIds.size === 0) {
-      return;
-    }
-
-    const participantUsers = await this.prisma.users.findMany({
-      where: {
-        user_id: {
-          in: Array.from(participantIds),
-        },
-      },
-      select: {
-        user_id: true,
-        students: {
-          select: {
-            student_id: true,
-          },
-        },
-        user_roles: {
-          select: {
-            roles: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const studentParticipantIds = participantUsers
-      .filter((user) => {
-        const hasStudentProfile = Boolean(user.students?.student_id);
-        const hasStudentRole = Array.isArray(user.user_roles)
-          ? user.user_roles.some((entry) =>
-              isRoleIn(entry.roles?.name, [RoleName.STUDENT]),
-            )
-          : false;
-        return hasStudentProfile || hasStudentRole;
-      })
-      .map((user) => Number(user.user_id));
-
-    if (studentParticipantIds.length === 0) {
-      return;
-    }
-
-    const gradedSubmissions = await this.prisma.documents.findMany({
-      where: {
-        added_by: { in: studentParticipantIds },
-        graded_at: { not: null },
-        task_documents: {
-          some: {
-            task_id: taskId,
-          },
-        },
-      },
-      select: {
-        added_by: true,
-      },
-    });
-
-    const gradedStudentIds = new Set(
-      gradedSubmissions
-        .map((document) => Number(document.added_by))
-        .filter((id) => Number.isFinite(id) && id > 0),
-    );
-
-    const allParticipantsGraded = studentParticipantIds.every((id) =>
-      gradedStudentIds.has(Number(id)),
-    );
-
-    if (!allParticipantsGraded || task.status === "COMPLETED") {
-      return;
-    }
-
-    await this.prisma.tasks.update({
-      where: { task_id: taskId },
-      data: {
-        status: "COMPLETED",
-        progress: 100,
-        updated_at: new Date(),
-      },
-    });
   }
 
   private mapPerson(person: any) {
@@ -979,9 +861,8 @@ export class DocumentsService {
         )
       : [];
 
-    for (const taskId of linkedTaskIds) {
-      await this.completeTaskIfAllParticipantsGraded(taskId);
-    }
+    // the one completion rule, in task-management (problems 2 and 3, M17)
+    await this.taskCompletion.completeAfterGrading(linkedTaskIds);
 
     if (document.added_by && Number(document.added_by) !== Number(graderId)) {
       const documentTitle =

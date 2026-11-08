@@ -6,6 +6,7 @@ import { PrismaCommentRepository } from "../infrastructure/persistence/prisma-co
 import { CommentsService } from "./comments.service";
 import { CommentRepository } from "./ports/comment.repository";
 import { MentionMailer } from "./ports/mention-mailer";
+import { TaskVisibilityService } from "./task-visibility.service";
 
 // The @mention tests of task-comments.service.spec.ts (T09), against the
 // comment use case on the `comments` table (M15, decision Q16)
@@ -44,6 +45,11 @@ describe("CommentsService - @mention Email Notifications", () => {
         { provide: CommentRepository, useClass: PrismaCommentRepository },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: MentionMailer, useValue: mockEmailService },
+        // the visibility rule has its own tests (task.service.spec.ts)
+        {
+          provide: TaskVisibilityService,
+          useValue: { assertVisible: jest.fn() },
+        },
       ],
     }).compile();
 

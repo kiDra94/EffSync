@@ -25,23 +25,27 @@ export abstract class TaskRepository {
     includeRelations: boolean,
   ): Promise<TaskRow | null>;
   abstract findParentLink(taskId: number): Promise<ParentLinkRecord | null>;
-  abstract findCompletionSnapshot(
-    taskId: number,
-  ): Promise<TaskCompletionSnapshot | null>;
+  abstract findCompletionSnapshots(
+    taskIds: number[],
+  ): Promise<TaskCompletionSnapshot[]>;
   abstract priorityExists(priorityId: number): Promise<boolean>;
 
-  /** One page of GET /tasks; `visibleTo` limits it to a non-staff user's tasks. */
+  /**
+   * One page of GET /tasks. `visibleIds` limits it to a student's visible set
+   * (decision B3); the filters, the sorting and the count apply within it.
+   */
   abstract findPage(
     filter: TaskListFilter,
-    visibleTo: number | undefined,
+    visibleIds: number[] | undefined,
     page: TaskPageRequest,
   ): Promise<{ tasks: TaskRow[]; total: number }>;
-  abstract findChildrenOf(
-    parentIds: number[],
-    includeRelations: boolean,
-    sortBy: string,
-    sortOrder: "asc" | "desc",
-  ): Promise<TaskRow[]>;
+  /**
+   * The tasks a user created, is assigned to or is a member of, plus all of
+   * their subtasks (decision B3, M17).
+   */
+  abstract findVisibleTaskIds(userId: number): Promise<number[]>;
+  /** Whether the task is in the user's visible set: one upward query, false for a missing task. */
+  abstract isVisibleTo(taskId: number, userId: number): Promise<boolean>;
   abstract findSubtasks(
     parentId: number,
     includeRelations: boolean,
@@ -75,11 +79,16 @@ export abstract class TaskRepository {
   abstract findParticipantProfiles(
     userIds: number[],
   ): Promise<ParticipantProfile[]>;
-  /** `added_by` of the graded submissions of these students for the task. */
-  abstract findGradedSubmissionAuthors(
+  /** The explicit members of these tasks. */
+  abstract findMembersOf(
+    taskIds: number[],
+  ): Promise<{ task_id: number; user_id: number }[]>;
+  /** Graded submissions of these students for these tasks, with the tasks they belong to. */
+  abstract findGradedSubmissions(
     studentIds: number[],
-    taskId: number,
-  ): Promise<(number | null)[]>;
+    taskIds: number[],
+  ): Promise<{ added_by: number | null; taskIds: number[] }[]>;
+  abstract completeTasks(taskIds: number[]): Promise<void>;
   abstract findSubmissionsOf(
     taskId: number,
     userId: number,

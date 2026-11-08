@@ -44,6 +44,7 @@ import { GradeRemarkDto } from "./dto/grade-remark.dto";
 import { QueryTasksDto } from "./dto/query-tasks.dto";
 import { UpdateTaskTemplateDto } from "./dto/update-task-template.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
+import { TaskVisibilityGuard } from "./task-visibility.guard";
 
 /**
  * The single HTTP entry point for task operations (decision Q6). The static
@@ -52,7 +53,7 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
  */
 @ApiTags("tasks")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, TaskVisibilityGuard)
 @Controller("tasks")
 export class TaskController {
   constructor(

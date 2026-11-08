@@ -865,3 +865,53 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - The `Notifier` port is the way into notifications for every context (GOALS.md rule 3 example). M19 (grading) and M20 (chat) switch their `NotificationsService.create` calls to it.
 
 **Failed / open:** none.
+
+## 2026-11-08 – M17: Unify completion from grades, keeping the read-time recalculation
+
+**Done:**
+- One implementation (problems 2 and 3, T119): `TaskCompletionService.completeIfAllStudentsGraded(tasks)` in task-management.
+  - It takes a list of tasks and runs four queries for any number of them: members, participant profiles, graded submissions per task, then one `updateMany`.
+  - Participants come from `involvedUsers`; a task counts as done when all of its student participants have a graded submission for it.
+  - The read paths use it: `findOne` with one task, `findAll` with the page.
+- Grading in `modules/documents` calls `completeAfterGrading(linkedTaskIds)`: one call for all linked tasks.
+  - Since the review, a task completed this way counts as a status change: its parents' completion rules are re-checked, and the people involved get the realtime update and the `task_status_changed` notification.
+  - `DocumentsService.completeTaskIfAllParticipantsGraded`, the 100-line copy, is gone.
+  - task-management is `@Global` and exports `TaskCompletionService` through `application/index.ts`; a legacy module may not import a context's module file.
+- Decision B3: `TaskRepository.findVisibleTaskIds` determines a student's visible set (created, assigned or member, plus all descendants) in one recursive query; `UNION` stops at a cycle.
+  - `GET /tasks` filters, sorts, pages and counts within that set, with `task_id` as a tiebreaker so pages stay stable. Staff see all tasks.
+  - The old merge of a page with all its descendants is gone.
+- Step 5 (from M15), after the review: `TaskVisibilityGuard` on the `TaskController` checks every `/tasks/:id…` route, reads and writes alike. A task the requester can't see answers 404, like a missing one.
+  - The check is one targeted query: `isVisibleTo`, from the task up through its ancestors, is the user creator, assignee or member anywhere on the way. Staff pass without a query.
+  - This also closes `PATCH`, `DELETE`, deadline-unlock, lock/unlock, `can-edit`, `check-permission`, and the way a student could add themselves as a member of any task and so join its visible set (finding 2).
+  - Grading remarks and the member list keep their own checks on top.
+- Frontend: `fetchTasks` reads all pages, 100 per request. Before, the store got only the first 50 tasks.
+- The thesis test "recalculates task status in findOne" (`08_…:84-90`) is in `task.service.spec.ts`. Its listing mocks only `findUnique`; with those mocks alone the task has no participants and is not completed, so the test also mocks the participant and the graded submission.
+
+**Verified:**
+- Done when:
+  - Exactly one implementation exists: a search finds no other copy of the completion rule. The only other `graded_at: { not: null }` query is "my grades".
+  - The thesis test passes.
+  - A student gets 404 on `GET /tasks/1/comments` outside their visible set (`test/task-visibility.e2e-spec.ts`), also for `POST` comments, `GET /tasks/1`, `PATCH`, `DELETE`, adding a member, `check-permission` and `lock`.
+  - `findAll` makes the same number of queries for `limit` 10 and 25 (Prisma mock call count).
+  - 25 visible tasks with `limit=10` return 10, 10 and 5 tasks with `total` 25 and `totalPages` 3: with a Prisma mock, and in E2E with a new student who has 5 assigned projects of 4 subtasks each.
+- Test changes:
+  - The M1 and document tests for the completion keep their assertions. Their mock rows carry `task_id` or `task_documents`, as the batched queries read them, and they assert `updateMany` instead of `update`.
+  - The three student `findAll` tests in M1 now describe the visible set (B3). The `BUG (B3)` test is flipped.
+  - Three E2E tests expect 404 instead of 403 for users outside the task's visible set: `guard-order` deadline-unlock, `mitgliederverwaltung` adding a member, and `task-rules` `/subtasks`.
+- Backend: 489 unit and 92 E2E tests. Frontend: 197 tests. tsc, lint (0 errors), knip and dependency-cruiser (0 violations, 0 context cycles) pass. No task-management file is over 500 lines (`task.service.spec.ts` was split). `act`: all three jobs succeeded.
+- `code-review` (high) confirmed the batch attribution and the recursive query. 10 findings:
+  - fixed:
+    - (1, 2, 5, 8) visibility on every `:id` route, by the guard instead of optional user ids that left routes unchecked
+    - (3) the frontend capped at 50 tasks
+    - (4) unstable paging
+    - (7) completion from grading without the parents' rules and notifications
+    - (9) the whole visible set loaded for one check
+    - (10) the per-task loop
+  - documented:
+    - (6) The read-time completion is a separate read and write. A task whose students are all graded becomes COMPLETED again on the next read, even right after a teacher reopened it. That is the thesis behavior (T119, the read-time recalculation stays). A filtered list (`?status=IN_PROGRESS`) can return a task this read just completed.
+
+**Learned (for later milestones):**
+- Per-task visibility belongs at the route boundary (a guard on `params.id`), not in optional service parameters, so it can't be forgotten.
+- `created_by`, `assigned_to`, `parent_task_id` and `task_members.user_id` are read by the visibility queries on every request. M30 adds the FK indexes (decision Q8h).
+
+**Failed / open:** none beyond the documented point above.

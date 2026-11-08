@@ -16,6 +16,11 @@ import { join } from "path";
 import { DocumentsService } from "./documents.service";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { TaskCompletionService } from "../../contexts/task-management/application";
+import { PrismaTaskRepository } from "../../contexts/task-management/infrastructure/persistence/prisma-task.repository";
+import { PrismaUnitOfWork } from "../../shared/infrastructure/prisma/prisma-unit-of-work";
+import type { TaskRealtime } from "../../contexts/task-management/application";
+import type { TaskNotificationsService } from "../../contexts/task-management/application/task-notifications.service";
 
 function createPrismaMock() {
   const prisma = {
@@ -32,7 +37,13 @@ function createPrismaMock() {
       findMany: jest.fn().mockResolvedValue([]),
     },
     user_roles: { findMany: jest.fn().mockResolvedValue([]) },
-    tasks: { findUnique: jest.fn().mockResolvedValue(null), update: jest.fn() },
+    tasks: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      // M17: grading loads the linked tasks in one query
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
     task_members: { findMany: jest.fn().mockResolvedValue([]) },
     task_documents: {
       create: jest.fn(),
@@ -118,6 +129,14 @@ describe("DocumentsService (characterization, M1)", () => {
     service = new DocumentsService(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
+      // M17: grading completes tasks through task-management's one rule
+      new TaskCompletionService(
+        new PrismaTaskRepository(
+          new PrismaUnitOfWork(prisma as unknown as PrismaService),
+        ),
+        {} as TaskRealtime,
+        { statusChanged: jest.fn() } as unknown as TaskNotificationsService,
+      ),
     );
   });
 
@@ -513,12 +532,14 @@ describe("DocumentsService (characterization, M1)", () => {
 
       it("does nothing when no participant is a student", async () => {
         prisma.documents.findUnique.mockResolvedValue(linkedDoc());
-        prisma.tasks.findUnique.mockResolvedValue({
-          task_id: 7,
-          status: "OPEN",
-          created_by: 4,
-          assigned_to: null,
-        });
+        prisma.tasks.findMany.mockResolvedValue([
+          {
+            task_id: 7,
+            status: "OPEN",
+            created_by: 4,
+            assigned_to: null,
+          },
+        ]);
         prisma.users.findMany.mockResolvedValue([
           {
             user_id: 4,
@@ -534,12 +555,14 @@ describe("DocumentsService (characterization, M1)", () => {
 
       it("does not update a task that is already COMPLETED", async () => {
         prisma.documents.findUnique.mockResolvedValue(linkedDoc());
-        prisma.tasks.findUnique.mockResolvedValue({
-          task_id: 7,
-          status: "COMPLETED",
-          created_by: 4,
-          assigned_to: 21,
-        });
+        prisma.tasks.findMany.mockResolvedValue([
+          {
+            task_id: 7,
+            status: "COMPLETED",
+            created_by: 4,
+            assigned_to: 21,
+          },
+        ]);
         prisma.users.findMany.mockResolvedValue([
           { user_id: 21, students: { student_id: 21 }, user_roles: [] },
         ]);

@@ -28,6 +28,7 @@ import type { TaskRecord, TaskRow } from "./ports/task-records";
 import { TaskRepository } from "./ports/task.repository";
 import { TaskCompletionService } from "./task-completion.service";
 import { TaskNotificationsService } from "./task-notifications.service";
+import { TaskVisibilityService } from "./task-visibility.service";
 import type {
   CreateTaskInput,
   TaskQuery,
@@ -53,6 +54,7 @@ export class TaskService {
     private readonly permissionsService: PermissionsService,
     private readonly unitOfWork: UnitOfWork,
     private readonly notifications: TaskNotificationsService,
+    private readonly visibility: TaskVisibilityService,
   ) {}
 
   async create(input: CreateTaskInput, userId: number) {
@@ -132,94 +134,41 @@ export class TaskService {
       ...filter
     } = query;
 
-    // Teacher, Admin and Superuser see all tasks (for grading); everyone
-    // else only their own, assigned and member tasks (and their subtasks)
-    const isTeacher = userId
-      ? await this.permissionsService.hasAnyRole(userId, STAFF_ROLES)
-      : true;
-    const restricted = Boolean(userId) && !isTeacher;
+    // decision B3: a student's visible set (with all subtasks) is paged,
+    // sorted and counted; staff see all tasks
+    const visibleIds = await this.visibility.visibleIdsFor(userId);
+    const { tasks, total } = await this.tasks.findPage(filter, visibleIds, {
+      includeRelations,
+      sortBy,
+      sortOrder,
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
-    const { tasks, total } = await this.tasks.findPage(
-      filter,
-      restricted ? userId : undefined,
-      {
-        includeRelations,
-        sortBy,
-        sortOrder,
-        skip: (page - 1) * limit,
-        take: limit,
-      },
+    // T119: the read-time completion from grades, batched for the page
+    const completed = await this.completion.completeIfAllStudentsGraded(tasks);
+    const data = tasks.map((task) =>
+      completed.has(task.task_id)
+        ? { ...task, status: "COMPLETED" as const, progress: 100 }
+        : task,
     );
 
-    let visibleTasks: TaskRow[] = tasks;
-    if (restricted) {
-      const descendants = await this.collectDescendants(
-        tasks.map((task) => Number(task.task_id)),
-        includeRelations,
-        sortBy,
-        sortOrder,
-      );
-      const merged = new Map<number, TaskRow>();
-      for (const task of [...tasks, ...descendants]) {
-        merged.set(Number(task.task_id), task);
-      }
-      visibleTasks = Array.from(merged.values());
-    }
-
-    const recalculatedTasks = await Promise.all(
-      visibleTasks.map(async (task) =>
-        (await this.completion.recalculateFromGrades(task.task_id, task))
-          ? { ...task, status: "COMPLETED" as const, progress: 100 }
-          : task,
-      ),
-    );
-
-    const count = restricted ? recalculatedTasks.length : total;
     return {
-      data: recalculatedTasks,
-      meta: { total: count, page, limit, totalPages: Math.ceil(count / limit) },
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
-  private async collectDescendants(
-    parentIds: number[],
-    includeRelations: boolean,
-    sortBy: string,
-    sortOrder: "asc" | "desc",
-    visited = new Set<number>(),
-  ): Promise<TaskRow[]> {
-    const uniqueParentIds = parentIds.filter(
-      (id) => Number.isFinite(id) && !visited.has(id),
-    );
-    if (uniqueParentIds.length === 0) return [];
-    uniqueParentIds.forEach((id) => visited.add(id));
-
-    const children = await this.tasks.findChildrenOf(
-      uniqueParentIds,
-      includeRelations,
-      sortBy,
-      sortOrder,
-    );
-    const childIds = children
-      .map((child) => Number(child.task_id))
-      .filter((id) => Number.isFinite(id));
-    const deeper = await this.collectDescendants(
-      childIds,
-      includeRelations,
-      sortBy,
-      sortOrder,
-      visited,
-    );
-    return [...children, ...deeper];
-  }
-
+  /** One task; TaskVisibilityGuard has checked the requester's visible set (M17). */
   async findOne(taskId: number, includeRelations = true): Promise<TaskRow> {
     const task = await this.tasks.findRow(taskId, includeRelations);
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found!`);
     }
-
-    if (await this.completion.recalculateFromGrades(taskId, task)) {
+    // T119: the status is recalculated on read
+    if (
+      (await this.completion.completeIfAllStudentsGraded([task])).has(taskId)
+    ) {
       return (await this.tasks.findRow(taskId, includeRelations)) ?? task;
     }
     return task;

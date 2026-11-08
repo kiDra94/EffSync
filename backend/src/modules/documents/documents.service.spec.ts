@@ -2,6 +2,11 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { DocumentsService } from "./documents.service";
 import { PrismaService } from "../../shared/infrastructure/prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { TaskCompletionService } from "../../contexts/task-management/application";
+import { PrismaTaskRepository } from "../../contexts/task-management/infrastructure/persistence/prisma-task.repository";
+import { PrismaUnitOfWork } from "../../shared/infrastructure/prisma/prisma-unit-of-work";
+import type { TaskRealtime } from "../../contexts/task-management/application";
+import type { TaskNotificationsService } from "../../contexts/task-management/application/task-notifications.service";
 
 describe("DocumentsService", () => {
   let service: DocumentsService;
@@ -29,7 +34,11 @@ describe("DocumentsService", () => {
     },
     tasks: {
       findUnique: jest.fn(),
+      // M17: grading loads the linked tasks in one query
+      findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn(),
+      // M17: the completion from grades completes a batch of tasks
+      updateMany: jest.fn(),
     },
     task_members: {
       findMany: jest.fn(),
@@ -70,6 +79,19 @@ describe("DocumentsService", () => {
         {
           provide: NotificationsService,
           useValue: mockNotificationsService,
+        },
+        // M17: grading completes tasks through task-management's one rule
+        {
+          provide: TaskCompletionService,
+          inject: [PrismaService],
+          useFactory: (prisma: PrismaService) =>
+            new TaskCompletionService(
+              new PrismaTaskRepository(new PrismaUnitOfWork(prisma)),
+              {} as TaskRealtime,
+              {
+                statusChanged: jest.fn(),
+              } as unknown as TaskNotificationsService,
+            ),
         },
       ],
     }).compile();
@@ -262,13 +284,15 @@ describe("DocumentsService", () => {
       });
 
     mockPrismaService.documents.update.mockResolvedValue({ document_id: 19 });
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 77,
-      status: "IN_PROGRESS",
-      assigned_to: 21,
-    });
+    mockPrismaService.tasks.findMany.mockResolvedValue([
+      {
+        task_id: 77,
+        status: "IN_PROGRESS",
+        assigned_to: 21,
+      },
+    ]);
     mockPrismaService.task_members.findMany.mockResolvedValue([
-      { user_id: 22 },
+      { task_id: 77, user_id: 22 },
     ]);
     mockPrismaService.users.findMany.mockResolvedValue([
       {
@@ -283,15 +307,15 @@ describe("DocumentsService", () => {
       },
     ]);
     mockPrismaService.documents.findMany.mockResolvedValue([
-      { added_by: 21 },
-      { added_by: 22 },
+      { added_by: 21, task_documents: [{ task_id: 77 }] },
+      { added_by: 22, task_documents: [{ task_id: 77 }] },
     ]);
 
     await service.grade(19, { grade: "2", feedback: "Passt" }, 4, "teacher");
 
-    expect(mockPrismaService.tasks.update).toHaveBeenCalledWith(
+    expect(mockPrismaService.tasks.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { task_id: 77 },
+        where: { task_id: { in: [77] } },
         data: expect.objectContaining({
           status: "COMPLETED",
           progress: 100,
@@ -345,13 +369,15 @@ describe("DocumentsService", () => {
       });
 
     mockPrismaService.documents.update.mockResolvedValue({ document_id: 20 });
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 88,
-      status: "IN_PROGRESS",
-      assigned_to: 21,
-    });
+    mockPrismaService.tasks.findMany.mockResolvedValue([
+      {
+        task_id: 88,
+        status: "IN_PROGRESS",
+        assigned_to: 21,
+      },
+    ]);
     mockPrismaService.task_members.findMany.mockResolvedValue([
-      { user_id: 22 },
+      { task_id: 88, user_id: 22 },
     ]);
     mockPrismaService.users.findMany.mockResolvedValue([
       {
@@ -365,13 +391,15 @@ describe("DocumentsService", () => {
         user_roles: [{ roles: { name: "Student" } }],
       },
     ]);
-    mockPrismaService.documents.findMany.mockResolvedValue([{ added_by: 21 }]);
+    mockPrismaService.documents.findMany.mockResolvedValue([
+      { added_by: 21, task_documents: [{ task_id: 88 }] },
+    ]);
 
     await service.grade(20, { grade: "3", feedback: "ok" }, 4, "teacher");
 
-    expect(mockPrismaService.tasks.update).not.toHaveBeenCalledWith(
+    expect(mockPrismaService.tasks.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { task_id: 88 },
+        where: { task_id: { in: [88] } },
         data: expect.objectContaining({ status: "COMPLETED" }),
       }),
     );
@@ -422,12 +450,14 @@ describe("DocumentsService", () => {
       });
 
     mockPrismaService.documents.update.mockResolvedValue({ document_id: 30 });
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 99,
-      status: "IN_PROGRESS",
-      created_by: 21,
-      assigned_to: 22,
-    });
+    mockPrismaService.tasks.findMany.mockResolvedValue([
+      {
+        task_id: 99,
+        status: "IN_PROGRESS",
+        created_by: 21,
+        assigned_to: 22,
+      },
+    ]);
     mockPrismaService.task_members.findMany.mockResolvedValue([]);
     mockPrismaService.users.findMany.mockResolvedValue([
       {
@@ -442,13 +472,15 @@ describe("DocumentsService", () => {
       },
     ]);
     // Only the assigned student is graded, the creator (21) isn't yet
-    mockPrismaService.documents.findMany.mockResolvedValue([{ added_by: 22 }]);
+    mockPrismaService.documents.findMany.mockResolvedValue([
+      { added_by: 22, task_documents: [{ task_id: 99 }] },
+    ]);
 
     await service.grade(30, { grade: "2", feedback: "gut" }, 4, "teacher");
 
-    expect(mockPrismaService.tasks.update).not.toHaveBeenCalledWith(
+    expect(mockPrismaService.tasks.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { task_id: 99 },
+        where: { task_id: { in: [99] } },
         data: expect.objectContaining({ status: "COMPLETED" }),
       }),
     );

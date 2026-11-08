@@ -126,21 +126,17 @@ describe("TaskService: create and read (characterization, M1)", () => {
       expect(result.data).toHaveLength(1);
     });
 
-    it("limits a student to created, assigned or member tasks", async () => {
+    // decision B3 (M17): a student's list is their visible set (own, assigned and
+    // member tasks plus all subtasks, one recursive query)
+    it("limits a student to their visible set", async () => {
       asStaff(false);
+      prisma.$queryRaw.mockResolvedValue([{ task_id: 3 }, { task_id: 4 }]);
 
       await service.findAll({}, 7);
 
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
       expect(firstFindManyWhere()).toEqual({
-        AND: [
-          {
-            OR: [
-              { created_by: 7 },
-              { assigned_to: 7 },
-              { task_members: { some: { user_id: 7 } } },
-            ],
-          },
-        ],
+        AND: [{ task_id: { in: [3, 4] } }],
       });
     });
 
@@ -154,36 +150,31 @@ describe("TaskService: create and read (characterization, M1)", () => {
       expect(prisma.user_roles.findMany).not.toHaveBeenCalled();
     });
 
-    // BUG (decision B3, fixed in M17): a student's page also contains all descendants
-    // of the page's tasks, and meta.total counts only this merged list.
-    it("adds all descendants of a student page and counts only the merged list", async () => {
+    // BUG (decision B3, fixed in M17): a student's page held all descendants of the page's
+    // tasks, and meta.total counted only this merged list. Now the visible set is paged and counted.
+    it("pages and counts a student's visible set, subtasks included", async () => {
       asStaff(false);
-      prisma.tasks.count.mockResolvedValue(1);
-      prisma.tasks.findMany.mockImplementation((args: FindManyArgs) => {
-        const parent = args.where?.parent_task_id;
-        if (parent && typeof parent === "object" && parent.in) {
-          const children: Record<
-            number,
-            Array<{ task_id: number; status: string }>
-          > = {
-            1: [{ task_id: 2, status: "OPEN" }],
-            2: [{ task_id: 3, status: "OPEN" }],
-          };
-          return Promise.resolve(parent.in.flatMap((id) => children[id] ?? []));
-        }
-        return Promise.resolve([{ task_id: 1, status: "OPEN" }]);
-      });
+      prisma.$queryRaw.mockResolvedValue([
+        { task_id: 1 },
+        { task_id: 2 },
+        { task_id: 3 },
+      ]);
+      prisma.tasks.count.mockResolvedValue(3);
+      prisma.tasks.findMany.mockResolvedValue([{ task_id: 1, status: "OPEN" }]);
 
       const result = await service.findAll({ limit: 1 }, 7);
 
-      expect(result.data.map((task) => task.task_id)).toEqual([1, 2, 3]);
+      expect(result.data.map((task) => task.task_id)).toEqual([1]);
       expect(result.meta.total).toBe(3);
       expect(result.meta.totalPages).toBe(3);
+      expect(prisma.tasks.findMany).toHaveBeenCalledTimes(1);
     });
 
     // problem 1 (fixed in M7): search and visibility are combined with AND
     it("applies the search term for students within their visible tasks", async () => {
       asStaff(false);
+
+      prisma.$queryRaw.mockResolvedValue([{ task_id: 3 }]);
 
       await service.findAll({ search: "mathe" }, 7);
 
@@ -195,13 +186,7 @@ describe("TaskService: create and read (characterization, M1)", () => {
             { description: { contains: "mathe", mode: "insensitive" } },
           ],
         },
-        {
-          OR: [
-            { created_by: 7 },
-            { assigned_to: 7 },
-            { task_members: { some: { user_id: 7 } } },
-          ],
-        },
+        { task_id: { in: [3] } },
       ]);
     });
 
@@ -264,7 +249,7 @@ describe("TaskService: create and read (characterization, M1)", () => {
       await service.findOne(1, false);
 
       expect(prisma.task_members.findMany).not.toHaveBeenCalled();
-      expect(prisma.tasks.update).not.toHaveBeenCalled();
+      expect(prisma.tasks.updateMany).not.toHaveBeenCalled();
     });
 
     it("does not complete a task whose participants are not students", async () => {
@@ -280,7 +265,7 @@ describe("TaskService: create and read (characterization, M1)", () => {
       await service.findOne(1, false);
 
       expect(prisma.documents.findMany).not.toHaveBeenCalled();
-      expect(prisma.tasks.update).not.toHaveBeenCalled();
+      expect(prisma.tasks.updateMany).not.toHaveBeenCalled();
     });
 
     it("does not complete a task while one student participant has no graded submission", async () => {
@@ -290,15 +275,17 @@ describe("TaskService: create and read (characterization, M1)", () => {
         created_by: 5,
         assigned_to: 6,
       });
-      prisma.task_members.findMany.mockResolvedValue([{ user_id: 7 }]);
+      prisma.task_members.findMany.mockResolvedValue([
+        { task_id: 1, user_id: 7 },
+      ]);
       prisma.users.findMany.mockResolvedValue([
         { user_id: 5, students: { student_id: 5 }, user_roles: [] },
         { user_id: 6, students: null, user_roles: studentRoles },
         { user_id: 7, students: { student_id: 7 }, user_roles: studentRoles },
       ]);
       prisma.documents.findMany.mockResolvedValue([
-        { added_by: 5 },
-        { added_by: 6 },
+        { added_by: 5, task_documents: [{ task_id: 1 }] },
+        { added_by: 6, task_documents: [{ task_id: 1 }] },
       ]);
 
       await service.findOne(1, false);
@@ -306,7 +293,7 @@ describe("TaskService: create and read (characterization, M1)", () => {
       expect(prisma.users.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { user_id: { in: [5, 6, 7] } } }),
       );
-      expect(prisma.tasks.update).not.toHaveBeenCalled();
+      expect(prisma.tasks.updateMany).not.toHaveBeenCalled();
     });
 
     it("recalculates task status in findOne when every student participant is graded", async () => {
@@ -325,13 +312,16 @@ describe("TaskService: create and read (characterization, M1)", () => {
       prisma.users.findMany.mockResolvedValue([
         { user_id: 5, students: null, user_roles: studentRoles },
       ]);
-      prisma.documents.findMany.mockResolvedValue([{ added_by: 5 }]);
+      prisma.documents.findMany.mockResolvedValue([
+        { added_by: 5, task_documents: [{ task_id: 1 }] },
+      ]);
 
       const result = await service.findOne(1);
 
-      expect(prisma.tasks.update).toHaveBeenCalledWith(
+      // M17: one batched update for the completed tasks
+      expect(prisma.tasks.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { task_id: 1 },
+          where: { task_id: { in: [1] } },
           data: expect.objectContaining({
             status: "COMPLETED",
             progress: 100,
@@ -344,6 +334,8 @@ describe("TaskService: create and read (characterization, M1)", () => {
 
   describe("findOneForStudent", () => {
     it("locks the task for the student once one of their submissions is graded", async () => {
+      // M17: the task is in the student's visible set
+      prisma.$queryRaw.mockResolvedValue([{ task_id: 1 }]);
       prisma.tasks.findUnique.mockResolvedValue({
         task_id: 1,
         status: "COMPLETED",

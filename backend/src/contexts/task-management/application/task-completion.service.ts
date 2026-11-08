@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { isRoleIn, RoleName } from "../../identity-access/application";
 import { involvedUsersOf } from "./involved-users";
+import { involvedUsers } from "../domain/task";
+import { TaskNotificationsService } from "./task-notifications.service";
 import {
   ConditionNode,
   evaluateCondition,
@@ -27,6 +29,7 @@ export class TaskCompletionService {
   constructor(
     private readonly tasks: TaskRepository,
     private readonly realtime: TaskRealtime,
+    private readonly notifications: TaskNotificationsService,
   ) {}
 
   /** Re-evaluates every parent whose completion rule refers to the task. */
@@ -89,61 +92,97 @@ export class TaskCompletionService {
   }
 
   /**
-   * Retroactive completion: if every student participant of the task has at
-   * least one graded submission for it, the task becomes COMPLETED.
+   * Completion from grades (T119, problems 2 and 3): a task becomes COMPLETED
+   * once every student participant (creator, assignee or member with a
+   * student profile or the Student role) has a graded submission for it.
+   * The one implementation for grading (documents) and the read paths; it
+   * needs four queries for any number of tasks.
    *
-   * @returns true if this run changed the status to COMPLETED.
+   * @returns the ids of the tasks this call completed.
    */
-  async recalculateFromGrades(
-    taskId: number,
-    taskSnapshot?: TaskCompletionSnapshot,
-  ): Promise<boolean> {
-    const task =
-      taskSnapshot ?? (await this.tasks.findCompletionSnapshot(taskId));
-    if (!task || task.status === "COMPLETED") return false;
+  async completeIfAllStudentsGraded(
+    tasks: TaskCompletionSnapshot[],
+  ): Promise<Set<number>> {
+    const open = tasks.filter((task) => task.status !== "COMPLETED");
+    if (open.length === 0) return new Set();
+    const openIds = open.map((task) => task.task_id);
 
-    const participantIds = new Set<number>();
-    if (task.created_by) participantIds.add(Number(task.created_by));
-    if (task.assigned_to) participantIds.add(Number(task.assigned_to));
-    for (const memberId of await this.tasks.findMemberIds(taskId)) {
-      if (memberId) participantIds.add(Number(memberId));
+    // the participants of each task: creator, assignee and members
+    const membersOf = new Map<number, number[]>(openIds.map((id) => [id, []]));
+    for (const member of await this.tasks.findMembersOf(openIds)) {
+      if (member.user_id) membersOf.get(member.task_id)?.push(member.user_id);
     }
-    if (participantIds.size === 0) return false;
-
-    const studentParticipantIds = (
-      await this.tasks.findParticipantProfiles(Array.from(participantIds))
-    )
-      .filter((user) => {
-        const hasStudentProfile = Boolean(user.students?.student_id);
-        const hasStudentRole = Array.isArray(user.user_roles)
-          ? user.user_roles.some((entry) =>
-              isRoleIn(entry.roles?.name, [RoleName.STUDENT]),
-            )
-          : false;
-        return hasStudentProfile || hasStudentRole;
-      })
-      .map((user) => Number(user.user_id));
-    if (studentParticipantIds.length === 0) return false;
-
-    const gradedStudentIds = new Set(
-      (
-        await this.tasks.findGradedSubmissionAuthors(
-          studentParticipantIds,
-          taskId,
-        )
-      )
-        .map((addedBy) => Number(addedBy))
-        .filter((id) => Number.isFinite(id) && id > 0),
+    const participants = new Map<number, Set<number>>(
+      open.map((task) => [
+        task.task_id,
+        new Set(involvedUsers(task, membersOf.get(task.task_id) ?? [])),
+      ]),
     );
-    if (!studentParticipantIds.every((id) => gradedStudentIds.has(id))) {
-      return false;
+    const everyone = new Set(
+      [...participants.values()].flatMap((ids) => [...ids]),
+    );
+    if (everyone.size === 0) return new Set();
+
+    const students = new Set(
+      (await this.tasks.findParticipantProfiles([...everyone]))
+        .filter(
+          (user) =>
+            Boolean(user.students?.student_id) ||
+            (Array.isArray(user.user_roles) &&
+              user.user_roles.some((entry) =>
+                isRoleIn(entry.roles?.name, [RoleName.STUDENT]),
+              )),
+        )
+        .map((user) => Number(user.user_id)),
+    );
+    if (students.size === 0) return new Set();
+
+    // which student has a graded submission for which task
+    const graded = new Set<string>();
+    for (const submission of await this.tasks.findGradedSubmissions(
+      [...students],
+      openIds,
+    )) {
+      const author = Number(submission.added_by);
+      if (!Number.isFinite(author) || author <= 0) continue;
+      for (const taskId of submission.taskIds)
+        graded.add(`${taskId}:${author}`);
     }
 
-    await this.tasks.updateRow(taskId, {
-      status: "COMPLETED",
-      progress: 100,
-      updated_at: new Date(),
-    });
-    return true;
+    const completed = open
+      .map((task) => task.task_id)
+      .filter((taskId) => {
+        const studentIds = [...(participants.get(taskId) ?? [])].filter((id) =>
+          students.has(id),
+        );
+        return (
+          studentIds.length > 0 &&
+          studentIds.every((id) => graded.has(`${taskId}:${id}`))
+        );
+      });
+    if (completed.length > 0) await this.tasks.completeTasks(completed);
+    return new Set(completed);
+  }
+
+  /**
+   * After a grade (documents): completes the linked tasks whose students are
+   * all graded, then treats it like any status change: the parents' rules are
+   * re-checked (T53), and the people involved get the realtime update and
+   * the notification (T107, T72).
+   */
+  async completeAfterGrading(taskIds: number[]): Promise<void> {
+    if (taskIds.length === 0) return;
+    const completed = await this.completeIfAllStudentsGraded(
+      await this.tasks.findCompletionSnapshots(taskIds),
+    );
+    for (const taskId of completed) {
+      const task = await this.tasks.findById(taskId);
+      if (task) await this.notifications.statusChanged(task, undefined);
+      const parentChanges = await this.completeParentsOf(taskId);
+      this.notify(parentChanges);
+      for (const { updated } of parentChanges) {
+        await this.notifications.statusChanged(updated, undefined);
+      }
+    }
   }
 }

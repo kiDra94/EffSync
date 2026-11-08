@@ -57,7 +57,8 @@ describe("Task rules (e2e)", () => {
       ...subtask,
       parent_task_id: 1,
     }).expect(403);
-    await send("post", "/api/tasks/1/subtasks", outsider, subtask).expect(403);
+    // M17: /tasks/:id… routes of a task outside the visible set answer 404
+    await send("post", "/api/tasks/1/subtasks", outsider, subtask).expect(404);
 
     await send("post", "/api/tasks", member, {
       ...subtask,

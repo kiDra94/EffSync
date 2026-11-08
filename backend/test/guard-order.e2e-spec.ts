@@ -110,12 +110,14 @@ describe("Guard order token → role → permission (e2e)", () => {
       taskId = (response.body as { task_id: number }).task_id;
     });
 
-    it("answers 403 for a student who didn't create the task", async () => {
+    // M17: the student isn't involved in the teacher's task, so for them it
+    // doesn't exist (404); the staff-or-creator rule is in the M1 locking tests
+    it("answers 404 for a student who can't see the task", async () => {
       await request(app.getHttpServer())
         .patch(`/api/tasks/${taskId}/deadline-unlock`)
         .set("Authorization", `Bearer ${student}`)
         .send({ deadline: "2030-01-01" })
-        .expect(403);
+        .expect(404);
     });
 
     it("lets another teacher change the deadline", async () => {

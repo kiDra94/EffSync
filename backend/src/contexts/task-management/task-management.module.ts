@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Global, Module } from "@nestjs/common";
 import { PrismaModule } from "../../shared/infrastructure/prisma/prisma.module";
 import { TaskActivityLogService } from "./application/activity-log.service";
 import { CommentsService } from "./application/comments.service";
@@ -15,6 +15,7 @@ import { TaskMembersService } from "./application/task-members.service";
 import { TaskTemplatesService } from "./application/task-templates.service";
 import { TaskService } from "./application/task.service";
 import { TaskNotificationsService } from "./application/task-notifications.service";
+import { TaskVisibilityService } from "./application/task-visibility.service";
 import { PrismaActivityLogRepository } from "./infrastructure/persistence/prisma-activity-log.repository";
 import { PrismaCommentRepository } from "./infrastructure/persistence/prisma-comment.repository";
 import { PrismaGradeRemarkRepository } from "./infrastructure/persistence/prisma-grade-remark.repository";
@@ -31,6 +32,10 @@ import { TaskController } from "./presentation/task.controller";
  * e-mail modules' global bindings; PermissionsService and the account
  * deletion registry from identity-access (global).
  */
+// global for TaskCompletionService: grading in the legacy documents module
+// completes tasks through it (M17), and a legacy module may not import a
+// context's module file (dependency rule context-via-application)
+@Global()
 @Module({
   imports: [PrismaModule],
   controllers: [TaskController],
@@ -44,6 +49,7 @@ import { TaskController } from "./presentation/task.controller";
     CommentsService,
     GradeRemarksService,
     TaskNotificationsService,
+    TaskVisibilityService,
     TaskAccountDeletion,
     { provide: TaskRepository, useClass: PrismaTaskRepository },
     { provide: ActivityLogRepository, useClass: PrismaActivityLogRepository },
@@ -52,5 +58,6 @@ import { TaskController } from "./presentation/task.controller";
     { provide: CommentRepository, useClass: PrismaCommentRepository },
     { provide: GradeRemarkRepository, useClass: PrismaGradeRemarkRepository },
   ],
+  exports: [TaskCompletionService],
 })
 export class TaskManagementModule {}

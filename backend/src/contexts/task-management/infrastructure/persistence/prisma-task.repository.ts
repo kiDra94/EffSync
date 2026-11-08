@@ -58,9 +58,9 @@ export class PrismaTaskRepository extends TaskRepository {
     });
   }
 
-  findCompletionSnapshot(taskId: number) {
-    return this.db.tasks.findUnique({
-      where: { task_id: taskId },
+  findCompletionSnapshots(taskIds: number[]) {
+    return this.db.tasks.findMany({
+      where: { task_id: { in: taskIds } },
       select: {
         task_id: true,
         status: true,
@@ -78,7 +78,7 @@ export class PrismaTaskRepository extends TaskRepository {
 
   async findPage(
     filter: TaskListFilter,
-    visibleTo: number | undefined,
+    visibleIds: number[] | undefined,
     page: TaskPageRequest,
   ) {
     const where: Prisma.tasksWhereInput = {};
@@ -99,18 +99,10 @@ export class PrismaTaskRepository extends TaskRepository {
           ],
         }
       : undefined;
-    // Teacher, Admin and Superuser see all tasks (for grading); everyone else
-    // only the tasks they created, are assigned to or are a member of
-    const visibilityFilter: Prisma.tasksWhereInput | undefined =
-      visibleTo === undefined
-        ? undefined
-        : {
-            OR: [
-              { created_by: visibleTo },
-              { assigned_to: visibleTo },
-              { task_members: { some: { user_id: visibleTo } } },
-            ],
-          };
+    // a student sees their visible set; staff see all tasks (for grading)
+    const visibilityFilter: Prisma.tasksWhereInput | undefined = visibleIds
+      ? { task_id: { in: visibleIds } }
+      : undefined;
     // search and visibility are combined with AND (problem 1)
     const filters = [searchFilter, visibilityFilter].filter(
       (f): f is Prisma.tasksWhereInput => Boolean(f),
@@ -121,7 +113,8 @@ export class PrismaTaskRepository extends TaskRepository {
       this.db.tasks.findMany({
         where,
         include: relationsIf(page.includeRelations),
-        orderBy: { [page.sortBy]: page.sortOrder },
+        // task_id breaks ties, so equal sort values keep their page
+        orderBy: [{ [page.sortBy]: page.sortOrder }, { task_id: "asc" }],
         skip: page.skip,
         take: page.take,
       }),
@@ -130,17 +123,24 @@ export class PrismaTaskRepository extends TaskRepository {
     return { tasks, total };
   }
 
-  findChildrenOf(
-    parentIds: number[],
-    includeRelations: boolean,
-    sortBy: string,
-    sortOrder: "asc" | "desc",
-  ) {
-    return this.db.tasks.findMany({
-      where: { parent_task_id: { in: parentIds } },
-      include: relationsIf(includeRelations),
-      orderBy: { [sortBy]: sortOrder },
-    });
+  async findVisibleTaskIds(userId: number) {
+    // one recursive query: the user's own tasks, then their descendants;
+    // UNION (not UNION ALL) stops at a cycle
+    const rows = await this.db.$queryRaw<{ task_id: number }[]>`
+      WITH RECURSIVE visible AS (
+        SELECT t.task_id FROM tasks t
+        WHERE t.created_by = ${userId}
+           OR t.assigned_to = ${userId}
+           OR EXISTS (
+             SELECT 1 FROM task_members m
+             WHERE m.task_id = t.task_id AND m.user_id = ${userId}
+           )
+        UNION
+        SELECT c.task_id FROM tasks c
+        JOIN visible v ON c.parent_task_id = v.task_id
+      )
+      SELECT task_id FROM visible ORDER BY task_id`;
+    return rows.map((row) => Number(row.task_id));
   }
 
   findSubtasks(parentId: number, includeRelations: boolean) {
@@ -247,16 +247,61 @@ export class PrismaTaskRepository extends TaskRepository {
     });
   }
 
-  async findGradedSubmissionAuthors(studentIds: number[], taskId: number) {
+  async isVisibleTo(taskId: number, userId: number) {
+    // the task and its ancestors; it is visible if the user is the creator,
+    // the assignee or a member of any of them (the visible set, downwards)
+    const rows = await this.db.$queryRaw<{ visible: boolean }[]>`
+      WITH RECURSIVE chain AS (
+        SELECT task_id, parent_task_id FROM tasks WHERE task_id = ${taskId}
+        UNION
+        SELECT p.task_id, p.parent_task_id FROM tasks p
+        JOIN chain c ON p.task_id = c.parent_task_id
+      )
+      SELECT EXISTS (
+        SELECT 1 FROM chain c JOIN tasks t ON t.task_id = c.task_id
+        WHERE t.created_by = ${userId}
+           OR t.assigned_to = ${userId}
+           OR EXISTS (
+             SELECT 1 FROM task_members m
+             WHERE m.task_id = c.task_id AND m.user_id = ${userId}
+           )
+      ) AS visible`;
+    return rows[0]?.visible === true;
+  }
+
+  findMembersOf(taskIds: number[]) {
+    return this.db.task_members.findMany({
+      where: { task_id: { in: taskIds } },
+      select: { task_id: true, user_id: true },
+    });
+  }
+
+  async findGradedSubmissions(studentIds: number[], taskIds: number[]) {
     const graded = await this.db.documents.findMany({
       where: {
         added_by: { in: studentIds },
         graded_at: { not: null },
-        task_documents: { some: { task_id: taskId } },
+        task_documents: { some: { task_id: { in: taskIds } } },
       },
-      select: { added_by: true },
+      select: {
+        added_by: true,
+        task_documents: {
+          where: { task_id: { in: taskIds } },
+          select: { task_id: true },
+        },
+      },
     });
-    return graded.map((document) => document.added_by);
+    return graded.map((document) => ({
+      added_by: document.added_by,
+      taskIds: document.task_documents.map((link) => link.task_id),
+    }));
+  }
+
+  async completeTasks(taskIds: number[]) {
+    await this.db.tasks.updateMany({
+      where: { task_id: { in: taskIds } },
+      data: { status: "COMPLETED", progress: 100, updated_at: new Date() },
+    });
   }
 
   findSubmissionsOf(taskId: number, userId: number) {

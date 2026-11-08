@@ -154,4 +154,41 @@ describe("TaskCompletionService (characterization, M1)", () => {
       expect(prisma.tasks.update).not.toHaveBeenCalled();
     });
   });
+
+  // problems 2 and 3 (M17): one implementation for grading and the read paths,
+  // with the same four queries for any number of tasks
+  it("completes the graded tasks of a list in four queries", async () => {
+    prisma.task_members.findMany.mockResolvedValue([
+      { task_id: 1, user_id: 21 },
+      { task_id: 2, user_id: 22 },
+    ]);
+    prisma.users.findMany.mockResolvedValue([
+      { user_id: 21, students: { student_id: 21 }, user_roles: [] },
+      { user_id: 22, students: { student_id: 22 }, user_roles: [] },
+    ]);
+    prisma.documents.findMany.mockResolvedValue([
+      { added_by: 21, task_documents: [{ task_id: 1 }] },
+      { added_by: 22, task_documents: [{ task_id: 3 }] },
+    ]);
+    prisma.tasks.updateMany.mockResolvedValue({ count: 1 });
+
+    const completed = await service.completeIfAllStudentsGraded([
+      { task_id: 1, status: "IN_PROGRESS", created_by: 4, assigned_to: null },
+      { task_id: 2, status: "IN_PROGRESS", created_by: 4, assigned_to: null },
+      { task_id: 3, status: "COMPLETED", created_by: 4, assigned_to: 22 },
+    ]);
+
+    // task 1: its student 21 is graded; task 2: student 22 only for task 3
+    expect([...completed]).toEqual([1]);
+    expect(prisma.task_members.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.users.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.documents.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.tasks.updateMany).toHaveBeenCalledWith({
+      where: { task_id: { in: [1] } },
+      data: expect.objectContaining({
+        status: "COMPLETED",
+        progress: 100,
+      }) as unknown,
+    });
+  });
 });

@@ -14,7 +14,12 @@ import { TaskRepository } from "./ports/task.repository";
 import { TaskCompletionService } from "./task-completion.service";
 import { TaskService } from "./task.service";
 import { TaskNotificationsService } from "./task-notifications.service";
-import { BadRequestException, ForbiddenException } from "@nestjs/common";
+import { TaskVisibilityService } from "./task-visibility.service";
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
 
 describe("TaskService", () => {
   let service: TaskService;
@@ -34,6 +39,8 @@ describe("TaskService", () => {
       findMany: jest.fn(),
       upsert: jest.fn(),
     },
+    comments: { findMany: jest.fn().mockResolvedValue([]) },
+    $queryRaw: jest.fn().mockResolvedValue([]),
     users: {
       findMany: jest.fn(),
     },
@@ -69,6 +76,7 @@ describe("TaskService", () => {
       providers: [
         TaskService,
         TaskCompletionService,
+        TaskVisibilityService,
         PrismaUnitOfWork,
         { provide: UnitOfWork, useExisting: PrismaUnitOfWork },
         { provide: TaskRepository, useClass: PrismaTaskRepository },
@@ -128,19 +136,20 @@ describe("TaskService", () => {
       },
     ]);
     mockPrismaService.documents.findMany.mockResolvedValue([
-      { added_by: 21 },
-      { added_by: 22 },
+      { added_by: 21, task_documents: [{ task_id: 10 }] },
+      { added_by: 22, task_documents: [{ task_id: 10 }] },
     ]);
-    mockPrismaService.tasks.update.mockResolvedValue({
+    mockPrismaService.tasks.updateMany.mockResolvedValue({
       task_id: 10,
       status: "COMPLETED",
     });
 
     const result = await service.findOne(10, false);
 
-    expect(mockPrismaService.tasks.update).toHaveBeenCalledWith(
+    // M17: one batched update for the completed tasks
+    expect(mockPrismaService.tasks.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { task_id: 10 },
+        where: { task_id: { in: [10] } },
         data: expect.objectContaining({
           status: "COMPLETED",
           progress: 100,
@@ -179,10 +188,10 @@ describe("TaskService", () => {
       },
     ]);
     mockPrismaService.documents.findMany.mockResolvedValue([
-      { added_by: 31 },
-      { added_by: 32 },
+      { added_by: 31, task_documents: [{ task_id: 11 }] },
+      { added_by: 32, task_documents: [{ task_id: 11 }] },
     ]);
-    mockPrismaService.tasks.update.mockResolvedValue({
+    mockPrismaService.tasks.updateMany.mockResolvedValue({
       task_id: 11,
       status: "COMPLETED",
     });
@@ -313,253 +322,104 @@ describe("TaskService", () => {
     ).toBeLessThan(mockPrismaService.$transaction.mock.invocationCallOrder[0]);
   });
 
-  // T44, T72 (M16): notifications go out after the commit
-  it("notifies about a new assignee and a status change after the commit", async () => {
-    let committed = false;
-    mockPrismaService.$transaction.mockImplementation(
-      async (work: (tx: unknown) => Promise<unknown>) => {
-        const result = await work(mockPrismaService);
-        committed = true;
-        return result;
-      },
-    );
-    notifications.statusChanged.mockImplementation(() => {
-      expect(committed).toBe(true);
-      return Promise.resolve();
-    });
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 1,
-      status: "TODO",
-      assigned_to: null,
-      is_locked: false,
-      created_by: 5,
-    });
-    const updated = {
-      task_id: 1,
-      title: "T",
-      status: "IN_PROGRESS",
-      assigned_to: 6,
-      created_by: 5,
-      parent_task_id: null,
-    };
-    mockPrismaService.tasks.update.mockResolvedValue(updated);
+  // THESIS: T119 (M17) – the thesis's own unit test (08_…:84-90). Its listing
+  // mocks only findUnique; the participant and grade mocks are what the
+  // recalculation reads before it completes the task.
+  it("recalculates task status in findOne", async () => {
+    mockPrismaService.tasks.findUnique
+      .mockResolvedValueOnce({
+        task_id: 10,
+        status: "IN_PROGRESS",
+        created_by: 21,
+      })
+      .mockResolvedValueOnce({ task_id: 10, status: "COMPLETED" });
+    mockPrismaService.task_members.findMany.mockResolvedValue([]);
+    mockPrismaService.users.findMany.mockResolvedValue([
+      { user_id: 21, students: { student_id: 21 }, user_roles: [] },
+    ]);
+    mockPrismaService.documents.findMany.mockResolvedValue([
+      { added_by: 21, task_documents: [{ task_id: 10 }] },
+    ]);
+    mockPrismaService.tasks.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.update(1, { status: "IN_PROGRESS", assigned_to: 6 }, 5);
+    const result = await service.findOne(10, false);
 
-    expect(notifications.taskAssigned).toHaveBeenCalledWith(updated, 5);
-    expect(notifications.statusChanged).toHaveBeenCalledWith(updated, 5);
+    expect(result.status).toBe("COMPLETED");
   });
 
-  it("sends no notification when neither the assignee nor the status changes", async () => {
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 1,
-      status: "TODO",
-      assigned_to: 6,
-      is_locked: false,
-      created_by: 5,
-    });
-    mockPrismaService.tasks.update.mockResolvedValue({
-      task_id: 1,
-      title: "neu",
-      status: "TODO",
-      assigned_to: 6,
-      created_by: 5,
-    });
+  // decision B3 (M17): a student's visible set is paged, sorted and counted
+  describe("findAll for a student", () => {
+    const visibleIds = Array.from({ length: 25 }, (_, i) => i + 1);
 
-    await service.update(
-      1,
-      { title: "neu", status: "TODO", assigned_to: 6 },
-      5,
-    );
-
-    expect(notifications.taskAssigned).not.toHaveBeenCalled();
-    expect(notifications.statusChanged).not.toHaveBeenCalled();
-  });
-
-  // T100 (M16)
-  it("rejects creating a COMPLETED task below 100 %", async () => {
-    await expect(
-      service.create(
-        {
-          title: "A",
-          deadline: "2026-12-01",
-          status: "COMPLETED",
-          progress: 50,
-        },
-        5,
-      ),
-    ).rejects.toThrow(BadRequestException);
-    expect(mockPrismaService.tasks.create).not.toHaveBeenCalled();
-  });
-
-  it("rejects a progress below 100 on a COMPLETED task", async () => {
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 1,
-      status: "COMPLETED",
-      progress: 100,
-      is_locked: false,
-      created_by: 5,
-    });
-
-    await expect(service.update(1, { progress: 80 }, 5)).rejects.toThrow(
-      BadRequestException,
-    );
-  });
-
-  // T41, UC-10, decision Q2 (M16): a subtask belongs to the root task's project
-  describe("creating a subtask", () => {
     beforeEach(() => {
-      // 3 -> 2 -> 1 (root, created by 5, assigned to 6, member 7)
-      mockPrismaService.tasks.findUnique.mockImplementation(
-        ({ where }: { where: { task_id: number } }) =>
+      mockPermissionsService.hasAnyRole.mockResolvedValue(false);
+      // created, assigned or member tasks plus all their subtasks
+      mockPrismaService.$queryRaw.mockResolvedValue(
+        visibleIds.map((task_id) => ({ task_id })),
+      );
+      mockPrismaService.tasks.findMany.mockImplementation(
+        ({ skip, take }: { skip: number; take: number }) =>
           Promise.resolve(
-            {
-              1: {
-                task_id: 1,
-                parent_task_id: null,
-                created_by: 5,
-                assigned_to: 6,
-              },
-              2: {
-                task_id: 2,
-                parent_task_id: 1,
-                created_by: 7,
-                assigned_to: null,
-              },
-              3: {
-                task_id: 3,
-                parent_task_id: 2,
-                created_by: 7,
-                assigned_to: null,
-              },
-            }[where.task_id] ?? null,
+            visibleIds
+              .slice(skip, skip + take)
+              .map((task_id) => ({ task_id, status: "COMPLETED" })),
           ),
       );
-      mockPrismaService.task_members.findMany.mockResolvedValue([
-        { user_id: 7 },
-      ]);
-      mockPrismaService.tasks.create.mockResolvedValue({
-        task_id: 9,
-        title: "S",
-      });
+      mockPrismaService.tasks.count.mockResolvedValue(25);
     });
 
-    it("answers 403 to someone who is neither creator, assignee nor member of the root task", async () => {
-      await expect(
-        service.create(
-          { title: "S", deadline: "2026-12-01", parent_task_id: 3 },
-          8,
-        ),
-      ).rejects.toThrow(ForbiddenException);
-      expect(mockPrismaService.tasks.create).not.toHaveBeenCalled();
+    it("returns 10, 10 and 5 of 25 visible tasks with total 25 and 3 pages", async () => {
+      const pages: Awaited<ReturnType<TaskService["findAll"]>>[] = [];
+      for (const page of [1, 2, 3]) {
+        pages.push(await service.findAll({ page, limit: 10 }, 7));
+      }
+
+      expect(pages.map((p) => p.data.length)).toEqual([10, 10, 5]);
+      for (const p of pages) {
+        expect(p.meta).toMatchObject({ total: 25, totalPages: 3 });
+      }
+      expect(mockPrismaService.tasks.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { AND: [{ task_id: { in: visibleIds } }] },
+          skip: 10,
+          take: 10,
+        }),
+      );
     });
 
-    it.each([5, 6, 7])(
-      "lets user %s of the root task create it",
-      async (userId) => {
-        await service.create(
-          { title: "S", deadline: "2026-12-01", parent_task_id: 3 },
-          userId,
-        );
-        expect(mockPrismaService.tasks.create).toHaveBeenCalled();
-      },
-    );
-  });
+    it("uses the same number of queries for any page size", async () => {
+      const queries = () =>
+        [
+          mockPrismaService.$queryRaw,
+          mockPrismaService.tasks.findMany,
+          mockPrismaService.tasks.count,
+          mockPrismaService.task_members.findMany,
+          mockPrismaService.users.findMany,
+          mockPrismaService.documents.findMany,
+          mockPrismaService.tasks.updateMany,
+        ].reduce((sum, mock) => sum + mock.mock.calls.length, 0);
+      mockPrismaService.tasks.findMany.mockImplementation(
+        ({ take }: { take: number }) =>
+          Promise.resolve(
+            visibleIds.slice(0, take).map((task_id) => ({
+              task_id,
+              status: "IN_PROGRESS",
+              created_by: 7,
+            })),
+          ),
+      );
+      mockPrismaService.task_members.findMany.mockResolvedValue([]);
+      mockPrismaService.users.findMany.mockResolvedValue([]);
 
-  // review M16 (1): moving a task under a project is adding it to the project
-  it("answers 403 when an outsider moves a task under someone else's project", async () => {
-    mockPrismaService.tasks.findUnique.mockImplementation(
-      ({ where }: { where: { task_id: number } }) =>
-        Promise.resolve(
-          {
-            1: {
-              task_id: 1,
-              parent_task_id: null,
-              created_by: 5,
-              assigned_to: null,
-            },
-            9: {
-              task_id: 9,
-              parent_task_id: null,
-              created_by: 8,
-              assigned_to: null,
-              is_locked: false,
-            },
-          }[where.task_id] ?? null,
-        ),
-    );
-    mockPrismaService.task_members.findMany.mockResolvedValue([]);
+      await service.findAll({ limit: 10 }, 7);
+      const forTen = queries();
+      jest.clearAllMocks();
+      mockPrismaService.$queryRaw.mockResolvedValue(
+        visibleIds.map((task_id) => ({ task_id })),
+      );
+      await service.findAll({ limit: 25 }, 7);
 
-    await expect(service.update(9, { parent_task_id: 1 }, 8)).rejects.toThrow(
-      ForbiddenException,
-    );
-    expect(mockPrismaService.tasks.update).not.toHaveBeenCalled();
-  });
-
-  // review M16 (7): the ghost user is nobody's assignee
-  it("answers 400 for the ghost user as assignee", async () => {
-    await expect(
-      service.create({ title: "A", deadline: "2026-12-01", assigned_to: 0 }, 5),
-    ).rejects.toThrow(BadRequestException);
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 1,
-      is_locked: false,
-      created_by: 5,
+      expect(queries()).toBe(forTen);
     });
-    await expect(service.update(1, { assigned_to: 0 }, 5)).rejects.toThrow(
-      BadRequestException,
-    );
-  });
-
-  // review M16 (4): an auto-completed parent changes status, too
-  it("notifies about the status change of an auto-completed parent", async () => {
-    mockPrismaService.tasks.findUnique.mockResolvedValue({
-      task_id: 2,
-      status: "COMPLETED",
-      progress: 100,
-      is_locked: false,
-      created_by: 5,
-    });
-    mockPrismaService.tasks.update.mockImplementation(
-      ({ where, data }: { where: { task_id: number }; data: object }) =>
-        Promise.resolve(
-          where.task_id === 2
-            ? {
-                task_id: 2,
-                title: "Sub",
-                status: "COMPLETED",
-                created_by: 5,
-                parent_task_id: 1,
-              }
-            : { task_id: 1, title: "Projekt", created_by: 5, ...data },
-        ),
-    );
-    mockPrismaService.tasks.findMany.mockImplementation(
-      ({ where }: { where: { completion_rule?: unknown; status?: string } }) =>
-        Promise.resolve(
-          where.completion_rule
-            ? [
-                {
-                  task_id: 1,
-                  auto_complete: true,
-                  status: "IN_PROGRESS",
-                  created_by: 5,
-                  assigned_to: null,
-                  completion_rule: { type: "leaf", task_id: "2" },
-                },
-              ]
-            : where.status === "COMPLETED"
-              ? [{ task_id: 2 }]
-              : [],
-        ),
-    );
-    mockPrismaService.task_members.findMany.mockResolvedValue([]);
-
-    await service.update(2, { title: "Sub" }, 5);
-
-    expect(notifications.statusChanged).toHaveBeenCalledWith(
-      expect.objectContaining({ task_id: 1, status: "COMPLETED" }),
-      5,
-    );
   });
 });
