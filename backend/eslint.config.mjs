@@ -29,36 +29,15 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-floating-promises": "off",
-      "@typescript-eslint/no-unsafe-argument": "warn",
-      // decision Q13 (GOALS.md M4): warn for now, back to error per context
-      // during the migration and everywhere in M34
-      "@typescript-eslint/no-unsafe-member-access": "warn",
-      "@typescript-eslint/no-unsafe-assignment": "warn",
-      "@typescript-eslint/no-unsafe-return": "warn",
-      "@typescript-eslint/no-unsafe-enum-comparison": "warn",
+      // decision Q13 (GOALS.md M34): the type-safety rules are errors for
+      // the whole backend, tests included, after every context reached 0
+      "@typescript-eslint/no-unsafe-argument": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/no-unsafe-enum-comparison": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
       "prettier/prettier": ["warn", { endOfLine: "auto" }],
-      "@typescript-eslint/no-unsafe-call": "off",
-    },
-  },
-  {
-    // decision Q13: a migrated context keeps 0 no-unsafe-* findings (M11 identity-access, M15 task-management, M19 documents-notes, M20 communication and the shared realtime transport, M22 school-organization, M23 notifications, M24 reporting)
-    files: [
-      "src/contexts/identity-access/**/*.ts",
-      "src/contexts/task-management/**/*.ts",
-      "src/contexts/documents-notes/**/*.ts",
-      "src/contexts/communication/**/*.ts",
-      "src/contexts/school-organization/**/*.ts",
-      "src/contexts/notifications/**/*.ts",
-      "src/contexts/reporting/**/*.ts",
-      "src/shared/**/realtime*.ts",
-      "src/shared/infrastructure/realtime/**/*.ts",
-    ],
-    rules: {
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/no-unsafe-enum-comparison': 'error',
-      '@typescript-eslint/no-unsafe-argument': 'error',
     },
   },
 );

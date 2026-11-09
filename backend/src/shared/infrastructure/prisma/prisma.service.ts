@@ -21,7 +21,10 @@ export class PrismaService
       await this.$connect();
       console.log("✅ Database connected successfully.");
     } catch (error) {
-      console.error("❌ Database connection failed:", error.message);
+      console.error(
+        "❌ Database connection failed:",
+        error instanceof Error ? error.message : error,
+      );
       throw error;
     }
   }

@@ -4,13 +4,14 @@
  * bounded contexts. dependency-cruiser's `circular` only finds cycles between
  * files, so context A -> B -> A through different files would go unnoticed.
  *
- * Usage: npx depcruise src --config .dependency-cruiser.cjs --output-type json \
- *          | node scripts/check-context-cycles.cjs [--severity warn|error]
- * Exits 1 on a cycle only with --severity error (M34).
+ * Usage: node scripts/check-context-cycles.cjs [--severity warn|error] < result.json
+ * (the JSON of `depcruise src --config .dependency-cruiser.cjs --output-type json`;
+ * `npm run depcruise:contexts` does both). Exits 1 on a cycle; since M34 that
+ * is the default, `--severity warn` only reports.
  */
 const severity = process.argv.includes("--severity")
   ? process.argv[process.argv.indexOf("--severity") + 1]
-  : "warn";
+  : "error";
 
 let input = "";
 process.stdin.on("data", (chunk) => (input += chunk));

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
 import request from "supertest";
+import { App } from "supertest/types";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/shared/infrastructure/prisma/prisma.service";
 import { createTestApp } from "./setup/create-test-app";
@@ -15,7 +16,7 @@ const MEMBERS_BASE = "/api/tasks";
  * Tests the complete workflows from the API down to the database
  */
 describe("Mitgliederverwaltung E2E", () => {
-  let app: INestApplication;
+  let app: INestApplication<App>;
   let prisma: PrismaService;
   let adminToken: string;
   let teacherToken: string;
@@ -125,23 +126,27 @@ describe("Mitgliederverwaltung E2E", () => {
       .post("/api/auth/login")
       .send({ identifier: username, password });
 
-    if (!response.body.token) {
-      console.error("Login response:", response.body);
-      throw new Error(
-        "Login failed: " + (response.body.message || "No token returned"),
-      );
+    const body = response.body as { token?: string; message?: string };
+    if (!body.token) {
+      console.error("Login response:", body);
+      throw new Error("Login failed: " + (body.message || "No token returned"));
     }
 
-    return response.body.token;
+    return body.token;
   }
 
-  async function createTask(token: string, taskData: any) {
+  async function createTask(
+    token: string,
+    taskData: object,
+  ): Promise<{ task_id: number }> {
     const response = await request(app.getHttpServer())
       .post("/api/tasks")
       .set("Authorization", `Bearer ${token}`)
       .send(taskData);
 
-    return response.body;
+    // a failed setup names itself instead of failing later tests (review M34)
+    expect(response.status).toBe(201);
+    return response.body as { task_id: number };
   }
 
   // ============ Workflow Tests ============
@@ -173,9 +178,14 @@ describe("Mitgliederverwaltung E2E", () => {
         .send({ user_id: studentId });
 
       expect(response.status).toBe(201);
-      expect(response.body.task_id).toBe(taskId);
-      expect(response.body.user_id).toBe(studentId);
-      expect(response.body.joined_at).toBeDefined();
+      const body = response.body as {
+        task_id: number;
+        user_id: number;
+        joined_at: string;
+      };
+      expect(body.task_id).toBe(taskId);
+      expect(body.user_id).toBe(studentId);
+      expect(body.joined_at).toBeDefined();
     });
 
     it("should not allow duplicate member", async () => {
@@ -185,7 +195,8 @@ describe("Mitgliederverwaltung E2E", () => {
         .send({ user_id: studentId });
 
       expect(response.status).toBe(400);
-      expect(response.body.message).toContain("bereits Mitglied");
+      const body = response.body as { message: string };
+      expect(body.message).toContain("bereits Mitglied");
     });
 
     it("should list all members of task", async () => {
@@ -237,7 +248,8 @@ describe("Mitgliederverwaltung E2E", () => {
         .set("Authorization", `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.userId).toBeDefined();
+      const body = response.body as { userId: number };
+      expect(body.userId).toBeDefined();
     });
 
     it("should not allow non-admin to view other user permissions", async () => {
@@ -303,7 +315,8 @@ describe("Mitgliederverwaltung E2E", () => {
         .set("Authorization", `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.has_read).toBe(true); // Creator has READ
+      const body = response.body as { has_read: boolean };
+      expect(body.has_read).toBe(true); // Creator has READ
     });
 
     it("should check WRITE permission", async () => {
@@ -312,7 +325,8 @@ describe("Mitgliederverwaltung E2E", () => {
         .set("Authorization", `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.has_write).toBe(true); // Creator has WRITE
+      const body = response.body as { has_write: boolean };
+      expect(body.has_write).toBe(true); // Creator has WRITE
     });
 
     it("should check EXECUTE permission", async () => {
@@ -321,7 +335,8 @@ describe("Mitgliederverwaltung E2E", () => {
         .set("Authorization", `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.has_execute).toBe(true); // Creator has EXECUTE (RWX)
+      const body = response.body as { has_execute: boolean };
+      expect(body.has_execute).toBe(true); // Creator has EXECUTE (RWX)
     });
 
     it("should return correct permission flags for creator", async () => {
@@ -330,7 +345,8 @@ describe("Mitgliederverwaltung E2E", () => {
         .set("Authorization", `Bearer ${teacherToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.permission_flags).toBe(7); // RWX = 7
+      const body = response.body as { permission_flags: number };
+      expect(body.permission_flags).toBe(7); // RWX = 7
     });
   });
 });

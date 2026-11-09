@@ -11,3 +11,6 @@ dev.db-journa
 coverage/
 # database dumps of scripts/backup.sh (M31)
 backups/
+
+# the JSON of npm run depcruise:contexts (M34)
+.depcruise-result.json

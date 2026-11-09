@@ -666,7 +666,7 @@ Rules for all milestones:
   - Done when: the migration runs on a copy of the seeded DB that contains a task with `created_by = NULL`, an insert without a creator fails at DB level (test), and all task tests pass.
   - Risk: medium. Migrations touch the schema shown in the thesis appendix (`prisma_schema.tex`), so each change must stay compatible with what the thesis documents.
 
-- [ ] **M34: Switch the dependency rules and the type-safety lint rules to `error`**
+- [x] **M34: Switch the dependency rules and the type-safety lint rules to `error`**
   - Why: L1, and T64 (NFA-09, SOLID and modular). The architecture must stay enforced.
   - Done when: all contexts are migrated, dependency-cruiser runs with severity `error` and reports 0 violations, CI fails on a deliberately added violation (tried once, then reverted), and the `no-unsafe-*` ESLint rules are `error` for the whole backend with 0 findings (decision Q13).
   - Risk: low.

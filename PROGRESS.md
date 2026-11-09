@@ -1383,3 +1383,23 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 
 **Failed / open:**
 - The thesis appendix (`prisma_schema.tex`) still shows `created_by Int?`; the text at `07_…:82` and decision Q20 call for `NOT NULL`. The appendix is not edited here (`thesis/` is read-only for this work).
+
+## 2026-11-09 – M34: Dependency rules and type-safety lint rules at `error`
+
+**Done:**
+- Backend ESLint (decision Q13): `no-unsafe-argument`, `-member-access`, `-assignment`, `-return`, `-enum-comparison` and `-call` (was `off`) are `error` for the whole backend, tests included; the per-context override of M11–M24 is gone, and `lint:check` allows 0 warnings (was a ratchet of 36).
+- The last 36 findings: 35 in `test/mitgliederverwaltung.e2e-spec.ts` (the app typed as `INestApplication<App>`, the login and task helpers typed, the asserted bodies read through a typed `bodyOf`) and 1 in `prisma.service.ts` (the connection error read as `Error`). Turning `no-unsafe-call` on added no finding.
+- dependency-cruiser: all 10 rules are `error`; the two rules for the legacy `src/modules/` are gone with the folder (all contexts migrated: `src/` holds only `contexts/`, `shared/` and the app's composition root). The CI step names no longer say "warn mode until M34".
+
+**Verified:**
+- Done when:
+  - All contexts are migrated, and dependency-cruiser runs with severity `error`: 0 violations (293 modules, 989 dependencies), no cycles between contexts.
+  - CI fails on a deliberately added violation, tried once and reverted: an import of `@nestjs/common` into `task-management/domain/task.ts` (rule 1) passed lint and knip and failed the job at "Dependency rules (dependency-cruiser, errors since M34)" in `act`.
+  - The `no-unsafe-*` rules are `error` for the whole backend with 0 findings; a throwaway file using an `any` value gave 3 errors and exit 1, then was deleted.
+- Backend: 671 unit and 156 E2E tests; tsc, knip and the build pass. `act --action-offline-mode`: all four jobs succeeded, with "no cycles between contexts" from the stricter check.
+- `code-review` (high) gave 9 findings, 7 fixed: (1) the context-cycle check could never fail CI: `check-context-cycles.cjs` exited 1 only with `--severity error`, which nothing passed (a synthetic a → b → a cycle exited 0); `error` is now its default and the npm script passes it; (2) with the legacy rules gone, nothing kept contexts and `shared/` from importing other folders of `src/`: new rule `target-layout`; (3) the identity-access rule only covered `src/contexts/`: now all of `src/` but itself and `shared/` (a temporary import of `src/app.service.ts` into identity-access tripped `target-layout`, `no-circular` and `domain-no-framework`, then was reverted); (4) the lint glob missed `prisma/*.ts` and `prisma.config.ts` (now linted, 0 findings; the nonexistent `apps`, `libs` dropped); (5) the cycle check's pipe dropped dependency-cruiser's exit code: it now writes `.depcruise-result.json` (ignored by git) and the check reads it only if dependency-cruiser succeeded; (8) the test's task helper didn't check the 201; (9) the bodies are typed per test like the other specs (no `bodyOf`). Kept: (6) the explicit `error` entries repeat the preset, but document decision Q13 and survive a preset change; (7) dependency-cruiser runs twice in CI, a few seconds.
+
+**Learned (for later milestones):**
+- A check that only reports is no gate: try the failure (a deliberate violation, a synthetic input) before counting on it.
+
+**Failed / open:** none.
