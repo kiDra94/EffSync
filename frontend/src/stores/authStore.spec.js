@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 const authApi = vi.hoisted(() => ({
   login: vi.fn(),
+  verifyTwoFactor: vi.fn(),
   logout: vi.fn(),
   getUserProfile: vi.fn(),
   register: vi.fn(),
@@ -60,6 +61,34 @@ describe('authStore sessions', () => {
 
     expect(authApi.logout).not.toHaveBeenCalled()
     expect(localStorage.getItem('authToken')).toBeNull()
+  })
+
+  // UC-01b (M32): with 2FA on, the password alone starts no session
+  it('returns the 2FA challenge without storing a session', async () => {
+    authApi.login.mockResolvedValue({ data: { two_factor_required: true, challenge_token: 'challenge' } })
+    const store = await loadStore()
+
+    await expect(store.login({ identifier: 'tzwei', password: 'pw' })).resolves.toEqual({
+      twoFactorRequired: true,
+      challengeToken: 'challenge',
+    })
+    expect(localStorage.getItem('authToken')).toBeNull()
+    expect(socket.connect).not.toHaveBeenCalled()
+  })
+
+  it('completes the 2FA login with the code and stores the session', async () => {
+    authApi.verifyTwoFactor.mockResolvedValue({
+      data: { token: 'access', refreshToken: 'refresh', user_id: 9, role: 'Student' },
+    })
+    const store = await loadStore()
+
+    await store.completeTwoFactorLogin('challenge', '123456')
+
+    expect(authApi.verifyTwoFactor).toHaveBeenCalledWith({ challenge_token: 'challenge', code: '123456' })
+    expect(localStorage.getItem('authToken')).toBe('access')
+    expect(localStorage.getItem('refreshToken')).toBe('refresh')
+    expect(store.userRole).toBe('student')
+    expect(socket.connect).toHaveBeenCalledWith('access')
   })
 
   it('forgets an old refresh token when a login returns none', async () => {

@@ -35,7 +35,20 @@ describe('takeTokenFromHash', () => {
     await expect(takeTokensFromHash(route, router)).resolves.toEqual({
       token: 'a.b.c',
       refreshToken: 'r-1',
+      challenge: null,
     })
     expect(router.replace).toHaveBeenCalledTimes(1)
+  })
+
+  // M32: a 2FA user's Google sign-in carries a challenge instead
+  it('returns the 2FA challenge and no tokens', async () => {
+    const router = { replace: vi.fn().mockResolvedValue(undefined) }
+    const route = { path: '/auth-callback', query: {}, hash: '#challenge=c.h.j' }
+
+    await expect(takeTokensFromHash(route, router)).resolves.toEqual({
+      token: null,
+      refreshToken: null,
+      challenge: 'c.h.j',
+    })
   })
 })

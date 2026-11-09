@@ -646,7 +646,7 @@ Rules for all milestones:
   - Done when: the CI restore drill is green and the runbook is in the README, naming the Superuser/operator as the person who runs it (UC-41).
   - Risk: low.
 
-- [ ] **M32: Two-factor authentication (TOTP)**
+- [x] **M32: Two-factor authentication (TOTP)**
   - Why: T31 (`05_…:356-358`, UC-01b `05_…:664-693`, `03_…:155`).
   - Steps:
     1. Enable 2FA in the profile with a QR code and confirmation code.

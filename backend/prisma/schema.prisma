@@ -441,6 +441,7 @@ model users {
   task_members                           task_members[]
   chat_rooms_created                     chat_rooms[]        @relation("chat_rooms_created")
   refresh_tokens                         refresh_tokens[]
+  user_two_factor                        user_two_factor?
 }
 
 model email_preferences {
@@ -479,6 +480,16 @@ enum task_status {
 
 /// One login session (decision Q8b, T51): only the SHA-256 hash of the refresh
 /// token is stored; refresh rotates it (revoked_at set, new row), logout revokes it.
+/// T31 (decision Q8d, M32): the user's TOTP secret, encrypted with
+/// TWO_FACTOR_ENCRYPTION_KEY; enabled_at is null until the first code confirms
+/// the setup. An admin reset deletes the row; deleting the user deletes it.
+model user_two_factor {
+  user_id          Int       @id
+  secret_encrypted String    @db.VarChar
+  enabled_at       DateTime? @db.Timestamp(6)
+  users            users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
 model refresh_tokens {
   id         Int       @id @default(autoincrement())
   user_id    Int

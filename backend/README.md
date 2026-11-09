@@ -83,6 +83,9 @@ DATABASE_URL=postgresql://user:password@localhost:5432/diplom_arbeit
 # JWT Secret
 JWT_SECRET=your-super-secret-key-change-this-in-production
 
+# Two-factor authentication: 64 hex characters (openssl rand -hex 32)
+TWO_FACTOR_ENCRYPTION_KEY=replace-with-the-output-of-openssl-rand-hex-32
+
 # JWT Expiration
 JWT_EXPIRATION=24h
 

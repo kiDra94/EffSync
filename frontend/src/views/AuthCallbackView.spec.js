@@ -124,4 +124,18 @@ describe('AuthCallbackView', () => {
 
     expect(localStorage.getItem('refreshToken')).toBeNull()
   })
+
+  // review M32: with 2FA on, the Google callback carries a challenge, no token
+  it('hands a 2FA challenge to the login page and loads no profile', async () => {
+    routeMock.hash = '#challenge=google.challenge'
+    const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
+
+    mount(AuthCallbackView)
+    await flushPromises()
+
+    expect(sessionStorage.getItem('twoFactorChallenge')).toBe('google.challenge')
+    expect(getAuthProfile).not.toHaveBeenCalled()
+    expect(localStorage.getItem('authToken')).toBeNull()
+    expect(pushMock).toHaveBeenCalledWith({ name: 'Login' })
+  })
 })

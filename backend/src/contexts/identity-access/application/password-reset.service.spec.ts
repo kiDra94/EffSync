@@ -50,6 +50,26 @@ describe("PasswordResetService", () => {
     );
   });
 
+  // review M32: the Google reset path gets a reset token, no access token,
+  // so it can only set the password (and skips no 2FA)
+  describe("tokenFor", () => {
+    it("signs a reset token with the user's current password hash", async () => {
+      users.findById.mockResolvedValue(user);
+
+      await expect(service.tokenFor(9)).resolves.toBe("reset.jwt");
+      expect(tokens.sign).toHaveBeenCalledWith(9, "$2b$12$current");
+    });
+
+    it("signs one for a Google-only account without a hash, and none for a missing user", async () => {
+      users.findById.mockResolvedValueOnce({ ...user, password_hash: null });
+      await service.tokenFor(9);
+      expect(tokens.sign).toHaveBeenCalledWith(9, "");
+
+      users.findById.mockResolvedValueOnce(null);
+      await expect(service.tokenFor(9)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
   describe("requestReset", () => {
     it("mails a token signed with the user's current password hash", async () => {
       users.findByEmailWithRoles.mockResolvedValue(user);

@@ -2,7 +2,12 @@
  * Validates the environment at startup (T14, problem 8): without these the
  * app would run with an undefined JWT secret or no database.
  */
-const REQUIRED = ["JWT_SECRET", "DATABASE_URL"] as const;
+const REQUIRED = [
+  "JWT_SECRET",
+  "DATABASE_URL",
+  // M32 (decision Q8d): encrypts the TOTP secrets
+  "TWO_FACTOR_ENCRYPTION_KEY",
+] as const;
 
 export function validateEnv(
   config: Record<string, unknown>,
@@ -12,6 +17,12 @@ export function validateEnv(
     if (typeof value !== "string" || value.trim() === "") {
       throw new Error(`Missing required environment variable: ${key}`);
     }
+  }
+  // AES-256 takes 32 bytes; `openssl rand -hex 32` writes them in hex
+  if (!/^[0-9a-fA-F]{64}$/.test(String(config.TWO_FACTOR_ENCRYPTION_KEY))) {
+    throw new Error(
+      "TWO_FACTOR_ENCRYPTION_KEY must be 64 hex characters (openssl rand -hex 32)",
+    );
   }
   if (config.NODE_ENV === "production") {
     const secret = String(config.JWT_SECRET);

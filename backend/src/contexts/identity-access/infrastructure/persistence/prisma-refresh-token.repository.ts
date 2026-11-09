@@ -27,7 +27,15 @@ export class PrismaRefreshTokenRepository extends RefreshTokenRepository {
         expires_at: { gt: new Date() },
       },
       include: {
-        users: { include: { user_roles: { include: { roles: true } } } },
+        // by role id, as login reads them (review M37)
+        users: {
+          include: {
+            user_roles: {
+              include: { roles: true },
+              orderBy: { role_id: "asc" },
+            },
+          },
+        },
       },
     });
   }

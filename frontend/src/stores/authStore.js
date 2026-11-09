@@ -40,40 +40,54 @@ export const useAuthStore = defineStore('auth', () => {
 
             const response = await authApi.login(credentials)
             const data = response.data;
-            const newToken = data.token;
-            const user = data.user || data;
-
-            token.value = newToken
-            userId.value = user.user_id ?? user.id ?? null
-            userRole.value = user.role ? user.role.toLowerCase() : null
-            userDetails.value = user
-
-            localStorage.setItem('authToken', newToken)
-            // T51 (M12): httpClient renews the 15-minute access token with it
-            if (data.refreshToken) {
-                localStorage.setItem('refreshToken', data.refreshToken)
-            } else {
-                // never keep a previous session's refresh token next to this token
-                localStorage.removeItem('refreshToken')
+            // UC-01b (M32): with 2FA on, the session waits for the code
+            if (data.two_factor_required) {
+                return { twoFactorRequired: true, challengeToken: data.challenge_token }
             }
-            localStorage.setItem('userId', userId.value)
-            localStorage.setItem('userRole', userRole.value || '')
-
-            console.log('✅ Stored userRole in authStore:', userRole.value)
-
-            connect(data.token);
-            try {
-                const searchStore = useSearchStore();
-                await searchStore.ensureLoaded();
-            } catch (e) {
-                console.warn('SearchStore Fehler (nicht kritisch):', e.message);
-            }
-            
-
+            await startSession(data)
             return response.data
         } catch (error) {
             console.error('Login failed:', error)
             throw error
+        }
+    }
+
+    // the login's second step (M32): the code turns the challenge into tokens
+    async function completeTwoFactorLogin(challengeToken, code) {
+        const response = await authApi.verifyTwoFactor({ challenge_token: challengeToken, code })
+        await startSession(response.data)
+        return response.data
+    }
+
+    // stores the tokens and the user of a finished login and connects
+    async function startSession(data) {
+        const newToken = data.token;
+        const user = data.user || data;
+
+        token.value = newToken
+        userId.value = user.user_id ?? user.id ?? null
+        userRole.value = user.role ? user.role.toLowerCase() : null
+        userDetails.value = user
+
+        localStorage.setItem('authToken', newToken)
+        // T51 (M12): httpClient renews the 15-minute access token with it
+        if (data.refreshToken) {
+            localStorage.setItem('refreshToken', data.refreshToken)
+        } else {
+            // never keep a previous session's refresh token next to this token
+            localStorage.removeItem('refreshToken')
+        }
+        localStorage.setItem('userId', userId.value)
+        localStorage.setItem('userRole', userRole.value || '')
+
+        console.log('✅ Stored userRole in authStore:', userRole.value)
+
+        connect(data.token);
+        try {
+            const searchStore = useSearchStore();
+            await searchStore.ensureLoaded();
+        } catch (e) {
+            console.warn('SearchStore Fehler (nicht kritisch):', e.message);
         }
     }
 
@@ -148,6 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
         isAuthenticated,
         isAdmin,
         login,
+        completeTwoFactorLogin,
         logout,
         loadUser,
         register,

@@ -68,6 +68,32 @@ describe("AuthService", () => {
     expect(service).toBeDefined();
   });
 
+  // M32 (UC-01b step 6): after the code, the tokens of the challenge's user
+  describe("issueTokenFor", () => {
+    it("signs the token for the user with their roles", async () => {
+      mockPrismaService.users.findUnique.mockResolvedValue({
+        ...mockUser,
+        user_roles: [{ roles: { name: "Student" } }],
+      });
+
+      const result = await service.issueTokenFor(1);
+
+      expect(result).toMatchObject({
+        token: "mock.jwt.token",
+        role: "student",
+      });
+      expect(result).not.toHaveProperty("password_hash");
+    });
+
+    it("answers 401 for a user that no longer exists", async () => {
+      mockPrismaService.users.findUnique.mockResolvedValue(null);
+
+      await expect(service.issueTokenFor(99)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
   describe("register", () => {
     it("sollte User mit gehashtem Passwort erstellen", async () => {
       const createUserDto = {

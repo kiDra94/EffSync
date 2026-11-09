@@ -93,6 +93,17 @@ describe('httpClient refresh on 401', () => {
     expect(authStore.logout).not.toHaveBeenCalled()
   })
 
+  // review M32: a wrong 2FA code is no expired session
+  it('leaves a 401 from the 2FA code check alone', async () => {
+    localStorage.setItem('refreshToken', 'previous.session')
+    mock.onPost('/auth/2fa/verify').replyOnce(401)
+
+    await expect(apiClient.post('/auth/2fa/verify', {})).rejects.toMatchObject({ response: { status: 401 } })
+
+    expect(mock.history.post).toHaveLength(1)
+    expect(authStore.logout).not.toHaveBeenCalled()
+  })
+
   it('keeps the session when the refresh fails without a 401 (network, 429, 500)', async () => {
     mock.onGet('/tasks').replyOnce(401)
     mock.onPost('/auth/refresh').networkErrorOnce()

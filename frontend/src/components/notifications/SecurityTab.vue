@@ -1,5 +1,59 @@
 <script setup>
-// No state, no API calls - only static security features
+import { ref, onMounted } from 'vue'
+import { authApi } from '@/api/authService'
+
+// T31, FA-06 (M32): 2FA with an authenticator app; the password card is
+// still static
+const twoFactorEnabled = ref(false)
+const setup = ref(null) // { secret, qr_code } while the setup waits for its code
+const code = ref('')
+const message = ref('')
+const busy = ref(false)
+
+const errorText = (error) => {
+  const backendMessage = error.response?.data?.message
+  if (Array.isArray(backendMessage)) return backendMessage.join(' ')
+  return backendMessage || 'Ein Fehler ist aufgetreten.'
+}
+
+const run = async (action) => {
+  busy.value = true
+  message.value = ''
+  try {
+    await action()
+  } catch (error) {
+    message.value = errorText(error)
+  } finally {
+    busy.value = false
+  }
+}
+
+onMounted(() =>
+  run(async () => {
+    twoFactorEnabled.value = (await authApi.getTwoFactorStatus()).data.enabled
+  }),
+)
+
+const startSetup = () =>
+  run(async () => {
+    setup.value = (await authApi.setupTwoFactor()).data
+    code.value = ''
+  })
+
+const confirmSetup = () =>
+  run(async () => {
+    await authApi.enableTwoFactor(code.value)
+    twoFactorEnabled.value = true
+    setup.value = null
+    code.value = ''
+  })
+
+const disable = () =>
+  run(async () => {
+    await authApi.disableTwoFactor(code.value)
+    twoFactorEnabled.value = false
+    code.value = ''
+  })
 </script>
 
 <template>
@@ -24,11 +78,42 @@
       </form>
     </div>
 
-    <!-- 2FA -->
+    <!-- 2FA (M32) -->
     <div class="security-card">
       <h2>Zwei-Faktor-Authentifizierung</h2>
-      <p>Sichern Sie Ihr Konto mit 2FA.</p>
-      <button class="btn-secondary">2FA aktivieren</button>
+
+      <template v-if="twoFactorEnabled">
+        <p>✅ 2FA ist aktiv: Bei der Anmeldung wird ein Code aus Ihrer Authenticator-App abgefragt.</p>
+        <div class="form-group">
+          <label>Code zum Deaktivieren</label>
+          <input v-model="code" class="form-input code-input" inputmode="numeric" maxlength="6"
+            placeholder="123456" autocomplete="one-time-code" />
+        </div>
+        <button type="button" class="btn-secondary" :disabled="busy || code.length !== 6" @click="disable">
+          2FA deaktivieren
+        </button>
+      </template>
+
+      <template v-else-if="setup">
+        <p>Scannen Sie den QR-Code mit einer Authenticator-App (z. B. Google Authenticator) und geben Sie den angezeigten Code ein.</p>
+        <img class="qr-code" :src="setup.qr_code" alt="QR-Code für die Authenticator-App" />
+        <p class="secret">Manuell: <code>{{ setup.secret }}</code></p>
+        <div class="form-group">
+          <label>Bestätigungscode</label>
+          <input v-model="code" class="form-input code-input" inputmode="numeric" maxlength="6"
+            placeholder="123456" autocomplete="one-time-code" />
+        </div>
+        <button type="button" class="btn-secondary" :disabled="busy || code.length !== 6" @click="confirmSetup">
+          Bestätigen
+        </button>
+      </template>
+
+      <template v-else>
+        <p>Sichern Sie Ihr Konto mit 2FA.</p>
+        <button type="button" class="btn-secondary" :disabled="busy" @click="startSetup">2FA aktivieren</button>
+      </template>
+
+      <p v-if="message" class="error-msg" role="alert">{{ message }}</p>
     </div>
   </div>
 </template>
@@ -97,6 +182,37 @@
 
 .btn-secondary:hover {
   background-color: #e5e7eb;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.qr-code {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: 0 0 12px;
+  background: white;
+}
+
+.secret code {
+  word-break: break-all;
+}
+
+.code-input {
+  max-width: 12rem;
+  letter-spacing: 0.2em;
+}
+
+.security-card .form-group {
+  margin-bottom: 12px;
+}
+
+.security-card .error-msg {
+  margin: 12px 0 0;
+  color: #b91c1c;
 }
 </style>
 

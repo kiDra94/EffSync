@@ -34,6 +34,8 @@ const NO_REFRESH_ENDPOINTS = [
     '/auth/refresh',
     '/auth/logout',
     '/auth/set-new-password',
+    // a wrong 2FA code (M32)
+    '/auth/2fa/verify',
 ];
 
 // One refresh for all requests that hit a 401 at the same time (T51, M12)

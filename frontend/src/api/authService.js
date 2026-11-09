@@ -34,5 +34,26 @@ export const authApi = {
 
   setNewPassword(password) {
     return apiClient.post('/auth/set-new-password', { password })
+  },
+
+  // two-factor authentication (T31, UC-01b, M32)
+  verifyTwoFactor({ challenge_token, code }) {
+    return apiClient.post('/auth/2fa/verify', { challenge_token, code })
+  },
+
+  getTwoFactorStatus() {
+    return apiClient.get('/auth/2fa')
+  },
+
+  setupTwoFactor() {
+    return apiClient.post('/auth/2fa/setup')
+  },
+
+  enableTwoFactor(code) {
+    return apiClient.post('/auth/2fa/enable', { code })
+  },
+
+  disableTwoFactor(code) {
+    return apiClient.post('/auth/2fa/disable', { code })
   }
 }

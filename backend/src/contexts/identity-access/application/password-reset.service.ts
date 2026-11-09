@@ -43,6 +43,19 @@ export class PasswordResetService {
   }
 
   /**
+   * A reset token for a user who proved themselves another way: the Google
+   * reset path (review M32). It only sets the password, so it opens no
+   * session and skips no 2FA.
+   */
+  async tokenFor(userId: number): Promise<string> {
+    const user = await this.users.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.tokens.sign(user.user_id, user.password_hash ?? "");
+  }
+
+  /**
    * The user a reset token belongs to; null if the token is no reset token
    * (e.g. an access token). A used, expired or forged reset token gets 401.
    */

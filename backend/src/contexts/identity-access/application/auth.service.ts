@@ -151,6 +151,15 @@ export class AuthService {
     return user;
   }
 
+  /** The app token for a user by id: the login's 2FA step (M32, UC-01b). */
+  async issueTokenFor(userId: number) {
+    const user = await this.users.findByIdWithRoles(userId);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.issueToken(user);
+  }
+
   /** Issues the app token for a user returned by validateCredentials. */
   issueToken(user: UserWithRoles) {
     // Take the user's first role (primary role)

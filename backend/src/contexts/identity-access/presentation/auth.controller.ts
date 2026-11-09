@@ -18,6 +18,7 @@ import {
 import { AuthService, GoogleUser } from "../application/auth.service";
 import { SessionService } from "../application/session.service";
 import { PasswordResetService } from "../application/password-reset.service";
+import { TwoFactorService } from "../application/two-factor.service";
 import type { UserWithRoles } from "../application/ports/identity-records";
 import type { AuthenticatedRequest } from "./security/authenticated-request";
 import type { Request, Response } from "express";
@@ -44,6 +45,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly sessions: SessionService,
     private readonly passwordReset: PasswordResetService,
+    private readonly twoFactor: TwoFactorService,
   ) {}
 
   @Throttle({ default: { limit: 3, ttl: 60000 } })
@@ -59,13 +61,20 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @ApiOperation({
     summary:
-      "Sign in with username or e-mail; returns access and refresh token",
+      "Sign in with username or e-mail; returns access and refresh token, or a 2FA challenge",
   })
   @Post("login")
   async login(
     @Req() req: { user: UserWithRoles },
     @Body() _credentials: LoginDto,
   ) {
+    // UC-01b (M32): with 2FA on, the tokens wait for the code
+    if (await this.twoFactor.isEnabled(req.user.user_id)) {
+      return {
+        two_factor_required: true,
+        challenge_token: this.twoFactor.challenge(req.user.user_id),
+      };
+    }
     // T51: a 15-minute access token plus a 7-day refresh token
     return {
       ...this.authService.issueToken(req.user),
@@ -113,16 +122,21 @@ export class AuthController {
     @Req() req: Request & { user: GoogleUser },
     @Res() res: Response,
   ) {
-    const token = this.authService.generateJwtFromGoogleUser(req.user);
     const state = req.query?.state;
 
     // decision Q9: the tokens travel in the URL fragment, which never reaches a
     // server or proxy log; the frontend loads the user from GET /auth/profile
     if (state === "reset-password") {
-      // only for setting a new password: no session, so no refresh token
+      // only for setting a new password: a reset token, no session (review M32)
+      const token = await this.passwordReset.tokenFor(req.user.userId);
       res.redirect(`${frontendUrl()}/reset-password#token=${token}`);
+    } else if (await this.twoFactor.isEnabled(req.user.userId)) {
+      // UC-01b (review M32): with 2FA on, Google sign-in asks for the code too
+      const challenge = this.twoFactor.challenge(req.user.userId);
+      res.redirect(`${frontendUrl()}/auth-callback#challenge=${challenge}`);
     } else {
       // M12: a sign-in starts a session like the local login
+      const token = this.authService.generateJwtFromGoogleUser(req.user);
       const refreshToken = await this.sessions.start(req.user.userId);
       res.redirect(
         `${frontendUrl()}/auth-callback#token=${token}&refreshToken=${refreshToken}`,

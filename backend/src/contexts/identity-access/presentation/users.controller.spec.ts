@@ -1,5 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { UsersService } from "../application/users.service";
+import { TwoFactorService } from "../application/two-factor.service";
 import { UsersController } from "./users.controller";
 import { JwtAuthGuard } from "./security/jwt-auth.guard";
 import { PermissionsGuard } from "./security/permissions.guard";
@@ -15,6 +16,8 @@ describe("UsersController", () => {
     remove: jest.fn(),
   };
 
+  const mockTwoFactor = { reset: jest.fn() };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
@@ -23,6 +26,7 @@ describe("UsersController", () => {
           provide: UsersService,
           useValue: mockUsersService,
         },
+        { provide: TwoFactorService, useValue: mockTwoFactor },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -36,5 +40,12 @@ describe("UsersController", () => {
 
   it("should be defined", () => {
     expect(controller).toBeDefined();
+  });
+
+  // decision Q8d (M32): the admin reset deletes the user's TOTP secret
+  it("resets a user's 2FA", async () => {
+    await controller.resetTwoFactor(4);
+
+    expect(mockTwoFactor.reset).toHaveBeenCalledWith(4);
   });
 });

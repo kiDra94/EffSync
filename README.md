@@ -81,7 +81,7 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 | Profile management (name, username, email) | Ereny | ✅ |
 | Roles and permissions (RBAC) incl. admin interface | Ereny | ✅ |
 | Rate limiting and security headers (`@nestjs/throttler`, `helmet`) | Drazen / Ereny | ✅ |
-| Two-factor authentication (currently only a button in the settings, with no functionality behind it) | Ereny | ❌ |
+| Two-factor authentication (TOTP with an authenticator app, admin reset) | Ereny | ✅ |
 
 ### School administration
 
@@ -117,6 +117,7 @@ Set at least these values in `.env`:
 
 - `DATABASE_URL`: e.g. `postgresql://postgres:postgres@localhost:5432/effsync?schema=public`
 - `JWT_SECRET` (required: the backend refuses to start without it and without `DATABASE_URL`)
+- `TWO_FACTOR_ENCRYPTION_KEY` (required): 64 hex characters, e.g. from `openssl rand -hex 32`; it encrypts the 2FA secrets
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: only needed for Google sign-in, see [`documents/GOOGLE_OAUTH_SETUP.md`](documents/GOOGLE_OAUTH_SETUP.md)
 
 Then create the database, fill it with test data and start the server:
@@ -170,6 +171,14 @@ It writes `effsync-<UTC time>.dump` (by default to `backend/backups`, which git 
 3. Start the backend of the same version as the backup (its migrations must match the dump), then sign in and check a few tasks.
 
 **Drill:** CI runs `scripts/restore-drill.sh` on every pull request and push to `main` and `development`: it backs up the seeded test database, restores it into a fresh one and compares the schema, the data (sequences included) and the row count of every table, checks that a restore without confirmation writes nothing, and restores again over changed data and a newer table. It runs only on a database whose name ends in `_test`. Locally: `DATABASE_URL=postgresql://postgres:postgres@localhost:5433/effsync_test scripts/restore-drill.sh` with the test database running.
+
+### Two-factor authentication
+
+Users turn 2FA on in their profile (Security tab): the backend makes a TOTP secret and shows it as a QR code for an authenticator app (e.g. Google Authenticator); the first 6-digit code turns it on. From then on, `POST /api/auth/login` answers a correct password with `{ two_factor_required: true, challenge_token }` instead of tokens, and `POST /api/auth/2fa/verify` with the challenge and the current code returns the access and refresh token; a wrong code is a `401`, and after 5 minutes the challenge expires (sign in again). Each code works once, and after five wrong codes in a row the check locks for 15 minutes. Sign-in with Google asks for the code the same way. Turning 2FA on ends the user's other sessions.
+
+The secrets are stored encrypted (AES-256-GCM) with `TWO_FACTOR_ENCRYPTION_KEY`. Back the key up apart from the database dumps: without it, the 2FA of a restored database can't be read, and every user has to have it reset.
+
+**Admin reset** (lost phone, there are no recovery codes): an admin with `manage_users` calls `DELETE /api/users/<id>/two-factor`; the user then signs in with the password alone and can set 2FA up again. Without the API, the operator can do the same in the database: `DELETE FROM user_two_factor WHERE user_id = <id>;`.
 
 ### Tests
 

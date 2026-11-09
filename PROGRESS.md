@@ -1337,3 +1337,26 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - `act` runs jobs side by side on one host, so two jobs can't bind the same service port.
 
 **Failed / open:** none.
+
+## 2026-11-09 – M32: Two-factor authentication (TOTP)
+
+**Done:**
+- Table `user_two_factor(user_id PK, secret_encrypted, enabled_at)` (decision Q8d), additive migration `20261109120000_user_two_factor`, deleted with its user (`ON DELETE CASCADE`, so the account deletion of M14 removes it). `prisma migrate diff` from a freshly migrated database to the schema is empty.
+- identity-access: `TwoFactorService` with ports for the repository, TOTP (`otplib`: RFC 6238, 6 digits, 30 s, one step of drift), the cipher (AES-256-GCM with `TWO_FACTOR_ENCRYPTION_KEY`, stored as `v1:iv:tag:data`, full 16-byte tag required) and the challenge (a 5-minute JWT signed with `JWT_SECRET:2fa`, so it is never accepted as an access token, like the reset tokens). New dependencies: `otplib`, `qrcode` (the QR code of step 1).
+- Routes: `GET /auth/2fa`, `POST /auth/2fa/setup` (secret, otpauth URL, QR code as data URL; 409 if already on), `POST /auth/2fa/enable` and `/disable` with a code (400 for a wrong one), `POST /auth/2fa/verify` (the login's second step, 401 for a wrong code); `POST /auth/login` answers `{ two_factor_required, challenge_token }` instead of tokens when 2FA is on (UC-01b). Admin reset `DELETE /users/:id/two-factor` with `manage_users` (step 5), documented with the SQL fallback in both READMEs.
+- Config validation requires `TWO_FACTOR_ENCRYPTION_KEY` as 64 hex characters in every environment; `.env.test` has a throwaway key, `.env.example` the `openssl rand -hex 32` hint.
+- Frontend: the login page has a code step; the SecurityTab's 2FA button works (status, QR code with the secret for manual entry, confirm, turn off with a code); the Google callback sends a 2FA user to the code step.
+- The refresh path reads the roles by role id too, so login, refresh and `JwtStrategy` take the same first role (follow-up of M37's review).
+
+**Verified:**
+- Done when: `test/two-factor.e2e-spec.ts` covers enable (wrong confirmation 400, right 204) → login gives a challenge and no tokens, the challenge is no access token (401) → wrong code 401 → right code gives access and refresh token → a student can't reset (403), an admin can (204) → the old challenge is worthless; the stored secret starts with `v1:` and doesn't contain the secret; deleting a user deletes the row. The SecurityTab button works (Vitest: setup with QR code, enable, wrong code, disable).
+- Backend: 670 unit and 152 E2E tests; frontend: 329 tests. tsc, lint (backend 0 errors, 36 warnings; frontend clean), knip, dependency-cruiser and both builds pass. `act`: all four jobs succeeded (a first run failed in two jobs' "Setup Node" step, before any test: two jobs read act's action cache while a third still cloned it; the rerun passed).
+- `code-review` (high) gave 10 findings, 9 fixed: (1) Google sign-in skipped 2FA: a 2FA user now gets a challenge (`/auth-callback#challenge=…`, then the code step), and the Google reset path issues a reset token instead of an access token, so it can only set the password; (2) guessing was limited only per IP: five wrong codes in a row lock the user's code check for 15 minutes (429); (3) turning 2FA on now ends the other sessions; (5) enable and disable are throttled like verify; (6) a challenge opens one session only, and a new setup or disable forgets the last used step; (7) a wrong code's 401 no longer makes the frontend refresh or end the session; (8) the admin reset answers 404 for a missing or the ghost user; (9) a GCM tag shorter than 16 bytes is refused; (10) the "too many requests" message shows on the code step. Kept: (4) setup needs no password re-entry, as the app's password change needs none either (a stolen access token is already a full session).
+
+**Learned (for later milestones):**
+- `git stash` leaves untracked files in place: a lint comparison against the stashed tree mixes new files with old code.
+- A second factor has to cover every way to a session: password login, Google sign-in and any token a reset flow hands out.
+
+**Failed / open:**
+- The used codes, the failed attempts and the used challenges are kept in memory: right for one backend process, but a restart forgets them, and a second instance wouldn't share them. A table for them would be a schema change beyond Q8d.
+- There are no recovery codes (decision Q8d); a lost phone needs the admin reset.

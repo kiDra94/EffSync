@@ -5,13 +5,14 @@ describe("validateEnv", () => {
   const valid = {
     JWT_SECRET: "a-secret",
     DATABASE_URL: "postgresql://u:p@localhost:5432/db",
+    TWO_FACTOR_ENCRYPTION_KEY: "ab".repeat(32),
   };
 
   it("accepts a configuration with JWT_SECRET and DATABASE_URL", () => {
     expect(validateEnv({ ...valid, OTHER: "x" })).toMatchObject(valid);
   });
 
-  it.each(["JWT_SECRET", "DATABASE_URL"])(
+  it.each(["JWT_SECRET", "DATABASE_URL", "TWO_FACTOR_ENCRYPTION_KEY"])(
     "fails with a clear error when %s is missing or empty",
     (key) => {
       expect(() => validateEnv({ ...valid, [key]: undefined })).toThrow(
@@ -20,6 +21,15 @@ describe("validateEnv", () => {
       expect(() => validateEnv({ ...valid, [key]: "  " })).toThrow(key);
     },
   );
+
+  // M32 (decision Q8d): the key of the TOTP secrets is 32 bytes, in hex
+  it("requires TWO_FACTOR_ENCRYPTION_KEY as 64 hex characters", () => {
+    for (const key of ["ab".repeat(31), "zz".repeat(32), "change-me"]) {
+      expect(() =>
+        validateEnv({ ...valid, TWO_FACTOR_ENCRYPTION_KEY: key }),
+      ).toThrow("TWO_FACTOR_ENCRYPTION_KEY must be 64 hex characters");
+    }
+  });
 
   // M9 review: the public placeholder from .env.example is no secret
   describe("in production", () => {

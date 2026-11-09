@@ -10,6 +10,9 @@ import {
   Delete,
   UseGuards,
   Req,
+  HttpCode,
+  HttpStatus,
+  ParseIntPipe,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -19,6 +22,7 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { UsersService } from "../application/users.service";
+import { TwoFactorService } from "../application/two-factor.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { JwtAuthGuard } from "./security/jwt-auth.guard";
@@ -34,7 +38,10 @@ import { Roles } from "./security/roles.decorator";
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("users")
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly twoFactor: TwoFactorService,
+  ) {}
 
   /**
    * POST /users
@@ -182,6 +189,22 @@ export class UsersController {
   @Permissions("manage_users", PermissionFlag.EXECUTE)
   remove(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
     return this.usersService.remove(+id, req.user.userId);
+  }
+
+  /**
+   * DELETE /users/:id/two-factor
+   * The admin reset of a user's 2FA (decision Q8d, M32): deletes the secret,
+   * so the user signs in with the password alone and can set it up again.
+   */
+  @ApiOperation({
+    summary: "Resets a user's two-factor authentication",
+    description: "Requires the permission manage_users.",
+  })
+  @Delete(":id/two-factor")
+  @Permissions("manage_users", PermissionFlag.EXECUTE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  resetTwoFactor(@Param("id", ParseIntPipe) id: number) {
+    return this.twoFactor.reset(id);
   }
 
   /**

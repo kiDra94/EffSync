@@ -13,7 +13,14 @@ const authStore = useAuthStore()
 // (/auth-callback#token=…&refreshToken=…, M12); the user comes from GET /auth/profile
 onMounted(async () => {
   // the tokens must not stay in the address bar or the browser history
-  const { token, refreshToken } = await takeTokensFromHash(route, router)
+  const { token, refreshToken, challenge } = await takeTokensFromHash(route, router)
+
+  // M32: with 2FA on, the login page asks for the code first
+  if (challenge) {
+    sessionStorage.setItem('twoFactorChallenge', challenge)
+    router.push({ name: 'Login' })
+    return
+  }
 
   if (!token) {
     console.error('❌ Kein Token in Auth-Callback erhalten')

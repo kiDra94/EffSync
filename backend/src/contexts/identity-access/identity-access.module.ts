@@ -12,6 +12,11 @@ import { RolesService } from "./application/roles.service";
 import { UsersService } from "./application/users.service";
 import { SessionService } from "./application/session.service";
 import { PasswordResetService } from "./application/password-reset.service";
+import { TwoFactorService } from "./application/two-factor.service";
+import { SecretCipher } from "./application/ports/secret-cipher";
+import { Totp } from "./application/ports/totp";
+import { TwoFactorChallenges } from "./application/ports/two-factor-challenges";
+import { TwoFactorRepository } from "./application/ports/two-factor.repository";
 import { AccountDeletionRegistry } from "./application/account-deletion";
 import { ResetTokens } from "./application/ports/reset-tokens";
 import {
@@ -34,7 +39,12 @@ import { JwtStrategy } from "./infrastructure/security/jwt.strategy";
 import { LocalStrategy } from "./infrastructure/security/local.strategy";
 import { SessionCleanupJob } from "./infrastructure/session-cleanup.job";
 import { JwtResetTokens } from "./infrastructure/security/jwt-reset-tokens";
+import { AesGcmSecretCipher } from "./infrastructure/security/aes-gcm-secret-cipher";
+import { JwtTwoFactorChallenges } from "./infrastructure/security/jwt-two-factor-challenges";
+import { OtplibTotp } from "./infrastructure/security/otplib-totp";
+import { PrismaTwoFactorRepository } from "./infrastructure/persistence/prisma-two-factor.repository";
 import { AuthController } from "./presentation/auth.controller";
+import { TwoFactorController } from "./presentation/two-factor.controller";
 import { PermissionsController } from "./presentation/permissions.controller";
 import { RolesController } from "./presentation/roles.controller";
 import { UsersController } from "./presentation/users.controller";
@@ -59,6 +69,7 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
   ],
   controllers: [
     AuthController,
+    TwoFactorController,
     UsersController,
     RolesController,
     PermissionsController,
@@ -71,6 +82,12 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     PermissionsService,
     SessionService,
     PasswordResetService,
+    // M32: TOTP as the login's second factor (decision Q8d)
+    TwoFactorService,
+    { provide: TwoFactorRepository, useClass: PrismaTwoFactorRepository },
+    { provide: Totp, useClass: OtplibTotp },
+    { provide: SecretCipher, useClass: AesGcmSecretCipher },
+    { provide: TwoFactorChallenges, useClass: JwtTwoFactorChallenges },
     AccountDeletionRegistry,
     { provide: RealtimeAuthenticator, useClass: JwtRealtimeAuthenticator },
     { provide: ResetTokens, useClass: JwtResetTokens },
