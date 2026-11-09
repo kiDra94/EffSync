@@ -23,9 +23,10 @@ describe("Task rules", () => {
     expect(involvedUsers({ created_by: 5, assigned_to: 6 }, [6, 7, 7])).toEqual(
       [5, 6, 7],
     );
-    expect(involvedUsers({ created_by: null, assigned_to: null }, [])).toEqual(
-      [],
-    );
+    // M33: every task has a creator; without an assignee or members, only them
+    expect(involvedUsers({ created_by: 5, assigned_to: null }, [5])).toEqual([
+      5,
+    ]);
   });
 });
 

@@ -227,6 +227,17 @@ describe("TaskService paths", () => {
       );
     });
 
+    // review M33: the creator is set once, by the database rule never null
+    it("ignores a creator in the update, as the create does", async () => {
+      await service.update(1, { title: "Neu", created_by: null } as never, 2);
+      await service.update(1, { created_by: 7 } as never, 2);
+
+      for (const [, changes] of tasks.update.mock.calls as [number, object][]) {
+        expect(changes).not.toHaveProperty("created_by");
+      }
+      expect(tasks.update).toHaveBeenCalledTimes(2);
+    });
+
     it("moves a task under a project only for its members", async () => {
       tasks.findById
         .mockResolvedValueOnce(task({ task_id: 4 }))
@@ -275,18 +286,23 @@ describe("TaskService paths", () => {
       expect(notifications.taskAssigned).not.toHaveBeenCalled();
     });
 
-    it("moves a task without a requester and logs nothing without a creator", async () => {
+    // review M33: a deleted account's task (creator 0) is logged under 0
+    it("moves a task without a requester and logs it under the ghost creator", async () => {
       tasks.findById
-        .mockResolvedValueOnce(task({ task_id: 4, created_by: null }))
+        .mockResolvedValueOnce(task({ task_id: 4, created_by: 0 }))
         .mockResolvedValueOnce(task({ task_id: 1 }))
         .mockResolvedValueOnce(task({ task_id: 1 }));
       tasks.update.mockResolvedValueOnce(
-        task({ task_id: 4, created_by: null, assigned_to: 6 }),
+        task({ task_id: 4, created_by: 0, assigned_to: 6 }),
       );
 
       await service.update(4, { parent_task_id: 1 });
 
-      expect(activityLog.create).not.toHaveBeenCalled();
+      expect(activityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ task_id: 4 }),
+        0,
+        false,
+      );
       // the new assignee is told, without a requester as user 0
       expect(notifications.taskAssigned).toHaveBeenCalledWith(
         expect.objectContaining({ assigned_to: 6 }),
@@ -315,8 +331,9 @@ describe("TaskService paths", () => {
       );
     });
 
-    it("logs the delete of a task without a creator under user 0", async () => {
-      tasks.findRow.mockResolvedValue(task({ created_by: null }));
+    // M33: every task has a creator; a deleted account's tasks have user 0
+    it("logs the delete of a deleted account's task under the ghost user 0", async () => {
+      tasks.findRow.mockResolvedValue(task({ created_by: 0 }));
 
       await service.remove(1);
 

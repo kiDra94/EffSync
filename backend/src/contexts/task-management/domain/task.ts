@@ -8,7 +8,8 @@
 interface TaskState {
   task_id: number;
   parent_task_id?: number | null;
-  created_by?: number | null;
+  // T101 (M33): every task has one; the ghost user 0 for deleted accounts
+  created_by: number;
   is_locked?: boolean | null;
 }
 
@@ -31,7 +32,7 @@ export function isCompletionWithoutFullProgress(
  * members, each once.
  */
 export function involvedUsers(
-  task: { created_by?: number | null; assigned_to?: number | null },
+  task: { created_by: number; assigned_to?: number | null },
   memberIds: (number | null)[],
 ): number[] {
   const ids = [task.created_by, task.assigned_to, ...memberIds].filter(

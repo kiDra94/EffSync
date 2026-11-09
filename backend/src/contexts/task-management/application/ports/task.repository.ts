@@ -53,7 +53,7 @@ export abstract class TaskRepository {
   /** The title and the people of a task (creator, assignee, members), for its chat (M21). */
   abstract findChatParticipants(taskId: number): Promise<{
     title: string | null;
-    created_by: number | null;
+    created_by: number;
     assigned_to: number | null;
     task_members: { user_id: number }[];
   } | null>;
@@ -64,7 +64,7 @@ export abstract class TaskRepository {
   abstract findChildIds(parentId: number): Promise<number[]>;
   abstract countSubtasks(taskId: number): Promise<number>;
   abstract findAllByCreator(
-    createdBy: number | null,
+    createdBy: number,
     includeRelations: boolean,
   ): Promise<TaskRow[]>;
   abstract findWithCompletionRule(): Promise<TaskRecord[]>;

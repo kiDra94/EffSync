@@ -40,10 +40,8 @@ export abstract class TaskMemberRepository {
   abstract findMembersWithUsers(taskId: number): Promise<TaskMemberWithUser[]>;
   abstract findMembership(
     taskId: number,
-  ): Promise<{ created_by: number | null; assigned_to: number | null } | null>;
-  abstract findCreator(
-    taskId: number,
-  ): Promise<{ created_by: number | null } | null>;
+  ): Promise<{ created_by: number; assigned_to: number | null } | null>;
+  abstract findCreator(taskId: number): Promise<{ created_by: number } | null>;
   abstract findUserPermissions(
     userId: number,
   ): Promise<UserPermissionWithFlags[]>;

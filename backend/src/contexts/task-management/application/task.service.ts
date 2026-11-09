@@ -245,6 +245,8 @@ export class TaskService {
       parent_task_id,
       priority_id,
       completion_rule,
+      // the creator is set once, at create (M33: never null, review)
+      created_by: _ignoredCreator,
       is_locked: _ignoredIsLocked,
       locked_reason: _ignoredLockedReason,
       locked_until: _ignoredLockedUntil,
@@ -318,17 +320,15 @@ export class TaskService {
         await this.tasks.completeAll(descendantIds);
       }
 
-      // logged under the task's creator
-      if (updated.created_by) {
-        await this.activityLog.create(
-          {
-            task_id: updated.task_id,
-            action: `Task updated: "${updated.title}"`,
-          },
-          updated.created_by,
-          false,
-        );
-      }
+      // logged under the task's creator, the ghost user 0 too (review M33)
+      await this.activityLog.create(
+        {
+          task_id: updated.task_id,
+          action: `Task updated: "${updated.title}"`,
+        },
+        updated.created_by,
+        false,
+      );
 
       const parentChanges = updated.parent_task_id
         ? await this.completion.completeParentsOf(updated.task_id)
@@ -376,7 +376,7 @@ export class TaskService {
     await this.unitOfWork.run(async () => {
       await this.activityLog.create(
         { task_id: taskId, action: `Task deleted: "${task.title}"` },
-        requesterId ?? task.created_by ?? 0,
+        requesterId ?? task.created_by,
         false,
       );
       await this.activityEntries.detachFromTask(taskId);

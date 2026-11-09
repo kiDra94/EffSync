@@ -55,16 +55,15 @@ export class TaskLockingService {
         locked_until: null,
         updated_at: new Date(),
       });
-      if (task.created_by) {
-        await this.activityLog.create(
-          {
-            task_id: updated.task_id,
-            action: `Task deadline updated to ${newDeadline.toISOString().split("T")[0]} and unlocked`,
-          },
-          task.created_by,
-          false,
-        );
-      }
+      // under the task's creator, the ghost user 0 too (review M33)
+      await this.activityLog.create(
+        {
+          task_id: updated.task_id,
+          action: `Task deadline updated to ${newDeadline.toISOString().split("T")[0]} and unlocked`,
+        },
+        task.created_by,
+        false,
+      );
       return updated;
     });
   }

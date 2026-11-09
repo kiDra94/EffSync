@@ -657,7 +657,7 @@ Rules for all milestones:
   - Done when: E2E covers enable → login with code → wrong code 401 → admin reset, the stored secret is not plain text, and the `SecurityTab` button works.
   - Risk: medium. Additive schema change (approved, Q8d). Account lockout is covered only by the admin reset; there are no recovery codes.
 
-- [ ] **M33: Creator required at database level**
+- [x] **M33: Creator required at database level**
   - Why: T101 (`07_…:82`, decision Q20): "auf Datenbankebene sichergestellt, dass jede Aufgabe einem Ersteller … zugewiesen ist". The other schema items that used to wait here were decided and moved into their feature milestones: tags → M18 (Q8e), theme → M25 (Q8f), avatar → M27 (Q8c), FK indexes → M30 (Q8h), refresh tokens → M12 (Q8b), TOTP → M32 (Q8d), activity log → M15 (Q8g). Reminders need no change (Q22).
   - Prerequisite: M14 (ghost user 0 exists and account deletion reassigns tasks to it).
   - Steps:

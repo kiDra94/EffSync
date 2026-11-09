@@ -49,7 +49,8 @@ function listConditions(filter: TaskListFilter): Prisma.Sql[] {
   if (filter.assigned_to) {
     conditions.push(Prisma.sql`t.assigned_to = ${filter.assigned_to}`);
   }
-  if (filter.created_by) {
+  // 0 is the ghost user, the creator of deleted accounts' tasks (M33)
+  if (filter.created_by !== undefined) {
     conditions.push(Prisma.sql`t.created_by = ${filter.created_by}`);
   }
   if (filter.parent_task_id !== undefined) {
@@ -185,7 +186,7 @@ export class PrismaTaskRepository extends TaskRepository {
     return this.db.tasks.count({ where: { parent_task_id: taskId } });
   }
 
-  findAllByCreator(createdBy: number | null, includeRelations: boolean) {
+  findAllByCreator(createdBy: number, includeRelations: boolean) {
     return this.db.tasks.findMany({
       where: { created_by: createdBy },
       include: relationsIf(includeRelations),

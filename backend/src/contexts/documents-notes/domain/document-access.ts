@@ -9,7 +9,7 @@ interface DocumentAccessView {
   added_by?: number | null;
   graded_at?: Date | null;
   document_shares?: { user_id: number | null }[];
-  task_documents?: { tasks?: { created_by: number | null } | null }[];
+  task_documents?: { tasks?: { created_by: number } | null }[];
 }
 
 /** The requester as the rules see them. */

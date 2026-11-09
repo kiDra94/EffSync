@@ -1360,3 +1360,26 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 **Failed / open:**
 - The used codes, the failed attempts and the used challenges are kept in memory: right for one backend process, but a restart forgets them, and a second instance wouldn't share them. A table for them would be a schema change beyond Q8d.
 - There are no recovery codes (decision Q8d); a lost phone needs the admin reset.
+
+## 2026-11-09 – M33: Creator required at database level
+
+**Done:**
+- Migration `20261109130000_task_creator_required` (decision Q20): creates the ghost user 0 if a database lacks it (as `20261107160000_add_ghost_user`), stops with a clear message if it still lacks it (another account holds the ghost's username or e-mail), moves tasks without a creator to it, then `ALTER TABLE tasks ALTER COLUMN created_by SET NOT NULL`. The foreign key stays as it was.
+- Prisma: `created_by Int` and the creator relation required. A task's creator is `number` (not `number | null`) in the task-management ports, `involvedUsersOf`, the task notifications, the documents' access view and the `Task` aggregate; `findAllByCreator` takes a number. The client's `created_by` in `CreateTaskDto` stays ignored, as before: the service sets the requester.
+- The delete log's fallback `requesterId ?? task.created_by ?? 0` lost its `?? 0`: the creator is always there. `update()` ignores a creator in its input, as `create()` already did (a `PATCH` with `created_by: null` was a 500, any other id took the task over).
+
+**Verified:**
+- Done when:
+  - The migration on a copy of the seeded DB (a throwaway `effsync_m33check_test`, migrated up to just before M33, seeded, then a task with `created_by = NULL` added and the ghost user deleted): before, 1 task without a creator and no ghost user; after, the ghost user exists, owns that task, `created_by` is `NOT NULL`, and `prisma migrate diff` to the schema is empty.
+  - An insert without a creator fails at database level: `test/task-creator.e2e-spec.ts` writes past the app and Prisma's types (`INSERT … (title)` and `UPDATE … SET created_by = NULL` are refused, a creator that isn't a user too).
+  - All task tests pass: backend 671 unit and 156 E2E tests.
+- The migration's guard on two more throwaway copies: without the ghost user it creates it and moves the task; with the ghost's username taken by another account it stops with the message and rolls back (the task keeps its NULL, nothing half-applied).
+- tsc, lint (0 errors, 36 warnings), knip, dependency-cruiser and the build pass. `act --action-offline-mode`: all four jobs succeeded (two runs before failed in act's own "Setup Node" step, before any test).
+- `code-review` (high) gave 10 findings, 8 fixed: (1) `update()` wrote a client's `created_by` (null: 500; another id: takeover); (2) the ghost user's `ON CONFLICT DO NOTHING` could skip silently (now the guard); (3, 4) the update and unlock logs skipped tasks of the ghost user 0, because `if (created_by)` treats 0 as missing; (5) the list filter `created_by=0` was dropped for the same reason; (7) the members list left the ghost out only by that accident (now `!== GHOST_USER_ID`); (8) the E2E test matched any not-null error and depended on seed task 1 (now SQLSTATE 23502 of `created_by`, on its own task, plus the `PATCH` through the API); (9) the `Task` aggregate kept the creator optional (now required). Kept: (6) the task tree loads all of the root creator's tasks, also before M33 and outside its scope; (10) `SET NOT NULL` holds an exclusive lock while it scans `tasks`, which takes milliseconds at a school's size.
+
+**Learned (for later milestones):**
+- With the ghost user 0, every truthiness check on a user id is a bug: compare with `undefined` or `GHOST_USER_ID`.
+- `act`'s jobs clone the same actions into one cache in parallel; `--action-offline-mode` avoids the race once the actions are cached.
+
+**Failed / open:**
+- The thesis appendix (`prisma_schema.tex`) still shows `created_by Int?`; the text at `07_…:82` and decision Q20 call for `NOT NULL`. The appendix is not edited here (`thesis/` is read-only for this work).

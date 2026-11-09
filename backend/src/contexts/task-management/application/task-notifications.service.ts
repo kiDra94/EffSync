@@ -8,7 +8,7 @@ interface NotifiedTask {
   task_id: number;
   title: string | null;
   status: string | null;
-  created_by: number | null;
+  created_by: number;
   assigned_to: number | null;
 }
 

@@ -11,7 +11,7 @@ export async function involvedUsersOf(
   tasks: TaskRepository,
   task: {
     task_id: number;
-    created_by: number | null;
+    created_by: number;
     assigned_to: number | null;
   },
 ): Promise<number[]> {

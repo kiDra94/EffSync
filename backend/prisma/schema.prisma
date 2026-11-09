@@ -335,7 +335,8 @@ model tasks {
   status                         task_status?        @default(TODO)
   progress                       Int?
   deadline                       DateTime?           @db.Timestamp(6)
-  created_by                     Int?
+  /// T101 (decision Q20, M33): every task has a creator; deleted accounts' tasks go to the ghost user 0
+  created_by                     Int
   assigned_to                    Int?
   template_id                    Int?
   priority_id                    Int?
@@ -354,7 +355,7 @@ model tasks {
   task_members                   task_members[]
   comments                       comments[]
   users_tasks_assigned_toTousers users?              @relation("tasks_assigned_toTousers", fields: [assigned_to], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  users_tasks_created_byTousers  users?              @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tasks_created_byTousers  users               @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   tasks                          tasks?              @relation("tasksTotasks", fields: [parent_task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
   other_tasks                    tasks[]             @relation("tasksTotasks")
   priorities                     priorities?         @relation(fields: [priority_id], references: [priority_id], onDelete: NoAction, onUpdate: NoAction)

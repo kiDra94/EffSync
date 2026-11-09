@@ -128,7 +128,8 @@ export class TaskMembersService {
     if (!task) return [];
 
     const memberMap = new Map<number, TaskMemberView>();
-    if (task.created_by && task.users_tasks_created_byTousers) {
+    // the ghost user 0 owns deleted accounts' tasks but is nobody's member
+    if (task.created_by !== GHOST_USER_ID) {
       memberMap.set(task.created_by, {
         task_id: taskId,
         user_id: task.created_by,
