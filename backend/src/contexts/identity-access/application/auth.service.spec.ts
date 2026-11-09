@@ -1,3 +1,4 @@
+import { ConflictException } from "@nestjs/common";
 import { UserRepository } from "./ports/user.repository";
 import { PrismaUserRepository } from "../infrastructure/persistence/prisma-user.repository";
 import { Test, TestingModule } from "@nestjs/testing";
@@ -93,6 +94,22 @@ describe("AuthService", () => {
         }) as unknown,
       });
       expect(result).toHaveProperty("username", "newuser");
+    });
+
+    // M29 (endpoint matrix): a taken username or e-mail is a 409, not a 500
+    it("refuses a taken username or e-mail with 409 and creates nothing", async () => {
+      mockPrismaService.users.findFirst.mockResolvedValueOnce(mockUser);
+
+      await expect(
+        service.register({
+          username: "testuser",
+          email: "other@example.com",
+          password: "password123",
+          firstname: "T",
+          lastname: "U",
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(mockPrismaService.users.create).not.toHaveBeenCalled();
     });
   });
 

@@ -610,7 +610,7 @@ Rules for all milestones:
 
 ### Quality and operations per thesis
 
-- [ ] **M29: Coverage targets and API endpoint tests per thesis**
+- [x] **M29: Coverage targets and API endpoint tests per thesis**
   - Why: T115 and T117 (`08_…:39-43`), T70, T121 and T123 (`08_…:102`, `:112-138`).
   - Steps:
     1. Bring the units the thesis names to ≥ 90 % or ≥ 75 %, in their new context locations.

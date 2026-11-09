@@ -6,6 +6,7 @@ import {
 import { CreateUserInput } from "./user-inputs";
 import * as bcrypt from "bcrypt";
 import { JwtService } from "@nestjs/jwt";
+import { assertUnused } from "./account-uniqueness";
 import { UserRepository } from "./ports/user.repository";
 import { UserWithRoles } from "./ports/identity-records";
 import { RoleName } from "../domain/role-permissions";
@@ -47,6 +48,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
   async register(createUserDto: CreateUserInput) {
+    await assertUnused(this.users, createUserDto);
     const hashedPassword = await bcrypt.hash(
       createUserDto.password,
       BCRYPT_COST,

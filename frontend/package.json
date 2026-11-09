@@ -11,7 +11,7 @@
     "dev": "concurrently 'npm run mockend' 'npm run frontend'",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "cypress run",
     "test:e2e:open": "cypress open",
     "lint": "eslint .",

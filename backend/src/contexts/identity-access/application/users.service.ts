@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { CreateUserInput, UpdateUserInput } from "./user-inputs";
 import { hash, genSalt } from "bcrypt";
+import { assertUnused } from "./account-uniqueness";
 import { UserRepository } from "./ports/user.repository";
 import { RoleName } from "../domain/role-permissions";
 import { GHOST_USER_ID } from "../domain/ghost-user";
@@ -32,6 +33,7 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserInput) {
+    await assertUnused(this.users, createUserDto);
     const salt = await genSalt(BCRYPT_COST);
     const hashPassword = await hash(createUserDto.password, salt);
     const { password, ...userWithoutPassword } = createUserDto;

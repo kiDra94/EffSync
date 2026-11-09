@@ -152,3 +152,13 @@ describe('httpClient refresh on 401', () => {
     await expect(refreshSession()).resolves.toBe('new.access')
   })
 })
+
+// GOALS.md M29 (T115: the HTTP utility functions ≥ 90 %)
+describe('httpClient request interceptor', () => {
+  it('passes a failed request setup on', async () => {
+    const [{ rejected }] = apiClient.interceptors.request.handlers.filter(Boolean)
+    const error = new Error('setup failed')
+
+    await expect(rejected(error)).rejects.toBe(error)
+  })
+})

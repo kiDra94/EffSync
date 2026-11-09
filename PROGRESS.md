@@ -1199,3 +1199,39 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - Playwright treats a 0 px wide element as hidden: check a 0 % progress bar by its track.
 
 **Failed / open:** the completion-date question above.
+
+## 2026-11-09 – M29: Coverage targets and API endpoint tests per thesis
+
+**Done:**
+- Coverage targets of `08_…:39-43` (T115, T117), in the new context locations, on lines, statements, functions and branches each:
+
+  | Unit (thesis name) | File | Target | Now (branches) |
+  |---|---|---|---|
+  | AuthService | `identity-access/application/auth.service.ts` | ≥ 90 % | 92 % |
+  | JwtAuthGuard, LocalAuthGuard | `identity-access/presentation/security/{jwt,local}-auth.guard.ts` | ≥ 90 % | 100 % |
+  | TaskService | `task-management/application/task.service.ts` | ≥ 90 % | 92.4 % (was 85.5 %) |
+  | UserService | `identity-access/application/users.service.ts` | ≥ 75 % | 83.8 % |
+  | PermissionService | `identity-access/application/permissions.service.ts` | ≥ 75 % | 94.6 % |
+  | Auth store | `frontend/src/stores/authStore.js` | ≥ 90 % | 95.7 % (was 38 %) |
+  | Task store | `frontend/src/stores/entities/taskStore.js` | ≥ 90 % | 93 % (was 33 %) |
+  | HTTP utility functions | `frontend/src/api/httpClient.js` | ≥ 90 % | 90.6 % |
+  | Route guards | `frontend/src/router/guards.js` (moved out of `router/index.js`) | ≥ 75 % | 100 % |
+
+  "Wiederverwendbare komplexe UI-Komponenten" (≥ 75 %) names no component, so no threshold is set for them.
+- Enforcement: per-file `coverageThreshold` in the backend's Jest config (glob keys, so it works from any directory) and per-file `thresholds` in Vitest (all source files included, so a file no test imports fails at 0 % instead of being skipped). CI runs `test:coverage` in both test jobs; `vitest --coverage` became `vitest run --coverage`.
+- New tests: `task.service.paths.spec.ts`, `authStore.spec.js` (login, logout, reload, register, dev mode), `taskStore.rules.spec.js` (every rule operator, parents after a status change, a rule cycle, saving rules, subtasks), `guards.spec.js`, the request interceptor in `httpClient.spec.js`.
+- API endpoint tests for the table in `08_…:112-138` (T121, T123): `test/api-auth-endpoints.e2e-spec.ts` and `test/api-task-endpoints.e2e-spec.ts`, each with the matrix in its header. Every endpoint has its happy path and 400, 401, 403 and 404, except combinations it can't produce, which are listed with the reason: register (public; 409 for a taken name instead of 404), login (missing fields are a 401 from the credentials guard; an unknown user is a 401, no account enumeration), logout (public; an unknown token is idempotent, 204), `GET /tasks` (a list, no 404).
+- Found by the matrix: registering with a taken username or e-mail answered 500. `assertUnused` (its own module) checks username and e-mail (case-insensitively, like the login) in one query, for registration and the admin's user creation, and the repository turns the unique index (P2002) into a 409 on create and update too.
+
+**Verified:**
+- Done when:
+  - CI fails if a threshold drops: checked by raising a threshold above the measured value (backend and frontend: exit 1, CI step fails) and by running a single spec (the untested files fail at 0 %).
+  - All endpoint/status combinations of the table are tested (22 E2E tests, the N/A ones documented).
+- Backend: 594 unit and 136 E2E tests. Frontend: 305 tests. tsc, lint (backend 0 errors, 36 warnings; frontend clean), knip, dependency-cruiser and both builds pass. `act`: all three jobs succeeded, with the coverage thresholds.
+- `code-review` (high) gave 10 findings, all fixed: (1) the e-mail check was case-sensitive while the login isn't, (2) races and PATCH still answered 500 (P2002 now a 409), (3) an untested file skipped its threshold silently, (4) a test without an assertion, (5) a cycle test that never followed the cycle, (6) a misleading test title and comment, (7) the uniqueness rule lived in auth.service.ts, (8) the threshold paths only worked from `backend/`, (9) the throttle budget of the auth matrix (now a comment), (10) two queries for the uniqueness check.
+
+**Learned (for later milestones):**
+- Jest resolves `coverageThreshold` path keys against the working directory, not `rootDir`; glob keys work from anywhere.
+- Vitest 4 measures only imported files unless `coverage.include` is set, so a per-file threshold can pass because nothing loaded the file.
+
+**Failed / open:** none.

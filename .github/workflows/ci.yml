@@ -38,8 +38,9 @@ jobs:
       - name: Unused code (knip)
         run: npm run knip
 
-      - name: Run Vitest
-        run: npm run test
+      # M29 (T115, T117): fails when a unit drops below its coverage target
+      - name: Run Vitest with coverage thresholds
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
@@ -78,8 +79,9 @@ jobs:
       - name: No cycles between contexts (rule 4, warn mode until M34)
         run: npm run depcruise:contexts
 
-      - name: Run Jest
-        run: npm run test
+      # M29 (T115, T117): fails when a unit drops below its coverage target
+      - name: Run Jest with coverage thresholds
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build

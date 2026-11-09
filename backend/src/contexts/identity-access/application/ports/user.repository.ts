@@ -27,10 +27,16 @@ export type UserChanges = Partial<Omit<NewUser, "password_hash" | "google_id">>;
 
 /** Users, their roles and their direct permissions (port; Prisma in infrastructure). */
 export abstract class UserRepository {
+  /** Throws a 409 if the username or e-mail is taken (unique index). */
   abstract create(data: NewUser): Promise<UserRecord>;
   abstract findById(userId: number): Promise<UserRecord | null>;
   abstract findByEmail(email: string): Promise<UserRecord | null>;
   abstract findByUsername(username: string): Promise<UserRecord | null>;
+  /**
+   * Whether an account uses the username or the e-mail (case-insensitive,
+   * like the login); one query (M29).
+   */
+  abstract isTaken(username: string, email: string): Promise<boolean>;
   abstract findByIdWithRoles(userId: number): Promise<UserWithRoles | null>;
   abstract findByUsernameWithRoles(
     username: string,
@@ -43,6 +49,7 @@ export abstract class UserRepository {
   abstract findSummary(userId: number): Promise<UserSummary | null>;
   abstract findAllForChat(): Promise<UserForChat[]>;
   abstract findAllWithAccess(): Promise<UserWithAccess[]>;
+  /** Throws a 409 if the new username or e-mail is taken (unique index). */
   abstract update(userId: number, changes: UserChanges): Promise<UserRecord>;
   abstract updatePasswordHash(
     userId: number,

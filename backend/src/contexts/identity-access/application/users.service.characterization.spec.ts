@@ -40,6 +40,8 @@ function createPrismaMock() {
     lesson_slots: { count: jest.fn().mockResolvedValue(0) },
     users: {
       create: jest.fn(),
+      // M29: the check for a taken username or e-mail
+      findFirst: jest.fn().mockResolvedValue(null),
       findUnique: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn(),

@@ -1,4 +1,5 @@
-import { Injectable, Optional } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { ConflictException, Injectable, Optional } from "@nestjs/common";
 import { PrismaService } from "../../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { GHOST_USER_ID } from "../../domain/ghost-user";
@@ -27,7 +28,16 @@ export class PrismaUserRepository extends UserRepository {
   }
 
   create(data: NewUser) {
-    return this.prisma.users.create({ data });
+    return takenAsConflict(this.prisma.users.create({ data }));
+  }
+
+  async isTaken(username: string, email: string) {
+    return !!(await this.prisma.users.findFirst({
+      where: {
+        OR: [{ username }, { email: { equals: email, mode: "insensitive" } }],
+      },
+      select: { user_id: true },
+    }));
   }
 
   findById(userId: number) {
@@ -120,10 +130,9 @@ export class PrismaUserRepository extends UserRepository {
   }
 
   update(userId: number, changes: UserChanges) {
-    return this.prisma.users.update({
-      where: { user_id: userId },
-      data: changes,
-    });
+    return takenAsConflict(
+      this.prisma.users.update({ where: { user_id: userId }, data: changes }),
+    );
   }
 
   // joins an open unit of work: the password change revokes sessions with it (M13)
@@ -247,5 +256,25 @@ export class PrismaUserRepository extends UserRepository {
       where: { user_id: userId },
       include: { permissions: true },
     });
+  }
+}
+
+/**
+ * A taken username or e-mail (the unique index, P2002) is a 409, also when
+ * two requests race past the check (review M29).
+ */
+async function takenAsConflict<T>(write: Promise<T>): Promise<T> {
+  try {
+    return await write;
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new ConflictException(
+        "Benutzername oder E-Mail-Adresse ist bereits vergeben",
+      );
+    }
+    throw error;
   }
 }
