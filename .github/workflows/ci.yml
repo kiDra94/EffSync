@@ -125,3 +125,60 @@ jobs:
 
       - name: Run E2E tests (reset and seed the test database first)
         run: npm run test:e2e
+
+  restore-drill:
+    # M31 (T15, UC-41): back up the seeded test database, restore it into a
+    # fresh one and compare the row count of every table
+    name: Backup Restore Drill
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    services:
+      postgres-test:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: effsync_test
+        # its own port: act runs the jobs side by side on one machine
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d effsync_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # the runner's client is older than the server, and pg_dump refuses
+      # to dump a newer server
+      - name: Install the PostgreSQL 17 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Seed the test database and run the drill
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5434/effsync_test?schema=public
+          PG_BINDIR: /usr/lib/postgresql/17/bin
+        run: |
+          npx prisma migrate reset --force
+          npx ts-node prisma/test-seed.ts
+          scripts/restore-drill.sh

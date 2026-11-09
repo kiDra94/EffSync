@@ -144,6 +144,27 @@ Das Frontend läuft unter `http://localhost:5173`. Nach dem Seed kann man sich z
 
 Im Produktivbetrieb (`NODE_ENV=production`) erwartet das Backend einen vorgeschalteten Reverse Proxy (z. B. nginx oder Traefik), der TLS terminiert und `X-Forwarded-Proto` setzt. Die App vertraut dem ersten Proxy, leitet jede Anfrage, die über unverschlüsseltes HTTP kam, mit `308` (Methode und Body bleiben erhalten) auf denselben Pfad unter `PUBLIC_URL` um, die öffentliche `https://`-Adresse des Backends, die im Produktivbetrieb Pflicht ist, und sendet HSTS-Header. Ohne einen solchen Proxy gilt jede Anfrage als HTTP und wird umgeleitet. Weil die App den Headern `X-Forwarded-For` und `X-Forwarded-Proto` des Proxys vertraut, darf der Backend-Port (3000) nur über den Proxy erreichbar sein, nicht veröffentlicht oder im Netz offen: sonst kann ein Client seine IP-Adresse am Rate Limit vorbei fälschen und die Umleitung umgehen. `THROTTLE_LIMIT` legt fest, wie viele Anfragen eine IP-Adresse pro Minute stellen darf (Standard 10); teilen sich die Benutzer eine öffentliche Adresse, etwa hinter dem NAT einer Schule, muss der Wert entsprechend höher sein.
 
+### Backup und Wiederherstellung (Runbook)
+
+Backup und Wiederherstellung (UC-41) sind Aufgabe des Superusers: Er führt diese Skripte als Betreiber des Servers aus; eine Backup-Funktion in der App gibt es nicht (Entscheidung Q7). Die Skripte erstellen einen vollständigen logischen Dump im Custom-Format von PostgreSQL (`documents/AP7-6.md`). Sie brauchen die PostgreSQL-Client-Werkzeuge mindestens in der Hauptversion des Servers (17); `PG_BINDIR` zeigt auf sie, falls eine andere Version zuerst im `PATH` steht. `DATABASE_URL` ist die des Backends.
+
+**Sichern** (täglich, z. B. mit einem systemd-Timer oder cron):
+
+```bash
+cd backend
+DATABASE_URL=postgresql://… BACKUP_DIR=/var/backups/effsync BACKUP_KEEP_DAYS=14 scripts/backup.sh
+```
+
+Es schreibt `effsync-<UTC-Zeit>.dump` (standardmäßig nach `backend/backups`, das git ignoriert), nur für den Eigentümer lesbar, liest das ganze Archiv zur Prüfung wieder, löscht die Dumps in diesem Ordner, die älter als `BACKUP_KEEP_DAYS` Tage sind, und gibt den Dateinamen aus. Das Passwort aus `DATABASE_URL` geht als `PGPASSWORD` an die PostgreSQL-Werkzeuge, nicht über die Kommandozeile. Die Dumps zusätzlich vom Server wegkopieren (z. B. mit `rclone`); ein Dump auf derselben Platte übersteht deren Ausfall nicht. Bei einem Dump pro Tag gehen höchstens die Daten eines Tages verloren (RPO 24 h).
+
+**Wiederherstellen:**
+
+1. Das Backend stoppen, damit während der Wiederherstellung niemand schreibt.
+2. `DATABASE_URL=postgresql://… scripts/restore.sh /var/backups/effsync/effsync-<Zeit>.dump` ausführen; es zeigt Datenbank und Server und verlangt zur Bestätigung den Datenbanknamen. Das Schema `public` wird mit allem darin gelöscht, auch Tabellen späterer Migrationen, und aus dem Dump neu angelegt, in einer Transaktion: Entweder ist die Datenbank danach der Dump, oder nichts ändert sich.
+3. Das Backend in der Version des Backups starten (seine Migrationen müssen zum Dump passen), dann anmelden und einige Aufgaben prüfen.
+
+**Probe:** Die CI führt `scripts/restore-drill.sh` bei jedem Pull Request und Push auf `main` und `development` aus: Es sichert die befüllte Testdatenbank, stellt sie in einer frischen wieder her und vergleicht Schema, Daten (samt Sequenzen) und die Zeilenzahl jeder Tabelle, prüft, dass eine Wiederherstellung ohne Bestätigung nichts schreibt, und stellt sie noch einmal über geänderte Daten und eine neuere Tabelle her. Es läuft nur auf einer Datenbank, deren Name auf `_test` endet. Lokal: `DATABASE_URL=postgresql://postgres:postgres@localhost:5433/effsync_test scripts/restore-drill.sh` bei laufender Testdatenbank.
+
 ### Tests
 
 ```bash

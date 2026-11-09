@@ -9,3 +9,5 @@ node_modules
 dev.db
 dev.db-journa
 coverage/
+# database dumps of scripts/backup.sh (M31)
+backups/

@@ -150,6 +150,27 @@ The API authenticates with a JWT that the frontend sends in the `Authorization: 
 
 In production (`NODE_ENV=production`) the backend expects a reverse proxy (for example nginx or Traefik) in front of it that terminates TLS and sets `X-Forwarded-Proto`. The app trusts the first proxy, redirects every request that came in over plain HTTP with `308` (method and body are kept) to the same path under `PUBLIC_URL`, the backend's public `https://` address, which is required in production, and sends HSTS headers. Without such a proxy every request counts as HTTP and is redirected. Because the app trusts the proxy's `X-Forwarded-For` and `X-Forwarded-Proto`, the backend port (3000) must be reachable only through the proxy, not published or open in the network: otherwise a client can fake its IP address around the rate limit and skip the redirect. `THROTTLE_LIMIT` sets how many requests one IP address may make per minute (default 10); when the users share one public address, as behind a school's NAT, set it accordingly higher.
 
+### Backup and restore (runbook)
+
+Backup and restore (UC-41) is the Superuser's job: they run these scripts as the operator of the server; there is no in-app backup function (decision Q7). The scripts make a full logical dump in PostgreSQL's custom format (`documents/AP7-6.md`). They need the PostgreSQL client tools at least in the server's major version (17); `PG_BINDIR` points to them if another version comes first in the `PATH`. `DATABASE_URL` is the backend's.
+
+**Back up** (daily, e.g. with a systemd timer or cron):
+
+```bash
+cd backend
+DATABASE_URL=postgresql://… BACKUP_DIR=/var/backups/effsync BACKUP_KEEP_DAYS=14 scripts/backup.sh
+```
+
+It writes `effsync-<UTC time>.dump` (by default to `backend/backups`, which git ignores), readable only by its owner, reads all of the archive back, deletes the dumps older than `BACKUP_KEEP_DAYS` days in that folder and prints the file name. The password from `DATABASE_URL` goes to the PostgreSQL tools as `PGPASSWORD`, not on the command line. Copy the dumps off the server as well (e.g. with `rclone`); a dump on the same disk doesn't survive the disk. With one dump a day, at most a day of data is lost (RPO 24 h).
+
+**Restore:**
+
+1. Stop the backend, so nobody writes during the restore.
+2. Run `DATABASE_URL=postgresql://… scripts/restore.sh /var/backups/effsync/effsync-<time>.dump`; it shows the database and server and asks for the database name to confirm. The schema `public` is dropped with everything in it, tables of later migrations too, and recreated from the dump, in one transaction: either the database is the dump afterwards, or nothing changes.
+3. Start the backend of the same version as the backup (its migrations must match the dump), then sign in and check a few tasks.
+
+**Drill:** CI runs `scripts/restore-drill.sh` on every pull request and push to `main` and `development`: it backs up the seeded test database, restores it into a fresh one and compares the schema, the data (sequences included) and the row count of every table, checks that a restore without confirmation writes nothing, and restores again over changed data and a newer table. It runs only on a database whose name ends in `_test`. Locally: `DATABASE_URL=postgresql://postgres:postgres@localhost:5433/effsync_test scripts/restore-drill.sh` with the test database running.
+
 ### Tests
 
 ```bash

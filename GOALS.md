@@ -638,7 +638,7 @@ Rules for all milestones:
   - Done when: the load-test results meet NFA-01 and NFA-03, the measured load time meets NFA-02, every controller has `@ApiTags`, the index migration is applied with before/after numbers in PROGRESS.md, an E2E test in production mode shows an `http` request redirected and an `https` request served, and the manual checklist is documented. Any failed target becomes its own fix milestone.
   - Risk: medium. Meeting < 200 ms may need query work beyond M17.
 
-- [ ] **M31: Backup and restore scripts**
+- [x] **M31: Backup and restore scripts**
   - Why: T15 (`03_…:155`, `05_…:109`): the backup/restore strategy is implemented. It exists only as a document (`documents/AP7-6.md`). T16 (UC-41): per decision Q7 the Superuser fulfils it as the operator who runs these scripts with the runbook; there is no in-app backup function.
   - Steps:
     1. Add `scripts/backup.sh` (`pg_dump -Fc`) and `scripts/restore.sh` (`pg_restore`) with a short runbook.

@@ -1316,3 +1316,24 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 **Failed / open:**
 - Decision for later (not changed here): `hasPermission` checks only the first grant per name and source, as before M37 (now in a fixed order). A user whose lower role has fewer flags for a name than a higher role gets a 403. Checking every grant would be the usual meaning, but it changes the permission rules.
 - The completion-date question of M24 is still open.
+
+## 2026-11-09 – M31: Backup and restore scripts
+
+**Done:**
+- `backend/scripts/backup.sh`: a full logical dump in PostgreSQL's custom format (`pg_dump -Fc --no-owner --no-privileges`, the strategy of `documents/AP7-6.md`), readable only by its owner (`umask 077`), by default in `backend/backups`. It writes under a temporary name until all of the archive reads back, so a failed run leaves no file; `BACKUP_DIR` and `BACKUP_KEEP_DAYS` (rotation) are optional.
+- `backend/scripts/restore.sh`: reads all of the dump back, shows database and server and asks for the database name to confirm (`RESTORE_CONFIRM` for scripts), then drops the schema `public` with everything in it and restores the dump, in one `psql --single-transaction` with `ON_ERROR_STOP`: the database is the dump afterwards, or nothing changed.
+- `backend/scripts/restore-drill.sh`, only on a `*_test` database: backup, restore into a fresh database (a restore without confirmation must be refused and write nothing), then the schema, the data with the sequences and the row count of every table compared with the source; then the same after a second restore over changed data and a newer table with a foreign key into the dump's tables (the recovery case after a migration). `lib/pg.sh` turns Prisma's `DATABASE_URL` into one that libpq accepts (without Prisma's parameters and without the password, which goes to `PGPASSWORD`) and refuses parameters such as `dbname=` that would point libpq elsewhere.
+- CI job "Backup Restore Drill": seeds the test database (its own port 5434, so `act` can run it next to the E2E job), installs the PostgreSQL 17 client (the runner's is older, and `pg_dump` refuses a newer server) and runs the drill.
+- Runbook "Backup and restore" in `README.md` and `README.de.md`: the Superuser runs it as the operator (UC-41, decision Q7), daily backup with rotation and an off-site copy, restore steps (stop the backend, restore, start the same version, check), the drill. `backups/` is ignored by git.
+
+**Verified:**
+- Done when: the CI restore drill is green (`act`: "OK: 38 tables, 177 rows; schema and data restored identically", all four jobs succeeded), and the runbook in both READMEs names the Superuser as the operator.
+- By hand: the drill refuses a database not ending in `_test`; `restore.sh` with a wrong confirmation exits 1 and changes nothing (4 tasks before and after); a garbage file is refused before anything is dropped; a backup with a wrong password exits 1 and leaves no file; `BACKUP_KEEP_DAYS=7` deletes a 10-day-old dump; a dump is `-rw-------` in a `drwx------` folder that git ignores; a percent-encoded password (`p%40ss%25w`) arrives decoded in `PGPASSWORD`.
+- `code-review` (high) gave 10 findings, 9 fixed: (1) `pg_restore --clean` failed on a table of a later migration with a foreign key into the dump's tables, or left it behind (now the schema is dropped and recreated in the restore's transaction; the drill covers it), (2) the password was on the command line, visible in `ps` (now `PGPASSWORD`), (3) dumps were world-readable (`umask 077`), (4) the default folder depended on the working directory (now `backend/backups`), (5) the drill took any failure as "refused" (now it checks the message and that nothing was written), (6) the drill compared only row counts (now also schema and data dumps, sequences included), (7) a failing count query slipped past `set -e`, (8) `--list` read only the table of contents (now the whole archive), (9) a `?dbname=` parameter could bypass the name check and the confirmation (now refused; the prompt shows host and port). Kept: (10) the drill is its own CI job with its own setup and an apt install of the PostgreSQL 17 client, as step 2 asks for a CI job; folding it into the E2E job would save about a minute per run.
+
+**Learned (for later milestones):**
+- `pg_restore --clean` drops only the objects in the dump; a real recovery after a migration needs the whole schema replaced.
+- `pg_dump` 16 refuses a 17 server; GitHub's runner ships 16.
+- `act` runs jobs side by side on one host, so two jobs can't bind the same service port.
+
+**Failed / open:** none.
