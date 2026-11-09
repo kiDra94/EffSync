@@ -67,40 +67,26 @@ export class PermissionsService {
       ]),
     ).filter(Boolean);
 
+    // M37: all grants of both names in one query instead of six per check
+    const grants = await this.permissions.findGrants(userId, permissionNames);
+    const now = new Date();
+    const hasFlagBits = (flags: number) =>
+      (flags & Number(requiredFlag)) === Number(requiredFlag);
+
     for (const name of permissionNames) {
       // 1. Check DIRECT permissions
-      const userPermission = await this.permissions.findDirectPermission(
-        userId,
-        name,
-      );
-
-      if (userPermission) {
-        const now = new Date();
+      const direct = grants.find((g) => g.via === "user" && g.name === name);
+      if (direct) {
         const isTimeValid =
-          (!userPermission.valid_from || now >= userPermission.valid_from) &&
-          (!userPermission.valid_to || now <= userPermission.valid_to);
-
-        if (isTimeValid) {
-          // Check the flags (like Unix: bitwise AND)
-          const hasFlagBits =
-            (userPermission.permissions.flags & Number(requiredFlag)) ===
-            Number(requiredFlag);
-          if (hasFlagBits) {
-            return true;
-          }
-        }
+          (!direct.valid_from || now >= direct.valid_from) &&
+          (!direct.valid_to || now <= direct.valid_to);
+        // Check the flags (like Unix: bitwise AND)
+        if (isTimeValid && hasFlagBits(direct.flags)) return true;
       }
 
       // 2. Check permissions through ROLES
-      const rolePermission = await this.permissions.findRoleGrant(userId, name);
-
-      if (rolePermission && rolePermission.roles.roles_permissions.length > 0) {
-        const permission =
-          rolePermission.roles.roles_permissions[0].permissions;
-        const hasFlagBits =
-          (permission.flags & Number(requiredFlag)) === Number(requiredFlag);
-        if (hasFlagBits) return true;
-      }
+      const viaRole = grants.find((g) => g.via === "role" && g.name === name);
+      if (viaRole && hasFlagBits(viaRole.flags)) return true;
     }
 
     return false;

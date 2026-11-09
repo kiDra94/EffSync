@@ -3,6 +3,7 @@ import {
   PermissionsService,
   STAFF_ROLES,
 } from "../../identity-access/application";
+import type { TaskScope } from "../../../shared/application/task-scope";
 import { TaskRepository } from "./ports/task.repository";
 
 /**
@@ -22,10 +23,14 @@ export class TaskVisibilityService {
     return this.permissions.hasAnyRole(userId, STAFF_ROLES);
   }
 
-  /** The user's visible task ids for GET /tasks; undefined when everything is visible. */
-  async visibleIdsFor(userId: number | undefined) {
-    if (!userId || (await this.isStaff(userId))) return undefined;
-    return this.tasks.findVisibleTaskIds(userId);
+  /**
+   * The tasks GET /tasks and the dashboard read: all for staff (and without
+   * a user, as before), else the user's visible set, which the queries
+   * resolve inside the database (M37).
+   */
+  async scopeFor(userId: number | undefined): Promise<TaskScope> {
+    if (!userId || (await this.isStaff(userId))) return { all: true };
+    return { viewerId: userId };
   }
 
   /** Whether the user sees this one task. */

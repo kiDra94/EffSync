@@ -48,28 +48,26 @@ export class ReportingService {
    */
   private async scopeOf(user: MetricsUser): Promise<TaskScope> {
     const userId = Number(user?.userId || user?.id) || 0;
-    if (!userId) return { taskIds: [] };
-    const ids = await this.visibility.visibleIdsFor(userId);
-    return ids === undefined ? { all: true } : { taskIds: ids };
+    if (!userId) return { none: true };
+    return this.visibility.scopeFor(userId);
   }
 
-  private isOverdue(task: { deadline: Date | null; status: string | null }) {
-    return Boolean(
-      task.deadline &&
-      task.deadline < new Date() &&
-      task.status !== "COMPLETED",
-    );
+  /** The scope's counts per status and overdue flag (M37: from the database). */
+  private async countByStatus(user: MetricsUser) {
+    return this.reporting.countByStatus(await this.scopeOf(user), new Date());
   }
 
   /** FA-32: tasks per status, overdue ones separately (the donut chart). */
   async getStatusDistribution(user: MetricsUser) {
-    const tasks = await this.reporting.findTasks(await this.scopeOf(user));
+    const groups = await this.countByStatus(user);
     const counts = new Map(STATUS_LABELS.map(([status]) => [status, 0]));
     let overdue = 0;
-    for (const task of tasks) {
-      if (this.isOverdue(task)) overdue++;
-      else if (task.status && counts.has(task.status)) {
-        counts.set(task.status, (counts.get(task.status) ?? 0) + 1);
+    let total = 0;
+    for (const group of groups) {
+      total += group.count;
+      if (group.overdue) overdue += group.count;
+      else if (group.status && counts.has(group.status)) {
+        counts.set(group.status, (counts.get(group.status) ?? 0) + group.count);
       }
     }
     return {
@@ -78,16 +76,18 @@ export class ReportingService {
         ...STATUS_LABELS.map(([status]) => counts.get(status) ?? 0),
         overdue,
       ],
-      total: tasks.length,
+      total,
     };
   }
 
   /** FA-31: total, open, completed and overdue tasks. */
   async getTaskProgress(user: MetricsUser) {
-    const tasks = await this.reporting.findTasks(await this.scopeOf(user));
-    const total = tasks.length;
-    const completed = tasks.filter((t) => t.status === "COMPLETED").length;
-    const overdue = tasks.filter((t) => this.isOverdue(t)).length;
+    const groups = await this.countByStatus(user);
+    const sum = (pick: (group: (typeof groups)[number]) => number) =>
+      groups.reduce((total, group) => total + pick(group), 0);
+    const total = sum((g) => g.count);
+    const completed = sum((g) => (g.status === "COMPLETED" ? g.count : 0));
+    const overdue = sum((g) => (g.overdue ? g.count : 0));
     const percent = (part: number) =>
       total > 0 ? Math.round((part / total) * 100) : 0;
     return {
@@ -96,11 +96,7 @@ export class ReportingService {
       openTasks: total - completed,
       completionRate: percent(completed),
       averageProgress:
-        total > 0
-          ? Math.round(
-              tasks.reduce((sum, t) => sum + (t.progress || 0), 0) / total,
-            )
-          : 0,
+        total > 0 ? Math.round(sum((g) => g.progress) / total) : 0,
       overtasks: overdue,
       percentageOverdue: percent(overdue),
     };

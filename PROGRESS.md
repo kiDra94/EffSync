@@ -1277,3 +1277,42 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 **Failed / open:**
 - On the scaled test DB, NFA-01 fails: the task list 454 → 514 ms p97.5 (before → after indexes), the task-progress metrics ~1.7 s, and `GET /api/notifications` times out at 10 connections (it has no paging). This became the fix milestone **M37: Performance at realistic data volume**, placed right after M30.
 - The completion-date question of M24 is still open.
+
+## 2026-11-09 – M37: Performance at realistic data volume
+
+**Done:**
+- Profiled first: on the scaled data of M30 a student's list sent the student's whole visible set (9,336 ids) from Postgres to Node and back into the next queries as 9,336 bind parameters, the metrics loaded every task into Node, `GET /notifications` had no paging, and every request spent ~10 ms of Node CPU on 9 auth and permission queries (Prisma splits each include into its own statement).
+- The visible set (decision B3) is one SQL fragment, `shared/infrastructure/prisma/task-scope.sql.ts` (the `TaskScope` type in `shared/application`), that the task list and all dashboard metrics embed. The base case is three index scans instead of one scan of all tasks with `OR` (85 → 30 ms for 9,336 rows; the same set for all 9 users of the scaled DB, checked by count and id sum). `TaskVisibilityService.scopeFor` replaces `visibleIdsFor`; the old id query is gone.
+- `GET /tasks`: the page's ids and the count as two parallel SQL queries (a window count over the 20,000 tasks of a teacher took twice as long), then the page's rows with Prisma.
+- Dashboard (`reporting`): all queries in SQL over the scope; task progress and the status donut come from one aggregate query per status and overdue flag.
+- `GET /notifications` is paged like `GET /tasks` (`page`, `limit` ≤ 100, default 50, newest first, `{ data, meta }`). The frontend store loads the newest page, counts the unread ones on older pages from `/notifications/unread-count`, marks all as read with one `PATCH /notifications/mark-all-read`, and loads older pages with "Ältere laden".
+- Per request: `JwtStrategy` reads the user and the first role in one query (`findSessionUser`, was 3), and `hasPermission` reads all grants of the name and its alias in one query (`findGrants`, was 6 per name). The rules stay: a direct grant counts inside its validity window, a role grant without one; per name the first grant counts, now in a fixed order (lowest permission id, then lowest role id; `findFirst` without an order took any row). Login reads the roles in the same order. Node CPU for the checks: 10.4 → 1.6 ms per request.
+- Bugs found on the way, with tests: a `%` or `_` in the task search was a wildcard (now escaped); `sortBy` took any string, an unknown one was a 500 and is now a 400 (whitelist `TASK_SORT_KEYS`, also checked before the raw SQL); marking one notification as read called `PATCH /notifications/:id`, which doesn't exist (404), so it never worked; "mark all as read" marked only the loaded ones.
+- `scripts/load-test-data.sql` spreads the same volume over a school-sized set of users (decision I1): 750 students, 40 teachers, three student members per task. A student sees 177–203 tasks, user 4 has 29 notifications.
+
+**Verified:**
+- Done when: `npm run load-test` on the scaled test DB (seed plus `load-test-data.sql`) exits 0 in two runs in a row. p97.5 in ms at 10 / 100 connections, 0 failed requests in every run:
+
+  | Endpoint | M30 data, before M37 | M30 data, after M37 | School spread, run 1 | School spread, run 2 |
+  |---|---|---|---|---|
+  | `GET /api/tasks` (list) | 514 / 4300 | 356 / 2101 | 193 / 1720 | 160 / 1544 |
+  | `GET /api/tasks/:id` | 178 / 1258 | 146 / 1514 | 127 / 1086 | 139 / 1128 |
+  | `GET /api/metrics/task-progress` | 1712 / 9803 (72 failed) | 224 / 1409 | 130 / 818 | 142 / 931 |
+  | `GET /api/notifications` | timeout (20 failed) / 6061 | 129 / 769 | 59 / 471 | 55 / 466 |
+  | `GET /api/chat-rooms` | 85 / 691 | 88 / 744 | 62 / 506 | 61 / 472 |
+
+  The M30 data stays as the stress result: there one student saw 9,336 of 20,000 tasks, and Postgres alone answered only ~40–52 of those list queries per second on this machine (measured without the app, 10 clients). The test machine is a desktop with a load average of 3–5 from other programs, so the numbers are on the pessimistic side.
+- Seed data after M37 (no regression): 170, 127, 96, 88 and 80 ms p97.5 at 10 connections, 0 failed.
+- New tests: E2E for sorting, filters, search with `%`, a page past the end, an unknown sort key, the metrics over the same visible set and the staff counts (`task-visibility.e2e-spec.ts`); notification paging (`notifications.e2e-spec.ts`); the validity window of a direct grant against PostgreSQL, ±30 minutes, with Node in Europe/Vienna and Postgres in UTC (`permission-validity.e2e-spec.ts`). Unit tests for the scope SQL, the list query, the reporting queries, `JwtStrategy`, the roles order, the store and the list component.
+- Backend: 636 unit and 148 E2E tests. Frontend: 317 tests. tsc, lint (backend 0 errors, 36 warnings; frontend clean), knip, dependency-cruiser and both builds pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 9 findings. Fixed: (1) a time-zone shift in the metrics' date comparisons: a bare `Date` went to Postgres as text without an offset, which `::timestamptz` read in the session's time zone (confirmed in a Europe/Vienna session; now ISO text with `Z`), (3) the 404 on marking one notification as read, (4) older notifications were unreachable after paging ("Ältere laden"), (6) login and `JwtStrategy` picked the first role in different orders, (8) the two SQL forms of the visibility rule now point to each other, (9) a misplaced doc comment. Kept: (5) an unknown query parameter on `GET /notifications` is a 400, as on `GET /tasks`; (7) the page's rows are read in a second round trip (a task deleted in between leaves the page one short until the next load).
+
+**Learned (for later milestones):**
+- Measure where the time goes before optimizing: the indexes of M30 changed nothing because the time was in Node (id lists, Prisma's split includes), and later the database became the limit (the CPU profile showed Node idle 62 %).
+- Prisma 7 sends every include as its own statement unless the `relationJoins` preview is on; on hot paths one raw query is far cheaper.
+- `pg` sends a JS `Date` without an offset; in raw SQL compare against ISO text with `Z`.
+- `log_min_duration_statement = 0` slows a load test noticeably; reset it before measuring.
+
+**Failed / open:**
+- Decision for later (not changed here): `hasPermission` checks only the first grant per name and source, as before M37 (now in a fixed order). A user whose lower role has fewer flags for a name than a higher role gets a 403. Checking every grant would be the usual meaning, but it changes the permission rules.
+- The completion-date question of M24 is still open.

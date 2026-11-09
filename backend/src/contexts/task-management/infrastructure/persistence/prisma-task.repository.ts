@@ -1,7 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import type { TaskScope } from "../../../../shared/application/task-scope";
 import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
+import {
+  taskScopeSql,
+  withRecursive,
+} from "../../../../shared/infrastructure/prisma/task-scope.sql";
 import { TaskRepository } from "../../application/ports/task.repository";
+import { TASK_SORT_KEYS } from "../../application/ports/task-records";
 import type {
   NewTask,
   TaskChanges,
@@ -26,6 +32,42 @@ const TASK_RELATIONS = {
 
 const relationsIf = (includeRelations: boolean) =>
   includeRelations ? TASK_RELATIONS : undefined;
+
+/** `%`, `_` and `\` are characters in a search, not LIKE wildcards (M37). */
+const likePattern = (search: string) =>
+  `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+
+/** The GET /tasks filters as SQL on the tasks aliased `t`. */
+function listConditions(filter: TaskListFilter): Prisma.Sql[] {
+  const conditions: Prisma.Sql[] = [];
+  if (filter.status) {
+    conditions.push(Prisma.sql`t.status::text = ${filter.status}`);
+  }
+  if (filter.priority_id) {
+    conditions.push(Prisma.sql`t.priority_id = ${filter.priority_id}`);
+  }
+  if (filter.assigned_to) {
+    conditions.push(Prisma.sql`t.assigned_to = ${filter.assigned_to}`);
+  }
+  if (filter.created_by) {
+    conditions.push(Prisma.sql`t.created_by = ${filter.created_by}`);
+  }
+  if (filter.parent_task_id !== undefined) {
+    conditions.push(
+      filter.parent_task_id === 0
+        ? Prisma.sql`t.parent_task_id IS NULL`
+        : Prisma.sql`t.parent_task_id = ${filter.parent_task_id}`,
+    );
+  }
+  if (filter.search) {
+    const pattern = likePattern(filter.search);
+    // search and visibility are combined with AND (problem 1)
+    conditions.push(
+      Prisma.sql`(t.title ILIKE ${pattern} OR t.description ILIKE ${pattern})`,
+    );
+  }
+  return conditions;
+}
 
 /**
  * TaskRepository on Prisma: the queries TasksService made before M15
@@ -80,69 +122,47 @@ export class PrismaTaskRepository extends TaskRepository {
 
   async findPage(
     filter: TaskListFilter,
-    visibleIds: number[] | undefined,
+    scope: TaskScope,
     page: TaskPageRequest,
   ) {
-    const where: Prisma.tasksWhereInput = {};
-    if (filter.status) where.status = filter.status;
-    if (filter.priority_id) where.priority_id = filter.priority_id;
-    if (filter.assigned_to) where.assigned_to = filter.assigned_to;
-    if (filter.created_by) where.created_by = filter.created_by;
-    if (filter.parent_task_id !== undefined) {
-      where.parent_task_id =
-        filter.parent_task_id === 0 ? null : filter.parent_task_id;
+    // M37: the visible set, the filters, the order and the count stay in
+    // the database; only the page's ids come back
+    const { cte, where: inScope } = taskScopeSql(scope);
+    const prefix = withRecursive(cte);
+    const where = Prisma.join([inScope, ...listConditions(filter)], " AND ");
+    if (!TASK_SORT_KEYS.includes(page.sortBy)) {
+      throw new Error(`Unknown sort key: ${String(page.sortBy)}`);
     }
-
-    const searchFilter: Prisma.tasksWhereInput | undefined = filter.search
-      ? {
-          OR: [
-            { title: { contains: filter.search, mode: "insensitive" } },
-            { description: { contains: filter.search, mode: "insensitive" } },
-          ],
-        }
-      : undefined;
-    // a student sees their visible set; staff see all tasks (for grading)
-    const visibilityFilter: Prisma.tasksWhereInput | undefined = visibleIds
-      ? { task_id: { in: visibleIds } }
-      : undefined;
-    // search and visibility are combined with AND (problem 1)
-    const filters = [searchFilter, visibilityFilter].filter(
-      (f): f is Prisma.tasksWhereInput => Boolean(f),
-    );
-    if (filters.length > 0) where.AND = filters;
-
-    const [tasks, total] = await Promise.all([
-      this.db.tasks.findMany({
-        where,
-        include: relationsIf(page.includeRelations),
-        // task_id breaks ties, so equal sort values keep their page
-        orderBy: [{ [page.sortBy]: page.sortOrder }, { task_id: "asc" }],
-        skip: page.skip,
-        take: page.take,
-      }),
-      this.db.tasks.count({ where }),
+    const direction = page.sortOrder === "asc" ? "ASC" : "DESC";
+    // the page and the count apart and in parallel: a window count over
+    // all 20,000 tasks of a teacher took twice as long (review M37);
+    // task_id breaks ties, so equal sort values keep their page
+    const [rows, total] = await Promise.all([
+      this.db.$queryRaw<{ task_id: number }[]>(
+        Prisma.sql`${prefix}
+          SELECT t.task_id FROM tasks t
+          WHERE ${where}
+          ORDER BY ${Prisma.raw(`t."${page.sortBy}" ${direction}`)}, t.task_id ASC
+          LIMIT ${page.take} OFFSET ${page.skip}`,
+      ),
+      this.countWhere(prefix, where),
     ]);
-    return { tasks, total };
+    if (rows.length === 0) return { tasks: [], total };
+
+    const ids = rows.map((row) => Number(row.task_id));
+    const found = await this.db.tasks.findMany({
+      where: { task_id: { in: ids } },
+      include: relationsIf(page.includeRelations),
+    });
+    const byId = new Map(found.map((task) => [task.task_id, task]));
+    return { tasks: ids.flatMap((id) => byId.get(id) ?? []), total };
   }
 
-  async findVisibleTaskIds(userId: number) {
-    // one recursive query: the user's own tasks, then their descendants;
-    // UNION (not UNION ALL) stops at a cycle
-    const rows = await this.db.$queryRaw<{ task_id: number }[]>`
-      WITH RECURSIVE visible AS (
-        SELECT t.task_id FROM tasks t
-        WHERE t.created_by = ${userId}
-           OR t.assigned_to = ${userId}
-           OR EXISTS (
-             SELECT 1 FROM task_members m
-             WHERE m.task_id = t.task_id AND m.user_id = ${userId}
-           )
-        UNION
-        SELECT c.task_id FROM tasks c
-        JOIN visible v ON c.parent_task_id = v.task_id
-      )
-      SELECT task_id FROM visible ORDER BY task_id`;
-    return rows.map((row) => Number(row.task_id));
+  private async countWhere(prefix: Prisma.Sql, where: Prisma.Sql) {
+    const [row] = await this.db.$queryRaw<{ total: bigint }[]>(
+      Prisma.sql`${prefix} SELECT count(*) AS total FROM tasks t WHERE ${where}`,
+    );
+    return Number(row?.total ?? 0);
   }
 
   findSubtasks(parentId: number, includeRelations: boolean) {
@@ -317,7 +337,9 @@ export class PrismaTaskRepository extends TaskRepository {
 
   async isVisibleTo(taskId: number, userId: number) {
     // the task and its ancestors; it is visible if the user is the creator,
-    // the assignee or a member of any of them (the visible set, downwards)
+    // the assignee or a member of any of them: the rule of taskScopeSql
+    // (shared/infrastructure/prisma/task-scope.sql.ts), upwards from one task
+    // instead of the whole set downwards; change both together
     const rows = await this.db.$queryRaw<{ visible: boolean }[]>`
       WITH RECURSIVE chain AS (
         SELECT task_id, parent_task_id FROM tasks WHERE task_id = ${taskId}

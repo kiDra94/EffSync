@@ -1,3 +1,4 @@
+import type { TaskScope } from "../../../../shared/application/task-scope";
 import type {
   DocumentRecord,
   NewTask,
@@ -31,19 +32,15 @@ export abstract class TaskRepository {
   abstract priorityExists(priorityId: number): Promise<boolean>;
 
   /**
-   * One page of GET /tasks. `visibleIds` limits it to a student's visible set
-   * (decision B3); the filters, the sorting and the count apply within it.
+   * One page of GET /tasks. `scope` limits it to a student's visible set
+   * (decision B3); the filters, the sorting and the count apply within it,
+   * inside the database (M37).
    */
   abstract findPage(
     filter: TaskListFilter,
-    visibleIds: number[] | undefined,
+    scope: TaskScope,
     page: TaskPageRequest,
   ): Promise<{ tasks: TaskRow[]; total: number }>;
-  /**
-   * The tasks a user created, is assigned to or is a member of, plus all of
-   * their subtasks (decision B3, M17).
-   */
-  abstract findVisibleTaskIds(userId: number): Promise<number[]>;
   /** Whether the task is in the user's visible set: one upward query, false for a missing task. */
   abstract isVisibleTo(taskId: number, userId: number): Promise<boolean>;
   /**

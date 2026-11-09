@@ -22,11 +22,23 @@ export class PrismaNotificationRepository extends NotificationRepository {
     return this.db.notifications.create({ data: { ...notification } });
   }
 
-  findAllOf(userId: number, isRead: boolean | undefined) {
-    return this.db.notifications.findMany({
-      where: { user_id: userId, is_read: isRead },
-      orderBy: { created_at: "desc" },
-    });
+  async findPageOf(
+    userId: number,
+    isRead: boolean | undefined,
+    page: { skip: number; take: number },
+  ) {
+    const where = { user_id: userId, is_read: isRead };
+    const [notifications, total] = await Promise.all([
+      this.db.notifications.findMany({
+        where,
+        // the id breaks ties, so equal times keep their page
+        orderBy: [{ created_at: "desc" }, { notification_id: "desc" }],
+        skip: page.skip,
+        take: page.take,
+      }),
+      this.db.notifications.count({ where }),
+    ]);
+    return { notifications, total };
   }
 
   findById(notificationId: number) {

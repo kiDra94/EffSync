@@ -671,14 +671,14 @@ Rules for all milestones:
   - Done when: all contexts are migrated, dependency-cruiser runs with severity `error` and reports 0 violations, CI fails on a deliberately added violation (tried once, then reverted), and the `no-unsafe-*` ESLint rules are `error` for the whole backend with 0 findings (decision Q13).
   - Risk: low.
 
-- [ ] **M37: Performance at realistic data volume**
+- [x] **M37: Performance at realistic data volume**
   - Why: M30 found that T61 (NFA-01, < 200 ms) holds on the seed data but fails once the test DB has 20,000 tasks, notifications and chat messages (`scripts/load-test-data.sql`): at 10 connections the task list answers in 454–514 ms (p97.5), the task-progress metrics in ~1.7 s, and `GET /api/notifications` times out. The join indexes of M30 don't help, because the app loads whole result sets.
   - Steps:
     1. Let the task list count and page in the database instead of loading every visible task into memory.
     2. Compute the task-progress metrics with aggregate queries (`groupBy`/`count`) instead of loading the tasks.
     3. Page `GET /api/notifications` (limit and cursor or offset, newest first) and adapt the frontend's notification store.
     4. Measure the per-request auth and permission queries (~29 ms today) and cache the user's permissions per request, if that is the gap.
-  - Done when: `npm run load-test` against the scaled test DB (seed plus `load-test-data.sql`) meets NFA-01 (p97.5 < 200 ms at 10 connections) and NFA-03 (100 connections without failures) for all five endpoints, with before/after numbers in PROGRESS.md.
+  - Done when: `npm run load-test` against the scaled test DB (seed plus `load-test-data.sql`, school-sized spread per decision I1) meets NFA-01 (p97.5 < 200 ms at 10 connections) and NFA-03 (100 connections without failures) for all five endpoints, with before/after numbers in PROGRESS.md.
   - Risk: medium. The notification paging changes the API the frontend reads.
 
 ## Priorities
@@ -752,6 +752,7 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **H1 Rows of a deleted account** (decided 2026-11-07, found in M14): shared content moves to the ghost user 0 (`chat_messages`, `tasks.created_by`, `comments`, `task_comments`/task_grade, `chat_rooms.created_by`, `documents.added_by` for documents attached to a task and `graded_by`, `task_activity_log`, `task_templates.created_by`); `tasks.assigned_to` and `teachers.supervisor_id` become NULL; personal rows are deleted (`user_roles`, `chat_room_users`, `document_shares`, `notifications`, the user's uploads that belong to no task, the user's `notes` with their shares and document links, the user's `notes_users` entries, the `students`/`teachers` row; cascades: `user_permissions`, `email_*`, `refresh_tokens`, `task_members`), and the name is replaced in other members' chat notifications. A teacher who is still head teacher, class teacher or has lesson slots can't be deleted (409) until an admin reassigns them. Nobody can delete their own account or the last Superuser/Admin (400, the same rule as removing a role), and the ghost user can't be changed or deleted. Note (M18): templates are private (decision E1), so under the ghost user they could never be read or deleted again; they count as personal rows and are deleted, and the tasks created from them keep everything but the link. Affects: T10, M14, M15, M16, M18.
 - **H2 What a task template stores** (decided 2026-11-08, found in M18): only `name` and `description`, as in the thesis schema (`prisma_schema.tex:286`); no schema change. "Save as template" stores the task's title as `name` and its description; applying a template fills title and description, and the user sets deadline, priority and assignee (07_…:225). The DTO, `TemplateForm` and `TaskForm.applyTemplate` drop the `default_*` fields. Affects: T110, M18.
 - **Q8g Activity log on task delete** (decided 2026-11-06): no schema change. The delete transaction writes a "deleted" entry with the task title, sets `task_id = null` on the task's log rows, then deletes the task. Affects: T32, M15, M27, M33.
+- **I1 Load-test data for NFA-01** (decided 2026-11-09, found in M37): `scripts/load-test-data.sql` keeps the volume (20,000 tasks, notifications and chat messages) but spreads it over a school-sized set of users (750 students, 40 teachers), so a student sees about 200 tasks. M30's version put every task on the 5 seed students; one of them saw 9,336 of 20,000 tasks, and Postgres alone managed only about 40 such list queries per second on the test machine. That case stays in PROGRESS.md as a stress result. No schema change (a visibility table was not chosen). Affects: T61, M30, M37.
 
 ## Open questions
 

@@ -64,9 +64,25 @@ export interface TaskListFilter {
   search?: string;
 }
 
+/** The task columns GET /tasks sorts by; anything else is a 400 (M37). */
+export const TASK_SORT_KEYS = [
+  "task_id",
+  "title",
+  "status",
+  "progress",
+  "deadline",
+  "priority_id",
+  "assigned_to",
+  "created_by",
+  "parent_task_id",
+  "created_at",
+  "updated_at",
+] as const;
+export type TaskSortKey = (typeof TASK_SORT_KEYS)[number];
+
 export interface TaskPageRequest {
   includeRelations: boolean;
-  sortBy: string;
+  sortBy: TaskSortKey;
   sortOrder: "asc" | "desc";
   skip: number;
   take: number;

@@ -7,9 +7,7 @@ import { PermissionsService } from "./permissions.service";
 import { PermissionFlag } from "../domain/permission-flag";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 
-type NameWhere = {
-  where: { permissions?: { name?: string }; roles?: unknown };
-};
+import type { Prisma } from "@prisma/client";
 type DirectPermission = {
   valid_from: Date | null;
   valid_to: Date | null;
@@ -20,6 +18,8 @@ const DAY = 24 * 60 * 60 * 1000;
 
 function createPrismaMock() {
   return {
+    // M37: the grants of the asked names in one query
+    $queryRaw: jest.fn().mockResolvedValue([]),
     user_permissions: {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
@@ -53,36 +53,58 @@ describe("PermissionsService (characterization, M2)", () => {
     permissions: { flags },
   });
 
-  const directByName = (byName: Record<string, DirectPermission>) =>
-    prisma.user_permissions.findFirst.mockImplementation((args: NameWhere) =>
-      Promise.resolve(byName[args.where.permissions?.name ?? ""] ?? null),
-    );
-
-  type RoleWhere = {
-    where: {
-      roles?: {
-        roles_permissions?: { some?: { permissions?: { name?: string } } };
-      };
-    };
-  };
-  const roleWithFlags = (...flags: number[]) => ({
-    roles: {
-      roles_permissions: flags.map((value) => ({
-        permissions: { flags: value },
-      })),
-    },
-  });
-  // returns the role only when the query asks for that permission name
-  const roleByName = (
-    byName: Record<string, ReturnType<typeof roleWithFlags>>,
-  ) =>
-    prisma.user_roles.findFirst.mockImplementation((args: RoleWhere) =>
-      Promise.resolve(
-        byName[
-          args.where.roles?.roles_permissions?.some?.permissions?.name ?? ""
-        ] ?? null,
+  // M37: one query answers the direct grant and the first role's grant per
+  // asked name; the fake answers like it, for the names the query asks
+  let directGrants: Record<string, DirectPermission> = {};
+  let roleGrants: Record<string, number[]> = {};
+  const askedNames = (call = 0) => [
+    ...new Set(
+      (prisma.$queryRaw.mock.calls as [Prisma.Sql][])[call][0].values.filter(
+        (value): value is string => typeof value === "string",
       ),
-    );
+    ),
+  ];
+  const answerGrants = () =>
+    prisma.$queryRaw.mockImplementation((query: Prisma.Sql) => {
+      const names = new Set(
+        query.values.filter((v): v is string => typeof v === "string"),
+      );
+      return Promise.resolve([
+        ...Object.entries(directGrants)
+          .filter(([name]) => names.has(name))
+          .map(([name, grant]) => ({
+            name,
+            via: "user",
+            flags: grant.permissions.flags,
+            valid_from: grant.valid_from,
+            valid_to: grant.valid_to,
+          })),
+        // DISTINCT ON: the first matching role permission only
+        ...Object.entries(roleGrants)
+          .filter(([name, flags]) => names.has(name) && flags.length > 0)
+          .map(([name, flags]) => ({
+            name,
+            via: "role",
+            flags: flags[0],
+            valid_from: null,
+            valid_to: null,
+          })),
+      ]);
+    });
+  const directByName = (byName: Record<string, DirectPermission>) => {
+    directGrants = byName;
+    answerGrants();
+  };
+  const roleWithFlags = (...flags: number[]) => flags;
+  const roleByName = (byName: Record<string, number[]>) => {
+    roleGrants = byName;
+    answerGrants();
+  };
+
+  beforeEach(() => {
+    directGrants = {};
+    roleGrants = {};
+  });
 
   describe("hasPermission: validity window", () => {
     it("accepts a permission inside its window", async () => {
@@ -144,19 +166,15 @@ describe("PermissionsService (characterization, M2)", () => {
       await expect(service.hasPermission(1, "delete_tasks")).resolves.toBe(
         true,
       );
-      const names = prisma.user_permissions.findFirst.mock.calls.map(
-        (call: unknown[]) => (call[0] as NameWhere).where.permissions?.name,
-      );
-      expect(names).toEqual(["delete_tasks", "delete_task"]);
+      expect(askedNames()).toEqual(["delete_tasks", "delete_task"]);
+      // both names in one query (M37)
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     });
 
     it("builds the plural alias for a singular name", async () => {
       await service.hasPermission(1, "manage_system");
 
-      const names = prisma.user_permissions.findFirst.mock.calls.map(
-        (call: unknown[]) => (call[0] as NameWhere).where.permissions?.name,
-      );
-      expect(names).toEqual(["manage_system", "manage_systems"]);
+      expect(askedNames()).toEqual(["manage_system", "manage_systems"]);
     });
 
     it("falls back to the role permission when the direct one has expired", async () => {
@@ -180,6 +198,15 @@ describe("PermissionsService (characterization, M2)", () => {
       await expect(
         service.hasPermission(1, "edit_tasks", PermissionFlag.EXECUTE),
       ).resolves.toBe(false);
+      // M37: "first" is now fixed: the lowest role id, then permission id
+      // (findFirst without an order took any row); the same for direct grants
+      const { sql } = (prisma.$queryRaw.mock.calls as [Prisma.Sql][])[0][0];
+      expect(sql).toMatch(
+        /DISTINCT ON \(p\.name\)[\s\S]*ORDER BY p\.name, ur\.role_id, p\.permission_id/,
+      );
+      expect(sql).toMatch(
+        /DISTINCT ON \(p\.name\)[\s\S]*ORDER BY p\.name, p\.permission_id/,
+      );
     });
 
     it("ignores a role without matching role permissions", async () => {

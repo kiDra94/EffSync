@@ -69,5 +69,12 @@ export type PermissionRecord = Prisma.permissionsGetPayload<object>;
 export type UserPermissionRecord = Prisma.user_permissionsGetPayload<object>;
 export type UserRoleRecord = Prisma.user_rolesGetPayload<object>;
 
-/** A user's role that grants a given permission, with that role's matching permissions. */
-export type RoleGrant = UserRoleWithRolePermissions;
+/** A grant of a permission name to a user, directly or through a role (M37). */
+export interface PermissionGrant {
+  name: string;
+  via: "user" | "role";
+  flags: number;
+  /** Only direct grants have a validity period. */
+  valid_from: Date | null;
+  valid_to: Date | null;
+}

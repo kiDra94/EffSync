@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { Test, TestingModule } from "@nestjs/testing";
 import { PermissionsService } from "../../identity-access/application";
 import { UnitOfWork } from "../../../shared/application/unit-of-work";
@@ -174,7 +175,10 @@ describe("TaskService", () => {
         assigned_to: 32,
       },
     ]);
-    mockPrismaService.tasks.count.mockResolvedValue(1);
+    // M37: the list query answers the page's ids with the total
+    mockPrismaService.$queryRaw.mockResolvedValue([
+      { task_id: 11, total: BigInt(1) },
+    ]);
 
     mockPrismaService.task_members.findMany.mockResolvedValue([]);
     mockPrismaService.users.findMany.mockResolvedValue([
@@ -349,25 +353,35 @@ describe("TaskService", () => {
     expect(result.status).toBe("COMPLETED");
   });
 
-  // decision B3 (M17): a student's visible set is paged, sorted and counted
+  // decision B3 (M17): a student's visible set is paged, sorted and counted;
+  // M37: by the list query, which answers only the page's ids
   describe("findAll for a student", () => {
     const visibleIds = Array.from({ length: 25 }, (_, i) => i + 1);
+    const isCount = (query: Prisma.Sql) =>
+      /count\(\*\) AS total/.test(query.sql);
+    const visiblePage = (query: Prisma.Sql) => {
+      if (isCount(query)) {
+        return Promise.resolve([{ total: BigInt(visibleIds.length) }]);
+      }
+      // the page query ends with LIMIT take OFFSET skip
+      const [take, skip] = query.values.slice(-2) as number[];
+      return Promise.resolve(
+        visibleIds.slice(skip, skip + take).map((task_id) => ({ task_id })),
+      );
+    };
 
     beforeEach(() => {
       mockPermissionsService.hasAnyRole.mockResolvedValue(false);
-      // created, assigned or member tasks plus all their subtasks
-      mockPrismaService.$queryRaw.mockResolvedValue(
-        visibleIds.map((task_id) => ({ task_id })),
-      );
+      mockPrismaService.$queryRaw.mockImplementation(visiblePage);
       mockPrismaService.tasks.findMany.mockImplementation(
-        ({ skip, take }: { skip: number; take: number }) =>
+        ({ where }: { where: { task_id: { in: number[] } } }) =>
           Promise.resolve(
-            visibleIds
-              .slice(skip, skip + take)
-              .map((task_id) => ({ task_id, status: "COMPLETED" })),
+            where.task_id.in.map((task_id) => ({
+              task_id,
+              status: "COMPLETED",
+            })),
           ),
       );
-      mockPrismaService.tasks.count.mockResolvedValue(25);
     });
 
     it("returns 10, 10 and 5 of 25 visible tasks with total 25 and 3 pages", async () => {
@@ -380,13 +394,11 @@ describe("TaskService", () => {
       for (const p of pages) {
         expect(p.meta).toMatchObject({ total: 25, totalPages: 3 });
       }
-      expect(mockPrismaService.tasks.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { AND: [{ task_id: { in: visibleIds } }] },
-          skip: 10,
-          take: 10,
-        }),
-      );
+      const second = (mockPrismaService.$queryRaw.mock.calls as [Prisma.Sql][])
+        .map(([query]) => query)
+        .filter((query) => !isCount(query))[1];
+      expect(second.sql).toMatch(/FROM visible/);
+      expect(second.values.slice(-2)).toEqual([10, 10]);
     });
 
     it("uses the same number of queries for any page size", async () => {
@@ -401,9 +413,9 @@ describe("TaskService", () => {
           mockPrismaService.tasks.updateMany,
         ].reduce((sum, mock) => sum + mock.mock.calls.length, 0);
       mockPrismaService.tasks.findMany.mockImplementation(
-        ({ take }: { take: number }) =>
+        ({ where }: { where: { task_id: { in: number[] } } }) =>
           Promise.resolve(
-            visibleIds.slice(0, take).map((task_id) => ({
+            where.task_id.in.map((task_id) => ({
               task_id,
               status: "IN_PROGRESS",
               created_by: 7,
@@ -416,9 +428,7 @@ describe("TaskService", () => {
       await service.findAll({ limit: 10 }, 7);
       const forTen = queries();
       jest.clearAllMocks();
-      mockPrismaService.$queryRaw.mockResolvedValue(
-        visibleIds.map((task_id) => ({ task_id })),
-      );
+      mockPrismaService.$queryRaw.mockImplementation(visiblePage);
       await service.findAll({ limit: 25 }, 7);
 
       expect(queries()).toBe(forTen);

@@ -265,12 +265,26 @@ describe("TaskService: update, delete and subtasks (characterization, M1)", () =
       expect(prisma.tasks.delete).toHaveBeenCalled();
     });
 
+    // M37: the permission check reads every grant in one query; the fake
+    // answers it with these grants of the delete permission
+    const grants = (
+      rows: {
+        via: "user" | "role";
+        flags: number;
+        valid_from: Date | null;
+        valid_to: Date | null;
+      }[],
+    ) =>
+      prisma.$queryRaw.mockImplementation((query: { sql?: string }) =>
+        Promise.resolve(
+          query?.sql?.includes("FROM user_permissions")
+            ? rows.map((row) => ({ name: "delete_tasks", ...row }))
+            : [],
+        ),
+      );
+
     it("lets a non-creator with a valid direct delete permission (READ flag) delete", async () => {
-      prisma.user_permissions.findFirst.mockResolvedValue({
-        valid_from: null,
-        valid_to: null,
-        permissions: { flags: 4 },
-      });
+      grants([{ via: "user", flags: 4, valid_from: null, valid_to: null }]);
 
       await service.remove(1, 6);
 
@@ -278,31 +292,27 @@ describe("TaskService: update, delete and subtasks (characterization, M1)", () =
     });
 
     it("falls back to the role permission when the direct permission has expired", async () => {
-      prisma.user_permissions.findFirst.mockResolvedValue({
-        valid_from: null,
-        valid_to: new Date(Date.now() - 60_000),
-        permissions: { flags: 7 },
-      });
-      prisma.user_roles.findFirst.mockResolvedValue({
-        roles: { roles_permissions: [{ permissions: { flags: 7 } }] },
-      });
+      grants([
+        {
+          via: "user",
+          flags: 7,
+          valid_from: null,
+          valid_to: new Date(Date.now() - 60_000),
+        },
+        { via: "role", flags: 7, valid_from: null, valid_to: null },
+      ]);
 
       await service.remove(1, 6);
 
-      expect(prisma.user_roles.findFirst).toHaveBeenCalled();
       expect(prisma.tasks.delete).toHaveBeenCalled();
     });
 
     // characterizes problem 5 / T94: the inline check tests the READ bit (4), not a delete-specific flag
     it("rejects a permission whose flags lack the READ bit", async () => {
-      prisma.user_permissions.findFirst.mockResolvedValue({
-        valid_from: null,
-        valid_to: null,
-        permissions: { flags: 2 },
-      });
-      prisma.user_roles.findFirst.mockResolvedValue({
-        roles: { roles_permissions: [{ permissions: { flags: 3 } }] },
-      });
+      grants([
+        { via: "user", flags: 2, valid_from: null, valid_to: null },
+        { via: "role", flags: 3, valid_from: null, valid_to: null },
+      ]);
 
       await expect(service.remove(1, 6)).rejects.toThrow(ForbiddenException);
       expect(prisma.tasks.delete).not.toHaveBeenCalled();

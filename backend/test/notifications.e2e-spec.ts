@@ -102,11 +102,55 @@ describe("Notifications and e-mail preferences (e2e)", () => {
       ).unread_count,
     ).toBe(0);
     const all = (await call("get", "/api/notifications").expect(200)).body as {
-      text: string;
-    }[];
-    expect(all.map((n) => n.text)).toEqual(
+      data: { text: string }[];
+    };
+    expect(all.data.map((n) => n.text)).toEqual(
       expect.arrayContaining(["Eins", "Zwei"]),
     );
+  });
+
+  // M37: the list is paged, newest first, like GET /tasks
+  it("pages the notifications newest first and counts them", async () => {
+    const base = Date.now();
+    await prisma.notifications.createMany({
+      data: ["Alt", "Mittel", "Neu"].map((text, i) => ({
+        user_id: userId,
+        type: "info",
+        text: `Seite-${text}`,
+        created_at: new Date(base + i * 1000),
+      })),
+    });
+    type Page = {
+      data: { text: string }[];
+      meta: { total: number; page: number; limit: number; totalPages: number };
+    };
+
+    const first = (await call("get", "/api/notifications?limit=2").expect(200))
+      .body as Page;
+    expect(first.data.map((n) => n.text)).toEqual([
+      "Seite-Neu",
+      "Seite-Mittel",
+    ]);
+    const total = await prisma.notifications.count({
+      where: { user_id: userId },
+    });
+    expect(first.meta).toEqual({
+      total,
+      page: 1,
+      limit: 2,
+      totalPages: Math.ceil(total / 2),
+    });
+    const second = (
+      await call("get", "/api/notifications?limit=2&page=2").expect(200)
+    ).body as Page;
+    expect(second.data[0].text).toBe("Seite-Alt");
+
+    // the read filter still applies, and a page holds at most 100
+    const unread = (
+      await call("get", "/api/notifications?is_read=false").expect(200)
+    ).body as Page;
+    expect(unread.meta.total).toBe(3);
+    await call("get", "/api/notifications?limit=101").expect(400);
   });
 
   // review M23: someone else's notification is a 404, not readable

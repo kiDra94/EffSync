@@ -22,6 +22,8 @@ describe("PermissionsService", () => {
         {
           provide: PrismaService,
           useValue: {
+            // M37: the grants in one query
+            $queryRaw: jest.fn().mockResolvedValue([]),
             user_roles: {
               findFirst: userRolesFindFirst,
               count: userRolesCount,
@@ -73,13 +75,15 @@ describe("PermissionsService", () => {
   describe("hasPermission", () => {
     it("should return true if user has valid permission with correct flags", async () => {
       const now = new Date();
-      (prisma.user_permissions.findFirst as jest.Mock).mockResolvedValue({
-        user_id: 1,
-        permission_id: 4,
-        valid_from: new Date(now.getTime() - 86400000), // Yesterday
-        valid_to: new Date(now.getTime() + 86400000), // Tomorrow
-        permissions: { name: "edit_tasks", flags: 6 }, // RW
-      });
+      (prisma.$queryRaw as jest.Mock).mockResolvedValue([
+        {
+          name: "edit_tasks",
+          via: "user",
+          flags: 6,
+          valid_from: new Date(now.getTime() - 86400000),
+          valid_to: new Date(now.getTime() + 86400000),
+        },
+      ]);
 
       const result = await service.hasPermission(
         1,
@@ -92,13 +96,15 @@ describe("PermissionsService", () => {
 
     it("should return false if permission is expired", async () => {
       const now = new Date();
-      (prisma.user_permissions.findFirst as jest.Mock).mockResolvedValue({
-        user_id: 1,
-        permission_id: 4,
-        valid_from: new Date(now.getTime() - 172800000), // 2 days ago
-        valid_to: new Date(now.getTime() - 86400000), // 1 day ago
-        permissions: { name: "edit_tasks", flags: 6 },
-      });
+      (prisma.$queryRaw as jest.Mock).mockResolvedValue([
+        {
+          name: "edit_tasks",
+          via: "user",
+          flags: 6,
+          valid_from: new Date(now.getTime() - 172800000),
+          valid_to: new Date(now.getTime() - 86400000),
+        },
+      ]);
 
       const result = await service.hasPermission(
         1,
@@ -111,13 +117,15 @@ describe("PermissionsService", () => {
 
     it("should return false if permission is not yet valid", async () => {
       const now = new Date();
-      (prisma.user_permissions.findFirst as jest.Mock).mockResolvedValue({
-        user_id: 1,
-        permission_id: 4,
-        valid_from: new Date(now.getTime() + 86400000), // Tomorrow
-        valid_to: new Date(now.getTime() + 172800000), // 2 days from now
-        permissions: { name: "edit_tasks", flags: 6 },
-      });
+      (prisma.$queryRaw as jest.Mock).mockResolvedValue([
+        {
+          name: "edit_tasks",
+          via: "user",
+          flags: 6,
+          valid_from: new Date(now.getTime() + 86400000),
+          valid_to: new Date(now.getTime() + 172800000),
+        },
+      ]);
 
       const result = await service.hasPermission(
         1,
@@ -130,13 +138,15 @@ describe("PermissionsService", () => {
 
     it("should return false if flags do not match", async () => {
       const now = new Date();
-      (prisma.user_permissions.findFirst as jest.Mock).mockResolvedValue({
-        user_id: 1,
-        permission_id: 6,
-        valid_from: new Date(now.getTime() - 86400000),
-        valid_to: new Date(now.getTime() + 86400000),
-        permissions: { name: "view_grades", flags: 4 }, // READ only
-      });
+      (prisma.$queryRaw as jest.Mock).mockResolvedValue([
+        {
+          name: "view_grades",
+          via: "user",
+          flags: 4,
+          valid_from: new Date(now.getTime() - 86400000),
+          valid_to: new Date(now.getTime() + 86400000),
+        },
+      ]);
 
       const result = await service.hasPermission(
         1,

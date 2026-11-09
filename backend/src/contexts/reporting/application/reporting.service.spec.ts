@@ -5,7 +5,7 @@ import { ReportingService } from "./reporting.service";
 // FA-30 to FA-35 (M24): the dashboard metrics
 describe("ReportingService", () => {
   let repo: Record<string, jest.Mock>;
-  let visibility: { visibleIdsFor: jest.Mock };
+  let visibility: { scopeFor: jest.Mock };
   let service: ReportingService;
   const STUDENT = { userId: 4, role: "student" };
   const ADMIN = { userId: 1, role: "admin" };
@@ -13,15 +13,16 @@ describe("ReportingService", () => {
   beforeEach(() => {
     repo = {
       findTasks: jest.fn().mockResolvedValue([]),
+      countByStatus: jest.fn().mockResolvedValue([]),
       findActiveProjects: jest.fn().mockResolvedValue([]),
       countSubtrees: jest.fn().mockResolvedValue(new Map()),
       findTopAssignees: jest.fn().mockResolvedValue([]),
       findTrendRows: jest.fn().mockResolvedValue([]),
     };
-    // staff see everything (undefined), others their visible set (decision B3)
+    // staff see everything, others their visible set (decision B3)
     visibility = {
-      visibleIdsFor: jest.fn((userId: number) =>
-        Promise.resolve(userId === 1 ? undefined : [7, 8]),
+      scopeFor: jest.fn((userId: number) =>
+        Promise.resolve(userId === 1 ? { all: true } : { viewerId: userId }),
       ),
     };
     service = new ReportingService(
@@ -36,17 +37,20 @@ describe("ReportingService", () => {
     await service.getTaskProgress(ADMIN);
     await service.getTaskProgress({});
 
-    expect(visibility.visibleIdsFor).toHaveBeenCalledWith(4);
-    expect(repo.findTasks).toHaveBeenNthCalledWith(1, { taskIds: [7, 8] });
-    expect(repo.findTasks).toHaveBeenNthCalledWith(2, { all: true });
-    expect(repo.findTasks).toHaveBeenNthCalledWith(3, { taskIds: [] });
+    expect(visibility.scopeFor).toHaveBeenCalledWith(4);
+    const scopes = (repo.countByStatus.mock.calls as [unknown][]).map(
+      ([scope]) => scope,
+    );
+    // without a user none (user 0 is the ghost user of M14, not nobody)
+    expect(scopes).toEqual([{ viewerId: 4 }, { all: true }, { none: true }]);
   });
 
+  // M37: counted by the database, one row per status and overdue flag
   it("counts total, open, completed and overdue tasks (FA-31)", async () => {
-    repo.findTasks.mockResolvedValue([
-      { status: "COMPLETED", deadline: null, progress: 100 },
-      { status: "TODO", deadline: new Date("2020-01-01"), progress: 0 },
-      { status: "IN_PROGRESS", deadline: null, progress: 50 },
+    repo.countByStatus.mockResolvedValue([
+      { status: "COMPLETED", overdue: false, count: 1, progress: 100 },
+      { status: "TODO", overdue: true, count: 1, progress: 0 },
+      { status: "IN_PROGRESS", overdue: false, count: 1, progress: 50 },
     ]);
 
     await expect(service.getTaskProgress(STUDENT)).resolves.toMatchObject({
@@ -59,10 +63,10 @@ describe("ReportingService", () => {
   });
 
   it("puts overdue tasks into their own donut slice (FA-32)", async () => {
-    repo.findTasks.mockResolvedValue([
-      { status: "TODO", deadline: new Date("2020-01-01") },
-      { status: "TODO", deadline: null },
-      { status: "COMPLETED", deadline: new Date("2020-01-01") },
+    repo.countByStatus.mockResolvedValue([
+      { status: "TODO", overdue: true, count: 1, progress: 0 },
+      { status: "TODO", overdue: false, count: 1, progress: 0 },
+      { status: "COMPLETED", overdue: false, count: 1, progress: 0 },
     ]);
 
     const distribution = await service.getStatusDistribution(STUDENT);

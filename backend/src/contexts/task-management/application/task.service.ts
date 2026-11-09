@@ -149,8 +149,8 @@ export class TaskService {
 
     // decision B3: a student's visible set (with all subtasks) is paged,
     // sorted and counted; staff see all tasks
-    const visibleIds = await this.visibility.visibleIdsFor(userId);
-    const { tasks, total } = await this.tasks.findPage(filter, visibleIds, {
+    const scope = await this.visibility.scopeFor(userId);
+    const { tasks, total } = await this.tasks.findPage(filter, scope, {
       includeRelations,
       sortBy,
       sortOrder,

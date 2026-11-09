@@ -36,6 +36,30 @@ describe("NotificationsService", () => {
     expect(service).toBeDefined();
   });
 
+  // M37: one page, newest first, with the total of the user's notifications
+  it("pages the user's notifications newest first", async () => {
+    mockPrismaService.notifications.findMany.mockResolvedValue([
+      { notification_id: 9 },
+    ]);
+    mockPrismaService.notifications.count.mockResolvedValue(51);
+
+    await expect(
+      service.findAll(4, false, { page: 2, limit: 50 }),
+    ).resolves.toEqual({
+      data: [{ notification_id: 9 }],
+      meta: { total: 51, page: 2, limit: 50, totalPages: 2 },
+    });
+    expect(mockPrismaService.notifications.findMany).toHaveBeenCalledWith({
+      where: { user_id: 4, is_read: false },
+      orderBy: [{ created_at: "desc" }, { notification_id: "desc" }],
+      skip: 50,
+      take: 50,
+    });
+    expect(mockPrismaService.notifications.count).toHaveBeenCalledWith({
+      where: { user_id: 4, is_read: false },
+    });
+  });
+
   // M16 step 6: the ghost user 0 (M14) is no one to notify, whoever asks
   it("creates no notification for the ghost user", async () => {
     await expect(

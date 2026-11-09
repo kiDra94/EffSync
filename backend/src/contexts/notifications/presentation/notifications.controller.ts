@@ -14,12 +14,12 @@ import {
 } from "@nestjs/common";
 import { NotificationsService } from "../application/notifications.service";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
+import { QueryNotificationsDto } from "./dto/query-notifications.dto";
 import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
-  ApiQuery,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
 } from "@nestjs/swagger";
@@ -54,17 +54,19 @@ export class NotificationsController {
 
   @Get()
   @Permissions("view_dashboard")
-  @ApiOperation({ summary: "Get all notifications for current user" })
-  @ApiQuery({ name: "is_read", required: false, type: Boolean })
+  @ApiOperation({
+    summary: "One page of the current user's notifications, newest first",
+  })
   @ApiResponse({
     status: 200,
     description: "Notifications retrieved successfully",
   })
-  findAll(@Req() req: AuthenticatedRequest, @Query("is_read") isRead?: string) {
-    return this.notificationsService.findAll(
-      req.user.userId,
-      isRead !== undefined ? isRead === "true" : undefined,
-    );
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: QueryNotificationsDto,
+  ) {
+    const { is_read, ...page } = query;
+    return this.notificationsService.findAll(req.user.userId, is_read, page);
   }
 
   @Get("unread-count")

@@ -1,5 +1,9 @@
 import type { ConditionNode } from "../domain/completion-rule";
-import type { TaskListFilter, TaskRecord } from "./ports/task-records";
+import type {
+  TaskListFilter,
+  TaskRecord,
+  TaskSortKey,
+} from "./ports/task-records";
 
 type TaskStatus = NonNullable<TaskRecord["status"]>;
 
@@ -33,7 +37,7 @@ export interface UpdateTaskInput extends Partial<CreateTaskInput> {
 
 /** GET /tasks (QueryTasksDto satisfies it). */
 export interface TaskQuery extends TaskListFilter {
-  sortBy?: string;
+  sortBy?: TaskSortKey;
   sortOrder?: "asc" | "desc";
   page?: number;
   limit?: number;

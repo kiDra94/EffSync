@@ -5,11 +5,15 @@ import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prism
 import { GHOST_USER_ID } from "../../domain/ghost-user";
 import {
   NewUser,
+  SessionUser,
   UserChanges,
   UserRepository,
 } from "../../application/ports/user.repository";
 
-const WITH_ROLES = { user_roles: { include: { roles: true } } } as const;
+// by role id, so login and JwtStrategy take the same first role (review M37)
+const WITH_ROLES = {
+  user_roles: { include: { roles: true }, orderBy: { role_id: "asc" } },
+} as const;
 const ROLE_WITH_PERMISSIONS = {
   roles: {
     include: { roles_permissions: { include: { permissions: true } } },
@@ -57,6 +61,17 @@ export class PrismaUserRepository extends UserRepository {
       where: { user_id: userId },
       include: WITH_ROLES,
     });
+  }
+
+  async findSessionUser(userId: number) {
+    const [user] = await this.prisma.$queryRaw<SessionUser[]>`
+      SELECT u.email, u.firstname, u.lastname,
+             (SELECT r.name FROM user_roles ur
+              JOIN roles r ON r.role_id = ur.role_id
+              WHERE ur.user_id = u.user_id
+              ORDER BY ur.role_id LIMIT 1) AS role
+      FROM users u WHERE u.user_id = ${userId}`;
+    return user ?? null;
   }
 
   findByUsernameWithRoles(username: string) {

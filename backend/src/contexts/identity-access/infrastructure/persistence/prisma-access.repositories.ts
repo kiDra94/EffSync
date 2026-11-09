@@ -1,10 +1,12 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../../shared/infrastructure/prisma/prisma.service";
 import {
   PermissionRepository,
   RolePermissionRepository,
   RoleRepository,
 } from "../../application/ports/access.repositories";
+import type { PermissionGrant } from "../../application/ports/identity-records";
 
 const PERMISSION_ASSIGNMENTS = {
   roles_permissions: { include: { roles: true } },
@@ -43,34 +45,27 @@ export class PrismaPermissionRepository extends PermissionRepository {
     });
   }
 
-  findDirectPermission(userId: number, permissionName: string) {
-    return this.prisma.user_permissions.findFirst({
-      where: { user_id: userId, permissions: { name: permissionName } },
-      include: { permissions: true },
-    });
-  }
-
-  findRoleGrant(userId: number, permissionName: string) {
-    return this.prisma.user_roles.findFirst({
-      where: {
-        user_id: userId,
-        roles: {
-          roles_permissions: {
-            some: { permissions: { name: permissionName } },
-          },
-        },
-      },
-      include: {
-        roles: {
-          include: {
-            roles_permissions: {
-              where: { permissions: { name: permissionName } },
-              include: { permissions: true },
-            },
-          },
-        },
-      },
-    });
+  findGrants(userId: number, permissionNames: string[]) {
+    if (permissionNames.length === 0) return Promise.resolve([]);
+    const names = Prisma.join(permissionNames);
+    // per name the first row, as findFirst found it before M37, but in a
+    // fixed order (names aren't unique, a user can have several roles)
+    return this.prisma.$queryRaw<PermissionGrant[]>(Prisma.sql`
+      (SELECT DISTINCT ON (p.name)
+              p.name, 'user' AS via, p.flags, up.valid_from, up.valid_to
+       FROM user_permissions up
+       JOIN permissions p ON p.permission_id = up.permission_id
+       WHERE up.user_id = ${userId} AND p.name IN (${names})
+       ORDER BY p.name, p.permission_id)
+      UNION ALL
+      (SELECT DISTINCT ON (p.name)
+              p.name, 'role' AS via, p.flags,
+              NULL::timestamp AS valid_from, NULL::timestamp AS valid_to
+       FROM user_roles ur
+       JOIN roles_permissions rp ON rp.roles_id = ur.role_id
+       JOIN permissions p ON p.permission_id = rp.permission_id
+       WHERE ur.user_id = ${userId} AND p.name IN (${names})
+       ORDER BY p.name, ur.role_id, p.permission_id)`);
   }
 
   findPermissionsOfUser(userId: number) {

@@ -25,6 +25,14 @@ export interface NewUser {
 
 export type UserChanges = Partial<Omit<NewUser, "password_hash" | "google_id">>;
 
+/** The user as JwtStrategy reads them on every request (M37). */
+export interface SessionUser {
+  email: string;
+  firstname: string;
+  lastname: string;
+  role: string | null;
+}
+
 /** Users, their roles and their direct permissions (port; Prisma in infrastructure). */
 export abstract class UserRepository {
   /** Throws a 409 if the username or e-mail is taken (unique index). */
@@ -38,6 +46,11 @@ export abstract class UserRepository {
    */
   abstract isTaken(username: string, email: string): Promise<boolean>;
   abstract findByIdWithRoles(userId: number): Promise<UserWithRoles | null>;
+  /**
+   * What every authenticated request needs: the user's name, e-mail and
+   * first role (lowest role id), in one query (M37: it took three).
+   */
+  abstract findSessionUser(userId: number): Promise<SessionUser | null>;
   abstract findByUsernameWithRoles(
     username: string,
   ): Promise<UserWithRoles | null>;

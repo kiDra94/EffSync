@@ -1,6 +1,6 @@
 import type {
+  PermissionGrant,
   PermissionWithAssignments,
-  RoleGrant,
   RoleWithPermissions,
   UserPermissionRecord,
   UserPermissionWithPermission,
@@ -15,14 +15,16 @@ export abstract class PermissionRepository {
     roleNames: readonly string[],
   ): Promise<number>;
   abstract findUserRoles(userId: number): Promise<UserRoleWithRole[]>;
-  abstract findDirectPermission(
+  /**
+   * Per asked name: the user's direct grant (with its validity period) and
+   * the grant through the user's first role that has it, in one query (M37:
+   * it took six on every request). "First" is the lowest role id, then
+   * permission id.
+   */
+  abstract findGrants(
     userId: number,
-    permissionName: string,
-  ): Promise<UserPermissionWithPermission | null>;
-  abstract findRoleGrant(
-    userId: number,
-    permissionName: string,
-  ): Promise<RoleGrant | null>;
+    permissionNames: string[],
+  ): Promise<PermissionGrant[]>;
   abstract findPermissionsOfUser(
     userId: number,
   ): Promise<UserPermissionWithPermission[]>;

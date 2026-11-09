@@ -6,10 +6,15 @@ import {
   Max,
   IsString,
   IsBoolean,
+  IsIn,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { task_status } from "@prisma/client";
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  TASK_SORT_KEYS,
+  type TaskSortKey,
+} from "../../application/ports/task-records";
 
 export class QueryTasksDto {
   @ApiPropertyOptional({ enum: task_status })
@@ -48,10 +53,10 @@ export class QueryTasksDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ default: "created_at" })
+  @ApiPropertyOptional({ enum: TASK_SORT_KEYS, default: "created_at" })
   @IsOptional()
-  @IsString()
-  sortBy?: string;
+  @IsIn(TASK_SORT_KEYS)
+  sortBy?: TaskSortKey;
 
   @ApiPropertyOptional({ enum: ["asc", "desc"], default: "desc" })
   @IsOptional()

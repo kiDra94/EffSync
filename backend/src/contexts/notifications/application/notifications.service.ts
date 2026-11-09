@@ -23,8 +23,21 @@ export class NotificationsService {
     return notification;
   }
 
-  findAll(userId: number, isRead?: boolean) {
-    return this.notifications.findAllOf(userId, isRead);
+  /** GET /notifications: one page, newest first (M37: it had no paging). */
+  async findAll(
+    userId: number,
+    isRead: boolean | undefined,
+    { page = 1, limit = 50 }: { page?: number; limit?: number } = {},
+  ) {
+    const { notifications, total } = await this.notifications.findPageOf(
+      userId,
+      isRead,
+      { skip: (page - 1) * limit, take: limit },
+    );
+    return {
+      data: notifications,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async findOne(notificationId: number) {

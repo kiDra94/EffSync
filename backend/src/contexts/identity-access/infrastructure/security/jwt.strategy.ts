@@ -22,17 +22,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
-    const user = await this.users.findByIdWithRoles(payload.sub);
+    // one query on every request (M37)
+    const user = await this.users.findSessionUser(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException();
     }
 
     // Take the user's first role
-    const primaryRole =
-      user.user_roles && user.user_roles.length > 0
-        ? (user.user_roles[0].roles?.name?.toLowerCase() ?? "user")
-        : "user";
+    const primaryRole = user.role?.toLowerCase() ?? "user";
 
     return {
       id: payload.sub,

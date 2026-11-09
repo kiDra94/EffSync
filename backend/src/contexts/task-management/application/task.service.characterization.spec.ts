@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 /**
  * Characterization tests for the task use cases (GOALS.md M1), split in M15
  * along the application services. They pin the behavior before the
@@ -41,15 +42,6 @@ describe("TaskService: create and read (characterization, M1)", () => {
 
   const asStaff = (staff: boolean) =>
     prisma.user_roles.count.mockResolvedValue(staff ? 1 : 0);
-
-  const firstFindManyWhere = () =>
-    (
-      (
-        prisma.tasks.findMany.mock.calls as unknown[][]
-      )[0][0] as FindManyArgs & {
-        where: Record<string, unknown>;
-      }
-    ).where;
 
   describe("create", () => {
     it("throws 404 when the parent task does not exist", async () => {
@@ -108,15 +100,31 @@ describe("TaskService: create and read (characterization, M1)", () => {
     });
   });
 
+  // M37: the list query is SQL with the visible set inside; only the page's
+  // ids come back, then the page is read with Prisma
   describe("findAll", () => {
+    const listQuery = () =>
+      (prisma.$queryRaw.mock.calls as unknown[][])[0][0] as Prisma.Sql;
+    const pageOf = (ids: number[], total: number) => {
+      prisma.$queryRaw.mockImplementation((query: Prisma.Sql) =>
+        Promise.resolve(
+          /count\(\*\) AS total/.test(query.sql)
+            ? [{ total: BigInt(total) }]
+            : ids.map((task_id) => ({ task_id })),
+        ),
+      );
+      prisma.tasks.findMany.mockResolvedValue(
+        ids.map((task_id) => ({ task_id, status: "OPEN" })),
+      );
+    };
+
     it("shows all tasks to a teacher and uses the DB count as total", async () => {
       asStaff(true);
-      prisma.tasks.findMany.mockResolvedValue([{ task_id: 1, status: "OPEN" }]);
-      prisma.tasks.count.mockResolvedValue(42);
+      pageOf([1], 42);
 
       const result = await service.findAll({}, 7);
 
-      expect(firstFindManyWhere()).toEqual({});
+      expect(listQuery().sql).not.toMatch(/visible/);
       expect(result.meta).toEqual({
         total: 42,
         page: 1,
@@ -130,14 +138,15 @@ describe("TaskService: create and read (characterization, M1)", () => {
     // member tasks plus all subtasks, one recursive query)
     it("limits a student to their visible set", async () => {
       asStaff(false);
-      prisma.$queryRaw.mockResolvedValue([{ task_id: 3 }, { task_id: 4 }]);
 
       await service.findAll({}, 7);
 
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
-      expect(firstFindManyWhere()).toEqual({
-        AND: [{ task_id: { in: [3, 4] } }],
-      });
+      // the page and its count, both within the visible set
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      for (const [query] of prisma.$queryRaw.mock.calls as [Prisma.Sql][]) {
+        expect(query.sql).toMatch(/WITH RECURSIVE visible AS/);
+        expect(query.values).toContain(7);
+      }
     });
 
     // problem 4 (fixed in M7): one role query per request, through PermissionsService.hasAnyRole
@@ -154,13 +163,7 @@ describe("TaskService: create and read (characterization, M1)", () => {
     // tasks, and meta.total counted only this merged list. Now the visible set is paged and counted.
     it("pages and counts a student's visible set, subtasks included", async () => {
       asStaff(false);
-      prisma.$queryRaw.mockResolvedValue([
-        { task_id: 1 },
-        { task_id: 2 },
-        { task_id: 3 },
-      ]);
-      prisma.tasks.count.mockResolvedValue(3);
-      prisma.tasks.findMany.mockResolvedValue([{ task_id: 1, status: "OPEN" }]);
+      pageOf([1], 3);
 
       const result = await service.findAll({ limit: 1 }, 7);
 
@@ -174,20 +177,12 @@ describe("TaskService: create and read (characterization, M1)", () => {
     it("applies the search term for students within their visible tasks", async () => {
       asStaff(false);
 
-      prisma.$queryRaw.mockResolvedValue([{ task_id: 3 }]);
-
       await service.findAll({ search: "mathe" }, 7);
 
-      const where = firstFindManyWhere();
-      expect(where.AND).toEqual([
-        {
-          OR: [
-            { title: { contains: "mathe", mode: "insensitive" } },
-            { description: { contains: "mathe", mode: "insensitive" } },
-          ],
-        },
-        { task_id: { in: [3] } },
-      ]);
+      expect(listQuery().sql).toMatch(
+        /t\.task_id IN \(SELECT task_id FROM visible\) AND \(t\.title ILIKE/,
+      );
+      expect(listQuery().values).toContain("%mathe%");
     });
 
     it("applies the search term for teachers", async () => {
@@ -195,14 +190,8 @@ describe("TaskService: create and read (characterization, M1)", () => {
 
       await service.findAll({ search: "mathe" }, 7);
 
-      expect(firstFindManyWhere().AND).toEqual([
-        {
-          OR: [
-            { title: { contains: "mathe", mode: "insensitive" } },
-            { description: { contains: "mathe", mode: "insensitive" } },
-          ],
-        },
-      ]);
+      expect(listQuery().sql).toMatch(/TRUE AND \(t\.title ILIKE/);
+      expect(listQuery().values).toContain("%mathe%");
     });
 
     it("applies the filters, maps parent_task_id 0 to top-level tasks and pages", async () => {
@@ -216,20 +205,13 @@ describe("TaskService: create and read (characterization, M1)", () => {
         limit: 10,
       } as never);
 
-      expect(prisma.tasks.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            status: "OPEN",
-            priority_id: 2,
-            assigned_to: 3,
-            created_by: 4,
-            parent_task_id: null,
-          },
-          skip: 20,
-          take: 10,
-        }),
-      );
+      const { sql, values } = listQuery();
+      expect(sql).toMatch(/t\.status::text = \? AND t\.priority_id = \?/);
+      expect(sql).toMatch(/t\.parent_task_id IS NULL/);
+      // LIMIT 10 OFFSET 20
+      expect(values).toEqual(["OPEN", 2, 3, 4, 10, 20]);
       // without a user there is no role lookup and no visibility filter
+      expect(sql).not.toMatch(/visible/);
       expect(prisma.user_roles.count).not.toHaveBeenCalled();
     });
   });

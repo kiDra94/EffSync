@@ -1,10 +1,21 @@
+import type { TaskScope } from "../../../../shared/application/task-scope";
 import type { SubtreeCount } from "../../domain/projects";
 
 /**
  * Which tasks a metric counts: all, or the user's visible set (decision B3,
  * the same tasks the task list shows; review M24).
  */
-export type TaskScope = { all: true } | { taskIds: number[] };
+export type { TaskScope };
+
+/** The scope's tasks per status and overdue flag (M37: counted in SQL). */
+export interface StatusCount {
+  status: string | null;
+  /** Past its deadline and not completed. */
+  overdue: boolean;
+  count: number;
+  /** The sum of the tasks' progress (none counts as 0). */
+  progress: number;
+}
 
 export interface TaskStatRow {
   task_id: number;
@@ -42,6 +53,8 @@ interface TrendTaskRow {
 export abstract class ReportingRepository {
   /** The scope's tasks, ordered by status (the queries MetricsService made before M24). */
   abstract findTasks(scope: TaskScope): Promise<TaskStatRow[]>;
+  /** The scope's task counts per status and overdue flag at `now`. */
+  abstract countByStatus(scope: TaskScope, now: Date): Promise<StatusCount[]>;
   /** Top-level tasks that aren't completed (decision Q2). */
   abstract findActiveProjects(scope: TaskScope): Promise<ProjectRow[]>;
   /** Per project: all tasks below it and the completed ones. */

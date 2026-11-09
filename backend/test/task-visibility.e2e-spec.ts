@@ -36,12 +36,16 @@ describe("Task visibility for students (e2e)", () => {
       },
     });
     studentId = student.user_id;
+    // M37: each first step is completed, project 2 is overdue, and every
+    // project stands at 50 %, for the metrics over the same visible set
     for (let project = 1; project <= 5; project++) {
       const root = await prisma.tasks.create({
         data: {
           title: `Paging-Projekt ${project}`,
           created_by: 2,
           assigned_to: student.user_id,
+          progress: 50,
+          deadline: project === 2 ? new Date("2020-01-01") : null,
         },
       });
       ownTaskId = root.task_id;
@@ -51,6 +55,7 @@ describe("Task visibility for students (e2e)", () => {
             title: `Paging-Schritt ${project}.${sub}`,
             created_by: 2,
             parent_task_id: root.task_id,
+            status: sub === 1 ? "COMPLETED" : "TODO",
           },
         });
       }
@@ -93,6 +98,99 @@ describe("Task visibility for students (e2e)", () => {
     for (const p of pages) {
       expect(p.meta).toMatchObject({ total: 25, totalPages: 3 });
     }
+  });
+
+  // M37: the list is filtered, sorted, paged and counted inside the database
+  describe("filters and sorting over the visible set", () => {
+    type Page = {
+      data: { task_id: number; title: string; parent_task_id: number | null }[];
+      meta: { total: number; totalPages: number };
+    };
+    const list = async (query: string) =>
+      (await get(`/api/tasks?${query}`).expect(200)).body as Page;
+
+    it("sorts by title across pages, with the task id breaking ties", async () => {
+      const first = await list("sortBy=title&sortOrder=asc&limit=10&page=1");
+      const second = await list("sortBy=title&sortOrder=asc&limit=10&page=2");
+      const titles = [...first.data, ...second.data].map((t) => t.title);
+      expect(titles).toEqual(
+        [...titles].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+      );
+      expect(titles[0]).toBe("Paging-Projekt 1");
+    });
+
+    it("combines status, parent and search filters with the visible set", async () => {
+      expect((await list("status=COMPLETED")).meta.total).toBe(5);
+      const roots = await list("parent_task_id=0");
+      expect(roots.meta.total).toBe(5);
+      expect(roots.data.every((t) => t.parent_task_id === null)).toBe(true);
+      expect((await list("search=schritt%203.")).meta.total).toBe(4);
+      // a % in the search is a character, not a wildcard
+      expect((await list("search=%25")).meta.total).toBe(0);
+    });
+
+    it("counts the visible set on a page past the end", async () => {
+      const past = await list("limit=10&page=9");
+      expect(past.data).toEqual([]);
+      expect(past.meta.total).toBe(25);
+    });
+
+    it("answers 400 for a sort key that isn't a task column", async () => {
+      await get("/api/tasks?sortBy=password_hash").expect(400);
+    });
+  });
+
+  it("computes the metrics over the same visible set", async () => {
+    const progress = (await get("/api/metrics/task-progress").expect(200))
+      .body as Record<string, number>;
+    expect(progress).toEqual({
+      totalTasks: 25,
+      completedTasks: 5,
+      openTasks: 20,
+      completionRate: 20,
+      averageProgress: 10,
+      overtasks: 1,
+      percentageOverdue: 4,
+    });
+
+    const distribution = (
+      await get("/api/metrics/status-distribution").expect(200)
+    ).body as { data: number[]; total: number };
+    expect(distribution).toMatchObject({
+      data: [19, 0, 0, 5, 0, 1],
+      total: 25,
+    });
+
+    const projects = (await get("/api/metrics/projects").expect(200)).body as {
+      task_id: number;
+    }[];
+    expect(projects).toHaveLength(5);
+  });
+
+  it("lets staff list and count every task", async () => {
+    const admin = (
+      (
+        await request(app.getHttpServer())
+          .post("/api/auth/login")
+          .send({ identifier: "adminadmin", password: "password123" })
+          .expect(201)
+      ).body as { token: string }
+    ).token;
+    const all = await app.get(PrismaService).tasks.count();
+    const asAdmin = (url: string) =>
+      request(app.getHttpServer())
+        .get(url)
+        .set("Authorization", `Bearer ${admin}`)
+        .expect(200);
+
+    const page = (await asAdmin("/api/tasks?limit=1")).body as {
+      meta: { total: number };
+    };
+    expect(page.meta.total).toBe(all);
+    const progress = (await asAdmin("/api/metrics/task-progress")).body as {
+      totalTasks: number;
+    };
+    expect(progress.totalTasks).toBe(all);
   });
 
   it("answers 404 on the comments of a task outside the visible set", async () => {

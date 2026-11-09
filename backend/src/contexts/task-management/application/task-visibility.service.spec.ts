@@ -5,13 +5,12 @@ import { TaskVisibilityService } from "./task-visibility.service";
 // decision B3 (M17): staff see every task; a student a task they or one of
 // its ancestors' people include them in
 describe("TaskVisibilityService", () => {
-  let tasks: { findVisibleTaskIds: jest.Mock; isVisibleTo: jest.Mock };
+  let tasks: { isVisibleTo: jest.Mock };
   let permissions: { hasAnyRole: jest.Mock };
   let service: TaskVisibilityService;
 
   beforeEach(() => {
     tasks = {
-      findVisibleTaskIds: jest.fn().mockResolvedValue([1, 2]),
       isVisibleTo: jest.fn().mockResolvedValue(false),
     };
     permissions = { hasAnyRole: jest.fn().mockResolvedValue(false) };
@@ -24,9 +23,8 @@ describe("TaskVisibilityService", () => {
   it("gives staff every task without a visibility query", async () => {
     permissions.hasAnyRole.mockResolvedValue(true);
 
-    await expect(service.visibleIdsFor(2)).resolves.toBeUndefined();
+    await expect(service.scopeFor(2)).resolves.toEqual({ all: true });
     await expect(service.isVisible(99, 2)).resolves.toBe(true);
-    expect(tasks.findVisibleTaskIds).not.toHaveBeenCalled();
     expect(tasks.isVisibleTo).not.toHaveBeenCalled();
   });
 
@@ -36,10 +34,15 @@ describe("TaskVisibilityService", () => {
     await expect(service.isVisible(12, 7)).resolves.toBe(true);
     await expect(service.isVisible(13, 7)).resolves.toBe(false);
     expect(tasks.isVisibleTo).toHaveBeenCalledWith(12, 7);
-    expect(tasks.findVisibleTaskIds).not.toHaveBeenCalled();
   });
 
-  it("lists a student's visible set for GET /tasks", async () => {
-    await expect(service.visibleIdsFor(7)).resolves.toEqual([1, 2]);
+  // M37: the visible set stays a query inside the database
+  it("scopes GET /tasks to a student's visible set by their id", async () => {
+    await expect(service.scopeFor(7)).resolves.toEqual({ viewerId: 7 });
+  });
+
+  it("scopes a request without a user to all tasks, as before", async () => {
+    await expect(service.scopeFor(undefined)).resolves.toEqual({ all: true });
+    expect(permissions.hasAnyRole).not.toHaveBeenCalled();
   });
 });

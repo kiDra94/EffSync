@@ -86,6 +86,16 @@
         </button>
       </div>
     </div>
+
+    <!-- M37: the API pages the notifications; older ones load on demand -->
+    <button
+      v-if="notificationStore.hasMore"
+      class="btn-secondary load-more"
+      :disabled="notificationStore.isLoading"
+      @click="notificationStore.loadMore()"
+    >
+      {{ notificationStore.isLoading ? 'Lädt …' : 'Ältere laden' }}
+    </button>
   </div>
 </template>
 
@@ -246,6 +256,11 @@ const deleteSelected = async () => {
 .btn-secondary:hover {
   background: #f5f5f5;
   border-color: #999;
+}
+
+.load-more {
+  display: block;
+  margin: 12px auto 0;
 }
 
 .text-danger {

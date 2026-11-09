@@ -7,10 +7,12 @@ import type {
 export abstract class NotificationRepository {
   abstract userExists(userId: number): Promise<boolean>;
   abstract create(notification: NewNotification): Promise<NotificationRecord>;
-  abstract findAllOf(
+  /** One page of the user's notifications, newest first, and their number (M37). */
+  abstract findPageOf(
     userId: number,
     isRead: boolean | undefined,
-  ): Promise<NotificationRecord[]>;
+    page: { skip: number; take: number },
+  ): Promise<{ notifications: NotificationRecord[]; total: number }>;
   abstract findById(notificationId: number): Promise<NotificationRecord | null>;
   abstract markRead(notificationId: number): Promise<NotificationRecord>;
   /** The number of notifications marked. */
