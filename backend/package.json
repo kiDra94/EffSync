@@ -23,7 +23,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "prisma db seed",
-    "db:reset": "prisma migrate reset --force && npm run seed"
+    "db:reset": "prisma migrate reset --force && npm run seed",
+    "load-test": "node scripts/load-test.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -70,6 +71,7 @@
     "@types/passport-local": "^1.0.38",
     "@types/pg": "^8.16.0",
     "@types/supertest": "^6.0.2",
+    "autocannon": "^8.0.0",
     "dependency-cruiser": "18.7.0",
     "dotenv": "^17.2.4",
     "eslint": "^9.18.0",

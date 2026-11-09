@@ -1,4 +1,11 @@
 import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import {
   BadRequestException,
   Body,
   Controller,
@@ -22,6 +29,10 @@ import { NotesService } from "../application/notes.service";
 import { CreateNoteDto } from "./dto/create-note.dto";
 import { UpdateNoteDto } from "./dto/update-note.dto";
 
+@ApiTags("notes")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("notes")
 export class NotesController {
@@ -35,12 +46,14 @@ export class NotesController {
     return userId;
   }
 
+  @ApiOperation({ summary: "Create a note" })
   @Post()
   @Permissions("view_dashboard")
   create(@Body() dto: CreateNoteDto, @Req() req: AuthenticatedRequest) {
     return this.notesService.create(dto, this.getUserId(req));
   }
 
+  @ApiOperation({ summary: "List the notes" })
   @Get()
   @Permissions("view_dashboard")
   findAll(
@@ -51,6 +64,7 @@ export class NotesController {
     return this.notesService.findAll(this.getUserId(req), parsedId);
   }
 
+  @ApiOperation({ summary: "One note" })
   @Get(":id")
   @Permissions("view_dashboard")
   findOne(
@@ -60,6 +74,7 @@ export class NotesController {
     return this.notesService.findOne(noteId, this.getUserId(req));
   }
 
+  @ApiOperation({ summary: "Change a note" })
   @Patch(":id")
   @Permissions("view_dashboard")
   update(
@@ -70,6 +85,7 @@ export class NotesController {
     return this.notesService.update(noteId, this.getUserId(req), dto);
   }
 
+  @ApiOperation({ summary: "Delete a note" })
   @Delete(":id")
   @Permissions("view_dashboard")
   remove(

@@ -24,6 +24,15 @@ export function validateEnv(
     if (typeof config.FRONTEND_URL !== "string" || !config.FRONTEND_URL) {
       throw new Error("Missing required environment variable: FRONTEND_URL");
     }
+    // the HTTPS redirect's target (T62, review M30)
+    if (
+      typeof config.PUBLIC_URL !== "string" ||
+      !config.PUBLIC_URL.startsWith("https://")
+    ) {
+      throw new Error(
+        "PUBLIC_URL must be the backend's https:// address in production",
+      );
+    }
   }
   return config;
 }

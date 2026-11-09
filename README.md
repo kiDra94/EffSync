@@ -146,6 +146,10 @@ The frontend runs at `http://localhost:5173`. After seeding you can log in, for 
 
 The API authenticates with a JWT that the frontend sends in the `Authorization: Bearer …` header. No endpoint sets an auth cookie, so a request from another site can't carry the user's credentials; this is the CSRF protection (by design, no CSRF tokens needed). CORS only allows the origin in `FRONTEND_URL`. Login accepts the username or the e-mail address. After Google sign-in, the token arrives in the URL fragment (`/auth-callback#token=…`), which browsers never send to a server; the frontend removes it from the address bar and loads the user from `GET /api/auth/profile`.
 
+### Production: HTTPS behind a reverse proxy
+
+In production (`NODE_ENV=production`) the backend expects a reverse proxy (for example nginx or Traefik) in front of it that terminates TLS and sets `X-Forwarded-Proto`. The app trusts the first proxy, redirects every request that came in over plain HTTP with `308` (method and body are kept) to the same path under `PUBLIC_URL`, the backend's public `https://` address, which is required in production, and sends HSTS headers. Without such a proxy every request counts as HTTP and is redirected. Because the app trusts the proxy's `X-Forwarded-For` and `X-Forwarded-Proto`, the backend port (3000) must be reachable only through the proxy, not published or open in the network: otherwise a client can fake its IP address around the rate limit and skip the redirect. `THROTTLE_LIMIT` sets how many requests one IP address may make per minute (default 10); when the users share one public address, as behind a school's NAT, set it accordingly higher.
+
 ### Tests
 
 ```bash

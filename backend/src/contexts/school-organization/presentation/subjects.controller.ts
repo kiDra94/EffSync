@@ -1,3 +1,10 @@
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 import { PermissionFlag } from "../../identity-access/application";
 import {
   Controller,
@@ -19,29 +26,37 @@ import {
   Permissions,
 } from "../../../shared/presentation/security";
 
+@ApiTags("subjects")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("subjects")
 export class SubjectsController {
   constructor(private readonly subjectsService: SubjectsService) {}
 
+  @ApiOperation({ summary: "Create a subject" })
   @Post()
   @Permissions("manage_classes", PermissionFlag.WRITE)
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectsService.create(createSubjectDto);
   }
 
+  @ApiOperation({ summary: "List the subjects" })
   @Get()
   @Permissions("view_schedules")
   findAll() {
     return this.subjectsService.findAll();
   }
 
+  @ApiOperation({ summary: "One subject" })
   @Get(":id")
   @Permissions("view_schedules")
   findOne(@Param("id", ParseIntPipe) id: number) {
     return this.subjectsService.findOne(id);
   }
 
+  @ApiOperation({ summary: "Change a subject" })
   @Patch(":id")
   @Permissions("manage_classes", PermissionFlag.WRITE)
   update(
@@ -51,6 +66,7 @@ export class SubjectsController {
     return this.subjectsService.update(id, updateSubjectDto);
   }
 
+  @ApiOperation({ summary: "Delete a subject" })
   @Delete(":id")
   @Permissions("manage_classes", PermissionFlag.EXECUTE)
   remove(@Param("id", ParseIntPipe) id: number) {

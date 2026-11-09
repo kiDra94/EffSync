@@ -140,6 +140,10 @@ npm run frontend
 
 Das Frontend läuft unter `http://localhost:5173`. Nach dem Seed kann man sich z. B. als Admin mit dem Benutzernamen `adminadmin` und dem Passwort `password123` anmelden.
 
+### Produktion: HTTPS hinter einem Reverse Proxy
+
+Im Produktivbetrieb (`NODE_ENV=production`) erwartet das Backend einen vorgeschalteten Reverse Proxy (z. B. nginx oder Traefik), der TLS terminiert und `X-Forwarded-Proto` setzt. Die App vertraut dem ersten Proxy, leitet jede Anfrage, die über unverschlüsseltes HTTP kam, mit `308` (Methode und Body bleiben erhalten) auf denselben Pfad unter `PUBLIC_URL` um, die öffentliche `https://`-Adresse des Backends, die im Produktivbetrieb Pflicht ist, und sendet HSTS-Header. Ohne einen solchen Proxy gilt jede Anfrage als HTTP und wird umgeleitet. Weil die App den Headern `X-Forwarded-For` und `X-Forwarded-Proto` des Proxys vertraut, darf der Backend-Port (3000) nur über den Proxy erreichbar sein, nicht veröffentlicht oder im Netz offen: sonst kann ein Client seine IP-Adresse am Rate Limit vorbei fälschen und die Umleitung umgehen. `THROTTLE_LIMIT` legt fest, wie viele Anfragen eine IP-Adresse pro Minute stellen darf (Standard 10); teilen sich die Benutzer eine öffentliche Adresse, etwa hinter dem NAT einer Schule, muss der Wert entsprechend höher sein.
+
 ### Tests
 
 ```bash

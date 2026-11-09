@@ -1,4 +1,11 @@
 import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import {
   BadRequestException,
   Controller,
   Get,
@@ -15,12 +22,17 @@ import type { AuthenticatedRequest } from "../../../shared/presentation/security
 import { ReportingService } from "../application/reporting.service";
 
 /** The dashboard metrics (FA-30 to FA-35), read-only. */
+@ApiTags("metrics")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("metrics")
 export class MetricsController {
   constructor(private readonly reporting: ReportingService) {}
 
   /** FA-32: tasks per status (donut chart). */
+  @ApiOperation({ summary: "FA-32: tasks per status (donut chart)." })
   @Get("status-distribution")
   @Permissions("view_dashboard")
   getStatusDistribution(@Req() req: AuthenticatedRequest) {
@@ -28,6 +40,7 @@ export class MetricsController {
   }
 
   /** FA-31: total, open, completed and overdue tasks. */
+  @ApiOperation({ summary: "FA-31: total, open, completed and overdue tasks." })
   @Get("task-progress")
   @Permissions("view_dashboard")
   getTaskProgress(@Req() req: AuthenticatedRequest) {
@@ -35,6 +48,7 @@ export class MetricsController {
   }
 
   /** The tasks grouped by status. */
+  @ApiOperation({ summary: "The tasks grouped by status." })
   @Get("tasks-by-status")
   @Permissions("view_dashboard")
   getTasksByStatus(@Req() req: AuthenticatedRequest) {
@@ -42,6 +56,9 @@ export class MetricsController {
   }
 
   /** FA-30, FA-34: active projects with their progress (M24). */
+  @ApiOperation({
+    summary: "FA-30, FA-34: active projects with their progress (M24).",
+  })
   @Get("projects")
   @Permissions("view_dashboard")
   getActiveProjects(@Req() req: AuthenticatedRequest) {
@@ -49,6 +66,9 @@ export class MetricsController {
   }
 
   /** FA-35: the top 5 members by completed tasks (M24). */
+  @ApiOperation({
+    summary: "FA-35: the top 5 members by completed tasks (M24).",
+  })
   @Get("top-members")
   @Permissions("view_dashboard")
   getTopMembers(@Req() req: AuthenticatedRequest) {
@@ -56,6 +76,9 @@ export class MetricsController {
   }
 
   /** FA-33: created and completed tasks per week or month (M24). */
+  @ApiOperation({
+    summary: "FA-33: created and completed tasks per week or month (M24).",
+  })
   @Get("trends")
   @Permissions("view_dashboard")
   getTrends(

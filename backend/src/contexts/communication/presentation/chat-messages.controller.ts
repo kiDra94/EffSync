@@ -1,4 +1,11 @@
 import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import {
   BadRequestException,
   Controller,
   Get,
@@ -21,11 +28,16 @@ import {
   Permissions,
 } from "../../../shared/presentation/security";
 
+@ApiTags("chat-messages")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("chat-rooms")
 export class ChatMessagesController {
   constructor(private readonly chatMessagesService: ChatMessagesService) {}
 
+  @ApiOperation({ summary: "Send a message to a room (members only)" })
   @Post(":id/messages")
   @Permissions("view_dashboard")
   create(
@@ -46,6 +58,7 @@ export class ChatMessagesController {
     });
   }
 
+  @ApiOperation({ summary: "A room's messages, oldest first (members only)" })
   @Get(":id/messages")
   @Permissions("view_dashboard")
   getMessages(
@@ -55,6 +68,7 @@ export class ChatMessagesController {
     return this.chatMessagesService.findByRoom(roomId, req.user.userId);
   }
 
+  @ApiOperation({ summary: "Edit an own message" })
   @Patch("messages/:id")
   @Permissions("view_dashboard")
   async update(
@@ -70,6 +84,7 @@ export class ChatMessagesController {
     return this.chatMessagesService.updateMsg(id, updateChatMessageDto.message);
   }
 
+  @ApiOperation({ summary: "Delete an own message" })
   @Delete("messages/:id")
   @Permissions("view_dashboard")
   async remove(

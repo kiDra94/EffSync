@@ -1,4 +1,11 @@
 import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import {
   BadRequestException,
   Body,
   Controller,
@@ -40,6 +47,10 @@ import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
 
 // check order token → role → permission (T97)
+@ApiTags("documents")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Controller("documents")
 export class DocumentsController {
@@ -49,6 +60,10 @@ export class DocumentsController {
     private readonly grading: DocumentGradingService,
   ) {}
 
+  @ApiOperation({
+    summary:
+      "Upload a document (PDF, images, Office; max. 25 MB), optionally for a task",
+  })
   @Post("upload")
   @Permissions("view_dashboard")
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -88,6 +103,7 @@ export class DocumentsController {
     );
   }
 
+  @ApiOperation({ summary: "The documents the requester may see" })
   @Get()
   @Permissions("view_dashboard")
   findAll(@Req() req: AuthenticatedRequest) {
@@ -95,6 +111,7 @@ export class DocumentsController {
   }
 
   /** The current student's grades. */
+  @ApiOperation({ summary: "The current student's grades." })
   @Get("my-grades")
   @Permissions("view_grades")
   getMyGrades(@Req() req: AuthenticatedRequest) {
@@ -102,6 +119,10 @@ export class DocumentsController {
   }
 
   /** The documents linked to a task: for staff and the task's creator. */
+  @ApiOperation({
+    summary:
+      "The documents linked to a task: for staff and the task's creator.",
+  })
   @Get("by-task/:taskId")
   @Permissions("view_dashboard")
   getDocumentsByTask(
@@ -115,6 +136,7 @@ export class DocumentsController {
     );
   }
 
+  @ApiOperation({ summary: "Download a document" })
   @Get(":id/download")
   @Permissions("view_dashboard")
   async download(
@@ -136,6 +158,7 @@ export class DocumentsController {
     return new StreamableFile(file.stream);
   }
 
+  @ApiOperation({ summary: "One document" })
   @Get(":id")
   @Permissions("view_dashboard")
   findOne(
@@ -145,6 +168,7 @@ export class DocumentsController {
     return this.queries.findOne(id, req.user.userId, req.user.role);
   }
 
+  @ApiOperation({ summary: "Rename a document" })
   @Patch(":id")
   @Permissions("view_dashboard")
   update(
@@ -155,6 +179,7 @@ export class DocumentsController {
     return this.uploads.update(id, dto, req.user.userId, req.user.role);
   }
 
+  @ApiOperation({ summary: "Grade a student's document (staff)" })
   @Patch(":id/grade")
   @Roles(...STAFF_ROLES)
   @Permissions("edit_grades", PermissionFlag.WRITE)
@@ -167,6 +192,9 @@ export class DocumentsController {
   }
 
   /** Lets the student upload again: unlocks the task (staff only). */
+  @ApiOperation({
+    summary: "Lets the student upload again: unlocks the task (staff only).",
+  })
   @Patch(":id/allow-resubmit")
   @Roles(...STAFF_ROLES)
   @Permissions("edit_grades", PermissionFlag.WRITE)
@@ -180,6 +208,7 @@ export class DocumentsController {
     );
   }
 
+  @ApiOperation({ summary: "Delete a document" })
   @Delete(":id")
   @Permissions("view_dashboard")
   remove(

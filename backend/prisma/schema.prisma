@@ -18,6 +18,8 @@ model chat_messages {
   updated_at DateTime?   @updatedAt @db.Timestamp(6)
   chat_rooms chat_rooms? @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
   users      users?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([room_id, created_at])
 }
 
 model chat_room_users {
@@ -29,6 +31,7 @@ model chat_room_users {
   users      users      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([room_id, user_id, joined_at])
+  @@index([user_id])
 }
 
 model chat_rooms {
@@ -186,6 +189,8 @@ model notifications {
   created_at      DateTime? @default(now()) @db.Timestamp(6)
   is_read         Boolean?  @default(false)
   users           users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id, created_at])
 }
 
 model permissions {
@@ -273,6 +278,8 @@ model task_activity_log {
   timestamp DateTime? @default(now()) @db.Timestamp(6)
   tasks     tasks?    @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
   users     users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([task_id])
 }
 
 /// Teachers' grading remarks on a task (decision Q16, M15); discussion comments are in `comments`.
@@ -306,6 +313,7 @@ model task_members {
   users users @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@id([task_id, user_id])
+  @@index([user_id])
 }
 
 model task_templates {
@@ -351,6 +359,11 @@ model tasks {
   other_tasks                    tasks[]             @relation("tasksTotasks")
   priorities                     priorities?         @relation(fields: [priority_id], references: [priority_id], onDelete: NoAction, onUpdate: NoAction)
   task_templates                 task_templates?     @relation(fields: [template_id], references: [template_id], onDelete: NoAction, onUpdate: NoAction)
+
+  // M30 (T87, decision Q8h): the joins and filters of the main queries
+  @@index([parent_task_id])
+  @@index([created_by])
+  @@index([assigned_to])
 }
 
 model teachers {

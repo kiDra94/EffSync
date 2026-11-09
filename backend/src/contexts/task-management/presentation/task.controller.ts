@@ -14,7 +14,13 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+} from "@nestjs/swagger";
 import {
   PermissionFlag,
   PRIVILEGED_ROLES,
@@ -53,6 +59,8 @@ import { TaskVisibilityGuard } from "./task-visibility.guard";
  */
 @ApiTags("tasks")
 @ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, TaskVisibilityGuard)
 @Controller("tasks")
 export class TaskController {
@@ -66,12 +74,18 @@ export class TaskController {
     private readonly gradeRemarks: GradeRemarksService,
   ) {}
 
+  @ApiOperation({
+    summary: "Create a task (the requester is creator and member)",
+  })
   @Post()
   @Permissions("create_tasks", PermissionFlag.WRITE)
   create(@Body() dto: CreateTaskDto, @Req() req: AuthenticatedRequest) {
     return this.tasks.create(dto, req.user.userId);
   }
 
+  @ApiOperation({
+    summary: "List the visible tasks with filters, sorting and paging",
+  })
   @Get()
   @Permissions("view_dashboard")
   findAll(@Query() query: QueryTasksDto, @Req() req: AuthenticatedRequest) {
@@ -97,6 +111,7 @@ export class TaskController {
 
   // ---- templates (T110): name and description (H2), private (E1) ----
 
+  @ApiOperation({ summary: "Save a private task template" })
   @Post("templates")
   @Permissions("create_tasks", PermissionFlag.WRITE)
   createTemplate(
@@ -106,12 +121,14 @@ export class TaskController {
     return this.templates.create(dto, req.user.userId);
   }
 
+  @ApiOperation({ summary: "The requester's task templates" })
   @Get("templates")
   @Permissions("view_dashboard")
   findTemplates(@Req() req: AuthenticatedRequest) {
     return this.templates.findAll(req.user.userId);
   }
 
+  @ApiOperation({ summary: "One own template with the tasks created from it" })
   @Get("templates/:templateId")
   @Permissions("view_dashboard")
   findTemplate(
@@ -121,6 +138,7 @@ export class TaskController {
     return this.templates.findOne(templateId, req.user.userId);
   }
 
+  @ApiOperation({ summary: "Change an own template" })
   @Patch("templates/:templateId")
   @Permissions("create_tasks", PermissionFlag.WRITE)
   updateTemplate(
@@ -131,6 +149,7 @@ export class TaskController {
     return this.templates.update(templateId, req.user.userId, dto);
   }
 
+  @ApiOperation({ summary: "Delete an own template (its tasks stay)" })
   @Delete("templates/:templateId")
   @Permissions("create_tasks", PermissionFlag.WRITE)
   removeTemplate(
@@ -142,6 +161,7 @@ export class TaskController {
 
   // ---- one task ----
 
+  @ApiOperation({ summary: "A task with all its subtasks as a tree" })
   @Get(":id/tree")
   @Permissions("view_dashboard")
   findTree(@Param("id", ParseIntPipe) id: number) {
@@ -149,6 +169,7 @@ export class TaskController {
   }
 
   // feature #27: shows whether the task is locked for this student
+  @ApiOperation({ summary: "One visible task" })
   @Get(":id")
   @Permissions("view_dashboard")
   findOne(
@@ -158,6 +179,9 @@ export class TaskController {
     return this.tasks.findOneForStudent(id, req.user.userId);
   }
 
+  @ApiOperation({
+    summary: "Change a task (status, progress, rules, tags, parent)",
+  })
   @Patch(":id")
   @Permissions("edit_tasks", PermissionFlag.WRITE)
   update(
@@ -169,6 +193,7 @@ export class TaskController {
   }
 
   // staff or the task's creator; checked in the service, because a role alone isn't enough
+  @ApiOperation({ summary: "Set a new deadline and unlock the task" })
   @Patch(":id/deadline-unlock")
   @Permissions("edit_tasks", PermissionFlag.WRITE)
   updateDeadlineAndUnlock(
@@ -187,6 +212,9 @@ export class TaskController {
   }
 
   // own tasks with edit_tasks, others' with delete_tasks (checked in the service)
+  @ApiOperation({
+    summary: "Delete a task without subtasks (creator or delete_tasks)",
+  })
   @Delete(":id")
   @Permissions("edit_tasks|delete_tasks")
   remove(
@@ -196,6 +224,7 @@ export class TaskController {
     return this.tasks.remove(id, req.user.userId);
   }
 
+  @ApiOperation({ summary: "Create a subtask" })
   @Post(":id/subtasks")
   @Permissions("create_tasks", PermissionFlag.WRITE)
   createSubTask(
@@ -206,18 +235,21 @@ export class TaskController {
     return this.tasks.createSubTask(id, dto, req.user.userId);
   }
 
+  @ApiOperation({ summary: "A task's direct subtasks" })
   @Get(":id/subtasks")
   @Permissions("view_dashboard")
   getSubtasks(@Param("id", ParseIntPipe) id: number) {
     return this.tasks.getSubtasksOfTask(id);
   }
 
+  @ApiOperation({ summary: "The documents linked to a task" })
   @Get(":id/documents")
   @Permissions("view_dashboard")
   getDocuments(@Param("id", ParseIntPipe) id: number) {
     return this.tasks.getDocuments(id);
   }
 
+  @ApiOperation({ summary: "A task's activity log" })
   @Get(":id/activity")
   @Permissions("view_dashboard")
   getActivity(@Param("id", ParseIntPipe) id: number) {
@@ -226,6 +258,7 @@ export class TaskController {
 
   // ---- locking (feature #27, creator only) ----
 
+  @ApiOperation({ summary: "Lock a task (creator only)" })
   @Post(":id/lock")
   @Permissions("edit_tasks", PermissionFlag.WRITE)
   lockTask(
@@ -236,6 +269,7 @@ export class TaskController {
     return this.locking.lockTask(id, body.reason || "MANUAL", req.user.userId);
   }
 
+  @ApiOperation({ summary: "Unlock a task (creator only)" })
   @Post(":id/unlock")
   @Permissions("edit_tasks", PermissionFlag.WRITE)
   unlockTask(
@@ -245,6 +279,7 @@ export class TaskController {
     return this.locking.unlockTask(id, req.user.userId);
   }
 
+  @ApiOperation({ summary: "Whether the requester may edit the task" })
   @Get(":id/can-edit")
   @Permissions("view_dashboard")
   canEditTask(
@@ -256,12 +291,14 @@ export class TaskController {
 
   // ---- comments (decision Q16, @mention mail T09) ----
 
+  @ApiOperation({ summary: "A task's comments, oldest first" })
   @Get(":id/comments")
   @Permissions("view_dashboard")
   getComments(@Param("id", ParseIntPipe) id: number) {
     return this.tasks.getComments(id);
   }
 
+  @ApiOperation({ summary: "Comment on a task (@mentions are mailed)" })
   @Post(":id/comments")
   @Permissions("view_dashboard")
   createComment(
@@ -272,6 +309,7 @@ export class TaskController {
     return this.comments.create(id, req.user.userId, dto.content);
   }
 
+  @ApiOperation({ summary: "Edit an own comment" })
   @Patch(":id/comments/:commentId")
   @Permissions("view_dashboard")
   updateComment(
@@ -283,6 +321,7 @@ export class TaskController {
     return this.comments.update(id, commentId, req.user.userId, dto.content);
   }
 
+  @ApiOperation({ summary: "Delete an own comment" })
   @Delete(":id/comments/:commentId")
   @HttpCode(HttpStatus.NO_CONTENT)
   @Permissions("view_dashboard")
@@ -296,6 +335,7 @@ export class TaskController {
 
   // ---- grading remarks (decision Q16) ----
 
+  @ApiOperation({ summary: "A task's grading remarks" })
   @Get(":id/grade-remarks")
   @Permissions("view_grades")
   getGradeRemarks(
@@ -306,6 +346,7 @@ export class TaskController {
   }
 
   // the same check as grading a document (PATCH /documents/:id/grade)
+  @ApiOperation({ summary: "Add a grading remark (staff)" })
   @Post(":id/grade-remarks")
   @Roles(...STAFF_ROLES)
   @Permissions("edit_grades", PermissionFlag.WRITE)
@@ -319,6 +360,7 @@ export class TaskController {
 
   // ---- members (T44; formerly /api/api/tasks/:taskId/members, T130) ----
 
+  @ApiOperation({ summary: "Add a task member" })
   @Post(":id/members")
   @Permissions("edit_tasks", PermissionFlag.WRITE)
   async addMember(
@@ -342,6 +384,7 @@ export class TaskController {
   }
 
   // members, or users with READ on the task (403 otherwise)
+  @ApiOperation({ summary: "A task's members" })
   @Get(":id/members")
   @Permissions("view_dashboard")
   async findMembers(
@@ -360,6 +403,7 @@ export class TaskController {
   }
 
   // the requester's rwx flags on the task
+  @ApiOperation({ summary: "Whether the requester may manage the members" })
   @Get(":id/members/check-permission")
   @Permissions("view_dashboard")
   async checkMemberPermission(
@@ -374,6 +418,7 @@ export class TaskController {
   }
 
   // the creator and the assignee can't be removed
+  @ApiOperation({ summary: "Remove a task member" })
   @Delete(":id/members/:userId")
   @HttpCode(HttpStatus.NO_CONTENT)
   @Permissions("edit_tasks", PermissionFlag.WRITE)

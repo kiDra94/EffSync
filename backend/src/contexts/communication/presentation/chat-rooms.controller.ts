@@ -1,4 +1,11 @@
 import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import {
   Body,
   Controller,
   Delete,
@@ -23,6 +30,10 @@ import {
   Permissions,
 } from "../../../shared/presentation/security";
 
+@ApiTags("chat-rooms")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("chat-rooms")
 export class ChatRoomsController {
@@ -31,6 +42,9 @@ export class ChatRoomsController {
     private readonly chatRealtime: ChatRealtime,
   ) {}
 
+  @ApiOperation({
+    summary: "Create a group chat with the requester as creator",
+  })
   @Post()
   @Permissions("view_dashboard")
   create(
@@ -41,6 +55,10 @@ export class ChatRoomsController {
   }
 
   /** The one DM with this user, created on the first call (T113, M21). */
+  @ApiOperation({
+    summary:
+      "The one DM with this user, created on the first call (T113, M21).",
+  })
   @Post("direct")
   @Permissions("view_dashboard")
   openDirect(@Body() dto: OpenDirectChatDto, @Req() req: AuthenticatedRequest) {
@@ -48,6 +66,9 @@ export class ChatRoomsController {
   }
 
   /** The task's chat, created on the first call (T29, M21). */
+  @ApiOperation({
+    summary: "The task's chat, created on the first call (T29, M21).",
+  })
   @Post("task/:taskId")
   @Permissions("view_dashboard")
   openTaskChat(
@@ -58,6 +79,10 @@ export class ChatRoomsController {
   }
 
   /** The class's chat, created on the first call (T29, decision D2, M21). */
+  @ApiOperation({
+    summary:
+      "The class's chat, created on the first call (T29, decision D2, M21).",
+  })
   @Post("class/:classId")
   @Permissions("view_dashboard")
   openClassChat(
@@ -67,12 +92,14 @@ export class ChatRoomsController {
     return this.chatRoomsService.openClassChat(classId, req.user.userId);
   }
 
+  @ApiOperation({ summary: "The requester's chat rooms (active memberships)" })
   @Get()
   @Permissions("view_dashboard")
   findRoomsByUser(@Req() req: AuthenticatedRequest) {
     return this.chatRoomsService.findRoomsByUser(req.user.userId);
   }
 
+  @ApiOperation({ summary: "One chat room (members only)" })
   @Get(":id")
   @Permissions("view_dashboard")
   async findOne(
@@ -83,6 +110,7 @@ export class ChatRoomsController {
     return this.chatRoomsService.findOne(id);
   }
 
+  @ApiOperation({ summary: "Rename a chat room (creator only)" })
   @Patch(":id")
   @Permissions("view_dashboard")
   async updateRoom(
@@ -94,6 +122,9 @@ export class ChatRoomsController {
     return this.chatRoomsService.updateRoom(id, updateChatRoomDto);
   }
 
+  @ApiOperation({
+    summary: "Delete a chat room with its messages (creator only)",
+  })
   @Delete(":id")
   @Permissions("view_dashboard")
   deleteRoom(
@@ -105,6 +136,7 @@ export class ChatRoomsController {
   }
 
   // decision Q14: only the creator adds members
+  @ApiOperation({ summary: "Add a member (creator only)" })
   @Post(":id/members")
   @Permissions("view_dashboard")
   async addMember(
@@ -122,6 +154,7 @@ export class ChatRoomsController {
     return membership;
   }
 
+  @ApiOperation({ summary: "Leave a room, or remove a member as its creator" })
   @Delete(":id/members/:userId")
   @Permissions("view_dashboard")
   async removeMember(

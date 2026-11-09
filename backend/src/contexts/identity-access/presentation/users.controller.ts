@@ -11,7 +11,13 @@ import {
   UseGuards,
   Req,
 } from "@nestjs/common";
-import { ApiBearerAuth } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 import { UsersService } from "../application/users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
@@ -21,8 +27,11 @@ import { RolesGuard } from "./security/roles.guard";
 import { Permissions } from "./security/permissions.decorator";
 import { Roles } from "./security/roles.decorator";
 
+@ApiTags("users")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-@ApiBearerAuth("bearer")
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -34,6 +43,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Creates a new user",
+    description: "Requires the permission manage_users.",
+  })
   @Post()
   @Permissions("manage_users", PermissionFlag.WRITE)
   create(@Body() createUserDto: CreateUserDto) {
@@ -44,8 +57,12 @@ export class UsersController {
    * GET /users/profile
    * Returns the current user's profile with role.
    *
-   * No special permissions required (only a JWT).
+   * Requires the permission view_dashboard.
    */
+  @ApiOperation({
+    summary: "Returns the current user's profile with role",
+    description: "Requires the permission view_dashboard.",
+  })
   @Get("profile")
   @Permissions("view_dashboard")
   getProfile(@Req() req: AuthenticatedRequest) {
@@ -56,8 +73,12 @@ export class UsersController {
    * GET /users/me/permissions
    * Returns all roles and permissions of the current user.
    *
-   * No special permissions required (only a JWT).
+   * Requires the permission view_dashboard.
    */
+  @ApiOperation({
+    summary: "Returns all roles and permissions of the current user",
+    description: "Requires the permission view_dashboard.",
+  })
   @Get("me/permissions")
   @Permissions("view_dashboard")
   async getMyPermissions(@Req() req: AuthenticatedRequest) {
@@ -71,6 +92,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Returns all roles and permissions of a given user",
+    description: "Requires the permission manage_users.",
+  })
   @Get(":id/permissions")
   @Permissions("manage_users")
   async getUserPermissions(@Param("id") id: string) {
@@ -79,8 +104,12 @@ export class UsersController {
 
   /**
    * GET /users/for-chat
-   * Returns all users with minimal info for the chat (only a JWT required).
+   * Returns all users with minimal info for the chat (view_dashboard).
    */
+  @ApiOperation({
+    summary: "Returns all users with minimal info for the chat",
+    description: "Requires the permission view_dashboard.",
+  })
   @Get("for-chat")
   @Permissions("view_dashboard")
   findAllForChat() {
@@ -94,6 +123,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Returns all users",
+    description: "Requires the permission manage_users.",
+  })
   @Get()
   @Permissions("manage_users")
   findAll() {
@@ -107,6 +140,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Returns one user",
+    description: "Requires the permission manage_users.",
+  })
   @Get(":id")
   @Permissions("manage_users")
   findOne(@Param("id") id: string) {
@@ -120,6 +157,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Updates a user",
+    description: "Requires the permission manage_users.",
+  })
   @Patch(":id")
   @Permissions("manage_users", PermissionFlag.WRITE)
   update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
@@ -133,6 +174,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Deletes a user",
+    description: "Requires the permission manage_users.",
+  })
   @Delete(":id")
   @Permissions("manage_users", PermissionFlag.EXECUTE)
   remove(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
@@ -153,6 +198,11 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Adds a new permission to a user",
+    description:
+      "Body: permission_id, optionally valid_from and valid_to. Requires the permission manage_users.",
+  })
   @Post(":id/permissions")
   @Permissions("manage_users", PermissionFlag.WRITE)
   async addPermissionToUser(
@@ -182,6 +232,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Removes a permission from a user",
+    description: "Requires the permission manage_users.",
+  })
   @Delete(":id/permissions/:permissionId")
   @Permissions("manage_users", PermissionFlag.EXECUTE)
   async removePermissionFromUser(
@@ -203,6 +257,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Assigns a role to a user",
+    description: "Requires the permission manage_users.",
+  })
   @Post(":id/roles")
   @Permissions("manage_users", PermissionFlag.WRITE)
   async addRoleToUser(
@@ -219,6 +277,10 @@ export class UsersController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Removes a role from a user",
+    description: "Requires the permission manage_users.",
+  })
   @Delete(":id/roles/:roleId")
   @Permissions("manage_users", PermissionFlag.EXECUTE)
   async removeRoleFromUser(

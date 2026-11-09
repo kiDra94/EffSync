@@ -20,6 +20,8 @@ import {
   ApiOperation,
   ApiResponse,
   ApiQuery,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
 } from "@nestjs/swagger";
 import {
   JwtAuthGuard,
@@ -30,6 +32,8 @@ import type { AuthenticatedRequest } from "../../../shared/presentation/security
 
 @ApiTags("notifications")
 @ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller("notifications")
 export class NotificationsController {

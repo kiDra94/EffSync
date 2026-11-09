@@ -1235,3 +1235,45 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - Vitest 4 measures only imported files unless `coverage.include` is set, so a per-file threshold can pass because nothing loaded the file.
 
 **Failed / open:** none.
+
+## 2026-11-09 – M30: Non-functional requirements, Swagger docs, HTTPS only and join indexes
+
+**Done:**
+- Load test (T61): `npm run load-test` (`backend/scripts/load-test.mjs`, autocannon) logs in a teacher, a student and the admin and runs five main endpoints with 10 and 100 concurrent connections for 10 s each. It fails (exit 1) when p97.5 ≥ 200 ms at 10 connections or when any request fails. Run against the seeded test DB on port 5433.
+- Join indexes (T87, Q8h): one index-only migration `20261109090000_join_indexes` on `tasks.parent_task_id`, `tasks.created_by`, `tasks.assigned_to`, `task_members.user_id`, `chat_messages(room_id, created_at)`, `notifications(user_id, created_at)`, `task_activity_log.task_id` and `chat_room_users.user_id`. `prisma migrate diff` from the migrated DB to the schema is empty.
+- Swagger (T65): all 19 controllers have `@ApiTags`, each declared with a description in `API_TAGS` (`app.setup.ts`); the token-guarded ones have `@ApiBearerAuth` and the 401/403 responses, and the routes guarded on their own (`/auth/profile`, `/auth/set-new-password`) the bearer token and the 401. All 135 operations of the OpenAPI document have a one-line summary. The Nest Swagger CLI plugin (`introspectComments`, `classValidatorShim`) documents the DTOs. `src/swagger-docs.spec.ts` reads the guards as Nest does and fails if a controller or route loses its tag, summary, bearer token or 401/403.
+- HTTPS only (T62, Q4): with `NODE_ENV=production` the app sets `trust proxy` and answers a request whose `X-Forwarded-Proto` isn't `https` with a 308 to the same path under `PUBLIC_URL` (`shared/presentation/https-only.ts`); Helmet's HSTS stays. Config validation requires `PUBLIC_URL` as an `https://` address in production (`.env.example` names it). The README (EN and DE) describes the reverse-proxy requirement, that the backend port must be reachable only through the proxy, and that `THROTTLE_LIMIT` must be raised when users share one NAT address.
+
+**Verified:**
+- Load test on the seeded test DB, p97.5 in ms at 10 connections / 100 connections, 0 failed requests in every run:
+
+  | Endpoint | Before indexes | After indexes |
+  |---|---|---|
+  | `GET /api/tasks` (list) | 175 / 1152 | 169 / 1121 |
+  | `GET /api/tasks/1` (detail) | 136 / 1523 | 151 / 1635 |
+  | `GET /api/metrics/task-progress` | 89 / 718 | 92 / 749 |
+  | `GET /api/notifications` | 80 / 631 | 85 / 643 |
+  | `GET /api/chat-rooms` | 88 / 667 | 87 / 733 |
+
+  After the review fixes, a last run on the seeded DB: 179 / 1235, 122 / 1104, 104 / 815, 83 / 660, 93 / 749 (same order), 0 failed, exit 0.
+
+  NFA-01 (< 200 ms) is met at 10 connections. NFA-03 (100 concurrent users) is met as "served without errors": at 100 connections the latency is queueing on one Node process (throughput stays at 80–170 requests/s), not a slower query.
+- EXPLAIN ANALYZE on the scaled test DB (20,000 rows, see below), before → after: notifications of a user 2.12 → 1.65 ms (seq scan → index), chat messages of a room 6.58 → 3.45 ms, subtasks of a task 1.50 → 0.10 ms, tasks created by or assigned to a user 2.58 → ~1.4 ms, task memberships of a user 1.53 → 1.11 ms, activity log of a task 1.16 → 0.16 ms.
+- Load time (NFA-02, < 3 s), Lighthouse 12 on the production build (simulated mobile throttling): login LCP 2.0 s, FCP 1.7 s, TTI 2.0 s, TBT 50 ms, performance score 0.98. The logged-in dashboard loads in 1.2–1.4 s.
+- HTTPS: `test/https-redirect.e2e-spec.ts` in production mode: `http` GET with a foreign `Host` header → 308 to `https://effsync.example/api/tasks?page=2` (the configured `PUBLIC_URL`), `http` POST → 308, `https` → 200 with the HSTS header. Unit tests for the middleware and the config validation.
+- Responsive and browser checklist (T66, T71), Playwright 1.62 with Chromium and Firefox, mobile 375 px, tablet 768 px and desktop 1440 px, as the admin, on dashboard, tasks, calendar, chat, documents and classes:
+  - [x] every page loads (0.7–1.4 s) with its main content visible and without page errors, in both browsers and all three widths (36 checks)
+  - [x] no horizontal overflow at any width
+  - [x] screenshots of dashboard and tasks per browser and width looked through by hand
+  - [ ] minor at 375 px: the header search field is cut off, and the button in the task header wraps to a second line (cosmetic; for the frontend milestones)
+  - Edge can't run on this Linux machine; it uses the Chromium engine, which is covered. A manual check in Edge on Windows is still open.
+- Backend: 618 unit and 139 E2E tests. tsc, lint (0 errors, 36 warnings), knip, dependency-cruiser and the build pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 10 findings, all fixed: (1) psql ran the inserts after the not-a-test-DB guard raised (now `ON_ERROR_STOP`; checked on a throwaway non-test DB: exit 3, 0 rows), (2) the redirect target came from the client's `Host` header (now `PUBLIC_URL`), (3) the README didn't say that the backend port must be reachable only through the proxy, or a client fakes `X-Forwarded-For` around the rate limit, (4) the spec found guards by a regex and missed three controllers and the method-level guards; it now reads the guard metadata and checks 401/403, which also found the missing 401/403 docs of the task and notification controllers, (5) `set-new-password` had no bearer token in the docs, (6) the load test's tokens expire after 15 minutes, so `--duration` is now limited to 1–60 s, (7) users, roles and permissions named the bearer scheme twice, (8) their summaries were the JSDoc copied with route and line breaks (now one line plus a description; three routes claimed "only a JWT" but need `view_dashboard`), (9) the Swagger setup declared 8 of 19 tags, (10) `process.exit()` could cut off the piped JSON (now `exitCode`).
+
+**Learned (for later milestones):**
+- The seed data is too small to show a performance problem. `scripts/load-test-data.sql` adds 20,000 tasks, notifications and chat messages, and refuses to run on a database whose name doesn't end in `_test`.
+- Indexes barely change the response time on this data, because each request spends ~29 ms on the auth and permission queries, and the list endpoints load whole result sets.
+
+**Failed / open:**
+- On the scaled test DB, NFA-01 fails: the task list 454 → 514 ms p97.5 (before → after indexes), the task-progress metrics ~1.7 s, and `GET /api/notifications` times out at 10 connections (it has no paging). This became the fix milestone **M37: Performance at realistic data volume**, placed right after M30.
+- The completion-date question of M24 is still open.

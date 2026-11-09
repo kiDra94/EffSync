@@ -28,6 +28,7 @@ describe("validateEnv", () => {
       NODE_ENV: "production",
       JWT_SECRET: "a".repeat(32),
       FRONTEND_URL: "https://effsync.example",
+      PUBLIC_URL: "https://api.effsync.example",
     };
 
     it("accepts a long secret and a FRONTEND_URL", () => {
@@ -50,6 +51,16 @@ describe("validateEnv", () => {
       expect(() => validateEnv({ ...prod, FRONTEND_URL: undefined })).toThrow(
         "FRONTEND_URL",
       );
+    });
+
+    // review M30: the HTTPS redirect goes to this address, not the Host header
+    it("requires PUBLIC_URL as an https address", () => {
+      expect(() => validateEnv({ ...prod, PUBLIC_URL: undefined })).toThrow(
+        "PUBLIC_URL",
+      );
+      expect(() =>
+        validateEnv({ ...prod, PUBLIC_URL: "http://api.effsync.example" }),
+      ).toThrow("PUBLIC_URL");
     });
   });
 });

@@ -1,4 +1,10 @@
 import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import {
   Controller,
   Post,
   Body,
@@ -31,6 +37,7 @@ import { GoogleResetAuthGuard } from "./security/google-reset-auth.guard";
 import { Throttle } from "@nestjs/throttler";
 import { frontendUrl } from "../../../shared/application/frontend-url";
 
+@ApiTags("auth")
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -40,6 +47,7 @@ export class AuthController {
   ) {}
 
   @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: "Register an account (default role Student)" })
   @Post("register")
   register(@Body() CreateUserDto: CreateUserDto) {
     return this.authService.register(CreateUserDto);
@@ -49,6 +57,10 @@ export class AuthController {
   // the DTO keeps the body validated and documented
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(LocalAuthGuard)
+  @ApiOperation({
+    summary:
+      "Sign in with username or e-mail; returns access and refresh token",
+  })
   @Post("login")
   async login(
     @Req() req: { user: UserWithRoles },
@@ -62,12 +74,16 @@ export class AuthController {
   }
 
   // T51, decision Q8b: rotates the refresh token; an old one gets 401
+  @ApiOperation({
+    summary: "Renew the access token with a refresh token (rotates it)",
+  })
   @Post("refresh")
   refresh(@Body() body: RefreshTokenDto) {
     return this.sessions.refresh(body.refreshToken);
   }
 
   // T123: revokes the current session only
+  @ApiOperation({ summary: "End the session of this refresh token" })
   @Post("logout")
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(@Body() body: RefreshTokenDto) {
@@ -75,18 +91,23 @@ export class AuthController {
   }
 
   @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: "Start the Google sign-in" })
   @Get("google")
   async googleAuth() {
     // Starts the Google OAuth flow
   }
 
   @UseGuards(GoogleResetAuthGuard)
+  @ApiOperation({ summary: "Start the Google sign-in to set a new password" })
   @Get("google/reset-password")
   async googleResetPassword() {
     // Starts Google OAuth with state=reset-password
   }
 
   @UseGuards(GoogleAuthGuard)
+  @ApiOperation({
+    summary: "Google sign-in callback; redirects to the frontend",
+  })
   @Get("google/callback")
   async googleAuthCallback(
     @Req() req: Request & { user: GoogleUser },
@@ -111,6 +132,10 @@ export class AuthController {
 
   // T52: always 204, so the answer doesn't reveal whether the address exists
   @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({
+    summary:
+      "Send a password-reset mail (same answer whether the account exists)",
+  })
   @Post("forgot-password")
   @HttpCode(HttpStatus.NO_CONTENT)
   async forgotPassword(@Body() body: ForgotPasswordDto) {
@@ -119,7 +144,10 @@ export class AuthController {
 
   // a reset token from the e-mail link or an access token (Google reset path);
   // the change ends all of the user's sessions
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
   @UseGuards(PasswordChangeGuard)
+  @ApiOperation({ summary: "Set a new password with a reset token" })
   @Post("set-new-password")
   async setNewPassword(
     @Req() req: PasswordChangeRequest,
@@ -129,7 +157,10 @@ export class AuthController {
     return { message: "Passwort erfolgreich geändert" };
   }
 
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "The signed-in user's profile" })
   @Get("profile")
   getProfile(@Req() req: AuthenticatedRequest) {
     return req.user;

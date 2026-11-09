@@ -620,7 +620,7 @@ Rules for all milestones:
   - Done when: CI fails if a threshold drops, and all endpoint/status combinations from the table are tested.
   - Risk: low.
 
-- [ ] **M30: Verify the non-functional requirements and complete the Swagger docs**
+- [x] **M30: Verify the non-functional requirements and complete the Swagger docs**
   - Why:
     - T61 (NFA-01–03): < 200 ms, frontend loaded in 3 s, 100 concurrent users.
     - T65 (NFA-10): all endpoints documented.
@@ -671,6 +671,16 @@ Rules for all milestones:
   - Done when: all contexts are migrated, dependency-cruiser runs with severity `error` and reports 0 violations, CI fails on a deliberately added violation (tried once, then reverted), and the `no-unsafe-*` ESLint rules are `error` for the whole backend with 0 findings (decision Q13).
   - Risk: low.
 
+- [ ] **M37: Performance at realistic data volume**
+  - Why: M30 found that T61 (NFA-01, < 200 ms) holds on the seed data but fails once the test DB has 20,000 tasks, notifications and chat messages (`scripts/load-test-data.sql`): at 10 connections the task list answers in 454–514 ms (p97.5), the task-progress metrics in ~1.7 s, and `GET /api/notifications` times out. The join indexes of M30 don't help, because the app loads whole result sets.
+  - Steps:
+    1. Let the task list count and page in the database instead of loading every visible task into memory.
+    2. Compute the task-progress metrics with aggregate queries (`groupBy`/`count`) instead of loading the tasks.
+    3. Page `GET /api/notifications` (limit and cursor or offset, newest first) and adapt the frontend's notification store.
+    4. Measure the per-request auth and permission queries (~29 ms today) and cache the user's permissions per request, if that is the gap.
+  - Done when: `npm run load-test` against the scaled test DB (seed plus `load-test-data.sql`) meets NFA-01 (p97.5 < 200 ms at 10 connections) and NFA-03 (100 connections without failures) for all five endpoints, with before/after numbers in PROGRESS.md.
+  - Risk: medium. The notification paging changes the API the frontend reads.
+
 ## Priorities
 
 | Priority | Milestones | Reason |
@@ -680,10 +690,10 @@ Rules for all milestones:
 | **Essential** | M6, M7, M8, M9 | Thesis security claims that are exploitable or wrong today (T02, T92, T94, T54, T116, T49, T50) |
 | **Essential** | M10–M24, M34, M36 | DDD restructuring per `11_Reflexion.tex:25-31`, plus the thesis claims of each context |
 | **Essential** | M25, M26, M27, M35 | Frontend thesis claims (T79, T68, T42, T43, T47, T33, T75, T77) and Planned items |
-| **Essential** | M29, M30, M31, M32, M33 | Testing, non-functional, backup, 2FA and the creator constraint (T101) |
+| **Essential** | M29, M30, M37, M31, M32, M33 | Testing, non-functional (M37: performance at realistic volume), backup, 2FA and the creator constraint (T101) |
 | Nice-to-have | M28 | File size and duplication only; no thesis claim is affected beyond keeping T60 working |
 
-Suggested order: M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → M9 → M10 → M11 → M12 → M13 → M14 → M15 → M16 → M17 → M18 → M19 → M20 → M22 → M36 → M21 → M23 → M24 → M29 → M30 → M31 → M32 → M33 → M34. The frontend milestones M25 → M26 → M27 → M35 → M28 run in parallel after M5 (their backend steps wait for M11 or M15, see the milestone rules). M33 needs M14.
+Suggested order: M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → M9 → M10 → M11 → M12 → M13 → M14 → M15 → M16 → M17 → M18 → M19 → M20 → M22 → M36 → M21 → M23 → M24 → M29 → M30 → M37 → M31 → M32 → M33 → M34. The frontend milestones M25 → M26 → M27 → M35 → M28 run in parallel after M5 (their backend steps wait for M11 or M15, see the milestone rules). M33 needs M14.
 
 ## Decisions log
 

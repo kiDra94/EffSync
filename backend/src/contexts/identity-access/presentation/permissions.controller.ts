@@ -1,12 +1,21 @@
 import { Controller, Get, Param, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 import { PermissionsService } from "../application/permissions.service";
 import { JwtAuthGuard } from "./security/jwt-auth.guard";
 import { PermissionsGuard } from "./security/permissions.guard";
 import { Permissions } from "./security/permissions.decorator";
 
+@ApiTags("permissions")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+@ApiForbiddenResponse({ description: "Fehlende Rolle oder Berechtigung" })
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth("bearer")
 @Controller("permissions")
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
@@ -18,6 +27,10 @@ export class PermissionsController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Returns all available permissions",
+    description: "Requires the permission manage_users.",
+  })
   @Get()
   @UseGuards(PermissionsGuard)
   @Permissions("manage_users")
@@ -32,6 +45,10 @@ export class PermissionsController {
    * Permissions:
    * - requires the permission 'manage_users'
    */
+  @ApiOperation({
+    summary: "Returns one permission with its details",
+    description: "Requires the permission manage_users.",
+  })
   @Get(":id")
   @UseGuards(PermissionsGuard)
   @Permissions("manage_users")
