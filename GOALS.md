@@ -533,7 +533,7 @@ Rules for all milestones:
   - Done when: there are 0 violations, the e-mail cron (T46) and @mention mail (T09) are covered by tests, and the hourly overdue job has a test.
   - Risk: low.
 
-- [ ] **M24: Migrate `reporting`, with dashboard metrics per thesis**
+- [x] **M24: Migrate `reporting`, with dashboard metrics per thesis**
   - Why:
     - L1.
     - T41 (FA-30): overview of active projects, i.e. top-level tasks that aren't completed (decision Q2).

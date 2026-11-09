@@ -70,6 +70,11 @@ import { TaskController } from "./presentation/task.controller";
     { provide: CommentRepository, useClass: PrismaCommentRepository },
     { provide: GradeRemarkRepository, useClass: PrismaGradeRemarkRepository },
   ],
-  exports: [TaskCompletionService, TaskResubmissionService, TaskChatService],
+  exports: [
+    TaskCompletionService,
+    TaskResubmissionService,
+    TaskChatService,
+    TaskVisibilityService,
+  ],
 })
 export class TaskManagementModule {}

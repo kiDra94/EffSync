@@ -9,6 +9,9 @@ import { fetchAllLessonSlots } from '@/api/lessonSlots';
 import { fetchMetrics } from '@/api/metrics';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
+import TrendChart from '@/components/dashboard/TrendChart.vue';
+import ProjectProgressList from '@/components/dashboard/ProjectProgressList.vue';
+import TopMembersList from '@/components/dashboard/TopMembersList.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -247,9 +250,13 @@ const handleCardClick = (routeName) => {
     </div>
 
     <!-- Dashboard Metrics -->
+    <!-- FA-30 to FA-35 (M24) -->
     <div class="metrics-section">
       <StatusDistributionChart />
       <TaskProgressChart />
+      <ProjectProgressList />
+      <TopMembersList />
+      <TrendChart class="wide" />
     </div>
   </div>
 </template>
@@ -401,6 +408,10 @@ const handleCardClick = (routeName) => {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
   margin-top: 40px;
+}
+
+.metrics-section .wide {
+  grid-column: 1 / -1;
 }
 
 :global(body.dark-mode) .dashboard-container .page-title {

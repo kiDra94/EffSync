@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Pie } from 'vue-chartjs';
+import { Doughnut } from 'vue-chartjs';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -17,7 +17,6 @@ ChartJS.register(ArcElement, Tooltip, Legend, Colors);
 
 const chartData = ref(null);
 const loading = ref(true);
-const tasksByStatus = ref(null);
 const chartRenderKey = ref(0);
 let themeObserver;
 
@@ -47,9 +46,6 @@ onMounted(async () => {
       ],
     };
 
-    // Load tasks by status
-    // through apiClient, so an expired access token is refreshed (M12)
-    tasksByStatus.value = await fetchMetrics('tasks-by-status');
   } catch (error) {
     console.error('Fehler beim Laden der Status-Verteilung:', error);
   } finally {
@@ -133,7 +129,7 @@ onUnmounted(() => {
     </div>
     <div v-if="loading" class="loading">Lädt...</div>
     <div v-else-if="chartData" class="chart-wrapper">
-      <Pie :key="chartRenderKey" :data="chartData" :options="chartOptions" />
+      <Doughnut :key="chartRenderKey" :data="chartData" :options="chartOptions" />
     </div>
   </div>
 </template>
@@ -190,136 +186,4 @@ onUnmounted(() => {
 }
 
 /* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 15px;
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: #23234c;
-  font-size: 1.3rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #666;
-  transition: color 0.2s;
-}
-
-.close-btn:hover {
-  color: #23234c;
-}
-
-.tasks-modal-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.task-modal-item {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  border-left: 4px solid #3498db;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.task-modal-item:hover {
-  transform: translateX(2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.task-title {
-  font-weight: 600;
-  color: #23234c;
-  margin-bottom: 12px;
-  font-size: 0.95rem;
-  word-break: break-word;
-}
-
-.task-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 0.85rem;
-}
-
-.progress-info,
-.deadline-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.progress-label,
-.deadline-label {
-  font-weight: 500;
-  color: #666;
-  min-width: 80px;
-}
-
-.progress-bar-modal {
-  flex: 1;
-  height: 6px;
-  background: #e0e0e0;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill-modal {
-  height: 100%;
-  background: linear-gradient(90deg, #2ecc71, #27ae60);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.progress-value {
-  font-weight: 600;
-  color: #23234c;
-  min-width: 40px;
-  text-align: right;
-}
-
-.deadline-info {
-  color: #555;
-}
-
-.no-tasks-modal {
-  text-align: center;
-  padding: 40px 20px;
-  color: #999;
-  font-style: italic;
-}
 </style>

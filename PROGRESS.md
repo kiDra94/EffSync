@@ -1168,3 +1168,34 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - knip runs in the backend CI job: an export only a spec might use still fails it.
 
 **Failed / open:** (6) and (9) above.
+
+## 2026-11-09 – M24: Migrate reporting, with the dashboard metrics per thesis
+
+**Open question (raised, no schema change):** completion dates can't be derived reliably. The activity log records "Task updated" without the status, and the completion from grades (M17) writes no entry. The trends therefore count a completed task as completed at its last change (`tasks.updated_at`); a later edit of a completed task moves it into the current period. Options for the user: accept the approximation; log the change to COMPLETED in the activity log from now on (no schema change, old data stays approximate); or add a `completed_at` column (a schema change that needs approval).
+
+**Done:**
+- `src/contexts/reporting` replaces `modules/metrics` (read-only, GOALS.md M24 step 1):
+  - Domain: `trendSeries` (created and completed tasks per week, Monday-based with ISO calendar-week labels "KW 46", or per month "Nov 2026") and `projectProgress` (the share of completed tasks in the project's subtree; without subtasks the project's own progress).
+  - Application: `ReportingService` with the existing three metrics (unchanged shapes) and the new queries: active projects with their progress (T41, T39, FA-30, FA-34, decision Q2: top-level tasks that aren't completed), the top 5 members by completed tasks (T40, FA-35), and the trends (T37, FA-33, decision A4: 8 weeks or 6 months).
+  - Every metric counts the tasks the user sees in the task list: task-management's `TaskVisibilityService` (decision B3; staff all, others their own, assigned and member tasks with their subtasks). Before, Admin and Superuser saw all and everyone else only their direct tasks, so a teacher's dashboard counted fewer tasks than their task list.
+  - Infrastructure: `PrismaReportingRepository` (one recursive query for all project subtrees, a `groupBy` for the ranking).
+  - Presentation: `/metrics` keeps its three routes and gets `projects`, `top-members` and `trends?period=week|month` (400 for anything else).
+- Frontend: `StatusDistributionChart` is a doughnut (FA-32) and no longer loads the unused `tasks-by-status`; new `TrendChart` (line chart with a weekly/monthly switch, FA-33), `ProjectProgressList` (active projects with progress bars, FA-30/FA-34) and `TopMembersList` (FA-35) on the dashboard; `fetchMetrics` takes query parameters.
+- Lint: reporting has 0 `no-unsafe-*` findings and the rules are `error` there (Q13). Ratchet 43 → 36.
+
+**Verified:**
+- Done when:
+  - The new metric queries have unit tests: `trends.spec.ts`, `projects.spec.ts`, `reporting.service.spec.ts` (scope, FA-31 counts, the overdue donut slice, projects with subtree progress, top 5, 8 weeks and 6 months), `prisma-reporting.repository.spec.ts` (project query, one recursive subtree query, ranking with names, empty scope).
+  - The dashboard shows the FA-30 to FA-35 elements: checked in Chromium against a backend on the test database, as admin. FA-31 (the counts), FA-32 (the doughnut), FA-30/FA-34 (18 active projects with progress bars), FA-35 (the ranking), FA-33 (the trend line, switched to monthly). Screenshot checked. (Run before the review fixes below, which changed the scope for non-admins, the error texts and the dark-mode colors.)
+- `test/reporting.e2e-spec.ts` against PostgreSQL: a project's progress over its subtree including a grandchild (2 subtasks, 50 %), subtasks not listed as projects, the ranking (at most 5, descending), the trends per week and month, 400 for another period.
+- Backend: 569 unit and 114 E2E tests. Frontend: 30 files, 252 tests. tsc, lint (backend 0 errors, 36 warnings; frontend clean), knip, dependency-cruiser (0 violations, 0 context cycles) and both builds pass. `act`: all three jobs succeeded.
+- `code-review` (high) gave 9 findings. Fixed: (2) the dashboard counted fewer tasks than the task list, (3) a failed request showed "no projects", (4) an older trend answer could replace the newer period's data, (5) the project rows suggested a click that only opened the unfiltered task list, (6) the new cards ignored dark mode, (7) the unused `tasks-by-status` request, (9) a second fetch helper. Kept:
+  - (1) The completion date from `updated_at`: the open question above.
+  - (8) status-distribution and task-progress load the visible rows to count them; a `groupBy` would be cheaper, fine at school size.
+  - (9, part) The four cards repeat their card CSS; a shared style belongs to M25's frontend layering.
+
+**Learned (for later milestones):**
+- With `declaration` builds, a type a public method returns must be exported, even when knip would like it private; name it as the return type.
+- Playwright treats a 0 px wide element as hidden: check a 0 % progress bar by its track.
+
+**Failed / open:** the completion-date question above.

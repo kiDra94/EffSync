@@ -41,7 +41,7 @@ export default tseslint.config(
     },
   },
   {
-    // decision Q13: a migrated context keeps 0 no-unsafe-* findings (M11 identity-access, M15 task-management, M19 documents-notes, M20 communication and the shared realtime transport, M22 school-organization, M23 notifications)
+    // decision Q13: a migrated context keeps 0 no-unsafe-* findings (M11 identity-access, M15 task-management, M19 documents-notes, M20 communication and the shared realtime transport, M22 school-organization, M23 notifications, M24 reporting)
     files: [
       "src/contexts/identity-access/**/*.ts",
       "src/contexts/task-management/**/*.ts",
@@ -49,6 +49,7 @@ export default tseslint.config(
       "src/contexts/communication/**/*.ts",
       "src/contexts/school-organization/**/*.ts",
       "src/contexts/notifications/**/*.ts",
+      "src/contexts/reporting/**/*.ts",
       "src/shared/**/realtime*.ts",
       "src/shared/infrastructure/realtime/**/*.ts",
     ],

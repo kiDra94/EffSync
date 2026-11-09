@@ -18,7 +18,7 @@ import {
   ThrottlerModuleOptions,
 } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
-import { MetricsModule } from "./modules/metrics/metrics.module";
+import { ReportingModule } from "./contexts/reporting/reporting.module";
 
 @Module({
   imports: [
@@ -54,7 +54,7 @@ import { MetricsModule } from "./modules/metrics/metrics.module";
     DocumentsNotesModule,
     SchoolOrganizationModule,
     PrismaModule,
-    MetricsModule,
+    ReportingModule,
   ],
   controllers: [AppController],
   providers: [
