@@ -188,6 +188,12 @@
           <span v-if="templateMessage" class="info-message">{{ templateMessage }}</span>
         </div>
       </form>
+
+      <!-- T09, T74, decision Q16 (M27): outside the form, they send on their own -->
+      <div v-if="task?.task_id" class="task-discussion">
+        <TaskGradeRemarks :taskId="task.task_id" :canWrite="isTeacher" />
+        <TaskComments :taskId="task.task_id" />
+      </div>
     </div>
   </div>
 </template>
@@ -200,6 +206,8 @@ import { useTemplateStore } from '@/stores/entities/templateStore';
 import { PRIORITIES } from '@/config/priorities';
 import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
 import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
+import TaskComments from '@/components/tasks/TaskComments.vue';
+import TaskGradeRemarks from '@/components/tasks/TaskGradeRemarks.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserStore } from '@/stores/entities/userStore';
@@ -565,6 +573,10 @@ const removeMember = (userId) => {
 
 .task-form {
   padding: 24px;
+}
+
+.task-discussion {
+  padding: 0 24px 24px;
 }
 
 .form-group {

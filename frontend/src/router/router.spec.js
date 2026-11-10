@@ -16,4 +16,12 @@ describe('router', () => {
   it('finds the routes', () => {
     expect(records.length).toBeGreaterThan(0);
   });
+
+  // M27: the grades view (UC-13) and the audit log (UC-32) are routed
+  it.each([
+    ['Grades', '/grades'],
+    ['AuditLog', '/admin/audit-log'],
+  ])('routes %s at %s', (name, path) => {
+    expect(router.resolve({ name }).path).toBe(path);
+  });
 });

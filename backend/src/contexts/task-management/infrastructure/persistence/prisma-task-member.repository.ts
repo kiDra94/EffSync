@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { TaskMemberRepository } from "../../application/ports/task-member.repository";
+import { AVATAR_VERSION } from "../../../../shared/application/profile-picture";
 
 const MEMBER_USER = {
   select: {
@@ -9,6 +10,8 @@ const MEMBER_USER = {
     lastname: true,
     email: true,
     username: true,
+    // for profile_picture (M27)
+    user_avatars: AVATAR_VERSION,
   },
 } as const;
 

@@ -117,6 +117,19 @@ const routes = [
                 meta: { roles: ['admin', 'superuser'] },
             },
             {
+                // M27 (T33, UC-32): the activity log of all tasks
+                path: 'admin/audit-log',
+                name: 'AuditLog',
+                component: () => import('@/views/AuditLogView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                // M27 (UC-13 "Note einsehen"): the student's grades
+                path: 'grades',
+                name: 'Grades',
+                component: () => import('@/views/GradesView.vue'),
+            },
+            {
                 path: 'permissions',
                 name: 'PermissionsDetail',
                 component: () => import('@/views/PermissionsDetailView.vue'),

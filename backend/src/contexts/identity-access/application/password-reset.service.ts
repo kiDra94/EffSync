@@ -1,4 +1,10 @@
-import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from "@nestjs/common";
+import * as bcrypt from "bcrypt";
 import { AuthService } from "./auth.service";
 import { UnitOfWork } from "../../../shared/application/unit-of-work";
 import { PasswordResetMailer } from "./ports/password-reset-mailer";
@@ -68,6 +74,31 @@ export class PasswordResetService {
       throw new UnauthorizedException("Ungültiger oder abgelaufener Link");
     }
     return userId;
+  }
+
+  /**
+   * The password change in the profile (T47, M27): only with the current
+   * password; then as changePassword, all sessions end. 400 for a wrong
+   * current password (a 401 would make the frontend try a token refresh).
+   */
+  async changeOwnPassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.users.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    if (!user.password_hash) {
+      throw new BadRequestException(
+        "Für dieses Konto ist kein Passwort gesetzt (Anmeldung mit Google)",
+      );
+    }
+    if (!(await bcrypt.compare(currentPassword, user.password_hash))) {
+      throw new BadRequestException("Das aktuelle Passwort ist falsch");
+    }
+    await this.changePassword(userId, newPassword);
   }
 
   /**

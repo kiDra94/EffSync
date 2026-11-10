@@ -10,6 +10,7 @@ import {
   TaskMemberRepository,
 } from "./ports/task-member.repository";
 import { TaskNotificationsService } from "./task-notifications.service";
+import { withProfilePicture } from "../../../shared/application/profile-picture";
 
 /**
  * Permission flags (bitwise):
@@ -30,9 +31,16 @@ interface TaskMemberView {
   task_id: number;
   user_id: number;
   joined_at: Date | null;
-  users: MemberUser | null;
+  users: MemberUserView | null;
   role: "creator" | "assigned" | "member";
 }
+
+/** A member's user with the avatar as profile_picture (M27, decision Q8c). */
+type MemberUserView = Omit<MemberUser, "user_avatars"> & {
+  profile_picture: string | null;
+};
+const userView = (user: MemberUser | null): MemberUserView | null =>
+  user && withProfilePicture(user);
 
 /** Task members (T44): add, remove, list, and the rwx check on a task. */
 @Injectable()
@@ -134,7 +142,7 @@ export class TaskMembersService {
         task_id: taskId,
         user_id: task.created_by,
         joined_at: task.created_at,
-        users: task.users_tasks_created_byTousers,
+        users: userView(task.users_tasks_created_byTousers),
         role: "creator",
       });
     }
@@ -143,7 +151,7 @@ export class TaskMembersService {
         task_id: taskId,
         user_id: task.assigned_to,
         joined_at: task.created_at,
-        users: task.users_tasks_assigned_toTousers,
+        users: userView(task.users_tasks_assigned_toTousers),
         role: "assigned",
       });
     }
@@ -155,7 +163,7 @@ export class TaskMembersService {
           task_id: member.task_id,
           user_id: member.user_id,
           joined_at: member.joined_at,
-          users: member.users,
+          users: userView(member.users),
           role: "member",
         });
       }
@@ -181,7 +189,10 @@ export class TaskMembersService {
   }
 
   async findByTask(taskId: number) {
-    return this.members.findMembersWithUsers(taskId);
+    return (await this.members.findMembersWithUsers(taskId)).map((member) => ({
+      ...member,
+      users: userView(member.users),
+    }));
   }
 
   /** Creator and assignee are implicit members. */

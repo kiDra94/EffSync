@@ -1,9 +1,9 @@
-import { ExecutionContext } from "@nestjs/common";
+import { ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { PasswordChangeGuard } from "./password-change.guard";
 import { PasswordResetService } from "../../application/password-reset.service";
 
-// M13: set-new-password accepts a reset token from the e-mail link, or an
-// access token (the Google reset path keeps working)
+// M13: set-new-password accepts a reset token (the e-mail link or the Google
+// reset path); review M27: an access token no longer passes
 describe("PasswordChangeGuard", () => {
   const contextFor = (request: object) =>
     ({
@@ -24,24 +24,28 @@ describe("PasswordChangeGuard", () => {
     expect(request.user).toEqual({ userId: 9 });
   });
 
-  it("passes a token that is no reset token on to the JWT check", async () => {
+  it("rejects a token that is no reset token, such as an access token", async () => {
     const resets = { userIdForResetToken: jest.fn().mockResolvedValue(null) };
     const guard = new PasswordChangeGuard(
       resets as unknown as PasswordResetService,
     );
-    const jwtCheck = jest
-      .spyOn(
-        Object.getPrototypeOf(PasswordChangeGuard.prototype),
-        "canActivate",
-      )
-      .mockResolvedValue(true);
 
     await expect(
       guard.canActivate(
         contextFor({ headers: { authorization: "Bearer access.jwt" } }),
       ),
-    ).resolves.toBe(true);
-    expect(jwtCheck).toHaveBeenCalledTimes(1);
-    jwtCheck.mockRestore();
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a request without a token", async () => {
+    const resets = { userIdForResetToken: jest.fn() };
+    const guard = new PasswordChangeGuard(
+      resets as unknown as PasswordResetService,
+    );
+
+    await expect(
+      guard.canActivate(contextFor({ headers: {} })),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(resets.userIdForResetToken).not.toHaveBeenCalled();
   });
 });

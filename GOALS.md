@@ -570,7 +570,7 @@ Rules for all milestones:
   - Done when: `searchStore` has tests for each category and the grouped dropdown has a component test.
   - Risk: low.
 
-- [ ] **M27: Planned frontend features: grades view, password change, avatar, audit-log view, comments**
+- [x] **M27: Planned frontend features: grades view, password change, avatar, audit-log view, comments**
   - Why:
     - UNUSED_CODE.md Planned: `GradesView.vue` and its `GET /documents/my-grades` endpoint are complete but unrouted; UC-13 "Note einsehen".
     - T47: the password fields in `SecurityTab.vue` have no handler, and there is no avatar to edit (decision Q8c).

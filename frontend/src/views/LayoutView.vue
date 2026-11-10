@@ -6,6 +6,7 @@ import { useNotificationStore } from "@/stores/notificationStore";
 import { useSearchStore } from "@/stores/searchStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import SearchResults from "@/components/layout/SearchResults.vue";
+import UserAvatar from "@/components/profile/UserAvatar.vue";
 
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
@@ -38,6 +39,7 @@ onMounted(async () => {
     // after a reload the login didn't run: the theme comes from the server
     // here (once per session; the notifications don't wait for it)
     settingsStore.ensureLoaded();
+    authStore.loadProfilePicture();
     await notificationStore.fetchNotifications();
     notificationStore.initSocketListeners();
   }
@@ -115,8 +117,10 @@ const closeSearch = () => {
       <router-link :to="{ name: 'TemplateLists' }" title="Vorlagen">📄</router-link>
       <router-link :to="{ name: 'NoteLists' }" title="Notizen">📝</router-link>
       <router-link :to="{ name: 'Chat' }" title="Chat">💬</router-link>
-      <!-- DEBUG: isAdmin={{ authStore.isAdmin }}, userRole={{ authStore.userRole }} -->
+      <!-- M27: the grades (UC-13) for students, the audit log (UC-32) for admins -->
+      <router-link v-if="authStore.userRole === 'student'" :to="{ name: 'Grades' }" title="Noten">🎓</router-link>
       <router-link v-if="authStore.isAdmin" :to="{ name: 'AdminUsers' }" title="Admin">⚙️</router-link>
+      <router-link v-if="authStore.isAdmin" :to="{ name: 'AuditLog' }" title="Audit-Log">🧾</router-link>
     </div>
 
     <div class="main-wrapper">
@@ -138,7 +142,8 @@ const closeSearch = () => {
 
           <div v-if="authStore.isAuthenticated" class="user-menu">
             <div class="avatar" @click.stop="toggleDropdown" title="Profil öffnen">
-              {{ userInitial }}
+              <!-- T47, decision Q8c (M27): the picture instead of the initial when present -->
+              <UserAvatar :picture="authStore.profilePicture" :initials="userInitial" />
               <span v-if="notificationStore.unreadCount > 0" class="notification-badge">
                 {{ notificationStore.unreadCount }}
               </span>

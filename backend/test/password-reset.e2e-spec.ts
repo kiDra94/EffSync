@@ -114,8 +114,10 @@ describe("Password reset by e-mail (e2e)", () => {
       .send({ refreshToken: before.refreshToken })
       .expect(401);
 
-    // the Google reset path stays: it sets the password with an access token
-    await setPassword(after.token, "google-pfad-123").expect(201);
+    // review M27: a session's access token sets no password without the
+    // current one (that is /auth/change-password); the Google reset path
+    // sends a reset token since review M32
+    await setPassword(after.token, "google-pfad-123").expect(401);
   });
 
   it("rejects an expired reset link with 401", async () => {

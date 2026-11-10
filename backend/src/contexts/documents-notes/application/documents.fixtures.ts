@@ -15,7 +15,7 @@ import {
 import type { TaskNotificationsService } from "../../task-management/application/task-notifications.service";
 import { PrismaTaskRepository } from "../../task-management/infrastructure/persistence/prisma-task.repository";
 import { LocalDocumentStorage } from "../infrastructure/local-document-storage";
-import { MagicByteFileInspector } from "../infrastructure/magic-byte-file-inspector";
+import { MagicByteFileInspector } from "../../../shared/infrastructure/files/magic-byte-file-inspector";
 import { PrismaDocumentRepository } from "../infrastructure/persistence/prisma-document.repository";
 import { DocumentAccessService } from "./document-access.service";
 import { DocumentGradingService } from "./document-grading.service";

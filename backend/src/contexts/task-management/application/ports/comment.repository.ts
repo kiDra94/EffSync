@@ -15,10 +15,13 @@ export abstract class CommentRepository {
     taskId: number,
     userId: number,
     content: string,
-  ): Promise<CommentRecord>;
+  ): Promise<CommentWithAuthor>;
   abstract findForTask(taskId: number): Promise<CommentWithAuthor[]>;
   abstract findOne(commentId: number): Promise<CommentRecord | null>;
-  abstract update(commentId: number, content: string): Promise<CommentRecord>;
+  abstract update(
+    commentId: number,
+    content: string,
+  ): Promise<CommentWithAuthor>;
   abstract delete(commentId: number): Promise<void>;
 
   // for the @mention mail (T09)

@@ -17,7 +17,7 @@ import { DocumentAccessService } from "./document-access.service";
 import { toDocumentView } from "./document-view";
 import { DocumentRepository } from "./ports/document.repository";
 import { DocumentStorage } from "./ports/document-storage";
-import { FileInspector } from "./ports/file-inspector";
+import { FileInspector } from "../../../shared/application/file-inspector";
 
 /** An uploaded file (Express.Multer.File satisfies it). */
 interface UploadedFile {

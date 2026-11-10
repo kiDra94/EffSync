@@ -24,6 +24,7 @@ import {
 import { UsersService } from "../application/users.service";
 import { TwoFactorService } from "../application/two-factor.service";
 import { UserSettingsService } from "../application/user-settings.service";
+import { AvatarService } from "../application/avatar.service";
 import { UpdateUserSettingsDto } from "./dto/update-user-settings.dto";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
@@ -44,6 +45,7 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly twoFactor: TwoFactorService,
     private readonly settings: UserSettingsService,
+    private readonly avatars: AvatarService,
   ) {}
 
   /**
@@ -75,8 +77,12 @@ export class UsersController {
   })
   @Get("profile")
   @Permissions("view_dashboard")
-  getProfile(@Req() req: AuthenticatedRequest) {
-    return { ...req.user };
+  async getProfile(@Req() req: AuthenticatedRequest) {
+    // the picture isn't part of the token check on every request (M37)
+    return {
+      ...req.user,
+      profile_picture: await this.avatars.urlOf(req.user.userId),
+    };
   }
 
   /**

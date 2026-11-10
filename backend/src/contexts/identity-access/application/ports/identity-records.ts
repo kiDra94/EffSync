@@ -4,6 +4,7 @@
  * never calls Prisma (that is infrastructure's job).
  */
 import type { Prisma, users } from "@prisma/client";
+import type { AVATAR_VERSION } from "../../../../shared/application/profile-picture";
 
 export type UserRecord = users;
 
@@ -18,11 +19,18 @@ export type UserSummary = Prisma.usersGetPayload<{
     lastname: true;
     username: true;
     email: true;
+    user_avatars: typeof AVATAR_VERSION;
   };
 }>;
 
 export type UserForChat = Prisma.usersGetPayload<{
-  select: { user_id: true; firstname: true; lastname: true; username: true };
+  select: {
+    user_id: true;
+    firstname: true;
+    lastname: true;
+    username: true;
+    user_avatars: typeof AVATAR_VERSION;
+  };
 }>;
 
 export type UserWithAccess = Prisma.usersGetPayload<{
@@ -32,6 +40,7 @@ export type UserWithAccess = Prisma.usersGetPayload<{
     lastname: true;
     username: true;
     email: true;
+    user_avatars: typeof AVATAR_VERSION;
     user_roles: { include: { roles: true } };
     user_permissions: { include: { permissions: true } };
   };

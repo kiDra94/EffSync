@@ -14,6 +14,19 @@ export const authApi = {
     return apiClient.get('/users/profile')
   },
 
+  // the own profile picture (T47, decision Q8c, M27): image only, at most 1 MB
+  uploadAvatar(file) {
+    const form = new FormData()
+    form.append('file', file)
+    return apiClient.put('/users/me/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
+  deleteAvatar() {
+    return apiClient.delete('/users/me/avatar')
+  },
+
   // the user behind the token, e.g. after the Google callback (decision Q9)
   getAuthProfile() {
     return apiClient.get('/auth/profile')

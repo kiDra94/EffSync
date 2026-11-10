@@ -27,6 +27,7 @@ import { LoginDto } from "./dto/login.dto";
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { NewPasswordDto } from "./dto/new-password.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import {
   PasswordChangeGuard,
   type PasswordChangeRequest,
@@ -156,8 +157,8 @@ export class AuthController {
     await this.passwordReset.requestReset(body.email);
   }
 
-  // a reset token from the e-mail link or an access token (Google reset path);
-  // the change ends all of the user's sessions
+  // only a reset token, from the e-mail link or the Google reset path
+  // (review M27: no access token); the change ends all of the user's sessions
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
   @UseGuards(PasswordChangeGuard)
@@ -169,6 +170,35 @@ export class AuthController {
   ) {
     await this.passwordReset.changePassword(req.user.userId, body.password);
     return { message: "Passwort erfolgreich geändert" };
+  }
+
+  // T47 (M27): in the profile, with the current password; as a reset, it
+  // ends all sessions, and this one gets new tokens so it stays signed in.
+  // 3 a minute like the login, against guessing with a stolen token
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: "Kein oder ungültiges Token" })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Change the own password with the current one",
+    description:
+      "400 for a wrong current password; ends all sessions and returns new tokens for this one.",
+  })
+  @Post("change-password")
+  async changePassword(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: ChangePasswordDto,
+  ) {
+    const userId = req.user.userId;
+    await this.passwordReset.changeOwnPassword(
+      userId,
+      body.current_password,
+      body.new_password,
+    );
+    return {
+      ...(await this.authService.issueTokenFor(userId)),
+      refreshToken: await this.sessions.start(userId),
+    };
   }
 
   @ApiBearerAuth()

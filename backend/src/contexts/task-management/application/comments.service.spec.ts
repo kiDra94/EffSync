@@ -300,6 +300,17 @@ describe("CommentsService - @mention Email Notifications", () => {
           created_by: 2,
           content: "@alice please review this code",
         },
+        // review M27: with the author, for the list
+        include: {
+          users: {
+            select: {
+              user_id: true,
+              email: true,
+              firstname: true,
+              lastname: true,
+            },
+          },
+        },
       });
 
       expect(mockEmailService.sendMentionEmail).toHaveBeenCalledWith(

@@ -20,6 +20,8 @@ export class PrismaCommentRepository extends CommentRepository {
   create(taskId: number, userId: number, content: string) {
     return this.db.comments.create({
       data: { task_id: taskId, created_by: userId, content },
+      // the author too, so the list can show the new comment at once (review M27)
+      include: { users: AUTHOR },
     });
   }
 
@@ -39,6 +41,7 @@ export class PrismaCommentRepository extends CommentRepository {
     return this.db.comments.update({
       where: { comment_id: commentId },
       data: { content, updated_at: new Date() },
+      include: { users: AUTHOR },
     });
   }
 

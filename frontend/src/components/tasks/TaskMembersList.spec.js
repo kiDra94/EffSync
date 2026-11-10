@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import TaskMembersList from './TaskMembersList.vue';
+import UserAvatar from '@/components/profile/UserAvatar.vue';
+
+vi.mock('@/stores/entities/avatarStore', () => ({
+  useAvatarStore: () => ({ imageUrl: vi.fn().mockResolvedValue('blob:avatar') }),
+}));
 import { taskMembersApi } from '@/api/taskMembers';
 import { usersApi } from '@/api/usersService';
 
@@ -129,6 +134,20 @@ describe('TaskMembersList.vue', () => {
     // Check first member
     expect(memberCards[0].text()).toContain('John Doe');
     expect(memberCards[0].text()).toContain('john@example.com');
+  });
+
+  // T47, decision Q8c (M27): the members' profile pictures from the server
+  it('shows a member\'s profile picture instead of the initials', async () => {
+    taskMembersApi.getTaskMembers.mockResolvedValue({
+      data: [{ ...mockMembers[0], users: { ...mockMembers[0].users, profile_picture: '/users/2/avatar?v=1' } }],
+    });
+    const wrapper = mount(TaskMembersList, {
+      props: { taskId: mockTask.task_id, creatorId: mockTask.created_by, assignedToId: null }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(wrapper.findComponent(UserAvatar).props()).toEqual({ picture: '/users/2/avatar?v=1', initials: 'JD' });
   });
 
   it('shows creator badge for creator', async () => {

@@ -16,6 +16,11 @@ import { TwoFactorService } from "./application/two-factor.service";
 import { UserSettingsService } from "./application/user-settings.service";
 import { UserSettingsRepository } from "./application/ports/user-settings.repository";
 import { PrismaUserSettingsRepository } from "./infrastructure/persistence/prisma-user-settings.repository";
+import { AvatarService } from "./application/avatar.service";
+import { AvatarRepository } from "./application/ports/avatar.repository";
+import { PrismaAvatarRepository } from "./infrastructure/persistence/prisma-avatar.repository";
+import { FileInspector } from "../../shared/application/file-inspector";
+import { MagicByteFileInspector } from "../../shared/infrastructure/files/magic-byte-file-inspector";
 import { SecretCipher } from "./application/ports/secret-cipher";
 import { Totp } from "./application/ports/totp";
 import { TwoFactorChallenges } from "./application/ports/two-factor-challenges";
@@ -51,6 +56,7 @@ import { TwoFactorController } from "./presentation/two-factor.controller";
 import { PermissionsController } from "./presentation/permissions.controller";
 import { RolesController } from "./presentation/roles.controller";
 import { UsersController } from "./presentation/users.controller";
+import { AvatarController } from "./presentation/avatar.controller";
 import { PermissionsGuard } from "./presentation/security/permissions.guard";
 import { RolesGuard } from "./presentation/security/roles.guard";
 import { PasswordChangeGuard } from "./presentation/security/password-change.guard";
@@ -74,6 +80,7 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     AuthController,
     TwoFactorController,
     UsersController,
+    AvatarController,
     RolesController,
     PermissionsController,
   ],
@@ -94,6 +101,9 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     // M25: the theme per user (decision Q8f)
     UserSettingsService,
     { provide: UserSettingsRepository, useClass: PrismaUserSettingsRepository },
+    AvatarService,
+    { provide: AvatarRepository, useClass: PrismaAvatarRepository },
+    { provide: FileInspector, useClass: MagicByteFileInspector },
     AccountDeletionRegistry,
     { provide: RealtimeAuthenticator, useClass: JwtRealtimeAuthenticator },
     { provide: ResetTokens, useClass: JwtResetTokens },

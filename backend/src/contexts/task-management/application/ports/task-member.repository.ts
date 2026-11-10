@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import type { TaskRecord } from "./task-records";
+import { AVATAR_VERSION } from "../../../../shared/application/profile-picture";
 
 const memberUser = {
   select: {
@@ -8,6 +9,8 @@ const memberUser = {
     lastname: true,
     email: true,
     username: true,
+    // for profile_picture (M27)
+    user_avatars: AVATAR_VERSION,
   },
 } as const;
 

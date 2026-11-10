@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 
-// T31, FA-06 (M32): 2FA with an authenticator app, through the auth store
-// (M25, decision Q19); the password card is still static
+// T31, FA-06 (M32): 2FA with an authenticator app; T47 (M27): the password
+// change; both through the auth store (M25, decision Q19)
 const authStore = useAuthStore()
 const twoFactorEnabled = ref(false)
 const setup = ref(null) // { secret, qr_code } while the setup waits for its code
@@ -49,6 +49,35 @@ const confirmSetup = () =>
     code.value = ''
   })
 
+// T47 (M27): the password change with the current password
+const passwords = reactive({ current: '', next: '', confirm: '' })
+const passwordMessage = ref('')
+const passwordError = ref('')
+
+const changePassword = async () => {
+  passwordMessage.value = ''
+  passwordError.value = ''
+  if (passwords.next !== passwords.confirm) {
+    passwordError.value = 'Die Passwörter stimmen nicht überein.'
+    return
+  }
+  // the backend's rule (registration, NewPasswordDto)
+  if (passwords.next.length < 7 || passwords.next.length > 32) {
+    passwordError.value = 'Das Passwort muss 7 bis 32 Zeichen lang sein.'
+    return
+  }
+  busy.value = true
+  try {
+    await authStore.changePassword(passwords.current, passwords.next)
+    Object.assign(passwords, { current: '', next: '', confirm: '' })
+    passwordMessage.value = 'Passwort geändert.'
+  } catch (error) {
+    passwordError.value = errorText(error)
+  } finally {
+    busy.value = false
+  }
+}
+
 const disable = () =>
   run(async () => {
     await authStore.disableTwoFactor(code.value)
@@ -62,20 +91,25 @@ const disable = () =>
     <!-- Change password -->
     <div class="security-card">
       <h2>Passwort ändern</h2>
-      <form class="security-form">
+      <form class="security-form" @submit.prevent="changePassword">
         <div class="form-group">
-          <label>Aktuelles Passwort</label>
-          <input type="password" class="form-input" placeholder="••••••••" />
+          <label for="current-password">Aktuelles Passwort</label>
+          <input id="current-password" v-model="passwords.current" type="password" class="form-input"
+            placeholder="••••••••" autocomplete="current-password" required />
         </div>
         <div class="form-group">
-          <label>Neues Passwort</label>
-          <input type="password" class="form-input" placeholder="••••••••" />
+          <label for="new-password">Neues Passwort</label>
+          <input id="new-password" v-model="passwords.next" type="password" class="form-input"
+            placeholder="••••••••" autocomplete="new-password" required />
         </div>
         <div class="form-group">
-          <label>Passwort bestätigen</label>
-          <input type="password" class="form-input" placeholder="••••••••" />
+          <label for="confirm-password">Passwort bestätigen</label>
+          <input id="confirm-password" v-model="passwords.confirm" type="password" class="form-input"
+            placeholder="••••••••" autocomplete="new-password" required />
         </div>
-        <button type="button" class="btn-secondary">Passwort ändern</button>
+        <p v-if="passwordError" class="error-msg password-error" role="alert">{{ passwordError }}</p>
+        <p v-if="passwordMessage" class="password-message" role="status">{{ passwordMessage }}</p>
+        <button type="submit" class="btn-secondary" :disabled="busy">Passwort ändern</button>
       </form>
     </div>
 
@@ -209,6 +243,11 @@ const disable = () =>
 
 .security-card .form-group {
   margin-bottom: 12px;
+}
+
+.password-message {
+  margin: 0;
+  color: #047857;
 }
 
 .security-card .error-msg {

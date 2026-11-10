@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import TaskForm from './TaskForm.vue';
 import TaskMembersList from './TaskMembersList.vue';
+import TaskComments from './TaskComments.vue';
+import TaskGradeRemarks from './TaskGradeRemarks.vue';
 import { taskMembersApi } from '@/api/taskMembers';
 import { usersApi } from '@/api/usersService';
 
@@ -25,6 +27,13 @@ vi.mock('@/components/tasks/TaskTemplateSelector.vue', () => ({
 
 vi.mock('@/components/tasks/SubtaskBuilder.vue', () => ({
   default: { name: 'SubtaskBuilder', template: '<div></div>' }
+}));
+
+vi.mock('@/stores/entities/taskCommentStore', () => ({
+  useTaskCommentStore: () => ({
+    fetchComments: vi.fn().mockResolvedValue([]),
+    fetchGradeRemarks: vi.fn().mockResolvedValue([]),
+  }),
 }));
 
 describe('TaskForm.vue with TaskMembersList Integration', () => {
@@ -121,6 +130,21 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
     expect(mockExistingTask.task_id).toBe(1);
     expect(mockExistingTask.created_by).toBe(1);
     expect(mockExistingTask.assigned_to).toBe(2);
+  });
+
+  // T09, T74, decision Q16 (M27): comments and grading remarks in the task detail view
+  it('shows the comments and the grading remarks for an existing task', () => {
+    const wrapper = mount(TaskForm, { props: { task: mockExistingTask } });
+
+    expect(wrapper.findComponent(TaskComments).props('taskId')).toBe(1);
+    expect(wrapper.findComponent(TaskGradeRemarks).props()).toEqual({ taskId: 1, canWrite: false });
+  });
+
+  it('has no comments or remarks for a new task', () => {
+    const wrapper = mount(TaskForm, { props: { task: null } });
+
+    expect(wrapper.findComponent(TaskComments).exists()).toBe(false);
+    expect(wrapper.findComponent(TaskGradeRemarks).exists()).toBe(false);
   });
 
   it('loads form data for existing task', () => {

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { ConflictException, Injectable, Optional } from "@nestjs/common";
+import { AVATAR_VERSION } from "../../../../shared/application/profile-picture";
 import { PrismaService } from "../../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { GHOST_USER_ID } from "../../domain/ghost-user";
@@ -111,6 +112,7 @@ export class PrismaUserRepository extends UserRepository {
         lastname: true,
         username: true,
         email: true,
+        user_avatars: AVATAR_VERSION,
       },
     });
   }
@@ -124,6 +126,7 @@ export class PrismaUserRepository extends UserRepository {
         firstname: true,
         lastname: true,
         username: true,
+        user_avatars: AVATAR_VERSION,
       },
       orderBy: [{ lastname: "asc" }, { firstname: "asc" }],
     });
@@ -138,6 +141,7 @@ export class PrismaUserRepository extends UserRepository {
         lastname: true,
         username: true,
         email: true,
+        user_avatars: AVATAR_VERSION,
         user_roles: { include: { roles: true } },
         user_permissions: { include: { permissions: true } },
       },

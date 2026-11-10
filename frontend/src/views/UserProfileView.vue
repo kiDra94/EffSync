@@ -6,6 +6,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import NotificationsList from '@/components/notifications/NotificationsList.vue';
 import SecurityTab from '@/components/notifications/SecurityTab.vue';
 import EmailPreferences from '@/components/notifications/EmailPreferences.vue';
+import AvatarEditor from '@/components/profile/AvatarEditor.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -14,13 +15,12 @@ const notificationStore = useNotificationStore();
 
 const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
-const tabs = computed(() => {
-  const baseTabs = ['profile', 'security', 'activity'];
-  if (isOwnProfile.value) {
-    baseTabs.push('notifications');
-  }
-  return baseTabs;
-});
+// security and notifications are the signed-in user's own (review M27: the
+// password form changes the own password, whose profile is shown or not)
+const OWN_TABS = ['security', 'notifications'];
+const tabs = computed(() =>
+  isOwnProfile.value ? ['profile', 'security', 'activity', 'notifications'] : ['profile', 'activity'],
+);
 
 const STORAGE_KEY_PREFIX = 'effsync_user_profile_';
 
@@ -55,6 +55,7 @@ const getBaseUser = () => {
 };
 
 const user = ref(getBaseUser());
+const initials = computed(() => `${user.value.firstname?.[0] ?? ''}${user.value.lastname?.[0] ?? ''}`);
 
 const editMode = ref(false);
 const formData = ref({ ...user.value });
@@ -120,7 +121,7 @@ onMounted(() => {
   notificationStore.initFromStorage();
   // Set the tab from the query parameter (e.g. ?tab=notifications)
   if (route.query.tab) {
-    if (route.query.tab === 'notifications' && !isOwnProfile.value) {
+    if (OWN_TABS.includes(route.query.tab) && !isOwnProfile.value) {
       activeTab.value = 'profile';
     } else {
       activeTab.value = route.query.tab;
@@ -135,8 +136,10 @@ onMounted(() => {
 
     <div class="profile-header">
       <div class="avatar-section">
-        <div class="avatar-large">
-          {{ user.firstname[0] }}{{ user.lastname[0] }}
+        <!-- T47, decision Q8c (M27): the own picture can be changed here -->
+        <AvatarEditor v-if="isOwnProfile" :initials="initials" />
+        <div v-else class="avatar-large">
+          {{ initials }}
         </div>
         <div class="user-title">
           <h1>{{ user.firstname }} {{ user.lastname }}</h1>

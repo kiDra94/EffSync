@@ -1,4 +1,5 @@
-import { UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, UnauthorizedException } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
 import { PasswordResetService } from "./password-reset.service";
 import { UserRepository } from "./ports/user.repository";
 import { ResetTokens } from "./ports/reset-tokens";
@@ -147,6 +148,47 @@ describe("PasswordResetService", () => {
 
   // review M13 (3): both writes in one unit of work, so a failed revoke
   // doesn't leave a changed password with live sessions
+  // T47 (M27): the password change in the profile needs the current password
+  describe("changeOwnPassword", () => {
+    it("checks the current password, then changes it and ends all sessions", async () => {
+      users.findById.mockResolvedValue({
+        ...user,
+        password_hash: await bcrypt.hash("altes-passwort", 4),
+      });
+
+      await service.changeOwnPassword(9, "altes-passwort", "neues-passwort");
+
+      expect(auth.setNewPassword).toHaveBeenCalledWith(9, "neues-passwort");
+      expect(refreshTokens.revokeAllForUser).toHaveBeenCalledWith(9);
+    });
+
+    it("refuses a wrong current password with 400 and changes nothing", async () => {
+      users.findById.mockResolvedValue({
+        ...user,
+        password_hash: await bcrypt.hash("altes-passwort", 4),
+      });
+
+      await expect(
+        service.changeOwnPassword(9, "falsch", "neues-passwort"),
+      ).rejects.toThrow(
+        new BadRequestException("Das aktuelle Passwort ist falsch"),
+      );
+      expect(auth.setNewPassword).not.toHaveBeenCalled();
+    });
+
+    it("refuses an account without a password (Google only) and a missing one", async () => {
+      users.findById.mockResolvedValueOnce({ ...user, password_hash: null });
+      await expect(
+        service.changeOwnPassword(9, "x", "neues-passwort"),
+      ).rejects.toThrow(BadRequestException);
+
+      users.findById.mockResolvedValueOnce(null);
+      await expect(
+        service.changeOwnPassword(9, "x", "neues-passwort"),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
   it("changes the password and ends all of the user's sessions in one unit of work", async () => {
     unitOfWork.run.mockImplementation(
       async (work: (tx: Transaction) => Promise<unknown>) => {

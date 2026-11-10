@@ -14,6 +14,7 @@ import { UnitOfWork } from "../../../shared/application/unit-of-work";
 import { AccountDeletionRegistry } from "./account-deletion";
 import { BCRYPT_COST } from "./password-hashing";
 import { withoutPasswordHash } from "./public-user";
+import { withProfilePicture } from "../../../shared/application/profile-picture";
 
 /** @public named in UsersController return types (declaration output) */
 export interface RolePermissionSummary {
@@ -53,17 +54,17 @@ export class UsersService {
   }
 
   async findAllForChat() {
-    return await this.users.findAllForChat();
+    return (await this.users.findAllForChat()).map(withProfilePicture);
   }
 
   async findAll() {
-    return await this.users.findAllWithAccess();
+    return (await this.users.findAllWithAccess()).map(withProfilePicture);
   }
 
   async findOne(id: number) {
     const user = await this.users.findSummary(id);
     if (!user) throw new NotFoundException(`Member with ID ${id} not found`);
-    return user;
+    return withProfilePicture(user);
   }
 
   async update(id: number, updateUserDto: UpdateUserInput) {

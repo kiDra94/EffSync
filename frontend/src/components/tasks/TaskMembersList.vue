@@ -12,14 +12,9 @@
       <div class="members-list">
         <div v-for="member in allMembers" :key="member.user_id" class="member-card">
           <div class="member-avatar">
-            <img
-              v-if="member.profile_picture"
-              :src="member.profile_picture"
-              :alt="`${member.firstname} ${member.lastname}`"
-              class="avatar-image"
-            />
-            <div v-else class="avatar-placeholder">
-              {{ getInitials(member.firstname, member.lastname) }}
+            <!-- T47, decision Q8c (M27): the picture, loaded with the token -->
+            <div class="avatar-placeholder">
+              <UserAvatar :picture="member.profile_picture" :initials="getInitials(member.firstname, member.lastname)" />
             </div>
           </div>
 
@@ -142,6 +137,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useTaskMemberStore } from '@/stores/entities/taskMemberStore';
 import { useUserStore } from '@/stores/entities/userStore';
+import UserAvatar from '@/components/profile/UserAvatar.vue';
 
 // M25 (decision Q19): data through stores, not the api/ layer
 const taskMemberStore = useTaskMemberStore();
@@ -437,12 +433,10 @@ watch(() => props.taskId, () => {
   flex-shrink: 0;
 }
 
-.avatar-image,
 .avatar-placeholder {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  object-fit: cover;
   display: flex;
   align-items: center;
   justify-content: center;

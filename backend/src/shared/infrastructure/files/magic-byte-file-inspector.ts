@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { FileInspector } from "../application/ports/file-inspector";
+import { FileInspector } from "../../application/file-inspector";
 
 const startsWith = (bytes: Buffer, signature: number[], offset = 0) =>
   bytes.length >= offset + signature.length &&

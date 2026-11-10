@@ -1,24 +1,26 @@
-import { ExecutionContext, Injectable } from "@nestjs/common";
-import { AuthGuard } from "@nestjs/passport";
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import type { Request } from "express";
 import { PasswordResetService } from "../../application/password-reset.service";
 
-/** The user of POST /auth/set-new-password, by reset token or access token. */
+/** The user of POST /auth/set-new-password, by reset token. */
 export interface PasswordChangeRequest {
   user: { userId: number };
 }
 
 /**
- * Guards POST /auth/set-new-password (M13): a reset token from the e-mail link
- * (told apart by its purpose claim) is checked by PasswordResetService; any
- * other bearer token goes through the normal JWT check, so the Google reset
- * path keeps working.
+ * Guards POST /auth/set-new-password (M13): only a reset token passes, from
+ * the e-mail link or the Google reset path (review M32), checked by
+ * PasswordResetService. A session's access token gets 401 (review M27): it
+ * changes the password through /auth/change-password, with the current one.
  */
 @Injectable()
-export class PasswordChangeGuard extends AuthGuard("jwt") {
-  constructor(private readonly resets: PasswordResetService) {
-    super();
-  }
+export class PasswordChangeGuard implements CanActivate {
+  constructor(private readonly resets: PasswordResetService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context
@@ -31,7 +33,7 @@ export class PasswordChangeGuard extends AuthGuard("jwt") {
         : null;
 
     if (userId === null) {
-      return (await super.canActivate(context)) as boolean;
+      throw new UnauthorizedException();
     }
     request.user = { userId };
     return true;

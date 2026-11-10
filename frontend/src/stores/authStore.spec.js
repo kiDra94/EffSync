@@ -5,6 +5,7 @@ const authApi = vi.hoisted(() => ({
   login: vi.fn(),
   verifyTwoFactor: vi.fn(),
   getAuthProfile: vi.fn(),
+  changePassword: vi.fn(),
   forgotPassword: vi.fn(),
   setNewPassword: vi.fn(),
   getTwoFactorStatus: vi.fn(),
@@ -14,6 +15,8 @@ const authApi = vi.hoisted(() => ({
   logout: vi.fn(),
   getUserProfile: vi.fn(),
   register: vi.fn(),
+  uploadAvatar: vi.fn(),
+  deleteAvatar: vi.fn(),
 }))
 const socket = vi.hoisted(() => ({ connect: vi.fn(), disconnect: vi.fn() }))
 const search = vi.hoisted(() => ({ ensureLoaded: vi.fn(), reset: vi.fn() }))
@@ -23,6 +26,8 @@ vi.mock('@/api/authService', () => ({ authApi }))
 vi.mock('@/router', () => ({ default: router }))
 vi.mock('./useSocket', () => ({ useSocket: () => socket }))
 vi.mock('./searchStore', () => ({ useSearchStore: () => search }))
+const avatars = vi.hoisted(() => ({ reset: vi.fn() }))
+vi.mock('./entities/avatarStore', () => ({ useAvatarStore: () => avatars }))
 // M25: the real settings store, on a mocked api/settings
 const settingsApi = vi.hoisted(() => ({ getSettings: vi.fn(), updateSettings: vi.fn() }))
 vi.mock('@/api/settings', () => ({ settingsApi }))
@@ -150,6 +155,78 @@ describe('authStore sessions', () => {
     await store.logout()
 
     expect(document.body.classList.contains('dark-mode')).toBe(false)
+  })
+
+  // T47 (M27): the change ends the other sessions, this one gets new tokens
+  it('changes the password and keeps this session with the new tokens', async () => {
+    authApi.changePassword.mockResolvedValue({ data: { token: 'new.access', refreshToken: 'new.refresh' } })
+    const store = await loadStore()
+
+    await store.changePassword('altes-passwort', 'neues-passwort')
+
+    expect(authApi.changePassword).toHaveBeenCalledWith({
+      current_password: 'altes-passwort',
+      new_password: 'neues-passwort',
+    })
+    expect(localStorage.getItem('authToken')).toBe('new.access')
+    expect(localStorage.getItem('refreshToken')).toBe('new.refresh')
+    expect(store.token).toBe('new.access')
+  })
+
+  // T47, decision Q8c (M27): the profile picture for the header and the profile
+  it('loads the profile picture once per session', async () => {
+    localStorage.setItem('authToken', 'access')
+    authApi.getUserProfile.mockResolvedValue({ data: { profile_picture: '/users/3/avatar?v=1' } })
+    const store = await loadStore()
+
+    await store.loadProfilePicture()
+    await store.loadProfilePicture()
+
+    expect(store.profilePicture).toBe('/users/3/avatar?v=1')
+    expect(authApi.getUserProfile).toHaveBeenCalledTimes(1)
+  })
+
+  it('uploads and removes the profile picture', async () => {
+    localStorage.setItem('authToken', 'access')
+    authApi.uploadAvatar.mockResolvedValue({ data: { profile_picture: '/users/3/avatar?v=2' } })
+    authApi.deleteAvatar.mockResolvedValue({})
+    const store = await loadStore()
+    const file = new File(['png'], 'ich.png', { type: 'image/png' })
+
+    await store.uploadAvatar(file)
+    expect(authApi.uploadAvatar).toHaveBeenCalledWith(file)
+    expect(store.profilePicture).toBe('/users/3/avatar?v=2')
+
+    await store.deleteAvatar()
+    expect(store.profilePicture).toBeNull()
+  })
+
+  it('forgets the profile picture on logout', async () => {
+    localStorage.setItem('authToken', 'access')
+    authApi.getUserProfile.mockResolvedValue({ data: { profile_picture: '/users/3/avatar?v=1' } })
+    authApi.logout.mockResolvedValue({})
+    const store = await loadStore()
+    await store.loadProfilePicture()
+
+    await store.logout()
+
+    expect(store.profilePicture).toBeNull()
+    expect(avatars.reset).toHaveBeenCalled()
+  })
+
+  // review M27: the reload's profile request brings the picture along
+  it('takes the profile picture from the profile a reload loads', async () => {
+    localStorage.setItem('authToken', 'access')
+    authApi.getUserProfile.mockResolvedValue({
+      data: { user_id: 3, role: 'student', profile_picture: '/users/3/avatar?v=1' },
+    })
+    const store = await loadStore()
+
+    await store.loadUser()
+    await store.loadProfilePicture()
+
+    expect(store.profilePicture).toBe('/users/3/avatar?v=1')
+    expect(authApi.getUserProfile).toHaveBeenCalledTimes(1)
   })
 
   // UC-01b (M32): with 2FA on, the password alone starts no session

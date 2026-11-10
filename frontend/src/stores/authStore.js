@@ -5,12 +5,16 @@ import router from '@/router'
 import { useSocket } from './useSocket'
 import { useSettingsStore } from './settingsStore'
 import { useSearchStore } from './searchStore'
+import { useAvatarStore } from './entities/avatarStore'
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('authToken'))
     const userId = ref(Number(localStorage.getItem('userId')) || null)
     const userRole = ref(localStorage.getItem('userRole') || null)
     const userDetails = ref(null)
+    // the URL of the own profile picture, null without one (M27)
+    const profilePicture = ref(null)
+    let pictureLoaded = false
     const { connect, disconnect } = useSocket();
 
     const isAuthenticated = computed(() => !!token.value)
@@ -95,6 +99,17 @@ export const useAuthStore = defineStore('auth', () => {
     const getTwoFactorStatus = async () => (await authApi.getTwoFactorStatus()).data
     const setupTwoFactor = async () => (await authApi.setupTwoFactor()).data
     const enableTwoFactor = (code) => authApi.enableTwoFactor(code)
+
+    // T47 (M27): the change ends all sessions; this one gets new tokens
+    async function changePassword(currentPassword, newPassword) {
+        const { data } = await authApi.changePassword({
+            current_password: currentPassword,
+            new_password: newPassword,
+        })
+        token.value = data.token
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('refreshToken', data.refreshToken)
+    }
     const disableTwoFactor = (code) => authApi.disableTwoFactor(code)
 
     // stores the tokens and the user of a finished login and connects
@@ -146,6 +161,8 @@ export const useAuthStore = defineStore('auth', () => {
             userId.value = null
             userRole.value = null
             userDetails.value = null
+            profilePicture.value = null
+            pictureLoaded = false
             localStorage.removeItem('authToken')
             localStorage.removeItem('refreshToken')
             localStorage.removeItem('userId')
@@ -155,6 +172,7 @@ export const useAuthStore = defineStore('auth', () => {
             searchStore.reset()
             // review M25: the next user in this browser starts with the default
             useSettingsStore().reset()
+            useAvatarStore().reset()
         }
     }
 
@@ -172,6 +190,9 @@ export const useAuthStore = defineStore('auth', () => {
             userId.value = user.user_id || user.id
             userRole.value = user.role ? user.role.toLowerCase() : null
             userDetails.value = user
+            // the same answer names the picture: no second request (review M27)
+            profilePicture.value = user.profile_picture ?? null
+            pictureLoaded = true
             localStorage.setItem('userRole', userRole.value || '')
             console.log('✅ Loaded userRole from profile:', userRole.value)
             connect(token.value);
@@ -180,6 +201,30 @@ export const useAuthStore = defineStore('auth', () => {
             await logout()
             throw error // Rethrow the error in case the UI needs to react
         }
+    }
+
+    /** The own profile picture, once per session (the header and the profile show it). */
+    async function loadProfilePicture() {
+        if (pictureLoaded || !token.value) return
+        pictureLoaded = true
+        try {
+            const { data } = await authApi.getUserProfile()
+            profilePicture.value = data?.profile_picture ?? null
+        } catch (error) {
+            // the initials stay; the next layout mount tries again
+            pictureLoaded = false
+            console.warn('Profilbild nicht geladen:', error?.message || error)
+        }
+    }
+
+    async function uploadAvatar(file) {
+        const { data } = await authApi.uploadAvatar(file)
+        profilePicture.value = data.profile_picture
+    }
+
+    async function deleteAvatar() {
+        await authApi.deleteAvatar()
+        profilePicture.value = null
     }
 
     async function register(userData) {
@@ -201,6 +246,10 @@ export const useAuthStore = defineStore('auth', () => {
         userId,
         userRole,
         userDetails,
+        profilePicture,
+        loadProfilePicture,
+        uploadAvatar,
+        deleteAvatar,
         isAuthenticated,
         isAdmin,
         login,
@@ -211,6 +260,7 @@ export const useAuthStore = defineStore('auth', () => {
         getTwoFactorStatus,
         setupTwoFactor,
         enableTwoFactor,
+        changePassword,
         disableTwoFactor,
         logout,
         loadUser,

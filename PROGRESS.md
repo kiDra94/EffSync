@@ -1444,3 +1444,51 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 
 **Failed / open:**
 - `LayoutView.vue` has the same scoped `:global(body.dark-mode) .x` rules for the user menu and the notifications (lines 256–432), outside the search; they colour the page in dark mode the same way.
+
+## 2026-11-10 – M27: Grades view, password change, avatar, audit-log view, comments
+
+**Done:**
+- Grades (UC-13, UNUSED_CODE.md Planned): `GradesView` has the route `/grades` and a sidebar link for students; knip no longer ignores it.
+- Password change (T47):
+  - Backend: `POST /auth/change-password` takes `current_password` and `new_password` (7–32 characters). It answers 400 for a wrong current password or an account without one, and allows 3 tries a minute.
+  - Like a reset, it ends all sessions. This session gets new tokens back, so it stays signed in.
+  - Frontend: `SecurityTab`'s password form is wired up, with checks that the two new passwords match and have the right length.
+- Audit log (T33, UC-32): the admin view `/admin/audit-log` (`AuditLogView`, `auditLogStore`) sits on `GET /tasks/activity`.
+  - It filters by action and date and pages 50 entries at a time.
+  - A deleted task appears by the text of its entry, marked "gelöscht".
+  - Admins and superusers get the route and the sidebar link.
+- Comments and grading remarks (T09, T74, decision Q16): `TaskComments` and `TaskGradeRemarks` sit in the task detail view (`TaskForm`) for an existing task.
+  - They are outside the form, so each sends on its own. Both go through `taskCommentStore` and share their logic in `composables/useTaskThread.js`.
+  - Comments mark an `@username`, rendered without `v-html`.
+  - Grading remarks have a form for teachers only and stay hidden for a user who gets 403 (not a task member).
+- Avatar (T47, decision Q8c):
+  - Table `user_avatars(user_id PK, mime_type, data, updated_at)`, migration `20261110120000_user_avatars`, deleted with the user.
+  - `PUT /users/me/avatar` takes an image of at most 1 MB, recognized by its content. PNG, JPEG, GIF, WebP and BMP are accepted, SVG is not. Multer stops at 1 MB with 413; a non-image gets 400.
+  - `DELETE /users/me/avatar` removes it; `GET /users/:id/avatar` serves it.
+  - The magic-byte check moved to `shared/` (`FileInspector` port, `MagicByteFileInspector`), because documents and avatars both use it and contexts don't import each other.
+  - User responses name the picture as `profile_picture`, a path relative to the API's base URL with the change time as version, or null without a picture. This covers `/users`, `/users/:id`, `/users/for-chat`, `/users/profile` and the task members.
+  - Frontend: `UserAvatar` shows the picture, or the initials without one, in the header, the task members and the profile. `AvatarEditor` on the own profile changes or removes it.
+
+**Verified:**
+- Done when:
+  - Component tests: `GradesView`, `AuditLogView`, `SecurityTab`, `TaskComments`, `TaskGradeRemarks`, `TaskForm` (both sections), `TaskMembersList` (picture), `UserAvatar`, `AvatarEditor`, `UserProfileView`.
+  - E2E: `password-change.e2e-spec.ts`, `avatar.e2e-spec.ts` (upload, served with token, named in user responses, rejected non-image, over 1 MB, without token, delete) and `task-comments.e2e-spec.ts` (comment with @mention, listed with author, mention mail in the outbox).
+  - Non-admins get 403 on `GET /tasks/activity`: `task-management.e2e-spec.ts` (student and teacher).
+- Backend: 690 unit tests and 169 E2E tests; lint (`--max-warnings 0`), depcruise and knip pass. `prisma migrate diff` from the migrated test database to the schema is empty.
+- Frontend: 454 tests; lint, knip and the build pass.
+- `act --action-offline-mode`: all four jobs succeeded.
+- `code-review` (high) gave 10 findings:
+  1. A new comment came back without its author and showed "Gelöschter Benutzer". `create` and `update` now include the author; the E2E checks it.
+  2. The avatar route fell under the throttle (10 a minute per IP and route), so a list of members got 429s. It now skips the throttle.
+  3. `POST /auth/set-new-password` still took any access token, which made the current-password check of the new endpoint pointless. `PasswordChangeGuard` now passes reset tokens only: the e-mail link and, since review M32, the Google reset path. An access token gets 401; the E2E pinned the old behavior and now checks the new one.
+  4. Profile pictures were served without a token at counting ids, so anyone could download every pupil's photo. All avatar routes now need a token, and the frontend loads the pictures through the API client as object URLs (`avatarStore`, freed at logout).
+  5. The security tab with the now working password form showed on other users' profiles but changed the signed-in user's own password. Security and notifications are on the own profile only.
+  6. The picture cost a second `GET /users/profile` after a reload. `loadUser` takes it from its own answer.
+  7. The audit log's pager sent filter inputs that hadn't been applied. It keeps the filter last sent.
+  8. The avatar URL hard-coded the global prefix `/api`. It is now relative to the API's base URL, which the frontend's HTTP client adds, so no frontend helper has to remove a prefix. The `users` route name stays in `shared/application/profile-picture.ts`.
+  9. The avatar select was copied four times. It is now `AVATAR_VERSION`, next to `withProfilePicture`.
+  10. `TaskGradeRemarks` copied `TaskComments`' logic. That logic is now in `useTaskThread`; the templates and styles stay separate.
+
+**Failed / open:**
+- `GradeModal` has no form for grading remarks. Teachers write them in the task detail view, which step 5 allows ("from there or from `GradeModal`").
+- `UserProfileView` keeps its name fields in localStorage (unchanged; T26-like). Another user's profile shows the initials, not their picture, because the view has no data for other users.
