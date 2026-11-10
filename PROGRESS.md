@@ -1633,3 +1633,15 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
 - Three `.vue` files over 800 lines: `DocumentView` 1,145, `AdminView` 1,110, `TaskForm` 1,104.
 - THESIS_ALIGNMENT.md still shows the assessment before the milestones (68 claims Partial, Missing or Contradicted); the statuses need the evidence the milestones produced.
 - Still to verify: the endpoint E2E per `08_…:112-138`, UNUSED_CODE.md, the `// THESIS:` flips and the list of API changes.
+
+## 2026-11-10 – Definition of done, part 2: no placeholder specs
+
+**Done:**
+- The 11 Nest-generated specs that only asserted `toBeDefined()` are deleted. That's the controllers for notes, departments, rooms, classes, subjects, schedules, notifications, chat rooms and chat messages, plus `ChatRoomsService` and `UsersService`.
+- Each class keeps real tests: every controller has E2E tests on its routes (`documents-notes`, `school-organization`, `notifications`, `chat-rooms`/`realtime-chat`), and the two services have their characterization and feature specs.
+
+**Verified (ticked):**
+- No spec in backend or frontend asserts only `toBeDefined()`.
+- `jest --listTests` lists all 113 specs under `src`; there are no spec files outside the jest configs (unit: `src/**/*.spec.ts`; E2E: `test/*.e2e-spec.ts`).
+- `npm run test:coverage`: 686 tests, the per-file thresholds hold, and knip finds nothing.
+

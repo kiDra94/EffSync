@@ -162,7 +162,7 @@ The refactor is done when all of the following hold:
   - ≥ 75 % for the user and permission services and the frontend router guards.
   - Backend overall ≥ 60 %.
 - [ ] Every endpoint listed in `08_…:112-138` has E2E tests for the happy path and the 400/401/403/404 paths (T121, T123).
-- [ ] No spec file whose only assertion is `toBeDefined()`. All spec files are picked up by a jest config.
+- [x] No spec file whose only assertion is `toBeDefined()`. All spec files are picked up by a jest config.
 - [x] `npx eslint` reports 0 errors in `backend/src` and `frontend/src`, with the `no-unsafe-*` rules back at `error` everywhere (decision Q13), and CI runs lint and `npm run build` for both projects.
 - [ ] No source file in `backend/src` over 500 lines, no backend method over 80 lines.
 - [ ] No `.vue` file over 800 lines (including style).
