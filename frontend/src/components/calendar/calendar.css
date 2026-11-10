@@ -488,10 +488,59 @@
   grid-template-columns: 80px 1fr;
   gap: 0;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   overflow: hidden;
   max-height: 800px;
   overflow-y: auto;
+  /* the same scrollbar room as .timetable-top, so the columns line up */
+  scrollbar-gutter: stable;
+}
+
+/* the day headers and their tasks above the scrolling grid (manual check
+   M28: the tasks were under the 24-hour grid or at 00:00, out of sight) */
+.calendar-page .timetable-top {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: #f9fafb;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+}
+
+.calendar-page .timetable-top .time-header {
+  border-right: 1px solid #e5e7eb;
+}
+
+.calendar-page .timetable-top .tasks-label {
+  height: auto;
+  font-size: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.calendar-page .timetable-top .tasks-row {
+  /* minmax: a long title is cut, it doesn't widen its column past the grid's */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: none;
+  border-bottom: 2px solid #e5e7eb;
+  min-height: 48px;
+}
+
+.calendar-page .timetable-top .tasks-row--day {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.calendar-page .timetable-top .day-tasks {
+  min-width: 0;
+}
+
+.calendar-page .timetable-top .task-card {
+  max-width: 100%;
+}
+
+.calendar-page .timetable-top + .timetable-container {
+  border-top: none;
 }
 
 .calendar-page .time-column {
@@ -633,18 +682,24 @@
   width: 100%;
 }
 
-.calendar-page .day-entries {
+/* the deadline's time in front of the title */
+.calendar-page .task-card {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
   gap: 4px;
-  padding: 8px;
-  border-top: 1px solid #e5e7eb;
 }
 
-.calendar-page .day-entries.drag-over {
-  background: #eef0ff;
-  box-shadow: inset 0 0 0 2px rgba(79, 70, 229, 0.35);
+.calendar-page .task-card .task-title {
+  flex: 1;
+  min-width: 0;
 }
+
+.calendar-page .task-time {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+
 
 .calendar-page .grid-wrapper {
   display: grid;
@@ -818,6 +873,8 @@ body.dark-mode .calendar-page .days-header,
 .app-container.dark-mode .calendar-page .days-header,
 body.dark-mode .calendar-page .tasks-row,
 .app-container.dark-mode .calendar-page .tasks-row,
+body.dark-mode .calendar-page .timetable-top,
+.app-container.dark-mode .calendar-page .timetable-top,
 body.dark-mode .calendar-page .grid-cell,
 .app-container.dark-mode .calendar-page .grid-cell,
 body.dark-mode .calendar-page .year-month-header,
@@ -835,6 +892,8 @@ body.dark-mode .calendar-page .grid-cell:nth-child(odd),
 
 body.dark-mode .calendar-page .timetable-container,
 .app-container.dark-mode .calendar-page .timetable-container,
+body.dark-mode .calendar-page .timetable-top .time-header,
+.app-container.dark-mode .calendar-page .timetable-top .time-header,
 body.dark-mode .calendar-page .day-header-cell,
 .app-container.dark-mode .calendar-page .day-header-cell,
 body.dark-mode .calendar-page .day-column-grid,

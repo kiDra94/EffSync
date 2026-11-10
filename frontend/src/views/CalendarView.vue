@@ -38,7 +38,7 @@ const calendarColors = [
 const isCompletedTask = (task) => String(task?.status || '').toUpperCase() === 'COMPLETED';
 const activeStoreTasks = computed(() => taskStore.tasks.filter((task) => !isCompletedTask(task)));
 
-// the open tasks for the month and day views, straight from the store, so a
+// the open tasks for the month view, straight from the store, so a
 // save or a move shows at once (review M28: a copy made at load went stale)
 const events = computed(() =>
   activeStoreTasks.value.map((task, index) => ({
@@ -211,7 +211,7 @@ const handleSaveWithSubtasks = async ({ taskData, subtasks }) => {
         @prev="shift(-1)" @next="shift(1)" @open-task="openTaskModal" />
       <CalendarWeekView v-if="viewMode === 'week'" :date="currentDate" :lessons="lessons" :tasks="activeStoreTasks"
         :drag="drag" @prev="shift(-1)" @next="shift(1)" @open-task="openTaskModal" />
-      <CalendarDayView v-if="viewMode === 'day'" :date="currentDate" :lessons="lessons" :events="events" :drag="drag"
+      <CalendarDayView v-if="viewMode === 'day'" :date="currentDate" :lessons="lessons" :tasks="activeStoreTasks" :drag="drag"
         @prev="shift(-1)" @next="shift(1)" @open-task="openTaskModal" />
     </div>
   </div>

@@ -1592,6 +1592,19 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
   9. The weekday names existed four times. Now there is one `WEEKDAY_NAMES`, and the day view reuses `getWeekDays`.
   10. The week view filtered per day on every render. Now it computes once per day per data change, with no second sort of the lessons.
 
+**Manual check (user, 2026-11-10) and fix:**
+- Finding: only the month view showed tasks; week and day showed just the lessons. Both views had the tasks, out of sight, already before M28:
+  - the week view put them in a row under the full 24-hour grid (1,440px), which opens scrolled to 07:30;
+  - the day view put them absolutely at 00:00 at the top of the grid.
+  - So T60 ("shows tasks by due date in month, week and day view") wasn't met in practice.
+- Fix: the week and day views have a `.timetable-top` area above the scrolling grid, so it always stays visible.
+  - It holds the day headers and a row "Aufgaben" with each day's tasks: time, unless midnight, and title, earliest first.
+  - The cards are dragged from that row and dropped onto it (`CalendarTaskList`).
+  - The day view takes the store's tasks like the week view, in priority colours. The positioning by an unknown time is gone, and so are the `.day-entries` rules.
+- The week-view date bug is fixed: `tasksOnDay` files a task by the local date of its deadline, like the month view.
+- Smoke tests: the week's tasks show with their time above the grid and not inside it; the day's task shows with its time; a task due shortly after local midnight lands on the same day in month and week.
+- Browser check against the test database (a separate backend on 3001 and Vite on 5174, so the dev setup stayed untouched): the week and day views show their tasks in light and dark mode, and the columns of the top area and the grid line up to the pixel (`minmax(0, 1fr)` and the same `scrollbar-gutter`).
+- Frontend: 489 tests; lint, knip and the build pass; the `act` frontend job succeeded.
+
 **Failed / open:**
-- Manual check of all views and drag-and-drop (Done when, T60): not done by a person yet; the browser check above stands in until then. M28 stays unticked.
-- The week view puts a task under the UTC date of its deadline (`String(deadline).startsWith(dateKey)`), the month and day views under the local date. A task due shortly after midnight local time shows a day earlier in the week view. This is unchanged from before M28.
+- M28 stays unticked until the user confirms the week and day views in a second manual check.

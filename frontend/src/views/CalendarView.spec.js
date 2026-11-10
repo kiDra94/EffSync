@@ -112,13 +112,45 @@ describe('CalendarView', () => {
     expect(wrapper.findAll('.day-tasks')[1].text()).toContain('Mathe-Abgabe')
   })
 
+  // manual check M28: the tasks sat under the 24-hour grid, out of sight;
+  // now they are in a row under the day headers, above the scrolling grid
+  it('shows the week\'s tasks with their time above the time grid', async () => {
+    const wrapper = await mountCalendar()
+    await show(wrapper, 'week')
+
+    const top = wrapper.find('.timetable-top')
+    expect(top.find('.days-header').exists()).toBe(true)
+    const tuesday = top.findAll('.tasks-row .day-tasks')[1]
+    expect(tuesday.find('.task-time').text()).toBe('14:30')
+    expect(tuesday.find('.task-title').text()).toBe('Mathe-Abgabe')
+    expect(wrapper.find('.timetable-container .tasks-row').exists()).toBe(false)
+  })
+
+  // the week view filed a task by the UTC date of its deadline (review M28)
+  it('files a task by its local date in every view', async () => {
+    // 12 November, 00:30 local time: on the 11th in UTC wherever the clock is
+    // ahead of UTC (Vienna: 2026-11-11T23:30Z), the case that went wrong
+    const deadline = new Date(2026, 10, 12, 0, 30).toISOString()
+    taskStore.tasks = [{ task_id: 5, title: 'Mitternacht', deadline, status: 'TODO', priority_id: 2, created_by: 1 }]
+    const wrapper = await mountCalendar()
+    expect(dayCell(wrapper, '12').text()).toContain('Mitternacht')
+
+    await show(wrapper, 'week')
+    const columns = wrapper.findAll('.day-tasks').map((c) => c.text())
+    expect(columns[3]).toContain('Mitternacht')
+    expect(columns[2]).not.toContain('Mitternacht')
+  })
+
   it('shows one day and steps to the next', async () => {
     const wrapper = await mountCalendar()
     await show(wrapper, 'day')
 
     expect(wrapper.find('.week-header h2').text()).toBe('10.11.2026')
     expect(wrapper.findAll('.day-header-cell')).toHaveLength(1)
-    expect(wrapper.find('.day-entries').text()).toContain('Mathe-Abgabe')
+    // manual check M28: in sight above the grid, with the time
+    const tasks = wrapper.find('.timetable-top .tasks-row')
+    expect(tasks.find('.task-time').text()).toBe('14:30')
+    expect(tasks.find('.task-title').text()).toBe('Mathe-Abgabe')
 
     await wrapper.findAll('.week-header .nav-btn')[1].trigger('click')
     expect(wrapper.find('.week-header h2').text()).toBe('11.11.2026')
@@ -177,7 +209,7 @@ describe('CalendarView', () => {
     const wrapper = await mountCalendar()
     await show(wrapper, 'day')
 
-    await wrapper.find('.day-entries .event-box').trigger('dragstart', { dataTransfer: dataTransfer() })
+    await wrapper.find('.tasks-row .task-card').trigger('dragstart', { dataTransfer: dataTransfer() })
     await wrapper.findAll('.week-header .nav-btn')[1].trigger('drop')
     await flushPromises()
 

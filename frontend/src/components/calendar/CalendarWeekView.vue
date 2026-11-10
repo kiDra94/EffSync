@@ -2,10 +2,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { getWeekDays, getWeekStart } from '@/composables/useCalendarUtils';
 import CalendarLessonsLayer from '@/components/calendar/CalendarLessonsLayer.vue';
-import { TIME_SLOTS, PRIORITY_COLORS, scrollToDefaultTime } from '@/components/calendar/timetable';
+import CalendarTaskList from '@/components/calendar/CalendarTaskList.vue';
+import { TIME_SLOTS, scrollToDefaultTime, tasksOnDay } from '@/components/calendar/timetable';
 
-// the week view (M28, out of CalendarView): the timetable from Monday with
-// the lessons, and the tasks under each day; a task is dragged onto another day
+// the week view (M28, out of CalendarView): the days from Monday with their
+// tasks above the timetable of the lessons; a task is dragged onto another day
 const props = defineProps({
   date: { type: Date, required: true },
   lessons: { type: Array, required: true },
@@ -32,24 +33,7 @@ const label = computed(() => {
 const lessonsByDay = computed(() =>
   days.value.map((day) => props.lessons.filter((lesson) => lesson.dayOfWeek === day.dayOfWeek)),
 );
-
-// by the deadline's text, i.e. its UTC date (as before M28; the month and day
-// views use the local date, see PROGRESS.md M28)
-const tasksByDay = computed(() =>
-  days.value.map((day) =>
-    props.tasks
-      .filter((task) => task.deadline && String(task.deadline).startsWith(day.dateKey))
-      .map((task) => ({
-        id: task.task_id ?? task.id,
-        date: day.dateKey,
-        title: task.title,
-        color: PRIORITY_COLORS[task.priority_id] || '#4f46e5',
-        description: task.description,
-        status: task.status,
-        type: 'task',
-      })),
-  ),
-);
+const tasksByDay = computed(() => days.value.map((day) => tasksOnDay(props.tasks, day.dateKey)));
 
 onMounted(() => scrollToDefaultTime(timetable.value));
 </script>
@@ -62,51 +46,32 @@ onMounted(() => scrollToDefaultTime(timetable.value));
       <button @click="emit('next')" class="nav-btn">&gt;</button>
     </div>
 
+    <!-- the days and their tasks stay in sight above the scrolling grid -->
+    <div class="timetable-top">
+      <div class="time-header">Zeit</div>
+      <div class="days-header">
+        <div v-for="day in days" :key="day.dayOfWeek" :class="{ 'is-today': day.isToday }" class="day-header-cell">
+          <div class="day-name">{{ day.dayName }}</div>
+          <div class="day-date">{{ day.date.getDate() }}</div>
+        </div>
+      </div>
+      <div class="time-header tasks-label">Aufgaben</div>
+      <div class="tasks-row">
+        <CalendarTaskList v-for="day in days" :key="'tasks-' + day.dayOfWeek" :date-key="day.dateKey"
+          :tasks="tasksByDay[day.dayOfWeek]" :drag="drag" @open-task="emit('open-task', $event)" />
+      </div>
+    </div>
+
     <div ref="timetable" class="timetable-container">
       <div class="time-column">
-        <div class="time-header">Zeit</div>
         <div v-for="time in TIME_SLOTS" :key="time" class="time-slot">{{ time }}</div>
       </div>
 
       <div class="days-column">
-        <div class="days-header">
-          <div v-for="day in days" :key="day.dayOfWeek" :class="{ 'is-today': day.isToday }" class="day-header-cell">
-            <div class="day-name">{{ day.dayName }}</div>
-            <div class="day-date">{{ day.date.getDate() }}</div>
-          </div>
-        </div>
-
         <div class="grid-wrapper">
           <div v-for="day in days" :key="day.dayOfWeek" class="day-column-grid">
             <div v-for="time in TIME_SLOTS" :key="time" class="grid-cell"></div>
             <CalendarLessonsLayer :lessons="lessonsByDay[day.dayOfWeek]" />
-          </div>
-        </div>
-
-        <!-- the tasks under the timetable -->
-        <div class="tasks-row">
-          <div
-            v-for="day in days"
-            :key="'tasks-' + day.dayOfWeek"
-            class="day-tasks"
-            :class="{ 'drag-over': drag.dragOverDate === day.dateKey }"
-            @dragover.prevent="drag.overDate(day.dateKey)"
-            @dragleave="drag.leaveDate(day.dateKey)"
-            @drop.prevent="drag.dropOnDate(day.dateKey)"
-          >
-            <div
-              v-for="(task, idx) in tasksByDay[day.dayOfWeek]"
-              :key="'task-' + idx"
-              class="task-card"
-              draggable="true"
-              @dragstart="drag.start(task, day.dateKey, $event)"
-              @dragend="drag.end()"
-              @click="emit('open-task', task)"
-              :style="{ backgroundColor: task.color }"
-              :title="task.title"
-            >
-              <span class="task-title">{{ task.title }}</span>
-            </div>
           </div>
         </div>
       </div>
