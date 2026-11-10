@@ -5,6 +5,8 @@ import {
   getWeekDays,
   getWeekStart,
   setDateKeepingTime,
+  shiftDateKey,
+  weekdayIndex,
 } from './useCalendarUtils';
 
 describe('useCalendarUtils', () => {
@@ -36,5 +38,17 @@ describe('useCalendarUtils', () => {
 
   it('calculates ISO week number', () => {
     expect(getIsoWeek(new Date('2026-01-05T00:00:00.000Z'))).toBe(2);
+  });
+
+  // M28: what CalendarView computed inline
+  it('counts the weekday from Monday', () => {
+    expect(weekdayIndex(new Date(2026, 10, 9))).toBe(0); // Monday
+    expect(weekdayIndex(new Date(2026, 10, 15))).toBe(6); // Sunday
+  });
+
+  it('shifts a date key by days, across months', () => {
+    expect(shiftDateKey('2026-11-30', 1)).toBe('2026-12-01');
+    expect(shiftDateKey('2026-03-01', -1)).toBe('2026-02-28');
+    expect(shiftDateKey('', 1)).toBeNull();
   });
 });

@@ -1,3 +1,6 @@
+/** The weekdays' short names from Monday (review M28: one copy). */
+export const WEEKDAY_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
 export function getWeekStart(dateInput) {
   const date = new Date(dateInput);
   const day = date.getDay();
@@ -39,15 +42,25 @@ export function setDateKeepingTime(originalDateInput, targetDateKey) {
   return moved.toISOString();
 }
 
-export function getWeekDays(weekStartInput) {
-  const shortNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+/** The weekday counted from Monday: Monday 0 … Sunday 6 (M28). */
+export function weekdayIndex(dateInput) {
+  return (new Date(dateInput).getDay() + 6) % 7;
+}
 
+/** The date key `days` days later (earlier when negative); null without a key (M28). */
+export function shiftDateKey(dateKey, days) {
+  if (!dateKey) return null;
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return formatDateKey(new Date(year, month - 1, day + days));
+}
+
+export function getWeekDays(weekStartInput) {
   return Array.from({ length: 7 }).map((_, index) => {
     const date = new Date(weekStartInput);
     date.setDate(date.getDate() + index);
 
     return {
-      dayName: shortNames[index],
+      dayName: WEEKDAY_NAMES[index],
       date,
       dateKey: formatDateKey(date),
       isToday: formatDateKey(date) === formatDateKey(new Date()),

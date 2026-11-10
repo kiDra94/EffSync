@@ -1547,3 +1547,51 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 
 **Failed / open:**
 - Direct grants that `addRoleToUser` copied before M35 stay in `user_permissions` (decision I3). In the dev seed, the direct grants are the deliberate, time-limited ones; `AdminView` lists them per user and can remove them.
+
+## 2026-11-10 – M28: Shrink `CalendarView.vue` with `useCalendarUtils`
+
+**Done:**
+- Smoke test first (`views/CalendarView.spec.js`, 11 tests). It passed on the old view, then unchanged on the new one, apart from the store mock becoming reactive. It covers:
+  - month, year (twelve months, a click opens one), week (from Monday, lessons, tasks under their day) and day view;
+  - paging and "Heute", and opening a task;
+  - drag-and-drop in the month and week views and onto the day view's next-day arrow, each keeping the task's time;
+  - the refusal for a graded submission;
+  - a saved task showing without a reload.
+- `CalendarView.vue` went from 2,339 to 228 lines and keeps the loading, the navigation, the move and the task form. It has no local `getWeekStart`/`formatDate` left.
+- `components/calendar/`:
+  - `CalendarYearView`, `CalendarMonthView`, `CalendarWeekView` and `CalendarDayView`;
+  - `CalendarLessonsLayer`, shared by week and day;
+  - `timetable.js`: time slots, lesson position, priority colours, scrolling to 07:30;
+  - `calendar.css`.
+- `useCalendarUtils` is now used for the date math (problem 16, UNUSED_CODE.md Planned). It gains `weekdayIndex`, `shiftDateKey` and a shared `WEEKDAY_NAMES`.
+- `useCalendarDragDrop` holds the drag state and the drops onto a day or a relative day; the view supplies the move. Each has its own tests.
+- Styles:
+  - Scoped styles don't reach into child components, so the 760 lines of scoped CSS moved to `calendar.css`, every rule prefixed with `.calendar-page`. The unscoped dark-mode block moved there too, also prefixed.
+  - `TaskForm` renders outside the calendar root as `.calendar-task-modal`, so the calendar's rules don't reach into the form; its overlay and dark-mode rules follow it.
+  - The two scoped modal rules that matched nothing in the template were dropped.
+  - The old scoped `:global(body.dark-mode) .x` rules were dropped. They compiled to bare `body.dark-mode` rules: once the calendar had been visited, they gave the whole app in dark mode a border, an outline, 90 % opacity and its own background, and never styled the calendar (see M26).
+
+**Verified:**
+- Done when: `CalendarView.vue` has 228 lines with no local date helpers; `useCalendarUtils.test.js` passes (7 tests); the smoke test for the view switching exists.
+- Browser check (Chromium through playwright-core, installed in the scratchpad only, against the test database `effsync_test`, never the dev database):
+  - Screenshots of the old and the new `CalendarView` were pixel-identical in light mode for year, month, week, day and the task form opened from the calendar, and for the dark task form.
+  - In dark mode the four views differ only by the 1px border around the page that one of the dropped body rules drew; the calendar itself is identical.
+  - Real moves: month (12th → 14th, still there after a reload), week (by `DragEvent`s with a `DataTransfer`: 13th → 14th) and the day view's next-day arrow (14th → 15th). Every `PATCH` kept the time of day.
+  - Playwright's own `dragTo` doesn't reach the week view's task row at the bottom of the scrolled timetable, in the old version as in the new.
+- Frontend: 487 tests; lint, knip and the build pass.
+- `act --action-offline-mode`: frontend, E2E and restore jobs succeeded. The backend job failed in "Setup Node" after 14 ms (the known act race, before any step of ours), and succeeded on its own rerun.
+- `code-review` (high) gave 10 findings:
+  1. The dark task form lost its styles outside the root. Fixed: its selectors now point at `.calendar-task-modal`, and the dark screenshot is identical.
+  2. Dropping the body rules changes the app-wide dark look. Intended; the screenshots show only the border.
+  3. The week view files tasks by the UTC date of their deadline. Left as it was (open below).
+  4. The month and day views showed old data after a save. Fixed: `events` is now computed from the store's open tasks, and the move no longer patches a copy.
+  5. An unparseable deadline moves to 12:00 instead of 08:00. Accepted; that can't happen with the store's ISO deadlines.
+  6. A lesson time that isn't text fell back to 08:50 instead of 08:00. Fixed: `timeOfDay` returns 08:00 again.
+  7. The dark block wasn't prefixed, and a header comment was stale. Both fixed.
+  8. The day view's `taskStyle` worked from fields the entries don't have, so its `top` was always invalid. It now gives the static stacking styles; the result is the same.
+  9. The weekday names existed four times. Now there is one `WEEKDAY_NAMES`, and the day view reuses `getWeekDays`.
+  10. The week view filtered per day on every render. Now it computes once per day per data change, with no second sort of the lessons.
+
+**Failed / open:**
+- Manual check of all views and drag-and-drop (Done when, T60): not done by a person yet; the browser check above stands in until then. M28 stays unticked.
+- The week view puts a task under the UTC date of its deadline (`String(deadline).startsWith(dateKey)`), the month and day views under the local date. A task due shortly after midnight local time shows a day earlier in the week view. This is unchanged from before M28.
