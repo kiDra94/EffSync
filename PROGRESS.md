@@ -1645,3 +1645,19 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
 - `jest --listTests` lists all 113 specs under `src`; there are no spec files outside the jest configs (unit: `src/**/*.spec.ts`; E2E: `test/*.e2e-spec.ts`).
 - `npm run test:coverage`: 686 tests, the per-file thresholds hold, and knip finds nothing.
 
+## 2026-11-10 – Definition of done, part 3: permission data only through identity-access
+
+**Done:**
+- `TaskMembersService.checkPermission` and `permissionFlags` read the user's direct grants through `PermissionsService.getActivePermissions` (identity-access's application API) instead of their own `user_permissions` query.
+- `TaskMemberRepository.findUserPermissions` and its Prisma query are deleted.
+- The rules are unchanged: the creator has RWX; anyone else needs a grant that is valid now and carries all the required flags.
+- The two member specs get a `PermissionsService` over their Prisma mock (`task-members.fixtures.ts`), so their `user_permissions` scenarios stay the safety net unchanged.
+
+**Verified (ticked):**
+- No `user_permissions` or `roles_permissions` query outside `identity-access/infrastructure`. The remaining mentions are identity-access's own record types in `application/ports`.
+- task-management unit tests: 220. E2E `mitgliederverwaltung`, `task-management`, `permissions` and `permission-validity`: 31.
+- Lint, knip and depcruise (incl. context cycles) pass.
+
+**Open:**
+- `checkPermission` still accepts any valid direct grant with the flags, whatever its name. That is the "first grant" semantics noted earlier, and it is unchanged here.
+

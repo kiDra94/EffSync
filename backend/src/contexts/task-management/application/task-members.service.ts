@@ -4,7 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { GHOST_USER_ID } from "../../identity-access/application";
+import {
+  GHOST_USER_ID,
+  PermissionsService,
+} from "../../identity-access/application";
 import {
   MemberUser,
   TaskMemberRepository,
@@ -48,7 +51,21 @@ export class TaskMembersService {
   constructor(
     private readonly members: TaskMemberRepository,
     private readonly notifications: TaskNotificationsService,
+    private readonly permissions: PermissionsService,
   ) {}
+
+  /**
+   * The flags of the user's direct grants that are valid now. They come from
+   * identity-access (Definition of done: permission data only through
+   * PermissionsService), not from a query of this context's own.
+   */
+  private async validGrantFlags(userId: number): Promise<number[]> {
+    const now = new Date();
+    return (await this.permissions.getActivePermissions(userId))
+      .filter((grant) => !(grant.valid_from && grant.valid_from > now)) // not valid yet
+      .filter((grant) => !(grant.valid_to && grant.valid_to < now)) // expired
+      .map((grant) => grant.flags);
+  }
 
   /**
    * Adds a user to a task: the requester is the task owner or has WRITE, the
@@ -218,15 +235,9 @@ export class TaskMembersService {
     if (!task) return false;
     if (task.created_by === userId) return true;
 
-    const now = new Date();
-    for (const perm of await this.members.findUserPermissions(userId)) {
-      if (perm.valid_from && perm.valid_from > now) continue; // not valid yet
-      if (perm.valid_to && perm.valid_to < now) continue; // expired
-      if ((perm.permissions.flags & requiredFlags) === requiredFlags) {
-        return true;
-      }
-    }
-    return false;
+    return (await this.validGrantFlags(userId)).some(
+      (flags) => (flags & requiredFlags) === requiredFlags,
+    );
   }
 
   /** The requester's rwx on the task, from one creator and one permission query. */
@@ -236,11 +247,8 @@ export class TaskMembersService {
     if (task && task.created_by === userId) {
       flags = TaskPermissionFlags.RWX;
     } else if (task) {
-      const now = new Date();
-      for (const perm of await this.members.findUserPermissions(userId)) {
-        if (perm.valid_from && perm.valid_from > now) continue;
-        if (perm.valid_to && perm.valid_to < now) continue;
-        flags |= perm.permissions.flags & TaskPermissionFlags.RWX;
+      for (const grantFlags of await this.validGrantFlags(userId)) {
+        flags |= grantFlags & TaskPermissionFlags.RWX;
       }
     }
     return {

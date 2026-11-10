@@ -167,7 +167,7 @@ The refactor is done when all of the following hold:
 - [ ] No source file in `backend/src` over 500 lines, no backend method over 80 lines.
 - [ ] No `.vue` file over 800 lines (including style).
 - [x] Role names appear as string literals only in `contexts/identity-access/domain/role-permissions.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
-- [ ] Permission checks go only through `PermissionsService` / `PermissionsGuard` / `RolesGuard`: no `user_permissions` or `roles_permissions` queries outside `identity-access/infrastructure`.
+- [x] Permission checks go only through `PermissionsService` / `PermissionsGuard` / `RolesGuard`: no `user_permissions` or `roles_permissions` queries outside `identity-access/infrastructure`.
 - [x] Exactly one axios instance in `frontend/src/api/`; no `apiClient` import, no `fetch(` (T79) and no import from `@/api/` (T80, decision Q19) in `views/` or `components/`, enforced by an ESLint `no-restricted-imports` rule.
 - [x] No hardcoded `localhost` URLs in `frontend/src` outside one config module.
 - [x] No domain data in localStorage: it holds only the auth tokens and per-browser UI conveniences (decision D1).

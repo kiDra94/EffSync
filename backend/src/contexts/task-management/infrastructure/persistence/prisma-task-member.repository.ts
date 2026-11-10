@@ -82,11 +82,4 @@ export class PrismaTaskMemberRepository extends TaskMemberRepository {
       select: { created_by: true },
     });
   }
-
-  findUserPermissions(userId: number) {
-    return this.db.user_permissions.findMany({
-      where: { user_id: userId },
-      include: { permissions: true },
-    });
-  }
 }

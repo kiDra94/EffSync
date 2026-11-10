@@ -25,9 +25,6 @@ type TaskWithPeople = Prisma.tasksGetPayload<{
     users_tasks_assigned_toTousers: typeof memberUser;
   };
 }>;
-type UserPermissionWithFlags = Prisma.user_permissionsGetPayload<{
-  include: { permissions: true };
-}>;
 
 /** Task members (port); the queries TaskMembersService made before M15. */
 export abstract class TaskMemberRepository {
@@ -45,7 +42,4 @@ export abstract class TaskMemberRepository {
     taskId: number,
   ): Promise<{ created_by: number; assigned_to: number | null } | null>;
   abstract findCreator(taskId: number): Promise<{ created_by: number } | null>;
-  abstract findUserPermissions(
-    userId: number,
-  ): Promise<UserPermissionWithFlags[]>;
 }

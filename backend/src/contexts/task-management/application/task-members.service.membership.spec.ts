@@ -13,6 +13,7 @@ import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-u
 import { PrismaTaskMemberRepository } from "../infrastructure/persistence/prisma-task-member.repository";
 import { TaskMemberRepository } from "./ports/task-member.repository";
 import { TaskNotificationsService } from "./task-notifications.service";
+import { permissionsOverPrisma } from "./task-members.fixtures";
 
 const memberNotifications = {
   memberAdded: jest.fn().mockResolvedValue(undefined),
@@ -31,6 +32,7 @@ describe("TaskMembersService - flags, membership and adding members", () => {
         PrismaUnitOfWork,
         { provide: TaskMemberRepository, useClass: PrismaTaskMemberRepository },
         { provide: TaskNotificationsService, useValue: memberNotifications },
+        permissionsOverPrisma,
         {
           provide: PrismaService,
           useValue: {
