@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
 import { mount } from '@vue/test-utils'
 import UserPermissionsCard from './UserPermissionsCard.vue'
 
@@ -23,16 +24,32 @@ describe('UserPermissionsCard', () => {
     expect(wrapper.emitted('remove')).toEqual([[6]])
   })
 
-  it('adds a permission with an optional validity and clears the form', async () => {
-    const wrapper = mount(UserPermissionsCard, { props: { user: { user_id: 4, user_permissions: [] }, permissions, busy: false } })
+  it('adds a permission with an optional validity and clears the form once it is added', async () => {
+    const onAdd = vi.fn().mockResolvedValue(true)
+    const wrapper = mount(UserPermissionsCard, { props: { user: { user_id: 4, user_permissions: [] }, permissions, busy: false, onAdd } })
 
     expect(wrapper.find('.no-items').exists()).toBe(true)
     await wrapper.find('select').setValue('1')
     await wrapper.find('#valid-to').setValue('2026-12-31')
     await wrapper.find('.btn-add').trigger('click')
+    await flushPromises()
 
-    expect(wrapper.emitted('add')).toEqual([[{ permissionId: 1, validFrom: null, validTo: '2026-12-31' }]])
+    expect(onAdd).toHaveBeenCalledWith({ permissionId: 1, validFrom: null, validTo: '2026-12-31' })
     expect(wrapper.find('select').element.value).toBe('')
     expect(wrapper.find('#valid-to').element.value).toBe('')
+  })
+
+  // review: as before the split, a failed add keeps the entries for a retry
+  it('keeps the entries when adding fails', async () => {
+    const onAdd = vi.fn().mockResolvedValue(false)
+    const wrapper = mount(UserPermissionsCard, { props: { user: { user_id: 4, user_permissions: [] }, permissions, busy: false, onAdd } })
+
+    await wrapper.find('select').setValue('1')
+    await wrapper.find('#valid-to').setValue('2026-12-31')
+    await wrapper.find('.btn-add').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('select').element.value).toBe('1')
+    expect(wrapper.find('#valid-to').element.value).toBe('2026-12-31')
   })
 })

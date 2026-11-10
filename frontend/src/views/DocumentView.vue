@@ -619,7 +619,6 @@ const downloadDocument = async (document) => {
 }
 
 .btn-primary,
-.btn-secondary,
 .btn-inline {
   border: none;
   border-radius: 10px;
@@ -635,7 +634,6 @@ const downloadDocument = async (document) => {
 }
 
 .btn-primary:hover:not(:disabled),
-.btn-secondary:hover,
 .btn-inline:hover,
 .btn-icon:hover {
   transform: translateY(-1px);
@@ -646,7 +644,6 @@ const downloadDocument = async (document) => {
   cursor: wait;
 }
 
-.btn-secondary,
 .btn-inline {
   background: #e2e8f0;
   color: #1e293b;
@@ -676,9 +673,7 @@ const downloadDocument = async (document) => {
   gap: 8px;
 }
 
-.rename-input,
-.text-input,
-.text-area {
+.rename-input {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
@@ -686,8 +681,7 @@ const downloadDocument = async (document) => {
   font: inherit;
 }
 
-.rename-actions,
-.modal-actions {
+.rename-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
@@ -759,6 +753,45 @@ const downloadDocument = async (document) => {
 
   .feedback-preview {
     max-width: 160px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: #111827;
+    color: #f9fafb;
+  }
+
+  .document-table th {
+    background: #1f2937;
+    color: #9ca3af;
+  }
+
+  .document-table td {
+    border-color: #374151;
+  }
+
+  .subtitle,
+  .text-muted,
+  .file-date,
+  .feedback-preview {
+    color: #9ca3af;
+  }
+
+  .rename-input,
+  .task-select {
+    background: #0f172a;
+    color: #f9fafb;
+    border-color: #475569;
+  }
+
+  .btn-inline {
+    background: #334155;
+    color: #f8fafc;
+  }
+
+  .btn-icon:hover {
+    background: #1f2937;
   }
 }
 </style>

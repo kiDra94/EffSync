@@ -69,11 +69,12 @@
       <div v-if="selectedUser" class="details-section">
         <h2>⚙️ Verwaltung für: {{ selectedUser.firstname }} {{ selectedUser.lastname }}</h2>
 
-        <UserAccountCard :user="selectedUser" :can-delete="selectedUser.user_id !== authStore.userId"
+        <!-- keyed by the user: a half-filled form doesn't carry over to the next one -->
+        <UserAccountCard :key="'account-' + selectedUser.user_id" :user="selectedUser" :can-delete="selectedUser.user_id !== authStore.userId"
           :busy="isRemoving" @edit="openAccountForm(selectedUser)" @delete="deleteSelectedUser" />
-        <UserRolesCard :user="selectedUser" :roles="availableRoles" :users="users" :busy="isAdding || isRemoving"
+        <UserRolesCard :key="'roles-' + selectedUser.user_id" :user="selectedUser" :roles="availableRoles" :users="users" :busy="isAdding || isRemoving"
           @add="addRoleToUser" @remove="removeRoleFromUser" />
-        <UserPermissionsCard :user="selectedUser" :permissions="availablePermissions" :busy="isAdding || isRemoving"
+        <UserPermissionsCard :key="'permissions-' + selectedUser.user_id" :user="selectedUser" :permissions="availablePermissions" :busy="isAdding || isRemoving"
           @add="addPermissionToUser" @remove="removePermissionFromUser" />
       </div>
 
@@ -236,17 +237,20 @@ export default {
     };
 
     // the cards (UserRolesCard, UserPermissionsCard) hand over what to change
+    // true once it's done: only then the card clears its form
     const addRoleToUser = async (roleId) => {
-      if (!selectedUser.value || !roleId) return;
+      if (!selectedUser.value || !roleId) return false;
 
       try {
         isAdding.value = true;
         await adminStore.assignRole(selectedUser.value.user_id, roleId);
         // review M35: the list again, so the change shows
         await refreshUsers();
+        return true;
       } catch (err) {
         error.value = err.message || 'Fehler beim Zuweisen der Rolle';
         console.error('Error adding role:', err);
+        return false;
       } finally {
         isAdding.value = false;
       }
@@ -269,16 +273,18 @@ export default {
     };
 
     const addPermissionToUser = async ({ permissionId, validFrom, validTo }) => {
-      if (!selectedUser.value || !permissionId) return;
+      if (!selectedUser.value || !permissionId) return false;
 
       try {
         isAdding.value = true;
         await adminStore.assignPermission(selectedUser.value.user_id, permissionId, validFrom, validTo);
         // review M35: the list again, so the change shows
         await refreshUsers();
+        return true;
       } catch (err) {
         error.value = err.message || 'Fehler beim Zuweisen der Permission';
         console.error('Error adding permission:', err);
+        return false;
       } finally {
         isAdding.value = false;
       }
@@ -556,9 +562,6 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
-}
-
-.btn-add {
   background: #4a90e2;
   color: white;
   width: 100%;
@@ -724,3 +727,6 @@ body.dark-mode .loading-spinner,
 body.dark-mode .admin-container .admin-tabs button { background: #2c2c3e; }
 body.dark-mode .admin-container .admin-tabs button.active { background: #4a90e2; }
 </style>
+
+<!-- the user cards' dark mode, unscoped and loaded once (review: not per card) -->
+<style src="../components/admin/admin-card-dark.css"></style>

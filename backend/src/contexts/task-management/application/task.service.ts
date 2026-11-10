@@ -249,12 +249,11 @@ export class TaskService {
       is_locked: _ignoredIsLocked,
       locked_reason: _ignoredLockedReason,
       locked_until: _ignoredLockedUntil,
-      tags,
+      tags: _tags,
       ...taskData
     } = input;
 
-    await this.assertValidUpdate(task, input, userId);
-    const tagNames = tags !== undefined ? validTags(tags) : undefined;
+    const tagNames = await this.assertValidUpdate(task, input, userId);
 
     // completing a task completes all of its subtasks; the recursive reads
     // happen before the transaction, so it stays short
@@ -303,9 +302,10 @@ export class TaskService {
   }
 
   /**
-   * The checks of an update before anything is written: the parent (no
-   * cycle, and the requester in its project), the assignee, the template,
-   * the priority and T100's full progress for COMPLETED.
+   * The checks of an update before anything is written, in this order: the
+   * parent (no cycle, and the requester in its project), the assignee, the
+   * template, the tags, the priority and T100's full progress for COMPLETED.
+   * Returns the tag names to store, if tags were sent.
    */
   private async assertValidUpdate(
     task: TaskRecord,
@@ -334,6 +334,8 @@ export class TaskService {
     ) {
       await this.templates.assertOwner(input.template_id, userId);
     }
+    const tagNames =
+      input.tags !== undefined ? validTags(input.tags) : undefined;
     if (
       priority_id !== undefined &&
       priority_id !== null &&
@@ -350,6 +352,7 @@ export class TaskService {
     ) {
       throw new BadRequestException(COMPLETED_NEEDS_FULL_PROGRESS);
     }
+    return tagNames;
   }
 
   /** What an update announces, only after the commit. */

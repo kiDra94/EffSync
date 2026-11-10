@@ -108,4 +108,15 @@ describe("TaskService tags", () => {
     ).rejects.toThrow(BadRequestException);
     expect(tasks.create).not.toHaveBeenCalled();
   });
+
+  // review of the Definition-of-done refactor: the tag check keeps its place,
+  // before the priority and T100 checks, as before the split of update
+  it("checks the tags before the priority", async () => {
+    tasks.priorityExists = jest.fn().mockResolvedValue(false);
+
+    await expect(
+      service.update(9, { tags: ["x".repeat(60)], priority_id: 9999 }, 5),
+    ).rejects.toThrow("Ein Tag darf höchstens 50 Zeichen lang sein");
+    expect(tasks.priorityExists).not.toHaveBeenCalled();
+  });
 });

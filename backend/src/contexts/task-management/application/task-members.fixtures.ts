@@ -2,26 +2,20 @@ import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.serv
 import { PermissionsService } from "../../identity-access/application";
 
 /**
- * PermissionsService for the TaskMembersService specs: its direct-grant
- * query on the specs' Prisma mock, so their `user_permissions.findMany`
- * scenarios hold (Definition of done: the query is identity-access's).
+ * The real PermissionsService for the TaskMembersService specs, over their
+ * Prisma mock: only identity-access's direct-grant query is given here, the
+ * validity window is the service's own (review of the Definition-of-done
+ * refactor).
  */
 export const permissionsOverPrisma = {
   provide: PermissionsService,
   inject: [PrismaService],
-  useFactory: (prisma: PrismaService) => ({
-    getActivePermissions: async (userId: number) =>
-      (
-        await prisma.user_permissions.findMany({
+  useFactory: (prisma: PrismaService) =>
+    new PermissionsService({
+      findPermissionsOfUser: (userId: number) =>
+        prisma.user_permissions.findMany({
           where: { user_id: userId },
           include: { permissions: true },
-        })
-      ).map((up) => ({
-        name: up.permissions.name,
-        flags: up.permissions.flags,
-        valid_from: up.valid_from,
-        valid_to: up.valid_to,
-        isExpired: up.valid_to !== null && new Date() > up.valid_to,
-      })),
-  }),
+        }),
+    } as never),
 };

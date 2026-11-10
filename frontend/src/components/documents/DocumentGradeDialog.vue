@@ -65,8 +65,7 @@ const form = reactive({
 /* with the page's button and field styles it uses (scoped styles don't
    reach into a child component) */
 .btn-primary,
-.btn-secondary,
-.btn-inline {
+.btn-secondary {
   border: none;
   border-radius: 10px;
   padding: 11px 18px;
@@ -81,9 +80,7 @@ const form = reactive({
 }
 
 .btn-primary:hover:not(:disabled),
-.btn-secondary:hover,
-.btn-inline:hover,
-.btn-icon:hover {
+.btn-secondary:hover {
   transform: translateY(-1px);
 }
 
@@ -92,13 +89,11 @@ const form = reactive({
   cursor: wait;
 }
 
-.btn-secondary,
-.btn-inline {
+.btn-secondary {
   background: #e2e8f0;
   color: #1e293b;
 }
 
-.rename-input,
 .text-input,
 .text-area {
   width: 100%;
@@ -108,7 +103,6 @@ const form = reactive({
   font: inherit;
 }
 
-.rename-actions,
 .modal-actions {
   display: flex;
   gap: 10px;
@@ -176,5 +170,33 @@ const form = reactive({
   line-height: 1;
   color: #64748b;
   cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-card {
+    background: #111827;
+    color: #f9fafb;
+  }
+
+  .modal-header {
+    border-color: #374151;
+  }
+
+  .modal-header p,
+  .modal-hint {
+    color: #9ca3af;
+  }
+
+  .text-input,
+  .text-area {
+    background: #0f172a;
+    color: #f9fafb;
+    border-color: #475569;
+  }
+
+  .btn-secondary {
+    background: #334155;
+    color: #f8fafc;
+  }
 }
 </style>

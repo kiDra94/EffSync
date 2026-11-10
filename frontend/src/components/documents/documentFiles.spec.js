@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   validateFile,
   isPreviewable,
@@ -7,6 +7,7 @@ import {
   uploaderRole,
   gradeSummary,
   fileNameFromResponse,
+  openBlob,
 } from './documentFiles'
 
 const file = (name, size = 1000) => ({ name, size })
@@ -54,5 +55,38 @@ describe('documentFiles', () => {
     expect(fileNameFromResponse(response("attachment; filename*=UTF-8''%C3%9Cbung.pdf"), 'x.pdf')).toBe('Übung.pdf')
     expect(fileNameFromResponse(response('attachment; filename="abgabe.pdf"'), 'x.pdf')).toBe('abgabe.pdf')
     expect(fileNameFromResponse({ headers: {} }, 'x.pdf')).toBe('x.pdf')
+  })
+
+  // review: with 'noopener' window.open always returns null, so every opened
+  // file was downloaded as well
+  describe('openBlob', () => {
+    afterEach(() => vi.restoreAllMocks())
+
+    const setUp = (opened) => {
+      URL.createObjectURL = vi.fn(() => 'blob:file')
+      URL.revokeObjectURL = vi.fn()
+      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+      vi.spyOn(window, 'open').mockReturnValue(opened)
+      return click
+    }
+
+    it('opens the file in a new tab without a download, cut off from this page', () => {
+      const tab = { opener: window }
+      const click = setUp(tab)
+
+      openBlob(new Blob(['%PDF']), 'abgabe.pdf')
+
+      expect(window.open).toHaveBeenCalledWith('blob:file', '_blank')
+      expect(tab.opener).toBeNull()
+      expect(click).not.toHaveBeenCalled()
+    })
+
+    it('downloads the file when the tab is blocked', () => {
+      const click = setUp(null)
+
+      openBlob(new Blob(['%PDF']), 'abgabe.pdf')
+
+      expect(click).toHaveBeenCalledTimes(1)
+    })
   })
 })

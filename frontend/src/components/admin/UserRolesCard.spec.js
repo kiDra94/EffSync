@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
 import { mount } from '@vue/test-utils'
 import UserRolesCard from './UserRolesCard.vue'
 
@@ -24,14 +25,28 @@ describe('UserRolesCard', () => {
     expect(wrapper.find('.btn-remove').attributes('title')).toBe('Es muss mindestens 1 Superuser existieren')
   })
 
-  it('adds the chosen role and clears the choice', async () => {
-    const wrapper = mount(UserRolesCard, { props: { user: felix, roles, users: [max, felix], busy: false } })
+  it('adds the chosen role and clears the choice once it is added', async () => {
+    const onAdd = vi.fn().mockResolvedValue(true)
+    const wrapper = mount(UserRolesCard, { props: { user: felix, roles, users: [max, felix], busy: false, onAdd } })
 
     expect(wrapper.find('.btn-add').attributes('disabled')).toBeDefined()
     await wrapper.find('select').setValue('3')
     await wrapper.find('.btn-add').trigger('click')
+    await flushPromises()
 
-    expect(wrapper.emitted('add')).toEqual([[3]])
+    expect(onAdd).toHaveBeenCalledWith(3)
     expect(wrapper.find('select').element.value).toBe('')
+  })
+
+  // review: as before the split, a failed add keeps the choice for a retry
+  it('keeps the choice when adding fails', async () => {
+    const onAdd = vi.fn().mockResolvedValue(false)
+    const wrapper = mount(UserRolesCard, { props: { user: felix, roles, users: [max, felix], busy: false, onAdd } })
+
+    await wrapper.find('select').setValue('3')
+    await wrapper.find('.btn-add').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('select').element.value).toBe('3')
   })
 })

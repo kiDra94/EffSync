@@ -54,17 +54,11 @@ export class TaskMembersService {
     private readonly permissions: PermissionsService,
   ) {}
 
-  /**
-   * The flags of the user's direct grants that are valid now. They come from
-   * identity-access (Definition of done: permission data only through
-   * PermissionsService), not from a query of this context's own.
-   */
+  /** The flags of the user's direct grants valid now, from identity-access. */
   private async validGrantFlags(userId: number): Promise<number[]> {
-    const now = new Date();
-    return (await this.permissions.getActivePermissions(userId))
-      .filter((grant) => !(grant.valid_from && grant.valid_from > now)) // not valid yet
-      .filter((grant) => !(grant.valid_to && grant.valid_to < now)) // expired
-      .map((grant) => grant.flags);
+    return (await this.permissions.getValidGrants(userId)).map(
+      (grant) => grant.flags,
+    );
   }
 
   /**

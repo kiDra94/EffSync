@@ -83,11 +83,18 @@ export function fileNameFromResponse(response, fallbackName) {
   return plainMatch?.[1] || fallbackName;
 }
 
-/** Opens a downloaded file in a new tab, or saves it when that is blocked. */
+/**
+ * Opens a downloaded file in a new tab, or saves it when that is blocked.
+ * Without 'noopener' in the features, because with it window.open always
+ * returns null and every file was downloaded as well (review); the tab is
+ * cut off from this page by hand instead.
+ */
 export function openBlob(blob, fileName) {
   const objectUrl = URL.createObjectURL(blob);
-  const newWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
-  if (!newWindow) {
+  const newWindow = window.open(objectUrl, '_blank');
+  if (newWindow) {
+    newWindow.opener = null;
+  } else {
     const link = document.createElement('a');
     link.href = objectUrl;
     link.download = fileName;

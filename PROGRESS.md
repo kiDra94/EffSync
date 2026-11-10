@@ -1719,3 +1719,34 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
 - The first item (all tests pass in CI, characterization tests, `// THESIS:` flips) is ticked after this batch's code review and `act` run.
   - All 38 `// THESIS:` markers in the tests describe the thesis-conform behavior: the old behavior was flipped in M6, M8, M9, M14, M15, M16 and M21.
 
+## 2026-11-10 – Definition of done: code review of parts 1–5
+
+`code-review` (high) on `077cbe3..afb2154` gave 10 findings. 9 were fixed; 1 is open (6):
+1. My CSS splitter sorted DocumentView's rules by selector text. Its two `@media (prefers-color-scheme: dark)` blocks have the same text, so both went into `DocumentGradeRow`, and with the OS in dark mode the page and the grading dialog stayed light. Fixed:
+   - the page's rules are back in `DocumentView`;
+   - the dialog's are in `DocumentGradeDialog`;
+   - the grade row keeps its own block plus the dark cell border.
+   - The screenshots had only toggled `body.dark-mode`. They now also emulate the OS dark mode: old and new are pixel-identical in all 12 states, and OS dark differs from light in 65 % of the pixels, so the check is meaningful.
+2. A half-filled role or permission choice carried over to the next user, because `selectUser` no longer cleared it. The three cards are now keyed by the user (new `AdminView` test).
+3. The cards cleared their forms right away, also when the add failed. They now call the page's add (`onAdd`), which resolves to true on success, and clear only then, as before the split (new tests).
+4. With `noopener`, `window.open` always returns null, so opening a PDF or image downloaded it as well. This was already in the old code. `openBlob` now opens without the feature, sets `opener = null` itself, and downloads only when the tab is blocked (new tests).
+5. Splitting `TaskService.update` moved the tag check behind the priority and T100 checks. It is back in its place: `assertValidUpdate` checks parent, assignee, template, tags, priority, then T100, and returns the tag names (new test: an over-long tag and an unknown priority give the tag's 400).
+6. Open: the same broken `:global(body.dark-mode) .x` pattern is still in 17 other `.vue` files. The most are in `TaskMembersList` (24), `SubtaskBuilder` (14), `LayoutView`, `DashboardView` and `TaskProgressChart` (13 each).
+   - Each compiles to a bare `body.dark-mode` or `.app-container.dark-mode` rule. So the dark look of the whole app depends on which chunks have loaded.
+   - The rules removed from TaskForm set more than a border on `body` (a colour, a gradient, a shadow). On screen only the border changed, because rules from the other files still style `body`.
+   - Rewriting them changes the dark look app-wide and needs a check of every view; that's outside the Definition of done.
+7. The validity window of direct grants was in two places, and `getActivePermissions` claimed to check it but didn't. Now there is `PermissionsService.getValidGrants` (tested), which task-management uses; `getActivePermissions` had no caller left and is deleted.
+8. The task-members fixture copied the service logic. It now builds the real `PermissionsService` over the specs' Prisma mock; only the repository query is given.
+9. Dead and duplicated CSS:
+   - `DocumentView` no longer styles the dialog's fields and buttons;
+   - the dialog's copies dropped the selectors it doesn't render;
+   - `AdminView`'s two consecutive `.btn-add` blocks are one.
+10. The unscoped `admin-card-dark.css` was emitted once per card. `AdminView` now loads it once.
+
+**Verified:**
+- Backend: 687 unit tests (coverage thresholds hold) and 180 E2E; lint, knip and depcruise pass.
+- Frontend: 515 tests; lint, knip and the build pass.
+- Screenshots:
+  - DocumentView: light, `body.dark-mode` and OS dark, pixel-identical to before the split.
+  - AdminView: identical except the header's unread-notifications badge, whose count the test runs had raised.
+

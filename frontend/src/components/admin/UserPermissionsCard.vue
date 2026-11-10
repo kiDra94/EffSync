@@ -3,13 +3,15 @@ import { ref } from 'vue';
 
 // the selected user's direct permissions, each with an optional validity
 // (Definition of done: out of AdminView)
-defineProps({
+const props = defineProps({
   user: { type: Object, required: true },
   // the permissions that can be granted
   permissions: { type: Array, required: true },
   busy: { type: Boolean, default: false },
+  // AdminView's @add: resolves to true once the permission is granted
+  onAdd: { type: Function, required: true },
 });
-const emit = defineEmits(['add', 'remove']);
+const emit = defineEmits(['remove']);
 
 const newPermissionId = ref('');
 const validFrom = ref('');
@@ -17,13 +19,15 @@ const validTo = ref('');
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString('de-DE') : '—');
 
-function add() {
+// the entries stay until the permission is granted, for a retry after an error
+async function add() {
   if (!newPermissionId.value) return;
-  emit('add', {
+  const added = await props.onAdd({
     permissionId: Number(newPermissionId.value),
     validFrom: validFrom.value || null,
     validTo: validTo.value || null,
   });
+  if (!added) return;
   newPermissionId.value = '';
   validFrom.value = '';
   validTo.value = '';
@@ -78,4 +82,3 @@ function add() {
 </template>
 
 <style scoped src="./admin-card.css"></style>
-<style src="./admin-card-dark.css"></style>

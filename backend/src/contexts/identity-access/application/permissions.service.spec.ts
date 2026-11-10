@@ -158,34 +158,38 @@ describe("PermissionsService", () => {
     });
   });
 
-  describe("getActivePermissions", () => {
-    it("should return only active permissions within time window", async () => {
-      const now = new Date();
-      const tomorrow = new Date(now.getTime() + 86400000);
-      const nextWeek = new Date(now.getTime() + 604800000);
-
+  // review of the Definition-of-done refactor: one place for the validity
+  // window of direct grants (task-management reads them through it)
+  describe("getValidGrants", () => {
+    it("returns the direct grants valid now, without future or expired ones", async () => {
+      const now = Date.now();
       (prisma.user_permissions.findMany as jest.Mock).mockResolvedValue([
         {
-          user_id: 1,
-          permission_id: 3,
           valid_from: null,
           valid_to: null,
           permissions: { name: "create_tasks", flags: 7 },
         },
         {
-          user_id: 1,
-          permission_id: 4,
-          valid_from: new Date(now.getTime() - 86400000),
-          valid_to: nextWeek,
+          valid_from: new Date(now - 86400000),
+          valid_to: new Date(now + 86400000),
           permissions: { name: "edit_tasks", flags: 6 },
+        },
+        {
+          valid_from: new Date(now + 86400000),
+          valid_to: null,
+          permissions: { name: "view_grades", flags: 4 },
+        },
+        {
+          valid_from: null,
+          valid_to: new Date(now - 86400000),
+          permissions: { name: "manage_users", flags: 7 },
         },
       ]);
 
-      const result = await service.getActivePermissions(1);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("create_tasks");
-      expect(result[1].name).toBe("edit_tasks");
+      await expect(service.getValidGrants(1)).resolves.toEqual([
+        { name: "create_tasks", flags: 7 },
+        { name: "edit_tasks", flags: 6 },
+      ]);
     });
   });
 

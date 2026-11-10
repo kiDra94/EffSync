@@ -93,6 +93,19 @@ describe('AdminView', () => {
       )
     })
 
+    // review: the cards are keyed by the user, so a half-filled form doesn't
+    // carry over (before the split, selectUser cleared it)
+    it('starts the next user with an empty role choice', async () => {
+      admin.fetchRoles.mockResolvedValue([{ role_id: 2, name: 'Student' }])
+      const wrapper = await mountView()
+      await card(wrapper, 'Felix').trigger('click')
+      await wrapper.find('#role-select').setValue('2')
+
+      await card(wrapper, 'Max').trigger('click')
+
+      expect(wrapper.find('#role-select').element.value).toBe('')
+    })
+
     it('offers no delete for the own account', async () => {
       const wrapper = await mountView()
 

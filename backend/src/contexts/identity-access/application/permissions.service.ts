@@ -125,28 +125,21 @@ export class PermissionsService {
   }
 
   /**
-   * Returns all active permissions of the user (validity period checked)
+   * The user's direct grants that are valid now: started and not expired
+   * (the window hasPermission checks too). Other contexts read a user's
+   * direct grants only through this (Definition of done).
    */
-  async getActivePermissions(userId: number): Promise<
-    Array<{
-      name: string;
-      flags: number;
-      valid_from: Date | null;
-      valid_to: Date | null;
-      isExpired: boolean;
-    }>
-  > {
-    const permissions = await this.permissions.findPermissionsOfUser(userId);
-
+  async getValidGrants(
+    userId: number,
+  ): Promise<Array<{ name: string; flags: number }>> {
     const now = new Date();
-
-    return permissions.map((up) => ({
-      name: up.permissions.name,
-      flags: up.permissions.flags,
-      valid_from: up.valid_from,
-      valid_to: up.valid_to,
-      isExpired: up.valid_to !== null && now > up.valid_to,
-    }));
+    return (await this.permissions.findPermissionsOfUser(userId))
+      .filter((up) => !(up.valid_from && up.valid_from > now))
+      .filter((up) => !(up.valid_to && up.valid_to < now))
+      .map((up) => ({
+        name: up.permissions.name,
+        flags: up.permissions.flags,
+      }));
   }
 
   /**

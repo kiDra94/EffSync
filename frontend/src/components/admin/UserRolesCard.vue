@@ -11,8 +11,10 @@ const props = defineProps({
   // all users, for the last-holder rule
   users: { type: Array, required: true },
   busy: { type: Boolean, default: false },
+  // AdminView's @add: resolves to true once the role is assigned
+  onAdd: { type: Function, required: true },
 });
-const emit = defineEmits(['add', 'remove']);
+const emit = defineEmits(['remove']);
 
 const newRoleId = ref('');
 
@@ -21,10 +23,10 @@ const canRemove = (role) =>
   !CRITICAL_ROLES.includes(role.roles?.name) ||
   props.users.filter((u) => u.user_roles?.some((ur) => ur.role_id === role.role_id)).length > 1;
 
-function add() {
+// the choice stays until the role is assigned, for a retry after an error
+async function add() {
   if (!newRoleId.value) return;
-  emit('add', Number(newRoleId.value));
-  newRoleId.value = '';
+  if (await props.onAdd(Number(newRoleId.value))) newRoleId.value = '';
 }
 </script>
 
@@ -63,4 +65,3 @@ function add() {
 </template>
 
 <style scoped src="./admin-card.css"></style>
-<style src="./admin-card-dark.css"></style>

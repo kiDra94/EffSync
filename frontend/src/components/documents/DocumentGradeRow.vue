@@ -144,48 +144,9 @@ defineProps({
 }
 
 @media (prefers-color-scheme: dark) {
-  .card,
-  .modal-card {
-    background: #111827;
-    color: #f9fafb;
-  }
-
-  .document-table th {
-    background: #1f2937;
-    color: #9ca3af;
-  }
-
-  .document-table td,
-  .modal-header {
+  /* the page's dark table-cell border (DocumentView), for this cell */
+  .document-table td {
     border-color: #374151;
-  }
-
-  .subtitle,
-  .text-muted,
-  .file-date,
-  .feedback-preview,
-  .modal-header p,
-  .modal-hint {
-    color: #9ca3af;
-  }
-
-  .rename-input,
-  .text-input,
-  .text-area,
-  .task-select {
-    background: #0f172a;
-    color: #f9fafb;
-    border-color: #475569;
-  }
-
-  .btn-secondary,
-  .btn-inline {
-    background: #334155;
-    color: #f8fafc;
-  }
-
-  .btn-icon:hover {
-    background: #1f2937;
   }
 }
 </style>

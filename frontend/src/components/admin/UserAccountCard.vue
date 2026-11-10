@@ -1,9 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 // the selected user's account: edit it, or delete it after a confirmation
 // (T75, decision Q17, M35; Definition of done: out of AdminView)
-const props = defineProps({
+defineProps({
   user: { type: Object, required: true },
   // not the own account
   canDelete: { type: Boolean, default: false },
@@ -11,8 +11,8 @@ const props = defineProps({
 });
 const emit = defineEmits(['edit', 'delete']);
 
+// AdminView keys the card by the user, so this starts closed for each one
 const confirming = ref(false);
-watch(() => props.user.user_id, () => { confirming.value = false; });
 </script>
 
 <template>
@@ -39,4 +39,3 @@ watch(() => props.user.user_id, () => { confirming.value = false; });
 </template>
 
 <style scoped src="./admin-card.css"></style>
-<style src="./admin-card-dark.css"></style>
