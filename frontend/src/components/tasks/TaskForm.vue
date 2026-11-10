@@ -6,43 +6,8 @@
         <button @click="close" class="close-btn" aria-label="Schließen">×</button>
       </div>
 
-      <!-- Feature #27: Display lock warning -->
-      <div v-if="isTaskLocked" class="lock-warning">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span>🔒 <strong>Aufgabe gesperrt:</strong> {{ lockedReason }}</span>
-          <button 
-            v-if="canUnlockTask" 
-            type="button" 
-            class="btn-unlock-small"
-            @click="showUnlockDialog = true"
-          >
-            🔓 Entsperren
-          </button>
-        </div>
-      </div>
-
-      <!-- Feature #27: Unlock Dialog -->
-      <div v-if="showUnlockDialog && canUnlockTask" class="unlock-dialog">
-        <h3>🔓 Aufgabe entsperren</h3>
-        <p>Setze ein neues Deadline-Datum, um die Aufgabe freizugeben:</p>
-        <div class="form-group">
-          <label for="unlock-deadline">Neues Deadline *</label>
-          <input 
-            type="datetime-local" 
-            v-model="newDeadlineForUnlock" 
-            id="unlock-deadline"
-            required
-          />
-        </div>
-        <div class="unlock-dialog-actions">
-          <button type="button" class="btn-primary" @click="unlockTask">
-            ✓ Entsperren & Speichern
-          </button>
-          <button type="button" class="btn-secondary" @click="showUnlockDialog = false">
-            Abbrechen
-          </button>
-        </div>
-      </div>
+      <!-- Feature #27: why the task is locked, and the creator's unlock -->
+      <TaskLockNotice v-if="isTaskLocked" :task="task" :can-unlock="canUnlockTask" @unlocked="close" />
 
       <form @submit.prevent="submitTask" class="task-form" novalidate :class="{ 'is-locked': isTaskLocked }">
 
@@ -138,26 +103,8 @@
             Ausgewählte Benutzer werden direkt nach dem Erstellen als Mitglieder hinzugefügt.
           </span>
 
-          <!-- Show selected members as chips -->
-          <div v-if="selectedMembersForDisplay.length > 0" class="selected-members-chips">
-            <div
-              v-for="member in selectedMembersForDisplay"
-              :key="member.user_id"
-              class="member-chip"
-              :title="`${member.firstname} ${member.lastname} (${member.email})`"
-            >
-              <span class="chip-avatar">{{ getInitials(member.firstname, member.lastname) }}</span>
-              <span class="chip-name">{{ member.firstname }} {{ member.lastname }}</span>
-              <button
-                type="button"
-                class="chip-remove"
-                @click="removeMember(member.user_id)"
-                aria-label="Member entfernen"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
+          <TaskMemberChips v-if="selectedMembersForDisplay.length > 0" :members="selectedMembersForDisplay"
+            @remove="removeMember" />
         </div>
 
         <!-- Task members section (only if the task already exists) -->
@@ -208,6 +155,8 @@ import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
 import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
 import TaskComments from '@/components/tasks/TaskComments.vue';
 import TaskGradeRemarks from '@/components/tasks/TaskGradeRemarks.vue';
+import TaskLockNotice from '@/components/tasks/TaskLockNotice.vue';
+import TaskMemberChips from '@/components/tasks/TaskMemberChips.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserStore } from '@/stores/entities/userStore';
@@ -281,22 +230,6 @@ const isInvolvedInRoot = computed(() => {
 });
 const canAddSubtasks = computed(() => (props.task?.task_id ? isInvolvedInRoot.value : true));
 const canUnlockTask = computed(() => isTaskLocked.value && isTaskCreator.value);
-
-const lockedReason = computed(() => {
-  if (props.task?.is_student_submission_locked) {
-    const grade = props.task?.student_submission_status?.latest_grade;
-    return `Deine Eingabe wurde bewertet${grade ? ` (${grade})` : ''}. Du darfst nicht weiter bearbeiten bis ein neues Deadline gesetzt wird.`;
-  }
-  
-  if (!props.task?.locked_reason) return 'System';
-  if (props.task.locked_reason === 'OVERDUE') return 'Überfällig - automatisch gesperrt';
-  if (props.task.locked_reason === 'MANUAL') return 'Manuell gesperrt';
-  return props.task.locked_reason;
-});
-
-// State for the unlock dialog
-const showUnlockDialog = ref(false);
-const newDeadlineForUnlock = ref('');
 
 function formatForInput(isoString) {
   if (!isoString) return '';
@@ -434,36 +367,6 @@ const close = () => {
   emit('close');
 };
 
-/**
- * Feature #27: unlocks a locked task with a new deadline
- */
-const unlockTask = async () => {
-  if (!props.task?.task_id || !newDeadlineForUnlock.value) {
-    alert('Bitte wähle ein neues Deadline-Datum aus.');
-    return;
-  }
-
-  try {
-    // Convert datetime-local to ISO format
-    const date = new Date(`${newDeadlineForUnlock.value}:00.000Z`);
-    const isoDeadline = date.toISOString();
-
-    // the store reloads the tasks
-    await taskStore.unlockWithDeadline(props.task.task_id, isoDeadline);
-    alert('✓ Task wurde erfolgreich entsperrt und das neue Deadline wurde gesetzt!');
-    
-    // Close the dialog
-    showUnlockDialog.value = false;
-    newDeadlineForUnlock.value = '';
-    
-    // Close the task form modal
-    close();
-  } catch (error) {
-    console.error('Fehler beim Entsperren des Tasks:', error);
-    alert(`Fehler: ${error.response?.data?.message || error.message}`);
-  }
-};
-
 const handleMembersUpdated = (members) => {
   // Optional: Handle members update if needed
   // For now, just log it
@@ -478,10 +381,6 @@ const selectedMembersForDisplay = computed(() => {
     .map((userId) => selectableUsers.value.find((u) => u.user_id === Number(userId)))
     .filter(Boolean);
 });
-
-const getInitials = (firstname, lastname) => {
-  return `${(firstname || 'U')[0]}${(lastname || 'S')[0]}`.toUpperCase();
-};
 
 const removeMember = (userId) => {
   creationMembers.value = creationMembers.value.filter((id) => Number(id) !== Number(userId));
@@ -729,77 +628,6 @@ const removeMember = (userId) => {
   font-weight: 600;
 }
 
-/* Feature #27: Unlock Styles */
-.btn-unlock-small {
-  padding: 6px 12px;
-  background-color: #10b981;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-unlock-small:hover {
-  background-color: #059669;
-  transform: translateY(-1px);
-}
-
-.unlock-dialog {
-  background-color: #ecfdf5;
-  border: 2px solid #10b981;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.unlock-dialog h3 {
-  margin-top: 0;
-  color: #047857;
-  margin-bottom: 8px;
-}
-
-.unlock-dialog p {
-  color: #065f46;
-  margin: 8px 0 16px 0;
-}
-
-.unlock-dialog-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.unlock-dialog-actions .btn-primary,
-.unlock-dialog-actions .btn-secondary {
-  flex: 1;
-}
-
-/* Feature #27: Task Lock Styling */
-.lock-warning {
-  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
-  border-left: 4px solid #d97706;
-  padding: 12px 16px;
-  margin: 0 20px 16px 20px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  color: #92400e;
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .task-form.is-locked {
   opacity: 0.85;
   background-color: #fafaf9;
@@ -822,224 +650,6 @@ const removeMember = (userId) => {
 
 .task-form.is-locked button[type="submit"]:disabled:hover {
   background-color: #d1d5db;
-}
-
-:global(body.dark-mode) .modal-content,
-:global(.app-container.dark-mode) .modal-content {
-  background: #1f2333 !important;
-  color: #edf0fa !important;
-  border: 1px solid #434963 !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45) !important;
-}
-
-:global(body.dark-mode) .modal-header,
-:global(.app-container.dark-mode) .modal-header {
-  background: #1f2333 !important;
-  border-bottom: 1px solid #434963 !important;
-}
-
-:global(body.dark-mode) .modal-header h2,
-:global(.app-container.dark-mode) .modal-header h2,
-:global(body.dark-mode) .form-group label,
-:global(.app-container.dark-mode) .form-group label,
-:global(body.dark-mode) .progress-label,
-:global(.app-container.dark-mode) .progress-label {
-  color: #edf0fa !important;
-}
-
-:global(body.dark-mode) .close-btn,
-:global(.app-container.dark-mode) .close-btn {
-  background: #3c415b !important;
-  border-radius: 6px !important;
-  color: #cfd5e6 !important;
-}
-
-:global(body.dark-mode) .close-btn:hover,
-:global(.app-container.dark-mode) .close-btn:hover {
-  background: #4a5070 !important;
-  color: #ffffff !important;
-}
-
-:global(body.dark-mode) .form-group input,
-:global(body.dark-mode) .form-group select,
-:global(body.dark-mode) .form-group textarea,
-:global(.app-container.dark-mode) .form-group input,
-:global(.app-container.dark-mode) .form-group select,
-:global(.app-container.dark-mode) .form-group textarea {
-  background: #31364d !important;
-  border-color: #59607d !important;
-  color: #f5f7ff !important;
-}
-
-:global(body.dark-mode) .form-group input::placeholder,
-:global(body.dark-mode) .form-group textarea::placeholder,
-:global(.app-container.dark-mode) .form-group input::placeholder,
-:global(.app-container.dark-mode) .form-group textarea::placeholder {
-  color: #b2b9cb !important;
-}
-
-:global(body.dark-mode) .form-group input:disabled,
-:global(body.dark-mode) .form-group select:disabled,
-:global(body.dark-mode) .form-group textarea:disabled,
-:global(.app-container.dark-mode) .form-group input:disabled,
-:global(.app-container.dark-mode) .form-group select:disabled,
-:global(.app-container.dark-mode) .form-group textarea:disabled {
-  background: #2b3044 !important;
-  color: #c7cede !important;
-  border-color: #474d66 !important;
-}
-
-:global(body.dark-mode) .btn-secondary,
-:global(.app-container.dark-mode) .btn-secondary {
-  background: #39405a !important;
-  color: #edf0fa !important;
-}
-
-:global(body.dark-mode) .btn-secondary:hover,
-:global(.app-container.dark-mode) .btn-secondary:hover {
-  background: #48506f !important;
-}
-
-:global(body.dark-mode) .error-summary,
-:global(.app-container.dark-mode) .error-summary {
-  background: #482b2f !important;
-  color: #ffb4b4 !important;
-}
-
-:global(body.dark-mode) .info-message,
-:global(.app-container.dark-mode) .info-message {
-  color: #93b7ff !important;
-}
-
-:global(body.dark-mode) .warning-message,
-:global(.app-container.dark-mode) .warning-message {
-  color: #f5c56f !important;
-}
-
-:global(body.dark-mode) .task-form.is-locked,
-:global(.app-container.dark-mode) .task-form.is-locked {
-  background-color: #1f2333 !important;
-}
-
-:global(body.dark-mode) .task-form,
-:global(.app-container.dark-mode) .task-form {
-  background: #1f2333 !important;
-}
-
-/* Selected Members Chips Styling */
-.selected-members-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 12px;
-  background-color: #f0f9ff;
-  border: 1px dashed #0ea5e9;
-  border-radius: 6px;
-}
-
-.member-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: white;
-  border: 1px solid #0ea5e9;
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-.member-chip:hover {
-  background-color: #e0f2fe;
-  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2);
-}
-
-.chip-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
-  color: white;
-  border-radius: 50%;
-  font-weight: 600;
-  font-size: 0.75rem;
-  flex-shrink: 0;
-}
-
-.chip-name {
-  color: #0c4a6e;
-  font-weight: 500;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chip-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  background: none;
-  border: none;
-  color: #ef4444;
-  cursor: pointer;
-  font-size: 0.875rem;
-  padding: 0;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.chip-remove:hover {
-  color: #dc2626;
-  transform: scale(1.2);
-}
-
-/* Dark mode for member chips */
-:global(body.dark-mode) .selected-members-chips,
-:global(.app-container.dark-mode) .selected-members-chips {
-  background-color: #0e2f47 !important;
-  border-color: #0ea5e9 !important;
-}
-
-:global(body.dark-mode) .member-chip,
-:global(.app-container.dark-mode) .member-chip {
-  background-color: #1a3a4a !important;
-  border-color: #0ea5e9 !important;
-}
-
-:global(body.dark-mode) .member-chip:hover,
-:global(.app-container.dark-mode) .member-chip:hover {
-  background-color: #164e63 !important;
-}
-
-:global(body.dark-mode) .chip-name,
-:global(.app-container.dark-mode) .chip-name {
-  color: #38bdf8 !important;
-}
-
-:global(body.dark-mode) .subtask-builder,
-:global(.app-container.dark-mode) .subtask-builder,
-:global(body.dark-mode) .subtask-item,
-:global(.app-container.dark-mode) .subtask-item {
-  background: #2a2f45 !important;
-}
-
-:global(body.dark-mode) .task-form.is-locked button[type="submit"]:disabled,
-:global(.app-container.dark-mode) .task-form.is-locked button[type="submit"]:disabled {
-  background-color: #59607d !important;
-  color: #d7dced !important;
-}
-
-:global(body.dark-mode) .lock-warning,
-:global(.app-container.dark-mode) .lock-warning {
-  background: linear-gradient(135deg, #6d4b00 0%, #9f6f00 100%) !important;
-  color: #fff3c4 !important;
-  border-left-color: #ffd166 !important;
 }
 </style>
 
