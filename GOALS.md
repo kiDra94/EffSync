@@ -152,7 +152,7 @@ backend/src/shared/{domain,application,infrastructure,presentation}/
 
 The refactor is done when all of the following hold:
 
-- [ ] `cd backend && npx jest`, `npm run test:e2e` and `cd frontend && npx vitest run` pass, in CI as well. Every characterization test from M1/M2 still passes. Tests marked `// THESIS: <claim ID>` were flipped in the milestone that fixed the claim; any other change is listed in PROGRESS.md with the reason.
+- [x] `cd backend && npx jest`, `npm run test:e2e` and `cd frontend && npx vitest run` pass, in CI as well. Every characterization test from M1/M2 still passes. Tests marked `// THESIS: <claim ID>` were flipped in the milestone that fixed the claim; any other change is listed in PROGRESS.md with the reason.
 - [ ] **Every descriptive claim in [THESIS_ALIGNMENT.md](THESIS_ALIGNMENT.md) has status Implemented.** Each one is verified by a test that names the claim ID, or by a manual check documented in PROGRESS.md (for UI, browser and performance claims). Ambiguous claims count once their open question is answered. Claims with status Deferred (company version, decision Q1; production operation, decision Q4) are excluded.
 - [x] **Every Delete item in [UNUSED_CODE.md](UNUSED_CODE.md) is gone, and every Planned item is implemented or listed as an open question.**
 - [x] **The backend follows the target architecture**: all modules live under `src/contexts/*` or `src/shared/`, and `npx depcruise src --config .dependency-cruiser.cjs` runs in CI with severity `error` and 0 violations.

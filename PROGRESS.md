@@ -1750,3 +1750,12 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
   - DocumentView: light, `body.dark-mode` and OS dark, pixel-identical to before the split.
   - AdminView: identical except the header's unread-notifications badge, whose count the test runs had raised.
 
+## 2026-11-10 – Definition of done, part 7: the test suites in CI
+
+**Verified (ticked):**
+- `act --action-offline-mode`: all four jobs succeeded (backend tests with coverage, backend E2E, frontend tests with coverage, backup restore drill).
+- The characterization tests of M1/M2 are part of these suites and pass.
+- The 38 `// THESIS:` markers describe the thesis-conform behavior, flipped in the milestones listed in part 6.
+
+**Open:** one criterion, the thesis claims. It waits for T71, the check in Edge on Windows.
+
