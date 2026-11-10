@@ -1661,3 +1661,17 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
 **Open:**
 - `checkPermission` still accepts any valid direct grant with the flags, whatever its name. That is the "first grant" semantics noted earlier, and it is unchanged here.
 
+## 2026-11-10 – Definition of done, part 4: method and file sizes in the backend
+
+**Done:**
+- `TaskService.update` (118 lines) is split into three parts, keeping the order of every step:
+  - `assertValidUpdate`: parent and cycle, project, ghost assignee, template, priority, and T100's full progress;
+  - the write in one unit of work, which stays in `update`;
+  - `announceUpdate`: the notifications after the commit.
+- `assertNotGhostAssignee` and `validTags` moved to `application/task-input-checks.ts`, so `task.service.ts` stays under 500 lines (492).
+
+**Verified (ticked):**
+- A TypeScript AST scan of `backend/src` (no specs or fixtures) finds no function or method over 80 lines and no file over 500 lines.
+- `npm run test:coverage`: 686 tests; `task.service.ts` at 100 % lines and 92 % branches (threshold 90).
+- E2E `task-*` and `task-management`: all pass. Lint, knip and depcruise pass.
+

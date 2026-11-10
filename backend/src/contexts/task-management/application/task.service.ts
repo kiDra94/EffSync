@@ -6,7 +6,6 @@ import {
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import {
-  GHOST_USER_ID,
   PermissionFlag,
   PermissionsService,
   STAFF_ROLES,
@@ -19,10 +18,10 @@ import {
   isCompletionWithoutFullProgress,
   isOwnParent,
   mayChangeLockedTask,
-  normalizeTags,
   wouldCreateCycle,
 } from "../domain/task";
 import { TaskActivityLogService } from "./activity-log.service";
+import { assertNotGhostAssignee, validTags } from "./task-input-checks";
 import { ActivityLogRepository } from "./ports/activity-log.repository";
 import { CommentRepository } from "./ports/comment.repository";
 import type { TaskRecord, TaskRow } from "./ports/task-records";
@@ -254,44 +253,8 @@ export class TaskService {
       ...taskData
     } = input;
 
-    if (parent_task_id !== undefined) {
-      if (isOwnParent(taskId, parent_task_id)) {
-        throw new BadRequestException("Task cannot be its own parent");
-      }
-      if (parent_task_id) {
-        await this.assertValidParent(taskId, parent_task_id);
-        // moving a task under a project adds it to the project (T41, Q2)
-        const parent = await this.tasks.findById(parent_task_id);
-        if (parent && userId !== undefined) {
-          await this.assertInProjectOf(parent, userId);
-        }
-      }
-    }
-    assertNotGhostAssignee(input.assigned_to);
-    if (
-      input.template_id !== undefined &&
-      input.template_id !== null &&
-      userId !== undefined
-    ) {
-      await this.templates.assertOwner(input.template_id, userId);
-    }
+    await this.assertValidUpdate(task, input, userId);
     const tagNames = tags !== undefined ? validTags(tags) : undefined;
-    if (
-      priority_id !== undefined &&
-      priority_id !== null &&
-      !(await this.tasks.priorityExists(priority_id))
-    ) {
-      throw new NotFoundException(`Priority with ID ${priority_id} not found`);
-    }
-    // T100: also a progress below 100 on a task that stays COMPLETED
-    if (
-      isCompletionWithoutFullProgress(
-        input.status ?? task.status,
-        input.progress ?? task.progress,
-      )
-    ) {
-      throw new BadRequestException(COMPLETED_NEEDS_FULL_PROGRESS);
-    }
 
     // completing a task completes all of its subtasks; the recursive reads
     // happen before the transaction, so it stays short
@@ -335,18 +298,79 @@ export class TaskService {
         : [];
       return { updated, parentChanges };
     });
-    // announced only after the commit
+    await this.announceUpdate(task, updated, parentChanges, userId);
+    return updated;
+  }
+
+  /**
+   * The checks of an update before anything is written: the parent (no
+   * cycle, and the requester in its project), the assignee, the template,
+   * the priority and T100's full progress for COMPLETED.
+   */
+  private async assertValidUpdate(
+    task: TaskRecord,
+    input: UpdateTaskInput,
+    userId: number | undefined,
+  ) {
+    const { parent_task_id, priority_id } = input;
+    if (parent_task_id !== undefined) {
+      if (isOwnParent(task.task_id, parent_task_id)) {
+        throw new BadRequestException("Task cannot be its own parent");
+      }
+      if (parent_task_id) {
+        await this.assertValidParent(task.task_id, parent_task_id);
+        // moving a task under a project adds it to the project (T41, Q2)
+        const parent = await this.tasks.findById(parent_task_id);
+        if (parent && userId !== undefined) {
+          await this.assertInProjectOf(parent, userId);
+        }
+      }
+    }
+    assertNotGhostAssignee(input.assigned_to);
+    if (
+      input.template_id !== undefined &&
+      input.template_id !== null &&
+      userId !== undefined
+    ) {
+      await this.templates.assertOwner(input.template_id, userId);
+    }
+    if (
+      priority_id !== undefined &&
+      priority_id !== null &&
+      !(await this.tasks.priorityExists(priority_id))
+    ) {
+      throw new NotFoundException(`Priority with ID ${priority_id} not found`);
+    }
+    // T100: also a progress below 100 on a task that stays COMPLETED
+    if (
+      isCompletionWithoutFullProgress(
+        input.status ?? task.status,
+        input.progress ?? task.progress,
+      )
+    ) {
+      throw new BadRequestException(COMPLETED_NEEDS_FULL_PROGRESS);
+    }
+  }
+
+  /** What an update announces, only after the commit. */
+  private async announceUpdate(
+    before: TaskRecord,
+    updated: TaskRecord,
+    parentChanges: Awaited<
+      ReturnType<TaskCompletionService["completeParentsOf"]>
+    >,
+    userId: number | undefined,
+  ) {
     this.completion.notify(parentChanges);
     for (const { updated: parent } of parentChanges) {
       await this.notifications.statusChanged(parent, userId);
     }
-    if (updated.assigned_to && updated.assigned_to !== task.assigned_to) {
+    if (updated.assigned_to && updated.assigned_to !== before.assigned_to) {
       await this.notifications.taskAssigned(updated, userId ?? 0);
     }
-    if (updated.status !== task.status) {
+    if (updated.status !== before.status) {
       await this.notifications.statusChanged(updated, userId);
     }
-    return updated;
   }
 
   async remove(taskId: number, requesterId?: number) {
@@ -465,24 +489,4 @@ export class TaskService {
     }
     return all;
   }
-}
-
-/** The ghost user (M14) is no real person and can't be assigned (M16). */
-function assertNotGhostAssignee(assignedTo: number | null | undefined) {
-  if (assignedTo === GHOST_USER_ID) {
-    throw new BadRequestException(
-      "Der Ghost-User kann nicht zugewiesen werden",
-    );
-  }
-}
-
-/** The stored tag names (T59); the column holds 50 characters after normalizing. */
-function validTags(names: string[]): string[] {
-  const normalized = normalizeTags(names);
-  if (normalized.some((name) => name.length > 50)) {
-    throw new BadRequestException(
-      "Ein Tag darf höchstens 50 Zeichen lang sein",
-    );
-  }
-  return normalized;
 }
