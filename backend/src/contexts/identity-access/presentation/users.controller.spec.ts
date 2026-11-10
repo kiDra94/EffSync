@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { UsersService } from "../application/users.service";
 import { TwoFactorService } from "../application/two-factor.service";
+import { UserSettingsService } from "../application/user-settings.service";
 import { UsersController } from "./users.controller";
 import { JwtAuthGuard } from "./security/jwt-auth.guard";
 import { PermissionsGuard } from "./security/permissions.guard";
@@ -17,6 +18,7 @@ describe("UsersController", () => {
   };
 
   const mockTwoFactor = { reset: jest.fn() };
+  const mockSettings = { find: jest.fn(), update: jest.fn() };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,6 +29,7 @@ describe("UsersController", () => {
           useValue: mockUsersService,
         },
         { provide: TwoFactorService, useValue: mockTwoFactor },
+        { provide: UserSettingsService, useValue: mockSettings },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -40,6 +43,16 @@ describe("UsersController", () => {
 
   it("should be defined", () => {
     expect(controller).toBeDefined();
+  });
+
+  // decision Q8f (M25): the settings are the signed-in user's own
+  it("reads and changes the signed-in user's settings", async () => {
+    const req = { user: { userId: 4 } } as never;
+    await controller.getSettings(req);
+    await controller.updateSettings(req, { theme: "dark" });
+
+    expect(mockSettings.find).toHaveBeenCalledWith(4);
+    expect(mockSettings.update).toHaveBeenCalledWith(4, { theme: "dark" });
   });
 
   // decision Q8d (M32): the admin reset deletes the user's TOTP secret

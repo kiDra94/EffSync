@@ -9,8 +9,10 @@ import {
   Legend,
   Colors,
 } from 'chart.js';
-import { fetchMetrics } from '@/api/metrics';
+import { useMetricsStore } from '@/stores/metricsStore';
 
+// M25 (decision Q19): data through the store, not the api/ layer
+const metricsStore = useMetricsStore();
 const router = useRouter();
 
 ChartJS.register(ArcElement, Tooltip, Legend, Colors);
@@ -25,7 +27,7 @@ const isDarkMode = () => document.body.classList.contains('dark-mode');
 onMounted(async () => {
   try {
     // Load chart data
-    const data = await fetchMetrics('status-distribution');
+    const data = await metricsStore.getMetric('status-distribution');
     chartData.value = {
       labels: data.labels,
       datasets: [

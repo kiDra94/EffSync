@@ -1,12 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import { fetchTasks, patchTask } from '@/api/tasks';
-import { fetchAllLessonSlots } from '@/api/lessonSlots';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
 import TaskForm from '@/components/tasks/TaskForm.vue';
+import { useLessonSlotStore } from '@/stores/entities/lessonSlotStore';
 
 // 1. STATE
+// M25 (decision Q19): data through stores, not the api/ layer
+const lessonSlotStore = useLessonSlotStore();
 const currentDate = ref(new Date());
 const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const viewMode = ref('month');
@@ -26,12 +27,6 @@ const dragOverRelativeTarget = ref(null);
 const DEFAULT_WEEK_SCROLL_TIME = '07:30';
 const TIME_SLOT_HEIGHT_PX = 30;
 const TIME_HEADER_HEIGHT_PX = 60;
-
-onMounted(async () => {
-    if (taskStore.tasks.length === 0) {
-        await taskStore.getTasks();
-  }
-});
 
 // Events (tasks from the API)
 const events = ref([]);
@@ -55,7 +50,8 @@ const loadCalendarData = async () => {
     error.value = null;
     try {
         // Load the tasks
-        const tasksData = await fetchTasks();
+        await taskStore.getTasks();
+        const tasksData = taskStore.tasks;
         events.value = tasksData
           .filter((task) => !isCompletedTask(task))
           .map((task, index) => {
@@ -72,7 +68,7 @@ const loadCalendarData = async () => {
             });
 
         // Load the lesson slots
-        const lessonsData = await fetchAllLessonSlots();
+        const lessonsData = await lessonSlotStore.fetchAll();
         lessons.value = lessonsData.map(lesson => {
             const startTime = lesson.start_time ? formatTimeFromISO(lesson.start_time) : '08:00';
             const endTime = lesson.end_time ? formatTimeFromISO(lesson.end_time) : '08:50';
@@ -414,7 +410,7 @@ const onDropOnDate = async (targetDateStr) => {
       throw new Error('Ungültige Task-ID beim Aktualisieren');
     }
 
-    await patchTask(numericTaskId, { deadline: nextDeadlineIso });
+    await taskStore.moveDeadline(numericTaskId, nextDeadlineIso);
 
     events.value = events.value.map((event) =>
       String(event.id) === String(id)

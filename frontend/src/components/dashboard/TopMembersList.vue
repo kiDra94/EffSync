@@ -1,7 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import { fetchMetrics } from '@/api/metrics';
+import { useMetricsStore } from '@/stores/metricsStore';
 
+// M25 (decision Q19): data through the store, not the api/ layer
+const metricsStore = useMetricsStore();
 // FA-35 (T40): the five members with the most completed tasks
 const members = ref([]);
 const loading = ref(true);
@@ -9,7 +11,7 @@ const error = ref('');
 
 onMounted(async () => {
   try {
-    members.value = await fetchMetrics('top-members');
+    members.value = await metricsStore.getMetric('top-members');
   } catch {
     error.value = 'Die Rangliste konnte nicht geladen werden.';
   } finally {

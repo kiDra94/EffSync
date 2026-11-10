@@ -443,6 +443,7 @@ model users {
   chat_rooms_created                     chat_rooms[]        @relation("chat_rooms_created")
   refresh_tokens                         refresh_tokens[]
   user_two_factor                        user_two_factor?
+  user_settings                          user_settings?
 }
 
 model email_preferences {
@@ -489,6 +490,14 @@ model user_two_factor {
   secret_encrypted String    @db.VarChar
   enabled_at       DateTime? @db.Timestamp(6)
   users            users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+/// T68 (decision Q8f, M25): the user's settings, stored on the server so they
+/// follow the user to every device; theme is light, dark or system.
+model user_settings {
+  user_id Int    @id
+  theme   String @default("light") @db.VarChar(10)
+  users   users  @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model refresh_tokens {

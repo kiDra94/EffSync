@@ -2,10 +2,12 @@
 import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { emailPreferencesService } from '@/api/emailPreferences';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 const route = useRoute();
 const authStore = useAuthStore();
+// M25 (decision Q19): data through the store, not the api/ layer
+const settingsStore = useSettingsStore();
 
 const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
@@ -33,7 +35,7 @@ const loadEmailPreferences = async () => {
   preferencesError.value = '';
   
   try {
-    const prefs = await emailPreferencesService.getPreferences();
+    const prefs = await settingsStore.loadEmailPreferences();
     if (prefs) {
       emailPreferences.value = { ...emailPreferences.value, ...prefs };
     }
@@ -56,7 +58,7 @@ const saveEmailPreferences = async () => {
   preferencesError.value = '';
   
   try {
-    const updated = await emailPreferencesService.updatePreferences({
+    const updated = await settingsStore.saveEmailPreferences({
       email_on_deadline: emailPreferences.value.email_on_deadline,
       email_on_mention: emailPreferences.value.email_on_mention,
       email_on_comment: emailPreferences.value.email_on_comment,

@@ -1,14 +1,15 @@
 <script setup>
+import { API_URL } from '@/config/urls'
 import { ref, onMounted, watch } from 'vue'
-import { authApi } from '@/api/authService'
+import { useAuthStore } from '@/stores/authStore'
 
+const authStore = useAuthStore()
 const email = ref('')
 const isLoading = ref(false)
 const message = ref('')
 const errorMessage = ref('')
 const isDark = ref(false)
 
-const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
 
 onMounted(() => { isDark.value = document.body.classList.contains('dark-mode') })
 watch(isDark, (val) => document.body.classList.toggle("dark-mode", val))
@@ -19,7 +20,7 @@ const handleReset = async () => {
   message.value = ''
   
   try {
-    await authApi.forgotPassword(email.value)
+    await authStore.requestPasswordReset(email.value)
     message.value = 'Falls diese E-Mail existiert, haben wir einen Link gesendet.'
   } catch {
     errorMessage.value = 'Ein Fehler ist aufgetreten. Bitte versuche es später.'
@@ -29,7 +30,7 @@ const handleReset = async () => {
 }
 
 const handleGoogleReset = () => {
-  window.location.href = `${backendUrl}/api/auth/google/reset-password`
+  window.location.href = `${API_URL}/auth/google/reset-password`
 }
 </script>
 

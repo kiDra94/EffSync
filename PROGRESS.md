@@ -1403,3 +1403,30 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - A check that only reports is no gate: try the failure (a deliberate violation, a synthetic input) before counting on it.
 
 **Failed / open:** none.
+
+## 2026-11-10 – M25: Frontend layering through stores, one HTTP client, theme per user
+
+**Done:**
+- Theme per user (T68, decision Q8f): new table `user_settings(user_id PK, theme)` (`light`, `dark` or `system`, default `light`, the look before M25), migration `20261109140000_user_settings`, deleted with its user; `GET/PATCH /users/me/settings` in identity-access (`UserSettingsService`, port and Prisma repository, `view_dashboard` like the other own-account routes). Frontend: `settingsStore` loads the theme at login (`authStore.startSession`) and in the layout after a reload, applies it to the page, follows the device for `system`, and saves every change on the server; the localStorage keys `theme` and `darkMode` are gone (`LayoutView`, `GeneralSettings`): a value a browser kept from before M25 goes to the server once (unless the user already chose there) and is deleted. The theme loads once per session, a pick made during the load wins, a failed save goes back to the previous theme with a message, and the logout resets it, so the next user in the browser starts light.
+- One config module for the backend addresses (problem 14): `src/config/urls.js` (`API_URL`, `WS_URL` from `VITE_API_URL`/`VITE_WS_URL`, else this page's origin: `/api` as the HTTP client did, the sockets at the API's origin) used by the HTTP client, both sockets and the Google links; the three hard-coded `localhost` URLs are gone. Vite's dev proxy forwards `/api` (it stripped the prefix the backend serves under, so it never worked) and now `/socket.io` too.
+- Layering (T79, T80, decision Q19): the 20 views and components that imported `@/api/` or `apiClient` read through stores now. New stores: `metricsStore` (the dashboard's metrics and tile counts, step 1), `settingsStore` (theme, e-mail preferences), `documentStore`, `lessonSlotStore`, `userStore`, `taskMemberStore`, `adminStore`; new actions in `authStore` (Google sign-in end, password reset, 2FA settings) and `taskStore` (`moveDeadline`, `unlockWithDeadline`). The new entity stores pass the API's answers through unchanged, so the views kept their handling.
+- ESLint (`no-restricted-imports` for `@/api/*` and `**/api/*`, `no-restricted-globals` for `fetch`) in `src/views/` and `src/components/`, spec files excepted; it runs in CI with `npm run lint:check`.
+- Tests: every component test that mocked `api/` modules runs through the real stores now (a fresh Pinia per test in `vitest.setup.js`); `AuthCallbackView.spec.js` runs against the real `authStore` with its assertions unchanged.
+
+**Verified:**
+- Done when:
+  - `grep -rnE "apiClient|fetch\(|from '@/api/" frontend/src/views frontend/src/components` finds only `components/tasks/TESTS_README.md:75`, the documentation of the api/ layer's own test (`src/api/taskMembers.spec.js`), no source file.
+  - The ESLint rule runs in CI; a throwaway component with an `@/api/` import, a relative `../../api/` import and `fetch()` gave the three errors, then was deleted.
+  - `grep -rn "localhost" frontend/src` finds nothing (the config module needs no development address since the same-origin defaults).
+  - Vitest: `authStore.spec.js` "restores the theme from /users/me/settings after login" (the page turns dark, nothing in localStorage).
+  - E2E: `test/user-settings.e2e-spec.ts` sets the theme in one session and reads it in the user's second session; an unknown theme or another field is a 400, no token a 401.
+- `prisma migrate diff` from a freshly migrated database to the schema is empty.
+- Backend: 675 unit and 159 E2E tests; frontend: 380 tests (coverage thresholds included). tsc, lint (backend 0 warnings; frontend clean), knip, dependency-cruiser and both builds pass. `act --action-offline-mode`: all four jobs succeeded.
+- `code-review` (high) gave 10 findings, 8 fixed: (1) the default address became `http://localhost:3000/api`, so a build without `VITE_API_URL` would have called the visitor's own machine (now same-origin, as before); (8) with a relative API address the sockets had no proxy (now `/socket.io` in Vite); (2) the theme loaded twice per login, and a late answer could undo a fresh pick (once per session, the pick wins); (3) existing users' theme in localStorage was dropped (moved to the server once), and the layout waited for the theme before loading the notifications; (4) the logout kept the previous user's theme; (5) the task form reloaded all tasks twice after an unlock, and a failed reload reported a successful unlock as an error; (6) a failed save was silent; (7) `window.fetch`, `axios` and a bare `@/api` import passed the lint rule; (9) the calendar loaded all tasks twice on its first visit, and a dead branch in the document view. Kept: (10) the entity stores pass the API's answers through unchanged: the milestone asks for the layering, not for caching (the dashboard still reads `task-progress` twice). Not changed: composables such as `useChat` still import `api/` modules; the rule covers views and components, as the milestone asks.
+
+**Learned (for later milestones):**
+- A default URL baked into a build decides where every visitor's browser connects: keep it relative.
+- A theme from the server shows only after its request; a dark-theme user sees light until then (decision Q8f moved it off the browser).
+
+**Failed / open:**
+- `components/tasks/TESTS_README.md:75` documents the api/ layer's own test with `apiClient`, the one line the Done-when grep still finds.

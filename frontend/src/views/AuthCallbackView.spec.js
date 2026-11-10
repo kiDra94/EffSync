@@ -1,14 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { setActivePinia, createPinia } from 'pinia'
+import { useAuthStore } from '@/stores/authStore'
 
 const pushMock = vi.fn()
 const replaceMock = vi.fn()
-const authStoreMock = {
-  token: null,
-  userId: null,
-  userRole: null,
-  userDetails: null,
-}
 
 const routeMock = {
   path: '/auth-callback',
@@ -23,13 +19,17 @@ vi.mock('vue-router', () => ({
   useRoute: () => routeMock,
 }))
 
-vi.mock('@/stores/authStore', () => ({
-  useAuthStore: () => authStoreMock,
-}))
-
+// M25: the real store (the view reaches the API through it), on a mocked API
+vi.mock('@/stores/authStore', async () => vi.importActual('@/stores/authStore'))
+vi.mock('@/router', () => ({ default: { push: vi.fn() } }))
+vi.mock('@/stores/useSocket', () => ({ useSocket: () => ({ connect: vi.fn(), disconnect: vi.fn() }) }))
+vi.mock('@/stores/searchStore', () => ({ useSearchStore: () => ({ ensureLoaded: vi.fn(), reset: vi.fn() }) }))
+vi.mock('@/stores/settingsStore', () => ({ useSettingsStore: () => ({ load: vi.fn() }) }))
 vi.mock('@/api/authService', () => ({
   authApi: { getAuthProfile: (...args) => getAuthProfile(...args) },
 }))
+
+let authStoreMock
 
 // decision Q9 (M9): the Google callback passes the token in the URL fragment;
 // the view loads the user from GET /auth/profile instead of a ?user= parameter
@@ -38,11 +38,9 @@ describe('AuthCallbackView', () => {
     vi.clearAllMocks()
     routeMock.hash = ''
     routeMock.query = {}
-    authStoreMock.token = null
-    authStoreMock.userId = null
-    authStoreMock.userRole = null
-    authStoreMock.userDetails = null
     localStorage.clear()
+    setActivePinia(createPinia())
+    authStoreMock = useAuthStore()
     window.history.replaceState(null, '', '/auth-callback')
   })
 

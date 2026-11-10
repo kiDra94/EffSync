@@ -9,7 +9,10 @@ vi.mock('vue-router', () => ({
 }))
 
 const setNewPassword = vi.hoisted(() => vi.fn())
-vi.mock('@/api/authService', () => ({ authApi: { setNewPassword } }))
+// M25: the view sets the password through the store
+vi.mock('@/stores/authStore', () => ({
+  useAuthStore: () => ({ token: null, setNewPassword, logout: vi.fn() }),
+}))
 
 // M12: the Google reset callback sends only an access token and starts no
 // session, so a previous session's refresh token must not stay next to it

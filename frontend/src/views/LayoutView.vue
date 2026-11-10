@@ -4,20 +4,17 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { useSearchStore } from "@/stores/searchStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 const searchStore = useSearchStore();  // ← new
 const router = useRouter();
-const isDark = ref(false);
+// T68 (M25): the theme is the user's setting on the server
+const settingsStore = useSettingsStore();
 const showDropdown = ref(false); // New state for the menu
 const showResults = ref(false);
 
-// Dark Mode Logic
-watch(isDark, (val) => {
-  document.body.classList.toggle("dark-mode", val);
-  localStorage.setItem('theme', val ? 'dark' : 'light');
-});
 
 // Click-outside logic: closes the menu when clicking elsewhere
 const closeDropdown = (e) => {
@@ -28,19 +25,14 @@ const closeDropdown = (e) => {
 }
 
 onMounted(async () => {
-  // Restore theme preference reliably across reloads/views
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme) {
-    isDark.value = savedTheme === 'dark';
-  } else {
-    isDark.value = document.body.classList.contains('dark-mode');
-  }
-  document.body.classList.toggle('dark-mode', isDark.value);
 
   window.addEventListener('click', closeDropdown);
 
   // Load the notifications and start the WebSocket listener
   if (authStore.isAuthenticated) {
+    // after a reload the login didn't run: the theme comes from the server
+    // here (once per session; the notifications don't wait for it)
+    settingsStore.ensureLoaded();
     await notificationStore.fetchNotifications();
     notificationStore.initSocketListeners();
   }
@@ -103,7 +95,7 @@ const navigateToResult = (result) => {
 </script>
 
 <template>
-  <div :class="{ 'dark-mode': isDark }" class="app-container">
+  <div :class="{ 'dark-mode': settingsStore.isDark }" class="app-container">
 
     <div class="sidebar" :class="{ 'disabled': !authStore.isAuthenticated }">
       <router-link :to="{ name: 'Dashboard' }" title="Dashboard">🏠</router-link>
@@ -207,7 +199,8 @@ const navigateToResult = (result) => {
           </div>
 
           <label class="switch-label">
-            <input type="checkbox" class="checkbox" v-model="isDark" />
+            <input type="checkbox" class="checkbox" :checked="settingsStore.isDark"
+              @change="settingsStore.toggleDark()" />
             <span class="slider"></span>
           </label>
         </div>

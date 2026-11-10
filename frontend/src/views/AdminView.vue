@@ -168,12 +168,14 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
-import { adminService } from '@/api/adminService.js';
+import { useAdminStore } from '@/stores/entities/adminStore';
 import { useAuthStore } from '@/stores/authStore.js';
 
 export default {
   name: 'AdminView',
   setup() {
+    // M25 (decision Q19): data through the store, not the api/ layer
+    const adminStore = useAdminStore();
     const authStore = useAuthStore();
     const users = ref([]);
     const selectedUser = ref(null);
@@ -225,13 +227,13 @@ export default {
         
         // Load the users first
         console.log('📥 AdminView: Loading users...');
-        users.value = await adminService.getAllUsers();
+        users.value = await adminStore.fetchUsers();
         console.log(`✅ AdminView: Loaded ${users.value?.length || 0} users`);
         
         // Then roles and permissions one after the other (not in parallel)
         try {
           console.log('📥 AdminView: Loading roles...');
-          availableRoles.value = await adminService.getAllRoles();
+          availableRoles.value = await adminStore.fetchRoles();
           console.log(`✅ AdminView: Loaded ${availableRoles.value?.length || 0} roles`);
         } catch (err) {
           console.error('❌ Fehler beim Laden der Rollen:', err?.response?.status, err?.response?.data || err?.message);
@@ -241,7 +243,7 @@ export default {
         
         try {
           console.log('📥 AdminView: Loading permissions...');
-          availablePermissions.value = await adminService.getAllPermissions();
+          availablePermissions.value = await adminStore.fetchPermissions();
           console.log(`✅ AdminView: Loaded ${availablePermissions.value?.length || 0} permissions`);
         } catch (err) {
           console.error('❌ Fehler beim Laden der Permissions:', err?.response?.status, err?.response?.data || err?.message);
@@ -271,7 +273,7 @@ export default {
 
       try {
         isAdding.value = true;
-        await adminService.assignRoleToUser(selectedUser.value.user_id, parseInt(newRoleId.value));
+        await adminStore.assignRole(selectedUser.value.user_id, parseInt(newRoleId.value));
         // Reload the users
         await selectUser(selectedUser.value);
         newRoleId.value = '';
@@ -288,7 +290,7 @@ export default {
 
       try {
         isRemoving.value = true;
-        await adminService.removeRoleFromUser(selectedUser.value.user_id, roleId);
+        await adminStore.removeRole(selectedUser.value.user_id, roleId);
         // Reload the users
         await selectUser(selectedUser.value);
       } catch (err) {
@@ -304,7 +306,7 @@ export default {
 
       try {
         isAdding.value = true;
-        await adminService.assignPermissionToUser(
+        await adminStore.assignPermission(
           selectedUser.value.user_id,
           parseInt(newPermissionId.value),
           newPermissionValidFrom.value || null,
@@ -328,7 +330,7 @@ export default {
 
       try {
         isRemoving.value = true;
-        await adminService.removePermissionFromUser(selectedUser.value.user_id, permissionId);
+        await adminStore.removePermission(selectedUser.value.user_id, permissionId);
         // Reload the users
         await selectUser(selectedUser.value);
       } catch (err) {

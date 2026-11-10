@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { authApi } from '@/api/authService'
 import { useAuthStore } from '@/stores/authStore'
 import { takeTokenFromHash } from '@/utils/tokenFromHash'
 
@@ -49,7 +48,7 @@ const handleSubmit = async () => {
 
   isLoading.value = true
   try {
-    await authApi.setNewPassword(password.value)
+    await authStore.setNewPassword(password.value)
     message.value = 'Passwort erfolgreich geändert! Du wirst zum Login weitergeleitet...'
     authStore.logout()
     setTimeout(() => router.push({ name: 'Login' }), 2500)

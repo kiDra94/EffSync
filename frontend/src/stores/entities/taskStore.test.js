@@ -539,3 +539,45 @@ describe('TaskStore', () => {
         // });
     });
 });
+
+// M25 (decision Q19): the calendar and the task form change deadlines
+// through the store, not through the api/ layer
+describe('TaskStore deadlines', () => {
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        vi.clearAllMocks();
+    });
+
+    it('moves a deadline and keeps the loaded task in step', async () => {
+        const store = useTaskStore();
+        store.tasks = [{ task_id: 4, deadline: '2026-11-01T10:00:00.000Z' }];
+        vi.mocked(tasksApi.patchTask).mockResolvedValue({});
+
+        await store.moveDeadline(4, '2026-11-12T10:00:00.000Z');
+
+        expect(tasksApi.patchTask).toHaveBeenCalledWith(4, { deadline: '2026-11-12T10:00:00.000Z' });
+        expect(store.tasks[0].deadline).toBe('2026-11-12T10:00:00.000Z');
+    });
+
+    it('unlocks a task with a new deadline and reloads the tasks', async () => {
+        const store = useTaskStore();
+        vi.mocked(tasksApi.updateDeadlineAndUnlock).mockResolvedValue({});
+        vi.mocked(tasksApi.fetchTasks).mockResolvedValue([{ task_id: 4, is_locked: false }]);
+
+        await store.unlockWithDeadline(4, '2026-11-12T10:00:00.000Z');
+
+        expect(tasksApi.updateDeadlineAndUnlock).toHaveBeenCalledWith(4, '2026-11-12T10:00:00.000Z');
+        expect(store.tasks).toEqual([{ task_id: 4, is_locked: false }]);
+    });
+
+    // review M25: the unlock went through, a failed reload doesn't undo that
+    it('reports the unlock as done when only the reload fails', async () => {
+        const store = useTaskStore();
+        vi.mocked(tasksApi.updateDeadlineAndUnlock).mockResolvedValue({});
+        vi.mocked(tasksApi.fetchTasks).mockRejectedValue(new Error('offline'));
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        await expect(store.unlockWithDeadline(4, '2026-11-12T10:00:00.000Z')).resolves.toBeUndefined();
+    });
+});

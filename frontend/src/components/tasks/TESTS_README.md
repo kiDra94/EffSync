@@ -313,7 +313,7 @@ it('should debug component', () => {
 ### Mit Vitest UI
 ```bash
 npm run test:ui
-# Opens interactive dashboard at http://localhost:51204
+# Opens the interactive dashboard in the browser
 ```
 
 ### Mit Browser DevTools

@@ -4,9 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useNoteStore } from '@/stores/entities/noteStore';
 import { useTaskStore } from '@/stores/entities/taskStore';
-import { apiClient } from '@/api/httpClient';
-import { fetchAllLessonSlots } from '@/api/lessonSlots';
-import { fetchMetrics } from '@/api/metrics';
+import { useMetricsStore } from '@/stores/metricsStore';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
 import TrendChart from '@/components/dashboard/TrendChart.vue';
@@ -17,6 +15,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 const noteStore = useNoteStore();
 const taskStore = useTaskStore();
+// M25 (decision Q19): the tiles' counts come from the store, not api/
+const metricsStore = useMetricsStore();
 
 // Quick note
 const quickNote = ref('');
@@ -121,56 +121,24 @@ const metrics = ref([
 // subjects and rooms are managed by Admin and Superuser only (M36)
 const visibleMetrics = computed(() => metrics.value.filter((item) => !item.adminOnly || authStore.isAdmin));
 
-const unwrapArray = (input) => {
-  if (Array.isArray(input)) return input;
-  if (!input || typeof input !== 'object') return [];
-
-  if (Array.isArray(input.data)) return input.data;
-  if (input.data && Array.isArray(input.data.data)) return input.data.data;
-
-  return [];
-};
-
-// Updates the metrics
 const updateMetrics = async () => {
-  // Load all counts in parallel through the API
-  const [taskProgressRes, classesRes, documentsRes, slotsRes, departmentsRes, subjectsRes, roomsRes] =
-    await Promise.allSettled([
-      fetchMetrics('task-progress'),
-      apiClient.get('/classes'),
-      apiClient.get('/documents'),
-      fetchAllLessonSlots(),
-      apiClient.get('/departments'),
-      authStore.isAdmin ? apiClient.get('/subjects') : Promise.reject(new Error('not shown')),
-      authStore.isAdmin ? apiClient.get('/rooms') : Promise.reject(new Error('not shown')),
-    ]);
-
   // the school data comes only from the API (M36, decision D1): no browser cache
-  const getCount = (result) => (result.status === 'fulfilled' ? unwrapArray(result.value).length : 0);
-
-  const currentUserId = Number(authStore.userId ?? localStorage.getItem('userId'));
-  const documentsData = documentsRes.status === 'fulfilled' ? unwrapArray(documentsRes.value) : [];
-  const ownDocumentsCount = Number.isFinite(currentUserId)
-    ? documentsData.filter((doc) => Number(doc?.added_by) === currentUserId).length
-    : documentsData.length;
-
-  const openTasks = taskProgressRes.status === 'fulfilled'
-    ? Number(taskProgressRes.value?.openTasks ?? (
-        Math.max(0,
-          Number(taskProgressRes.value?.totalTasks ?? 0)
-            - Number(taskProgressRes.value?.completedTasks ?? 0)
-        )
-      ))
-    : taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
+  const counts = await metricsStore.loadDashboardCounts({
+    userId: authStore.userId ?? localStorage.getItem('userId'),
+    isAdmin: authStore.isAdmin,
+  });
+  // without the metric, the loaded tasks give the open ones
+  const openTasks = counts.openTasks
+    ?? taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
 
   metrics.value[0].value = String(openTasks);
-  metrics.value[1].value = String(getCount(classesRes));
-  metrics.value[2].value = String(documentsRes.status === 'fulfilled' ? ownDocumentsCount : 0);
+  metrics.value[1].value = String(counts.classes);
+  metrics.value[2].value = String(counts.ownDocuments);
   metrics.value[3].value = String(noteStore.notes.length);
-  metrics.value[4].value = String(slotsRes.status === 'fulfilled' ? unwrapArray(slotsRes.value).length : 0);
-  metrics.value[5].value = String(getCount(departmentsRes));
-  metrics.value[6].value = String(getCount(subjectsRes));
-  metrics.value[7].value = String(getCount(roomsRes));
+  metrics.value[4].value = String(counts.lessonSlots);
+  metrics.value[5].value = String(counts.departments);
+  metrics.value[6].value = String(counts.subjects);
+  metrics.value[7].value = String(counts.rooms);
 };
 
 onMounted(() => {

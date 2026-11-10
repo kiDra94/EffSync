@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 
+// M25: the card reaches the 2FA routes through the auth store
 const authApi = vi.hoisted(() => ({
   getTwoFactorStatus: vi.fn(),
   setupTwoFactor: vi.fn(),
   enableTwoFactor: vi.fn(),
   disableTwoFactor: vi.fn(),
 }))
-vi.mock('@/api/authService', () => ({ authApi }))
+vi.mock('@/stores/authStore', () => ({ useAuthStore: () => authApi }))
 
 import SecurityTab from './SecurityTab.vue'
 
@@ -15,9 +16,9 @@ import SecurityTab from './SecurityTab.vue'
 describe('SecurityTab two-factor authentication', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    authApi.getTwoFactorStatus.mockResolvedValue({ data: { enabled: false } })
+    authApi.getTwoFactorStatus.mockResolvedValue({ enabled: false })
     authApi.setupTwoFactor.mockResolvedValue({
-      data: { secret: 'JBSWY3DPEHPK3PXP', otpauth_url: 'otpauth://totp/x', qr_code: 'data:image/png;base64,QR' },
+      secret: 'JBSWY3DPEHPK3PXP', otpauth_url: 'otpauth://totp/x', qr_code: 'data:image/png;base64,QR',
     })
     authApi.enableTwoFactor.mockResolvedValue({})
     authApi.disableTwoFactor.mockResolvedValue({})
@@ -59,7 +60,7 @@ describe('SecurityTab two-factor authentication', () => {
   })
 
   it('turns it off with a code', async () => {
-    authApi.getTwoFactorStatus.mockResolvedValue({ data: { enabled: true } })
+    authApi.getTwoFactorStatus.mockResolvedValue({ enabled: true })
     const wrapper = mount(SecurityTab)
     await flushPromises()
     expect(wrapper.text()).toContain('2FA ist aktiv')

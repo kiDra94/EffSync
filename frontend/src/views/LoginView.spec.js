@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { API_URL } from '@/config/urls'
 
 const pushMock = vi.fn()
 const loginMock = vi.fn()
@@ -23,7 +24,7 @@ describe('LoginView (Google OAuth)', () => {
     vi.clearAllMocks()
     originalLocation = window.location
     delete window.location
-    window.location = { href: 'http://localhost:5173/login' }
+    window.location = { href: 'https://effsync.example/login' }
   })
 
   afterEach(() => {
@@ -46,8 +47,8 @@ describe('LoginView (Google OAuth)', () => {
 
     await googleBtn.trigger('click')
 
-    expect(window.location.href).toContain('/auth/google')
-    expect(window.location.href).toContain('http://localhost:3000/api')
+    // M25: the backend's address comes from the one config module
+    expect(window.location.href).toBe(`${API_URL}/auth/google`)
   })
 
   // T49 (M9): one field for username or e-mail, sent as `identifier`

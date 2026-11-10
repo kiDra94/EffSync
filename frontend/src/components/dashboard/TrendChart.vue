@@ -10,10 +10,12 @@ import {
   PointElement,
   Tooltip,
 } from 'chart.js';
-import { fetchMetrics } from '@/api/metrics';
+import { useMetricsStore } from '@/stores/metricsStore';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
+// M25 (decision Q19): data through the store, not the api/ layer
+const metricsStore = useMetricsStore();
 // FA-33 (T37, decision A4): created and completed tasks per week or month
 const period = ref('week');
 const chartData = ref(null);
@@ -46,7 +48,7 @@ const load = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const trends = await fetchMetrics('trends', { period: period.value });
+    const trends = await metricsStore.getMetric('trends', { period: period.value });
     if (request !== latest) return;
     chartData.value = {
       labels: trends.labels,

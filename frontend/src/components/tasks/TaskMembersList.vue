@@ -140,9 +140,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { taskMembersApi } from '@/api/taskMembers';
-import { usersApi } from '@/api/usersService';
+import { useTaskMemberStore } from '@/stores/entities/taskMemberStore';
+import { useUserStore } from '@/stores/entities/userStore';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const taskMemberStore = useTaskMemberStore();
+const userStore = useUserStore();
 const props = defineProps({
   taskId: {
     type: Number,
@@ -212,7 +215,7 @@ const getInitials = (firstname, lastname) => {
 const loadMembers = async () => {
   try {
     loading.value = true;
-    const response = await taskMembersApi.getTaskMembers(props.taskId);
+    const response = await taskMemberStore.fetchMembers(props.taskId);
     members.value = response.data;
     emit('members-updated', allMembers.value);
   } catch (error) {
@@ -225,13 +228,13 @@ const loadMembers = async () => {
 
 const loadUsers = async () => {
   try {
-    const response = await usersApi.getAllForSelection();
+    const response = await userStore.fetchForSelection();
     const users = response?.data?.data ?? response?.data ?? [];
     allUsers.value = Array.isArray(users) ? users : [];
   } catch (error) {
     console.error('Fehler beim Laden der Benutzer (for-chat), versuche Fallback /users:', error);
     try {
-      const fallbackResponse = await usersApi.getAll();
+      const fallbackResponse = await userStore.fetchAll();
       const users = fallbackResponse?.data?.data ?? fallbackResponse?.data ?? [];
       allUsers.value = Array.isArray(users) ? users : [];
     } catch (fallbackError) {
@@ -243,7 +246,7 @@ const loadUsers = async () => {
 
 const checkPermissions = async () => {
   try {
-    const response = await taskMembersApi.checkPermission(props.taskId);
+    const response = await taskMemberStore.checkPermission(props.taskId);
     canEditTask.value = response.data.has_write;
   } catch (error) {
     console.error('Fehler beim Prüfen der Berechtigungen:', error);
@@ -260,7 +263,7 @@ const addMembers = async () => {
     isAddingMember.value = true;
     const results = await Promise.allSettled(
       userIds.map((userId) =>
-        taskMembersApi.addTaskMember(props.taskId, { user_id: userId })
+        taskMemberStore.addMember(props.taskId, { user_id: userId })
       )
     );
 
@@ -325,7 +328,7 @@ const confirmRemove = async () => {
   try {
     console.log(`📡 API-Anfrage: DELETE /tasks/${props.taskId}/members/${memberToRemove.value.user_id}`);
     
-    const response = await taskMembersApi.removeTaskMember(
+    const response = await taskMemberStore.removeMember(
       props.taskId,
       memberToRemove.value.user_id
     );

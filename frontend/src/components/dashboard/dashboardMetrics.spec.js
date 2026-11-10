@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
+import { setActivePinia, createPinia } from 'pinia';
 
 const { fetchMetrics } = vi.hoisted(() => ({ fetchMetrics: vi.fn() }));
 vi.mock('@/api/metrics', () => ({ fetchMetrics }));
@@ -13,7 +14,11 @@ import TrendChart from './TrendChart.vue';
 import ProjectProgressList from './ProjectProgressList.vue';
 import TopMembersList from './TopMembersList.vue';
 
-beforeEach(() => vi.clearAllMocks());
+// M25: the components read through the real metrics store, on the mocked API
+beforeEach(() => {
+  vi.clearAllMocks();
+  setActivePinia(createPinia());
+});
 
 // GOALS.md M24: the dashboard elements of FA-30 to FA-35
 describe('TrendChart (FA-33)', () => {

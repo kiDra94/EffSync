@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule } from '@/api/tasks';
+import { fetchTasks, fetchTaskById, createTask, updateTask, deleteTask, patchTask, updateCompletionRule, updateDeadlineAndUnlock } from '@/api/tasks';
 import { useSocket } from '../useSocket';
 
 let isSaving = false;
@@ -349,9 +349,29 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
+    // M25 (decision Q19): the calendar moves a deadline through the store
+    async function moveDeadline(taskId, deadlineIso) {
+        await patchTask(taskId, { deadline: deadlineIso });
+        const task = tasks.value.find((t) => String(t.task_id) === String(taskId));
+        if (task) task.deadline = deadlineIso;
+    }
+
+    // the task form unlocks an overdue task with a new deadline (feature #27)
+    async function unlockWithDeadline(taskId, deadlineIso) {
+        await updateDeadlineAndUnlock(taskId, deadlineIso);
+        // the unlock went through; a failed reload must not report it failed
+        try {
+            await getTasks();
+        } catch (error) {
+            console.warn('Tasks nach dem Entsperren nicht neu geladen:', error?.message || error);
+        }
+    }
+
     return {
         tasks,
         getTasks,
+        moveDeadline,
+        unlockWithDeadline,
         getTaskById,
         addTask,
         editTask,

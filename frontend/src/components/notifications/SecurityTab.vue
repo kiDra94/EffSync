@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { authApi } from '@/api/authService'
+import { useAuthStore } from '@/stores/authStore'
 
-// T31, FA-06 (M32): 2FA with an authenticator app; the password card is
-// still static
+// T31, FA-06 (M32): 2FA with an authenticator app, through the auth store
+// (M25, decision Q19); the password card is still static
+const authStore = useAuthStore()
 const twoFactorEnabled = ref(false)
 const setup = ref(null) // { secret, qr_code } while the setup waits for its code
 const code = ref('')
@@ -30,19 +31,19 @@ const run = async (action) => {
 
 onMounted(() =>
   run(async () => {
-    twoFactorEnabled.value = (await authApi.getTwoFactorStatus()).data.enabled
+    twoFactorEnabled.value = (await authStore.getTwoFactorStatus()).enabled
   }),
 )
 
 const startSetup = () =>
   run(async () => {
-    setup.value = (await authApi.setupTwoFactor()).data
+    setup.value = await authStore.setupTwoFactor()
     code.value = ''
   })
 
 const confirmSetup = () =>
   run(async () => {
-    await authApi.enableTwoFactor(code.value)
+    await authStore.enableTwoFactor(code.value)
     twoFactorEnabled.value = true
     setup.value = null
     code.value = ''
@@ -50,7 +51,7 @@ const confirmSetup = () =>
 
 const disable = () =>
   run(async () => {
-    await authApi.disableTwoFactor(code.value)
+    await authStore.disableTwoFactor(code.value)
     twoFactorEnabled.value = false
     code.value = ''
   })

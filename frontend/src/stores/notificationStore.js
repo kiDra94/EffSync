@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { WS_URL } from '@/config/urls';
 import { ref, computed } from 'vue';
 import { io } from 'socket.io-client';
 import { socketAuth, reconnectWithFreshToken } from '@/api/socketAuth';
@@ -184,7 +185,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
     function initSocketListeners() {
         if (!notificationSocket) {
-            notificationSocket = io(import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || '', {
+            notificationSocket = io(WS_URL, {
                 auth: socketAuth(),
                 transports: ['websocket'],
             });

@@ -84,8 +84,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import { gradeDocument } from '@/api/documents';
-import { fetchDocuments } from '@/api/documents';
+import { useDocumentStore } from '@/stores/entities/documentStore';
 
 export default {
   name: 'GradeModal',
@@ -97,6 +96,8 @@ export default {
   },
   emits: ['close', 'saved'],
   setup(props, { emit }) {
+    // M25 (decision Q19): data through the store, not the api/ layer
+    const documentStore = useDocumentStore();
     const form = ref({
       feedback: '',
       grade: ''
@@ -113,7 +114,7 @@ export default {
     const loadLinkedDocuments = async () => {
       try {
         isLoadingDocuments.value = true;
-        const allDocs = await fetchDocuments();
+        const allDocs = await documentStore.fetchDocuments();
         
         // Filter: only documents linked to the task
         linkedDocuments.value = allDocs.filter(doc => 
@@ -150,7 +151,7 @@ export default {
 
         // Send the grade to the backend, which releases or locks
         // the task automatically based on the grade
-        await gradeDocument(selectedDocumentId.value, {
+        await documentStore.gradeDocument(selectedDocumentId.value, {
           grade: form.value.grade.trim() || null,
           feedback: form.value.feedback.trim() || null,
         });

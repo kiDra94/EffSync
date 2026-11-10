@@ -10,12 +10,17 @@ export default defineConfig({
     }
   },
   server: {
+    // the dev proxy for the same-origin defaults of src/config/urls.js (M25):
+    // the backend serves its routes under /api itself, and the sockets too
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      }
+      },
+      '/socket.io': {
+        target: 'http://localhost:3000',
+        ws: true,
+      },
     }
   },
   test: {

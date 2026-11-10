@@ -4,6 +4,13 @@ import { setActivePinia, createPinia } from 'pinia'
 const authApi = vi.hoisted(() => ({
   login: vi.fn(),
   verifyTwoFactor: vi.fn(),
+  getAuthProfile: vi.fn(),
+  forgotPassword: vi.fn(),
+  setNewPassword: vi.fn(),
+  getTwoFactorStatus: vi.fn(),
+  setupTwoFactor: vi.fn(),
+  enableTwoFactor: vi.fn(),
+  disableTwoFactor: vi.fn(),
   logout: vi.fn(),
   getUserProfile: vi.fn(),
   register: vi.fn(),
@@ -16,6 +23,9 @@ vi.mock('@/api/authService', () => ({ authApi }))
 vi.mock('@/router', () => ({ default: router }))
 vi.mock('./useSocket', () => ({ useSocket: () => socket }))
 vi.mock('./searchStore', () => ({ useSearchStore: () => search }))
+// M25: the real settings store, on a mocked api/settings
+const settingsApi = vi.hoisted(() => ({ getSettings: vi.fn(), updateSettings: vi.fn() }))
+vi.mock('@/api/settings', () => ({ settingsApi }))
 
 // T51, T123 (M12): login keeps the refresh token, logout ends only this session
 describe('authStore sessions', () => {
@@ -61,6 +71,85 @@ describe('authStore sessions', () => {
 
     expect(authApi.logout).not.toHaveBeenCalled()
     expect(localStorage.getItem('authToken')).toBeNull()
+  })
+
+  // T68, decision Q8f (M25): the theme follows the user, not the browser
+  it('restores the theme from /users/me/settings after login', async () => {
+    document.body.classList.remove('dark-mode')
+    settingsApi.getSettings.mockResolvedValue({ data: { theme: 'dark' } })
+    authApi.login.mockResolvedValue({ data: { token: 'access', refreshToken: 'r', user_id: 3, role: 'Teacher' } })
+    const store = await loadStore()
+
+    await store.login({ identifier: 'alehrerin', password: 'pw' })
+
+    expect(settingsApi.getSettings).toHaveBeenCalledTimes(1)
+    expect(document.body.classList.contains('dark-mode')).toBe(true)
+    expect(localStorage.getItem('theme')).toBeNull()
+  })
+
+  // M25 (decision Q19): the views reach the auth API only through the store
+  it('completes the Google sign-in: stores both tokens and loads the user', async () => {
+    authApi.getAuthProfile.mockResolvedValue({ data: { userId: 20, role: 'Student', username: 'g' } })
+    const store = await loadStore()
+
+    await store.completeGoogleSignIn({ token: 'google.access', refreshToken: 'google.refresh' })
+
+    expect(localStorage.getItem('authToken')).toBe('google.access')
+    expect(localStorage.getItem('refreshToken')).toBe('google.refresh')
+    expect(localStorage.getItem('userId')).toBe('20')
+    expect(store.userRole).toBe('Student')
+  })
+
+  it('drops an old refresh token and defaults the role after a Google sign-in without them', async () => {
+    localStorage.setItem('refreshToken', 'previous.user')
+    authApi.getAuthProfile.mockResolvedValue({ data: { id: 21 } })
+    const store = await loadStore()
+
+    await store.completeGoogleSignIn({ token: 'google.access' })
+
+    expect(localStorage.getItem('refreshToken')).toBeNull()
+    expect(localStorage.getItem('userId')).toBe('21')
+    expect(store.userRole).toBe('student')
+  })
+
+  it('forgets both tokens when the profile after the Google sign-in fails', async () => {
+    authApi.getAuthProfile.mockRejectedValue(new Error('401'))
+    const store = await loadStore()
+
+    await expect(store.completeGoogleSignIn({ token: 'google.access' })).rejects.toThrow('401')
+    expect(localStorage.getItem('authToken')).toBeNull()
+    expect(localStorage.getItem('refreshToken')).toBeNull()
+  })
+
+  it('passes the password reset and the 2FA settings to the API', async () => {
+    authApi.getTwoFactorStatus.mockResolvedValue({ data: { enabled: true } })
+    authApi.setupTwoFactor.mockResolvedValue({ data: { secret: 'S' } })
+    const store = await loadStore()
+
+    await store.requestPasswordReset('felix@htl.at')
+    await store.setNewPassword('neues-passwort')
+    await expect(store.getTwoFactorStatus()).resolves.toEqual({ enabled: true })
+    await expect(store.setupTwoFactor()).resolves.toEqual({ secret: 'S' })
+    await store.enableTwoFactor('123456')
+    await store.disableTwoFactor('654321')
+
+    expect(authApi.forgotPassword).toHaveBeenCalledWith('felix@htl.at')
+    expect(authApi.setNewPassword).toHaveBeenCalledWith('neues-passwort')
+    expect(authApi.enableTwoFactor).toHaveBeenCalledWith('123456')
+    expect(authApi.disableTwoFactor).toHaveBeenCalledWith('654321')
+  })
+
+  // review M25: the next user in this browser doesn't get the theme
+  it('drops the theme at logout', async () => {
+    settingsApi.getSettings.mockResolvedValue({ data: { theme: 'dark' } })
+    authApi.login.mockResolvedValue({ data: { token: 'access', user_id: 3, role: 'Teacher' } })
+    const store = await loadStore()
+    await store.login({ identifier: 'alehrerin', password: 'pw' })
+    expect(document.body.classList.contains('dark-mode')).toBe(true)
+
+    await store.logout()
+
+    expect(document.body.classList.contains('dark-mode')).toBe(false)
   })
 
   // UC-01b (M32): with 2FA on, the password alone starts no session

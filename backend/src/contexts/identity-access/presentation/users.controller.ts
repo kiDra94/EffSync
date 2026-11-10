@@ -23,6 +23,8 @@ import {
 } from "@nestjs/swagger";
 import { UsersService } from "../application/users.service";
 import { TwoFactorService } from "../application/two-factor.service";
+import { UserSettingsService } from "../application/user-settings.service";
+import { UpdateUserSettingsDto } from "./dto/update-user-settings.dto";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { JwtAuthGuard } from "./security/jwt-auth.guard";
@@ -41,6 +43,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly twoFactor: TwoFactorService,
+    private readonly settings: UserSettingsService,
   ) {}
 
   /**
@@ -74,6 +77,37 @@ export class UsersController {
   @Permissions("view_dashboard")
   getProfile(@Req() req: AuthenticatedRequest) {
     return { ...req.user };
+  }
+
+  /**
+   * GET /users/me/settings
+   * The signed-in user's settings: the theme (T68, decision Q8f, M25).
+   */
+  @ApiOperation({
+    summary: "Returns the current user's settings (the theme)",
+    description: "Requires the permission view_dashboard.",
+  })
+  @Get("me/settings")
+  @Permissions("view_dashboard")
+  getSettings(@Req() req: AuthenticatedRequest) {
+    return this.settings.find(req.user.userId);
+  }
+
+  /**
+   * PATCH /users/me/settings
+   * Stores the signed-in user's theme, for all their devices (T68, M25).
+   */
+  @ApiOperation({
+    summary: "Changes the current user's settings (the theme)",
+    description: "Requires the permission view_dashboard.",
+  })
+  @Patch("me/settings")
+  @Permissions("view_dashboard")
+  updateSettings(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: UpdateUserSettingsDto,
+  ) {
+    return this.settings.update(req.user.userId, body);
   }
 
   /**

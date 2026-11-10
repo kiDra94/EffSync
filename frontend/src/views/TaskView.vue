@@ -10,8 +10,10 @@ import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
 import TaskFilters from '@/components/tasks/TaskFilters.vue';
 import RuleBuilder from '@/components/tasks/RuleBuilder.vue';
 import GradeModal from '@/components/tasks/GradeModal.vue';
-import { taskMembersApi } from '@/api/taskMembers';
+import { useTaskMemberStore } from '@/stores/entities/taskMemberStore';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const taskMemberStore = useTaskMemberStore();
 const route = useRoute();
 const taskStore = useTaskStore();
 const authStore = useAuthStore();
@@ -116,7 +118,7 @@ const saveTask = async (task) => {
       if (createdTaskId && pendingMemberIds.length > 0) {
         await Promise.allSettled(
           pendingMemberIds.map((userId) =>
-            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+            taskMemberStore.addMember(createdTaskId, { user_id: userId })
           ),
         );
       }
@@ -153,7 +155,7 @@ const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
       if (createdTaskId && pendingMemberIds.length > 0) {
         await Promise.allSettled(
           pendingMemberIds.map((userId) =>
-            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+            taskMemberStore.addMember(createdTaskId, { user_id: userId })
           ),
         );
       }

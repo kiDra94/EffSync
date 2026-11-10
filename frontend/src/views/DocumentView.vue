@@ -228,16 +228,12 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { fetchTasks } from '@/api/tasks';
-import {
-  deleteDocument,
-  fetchDocumentBinary,
-  fetchDocuments,
-  gradeDocument,
-  renameDocument,
-  uploadDocument,
-} from '@/api/documents';
+import { useDocumentStore } from '@/stores/entities/documentStore';
+import { useTaskStore } from '@/stores/entities/taskStore';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const documentStore = useDocumentStore();
+const taskStore = useTaskStore();
 const authStore = useAuthStore();
 const route = useRoute();
 
@@ -325,7 +321,7 @@ const loadDocuments = async () => {
   clearMessages();
 
   try {
-    documents.value = await fetchDocuments();
+    documents.value = await documentStore.fetchDocuments();
   } catch (error) {
     console.error('Fehler beim Laden der Dokumente:', error);
     errorMessage.value = error.response?.data?.message || 'Dokumente konnten nicht geladen werden.';
@@ -336,8 +332,8 @@ const loadDocuments = async () => {
 
 const loadTasksForUpload = async () => {
   try {
-    const loaded = await fetchTasks();
-    tasks.value = Array.isArray(loaded?.data) ? loaded.data : loaded;
+    await taskStore.getTasks();
+    tasks.value = taskStore.tasks;
   } catch (error) {
     console.warn('Taskliste für Upload-Kontext konnte nicht geladen werden:', error?.message || error);
     tasks.value = [];
@@ -392,7 +388,7 @@ const handleFileUpload = async (event) => {
 
   try {
     isUploading.value = true;
-    const created = await uploadDocument(file, selectedTaskId.value || undefined);
+    const created = await documentStore.uploadDocument(file, selectedTaskId.value || undefined);
     documents.value = [created, ...documents.value.filter((doc) => doc.document_id !== created.document_id)];
     setSuccessMessage('Dokument erfolgreich hochgeladen.');
   } catch (error) {
@@ -427,7 +423,7 @@ const saveRename = async (document) => {
 
   try {
     clearMessages();
-    const updated = await renameDocument(document.document_id, nextName);
+    const updated = await documentStore.renameDocument(document.document_id, nextName);
     documents.value = documents.value.map((entry) =>
       entry.document_id === updated.document_id ? updated : entry,
     );
@@ -465,7 +461,7 @@ const saveGrade = async () => {
   try {
     isSavingGrade.value = true;
     clearMessages();
-    const updated = await gradeDocument(gradeDocumentTarget.value.document_id, {
+    const updated = await documentStore.gradeDocument(gradeDocumentTarget.value.document_id, {
       grade: gradeForm.grade || undefined,
       feedback: gradeForm.feedback || undefined,
     });
@@ -491,7 +487,7 @@ const deleteOwnDocument = async (document) => {
 
   try {
     clearMessages();
-    await deleteDocument(document.document_id);
+    await documentStore.deleteDocument(document.document_id);
     documents.value = documents.value.filter((entry) => entry.document_id !== document.document_id);
     setSuccessMessage('Dokument gelöscht.');
   } catch (error) {
@@ -595,7 +591,7 @@ const saveBlob = (blob, fileName) => {
 const openDocument = async (document) => {
   try {
     clearMessages();
-    const response = await fetchDocumentBinary(document.document_id);
+    const response = await documentStore.fetchDocumentBinary(document.document_id);
     const fileName = getFileNameFromResponse(response, document.name);
     const mimeType = String(response.data?.type || document.mime_type || '').toLowerCase();
     const isPreviewable =
@@ -618,7 +614,7 @@ const openDocument = async (document) => {
 const downloadDocument = async (document) => {
   try {
     clearMessages();
-    const response = await fetchDocumentBinary(document.document_id);
+    const response = await documentStore.fetchDocumentBinary(document.document_id);
     saveBlob(response.data, getFileNameFromResponse(response, document.name));
   } catch (error) {
     console.error('Fehler beim Download:', error);

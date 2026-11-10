@@ -13,6 +13,9 @@ import { UsersService } from "./application/users.service";
 import { SessionService } from "./application/session.service";
 import { PasswordResetService } from "./application/password-reset.service";
 import { TwoFactorService } from "./application/two-factor.service";
+import { UserSettingsService } from "./application/user-settings.service";
+import { UserSettingsRepository } from "./application/ports/user-settings.repository";
+import { PrismaUserSettingsRepository } from "./infrastructure/persistence/prisma-user-settings.repository";
 import { SecretCipher } from "./application/ports/secret-cipher";
 import { Totp } from "./application/ports/totp";
 import { TwoFactorChallenges } from "./application/ports/two-factor-challenges";
@@ -88,6 +91,9 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     { provide: Totp, useClass: OtplibTotp },
     { provide: SecretCipher, useClass: AesGcmSecretCipher },
     { provide: TwoFactorChallenges, useClass: JwtTwoFactorChallenges },
+    // M25: the theme per user (decision Q8f)
+    UserSettingsService,
+    { provide: UserSettingsRepository, useClass: PrismaUserSettingsRepository },
     AccountDeletionRegistry,
     { provide: RealtimeAuthenticator, useClass: JwtRealtimeAuthenticator },
     { provide: ResetTokens, useClass: JwtResetTokens },

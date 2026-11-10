@@ -551,7 +551,7 @@ Rules for all milestones:
 
 ### Frontend alignment
 
-- [ ] **M25: Frontend layering through stores, one HTTP client, theme per user**
+- [x] **M25: Frontend layering through stores, one HTTP client, theme per user**
   - Why: T79 and T80 (`06_…:51`, decision Q19): views and components only render; data goes through stores, which use the `api/` layer. Also problems 13 and 14, and T68: the theme is persisted per user.
   - Steps:
     1. Move the `DashboardView.vue` and `StatusDistributionChart.vue` requests into an `api/` module plus a store.

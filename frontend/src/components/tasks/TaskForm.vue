@@ -202,9 +202,10 @@ import SubtaskBuilder from '@/components/tasks/SubtaskBuilder.vue';
 import TaskMembersList from '@/components/tasks/TaskMembersList.vue';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
-import { usersApi } from '@/api/usersService';
-import { updateDeadlineAndUnlock } from '@/api/tasks';
+import { useUserStore } from '@/stores/entities/userStore';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const userStore = useUserStore();
 const props = defineProps({
   task: {
     type: Object,
@@ -346,7 +347,7 @@ onMounted(async () => {
 
   try {
     isLoadingUsers.value = true;
-    const response = await usersApi.getAll();
+    const response = await userStore.fetchAll();
     const users = response?.data?.data ?? response?.data ?? [];
     selectableUsers.value = Array.isArray(users) ? users : [];
   } catch (error) {
@@ -439,11 +440,9 @@ const unlockTask = async () => {
     const date = new Date(`${newDeadlineForUnlock.value}:00.000Z`);
     const isoDeadline = date.toISOString();
 
-    await updateDeadlineAndUnlock(props.task.task_id, isoDeadline);
+    // the store reloads the tasks
+    await taskStore.unlockWithDeadline(props.task.task_id, isoDeadline);
     alert('✓ Task wurde erfolgreich entsperrt und das neue Deadline wurde gesetzt!');
-    
-    // Update the task store
-    await taskStore.getTasks();
     
     // Close the dialog
     showUnlockDialog.value = false;

@@ -1,4 +1,5 @@
 <script setup>
+import { API_URL } from '@/config/urls'
 import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
@@ -98,8 +99,7 @@ const backToPassword = () => {
 }
 
 const handleGoogleLogin = () => {
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-  window.location.href = `${backendUrl}/auth/google`
+  window.location.href = `${API_URL}/auth/google`
 }
 </script>
 

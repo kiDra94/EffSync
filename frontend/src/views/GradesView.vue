@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { fetchMyGrades } from '@/api/documents';
+import { useDocumentStore } from '@/stores/entities/documentStore';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const documentStore = useDocumentStore();
 const grades = ref([]);
 const isLoading = ref(true);
 const errorMessage = ref('');
@@ -21,7 +23,7 @@ const loadGrades = async () => {
   try {
     isLoading.value = true;
     errorMessage.value = '';
-    const data = await fetchMyGrades();
+    const data = await documentStore.fetchMyGrades();
     grades.value = data;
   } catch (error) {
     console.error('Fehler beim Laden der Bewertungen:', error);

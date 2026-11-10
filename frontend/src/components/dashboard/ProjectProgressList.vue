@@ -1,7 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import { fetchMetrics } from '@/api/metrics';
+import { useMetricsStore } from '@/stores/metricsStore';
 
+// M25 (decision Q19): data through the store, not the api/ layer
+const metricsStore = useMetricsStore();
 // FA-30 and FA-34 (T41, T39, decision Q2): the active projects (top-level
 // tasks that aren't completed), each with the progress of its subtasks
 const projects = ref([]);
@@ -12,7 +14,7 @@ const formatDate = (value) => (value ? new Date(value).toLocaleDateString('de-AT
 
 onMounted(async () => {
   try {
-    projects.value = await fetchMetrics('projects');
+    projects.value = await metricsStore.getMetric('projects');
   } catch {
     error.value = 'Projekte konnten nicht geladen werden.';
   } finally {

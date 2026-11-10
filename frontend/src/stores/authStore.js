@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/api/authService'
 import router from '@/router'
 import { useSocket } from './useSocket'
+import { useSettingsStore } from './settingsStore'
 import { useSearchStore } from './searchStore'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -59,6 +60,43 @@ export const useAuthStore = defineStore('auth', () => {
         return response.data
     }
 
+    /**
+     * The end of the Google sign-in (decision Q9, M12): the tokens came in
+     * the URL fragment, the user comes from GET /auth/profile. On failure
+     * both tokens are forgotten again.
+     */
+    async function completeGoogleSignIn({ token: newToken, refreshToken }) {
+        // httpClient reads the token from localStorage for the profile request
+        localStorage.setItem('authToken', newToken)
+        if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken)
+        } else {
+            // never keep a previous session's refresh token next to this token
+            localStorage.removeItem('refreshToken')
+        }
+        try {
+            const { data: user } = await authApi.getAuthProfile()
+            token.value = newToken
+            userId.value = user.userId ?? user.id
+            userRole.value = user.role || 'student'
+            userDetails.value = user
+            localStorage.setItem('userId', String(user.userId ?? user.id))
+            localStorage.setItem('userRole', String(user.role || 'student'))
+        } catch (error) {
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('refreshToken')
+            throw error
+        }
+    }
+
+    // M25 (decision Q19): the views reach these API calls through the store
+    const requestPasswordReset = (email) => authApi.forgotPassword(email)
+    const setNewPassword = (password) => authApi.setNewPassword(password)
+    const getTwoFactorStatus = async () => (await authApi.getTwoFactorStatus()).data
+    const setupTwoFactor = async () => (await authApi.setupTwoFactor()).data
+    const enableTwoFactor = (code) => authApi.enableTwoFactor(code)
+    const disableTwoFactor = (code) => authApi.disableTwoFactor(code)
+
     // stores the tokens and the user of a finished login and connects
     async function startSession(data) {
         const newToken = data.token;
@@ -83,6 +121,8 @@ export const useAuthStore = defineStore('auth', () => {
         console.log('✅ Stored userRole in authStore:', userRole.value)
 
         connect(data.token);
+        // T68 (M25): the user's theme from the server, on every device
+        await useSettingsStore().load();
         try {
             const searchStore = useSearchStore();
             await searchStore.ensureLoaded();
@@ -113,6 +153,8 @@ export const useAuthStore = defineStore('auth', () => {
             await router.push({ name: 'Login' })
             const searchStore = useSearchStore()
             searchStore.reset()
+            // review M25: the next user in this browser starts with the default
+            useSettingsStore().reset()
         }
     }
 
@@ -163,6 +205,13 @@ export const useAuthStore = defineStore('auth', () => {
         isAdmin,
         login,
         completeTwoFactorLogin,
+        completeGoogleSignIn,
+        requestPasswordReset,
+        setNewPassword,
+        getTwoFactorStatus,
+        setupTwoFactor,
+        enableTwoFactor,
+        disableTwoFactor,
         logout,
         loadUser,
         register,
