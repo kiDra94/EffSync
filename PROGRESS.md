@@ -1606,5 +1606,4 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - Browser check against the test database (a separate backend on 3001 and Vite on 5174, so the dev setup stayed untouched): the week and day views show their tasks in light and dark mode, and the columns of the top area and the grid line up to the pixel (`minmax(0, 1fr)` and the same `scrollbar-gutter`).
 - Frontend: 489 tests; lint, knip and the build pass; the `act` frontend job succeeded.
 
-**Failed / open:**
-- M28 stays unticked until the user confirms the week and day views in a second manual check.
+**Second manual check (user, 2026-11-10):** the week and day views show their tasks in the row "Aufgaben" above the grid, and dragging works. M28 is ticked: Done when met.

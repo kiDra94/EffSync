@@ -599,7 +599,7 @@ Rules for all milestones:
   - Done when: E2E covers an admin creating, editing and deleting a user, a non-admin getting 403 on those endpoints, the Superuser changing a role's permissions with the effect visible on a user of that role, an Admin getting 403 on `PUT /roles/:id/permissions`, and the lock-out guard returning 400. Both `AdminView` tabs have component tests.
   - Risk: medium. A runtime change to a role's permissions affects every user of that role at once; `contexts/identity-access/domain/role-permissions.ts` remains the default for fresh databases.
 
-- [ ] **M28: Shrink `CalendarView.vue` with `useCalendarUtils`**
+- [x] **M28: Shrink `CalendarView.vue` with `useCalendarUtils`**
   - Why: problems 16 and 17. UNUSED_CODE.md: `useCalendarUtils.js` is Planned/Keep and should replace the inline copies.
   - Steps:
     1. Use `useCalendarUtils` for date math.
