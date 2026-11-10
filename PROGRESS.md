@@ -1702,3 +1702,20 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
 - In dark mode the task form's unlock dialog stays light, before and after.
 - A teacher's "new task" form can't load the members to choose from, because `GET /users` needs `manage_users`. That was already so; this part changes neither.
 
+## 2026-11-10 – Definition of done, part 6: thesis claims, unused code, endpoints, changes
+
+**Done:**
+- THESIS_ALIGNMENT.md brought up to date: the 68 claims that were Partial, Missing or Contradicted before the refactor have new statuses.
+  - Each note names the milestone and the evidence: a test that names the claim, or a check documented here. For example, T15 and T16 rest on the backup scripts and the CI restore drill (M31), T61 on the load test (M30, M37), T66 on the responsive check (M30).
+  - New summary: 123 Implemented, 1 Partial (T71), 5 Deferred.
+
+**Verified (ticked):**
+- Endpoints of `08_…:112-138` (T121, T123): `api-auth-endpoints.e2e-spec.ts` and `api-task-endpoints.e2e-spec.ts` cover every endpoint with its happy path and 400/401/403/404. The combinations an endpoint can't produce are listed with the reason (M29).
+- UNUSED_CODE.md: every Delete item is gone; every Planned item is implemented (`RolesGuard`/`@Roles`, `GradesView`, `test-seed.ts`, the moved task-members spec, `useCalendarUtils`); `passport-local` and `proto.html` stay as decided.
+- API and schema changes: every migration of #144 is named in its milestone's entry here, and the route changes are listed in theirs (M6 chat rooms, M15 `/tasks` sub-resources, M25 settings, M27 avatar and password change, M35 role permissions). The earlier migrations are from before #144.
+
+**Open:**
+- T71 (Chrome, Firefox and Edge): Chrome and Firefox are checked (M30); the check in Edge on Windows needs the user, because Edge doesn't run on this Linux machine. This keeps the Definition of done's thesis-claims item open.
+- The first item (all tests pass in CI, characterization tests, `// THESIS:` flips) is ticked after this batch's code review and `act` run.
+  - All 38 `// THESIS:` markers in the tests describe the thesis-conform behavior: the old behavior was flipped in M6, M8, M9, M14, M15, M16 and M21.
+
