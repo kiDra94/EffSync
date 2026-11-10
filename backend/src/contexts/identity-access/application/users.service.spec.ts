@@ -5,7 +5,6 @@ import { UnitOfWork } from "../../../shared/application/unit-of-work";
 import { AccountDeletionRegistry } from "./account-deletion";
 import { UsersService } from "./users.service";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
-import { RolePermissionsService } from "./role-permissions.service";
 
 describe("UsersService", () => {
   let service: UsersService;
@@ -30,10 +29,6 @@ describe("UsersService", () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
-        },
-        {
-          provide: RolePermissionsService,
-          useValue: {},
         },
         { provide: UnitOfWork, useValue: { run: jest.fn() } },
         AccountDeletionRegistry,

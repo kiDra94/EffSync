@@ -87,7 +87,11 @@ export abstract class UserRepository {
     roleId: number,
   ): Promise<UserRoleRecord | null>;
   abstract assignRole(userId: number, roleId: number): Promise<UserRoleRecord>;
-  abstract assignRoleWithPermissions(
+  /**
+   * Assigns the role and returns the assignment with the role and its
+   * permissions, for the answer; it copies nothing (decision I3).
+   */
+  abstract assignRoleWithDetails(
     userId: number,
     roleId: number,
   ): Promise<UserRoleWithRolePermissions>;

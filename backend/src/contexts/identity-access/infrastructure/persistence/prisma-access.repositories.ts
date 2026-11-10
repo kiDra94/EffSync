@@ -3,8 +3,8 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../../shared/infrastructure/prisma/prisma.service";
 import {
   PermissionRepository,
-  RolePermissionRepository,
   RoleRepository,
+  type RolePermissionEntry,
 } from "../../application/ports/access.repositories";
 import type { PermissionGrant } from "../../application/ports/identity-records";
 
@@ -107,66 +107,33 @@ export class PrismaRoleRepository extends RoleRepository {
       include: ROLE_PERMISSIONS,
     });
   }
-}
 
-/** RolePermissionRepository on Prisma (queries of RolePermissionsService before M11). */
-@Injectable()
-export class PrismaRolePermissionRepository extends RolePermissionRepository {
-  constructor(private readonly prisma: PrismaService) {
-    super();
-  }
-
-  async findPermissionIdsOfRole(roleId: number) {
-    const rows = await this.prisma.roles_permissions.findMany({
-      where: { roles_id: roleId },
-      select: { permission_id: true },
-    });
-    return rows.map((row) => row.permission_id);
-  }
-
-  async findPermissionIdByName(name: string) {
-    const permission = await this.prisma.permissions.findFirst({
-      where: { name },
-      select: { permission_id: true },
-    });
-    return permission?.permission_id || null;
-  }
-
-  findUserPermission(userId: number, permissionId: number) {
-    return this.prisma.user_permissions.findUnique({
-      where: {
-        user_id_permission_id: { user_id: userId, permission_id: permissionId },
-      },
+  findPermissionsByIds(permissionIds: number[]) {
+    return this.prisma.permissions.findMany({
+      where: { permission_id: { in: permissionIds } },
+      select: { permission_id: true, name: true, flags: true },
     });
   }
 
-  grantPermissionFromNow(userId: number, permissionId: number) {
-    return this.prisma.user_permissions.create({
-      data: {
-        user_id: userId,
-        permission_id: permissionId,
-        valid_from: new Date(),
-        valid_to: null,
-      },
-    });
-  }
-
-  findOtherRoleGranting(userId: number, permissionId: number) {
-    return this.prisma.user_roles.findFirst({
-      where: {
-        user_id: userId,
-        roles: {
-          roles_permissions: { some: { permission_id: permissionId } },
-        },
-      },
-    });
-  }
-
-  revokePermission(userId: number, permissionId: number) {
-    return this.prisma.user_permissions.delete({
-      where: {
-        user_id_permission_id: { user_id: userId, permission_id: permissionId },
-      },
-    });
+  async replacePermissions(roleId: number, entries: RolePermissionEntry[]) {
+    await this.prisma.$transaction([
+      this.prisma.roles_permissions.deleteMany({ where: { roles_id: roleId } }),
+      this.prisma.roles_permissions.createMany({
+        data: entries.map((e) => ({
+          roles_id: roleId,
+          permission_id: e.permission_id,
+        })),
+      }),
+      // only flags that were sent, and only where they differ: a stale
+      // screen doesn't undo another change, nor touch updated_at (review M35)
+      ...entries
+        .filter((e) => e.flags !== undefined)
+        .map((e) =>
+          this.prisma.permissions.updateMany({
+            where: { permission_id: e.permission_id, flags: { not: e.flags } },
+            data: { flags: e.flags },
+          }),
+        ),
+    ]);
   }
 }

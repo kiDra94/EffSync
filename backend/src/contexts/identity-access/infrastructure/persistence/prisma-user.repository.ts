@@ -32,8 +32,9 @@ export class PrismaUserRepository extends UserRepository {
     super();
   }
 
+  // joins an open unit of work: an admin's new account gets its role with it (review M35)
   create(data: NewUser) {
-    return takenAsConflict(this.prisma.users.create({ data }));
+    return takenAsConflict(this.db().users.create({ data }));
   }
 
   async isTaken(username: string, email: string) {
@@ -201,12 +202,12 @@ export class PrismaUserRepository extends UserRepository {
   }
 
   assignRole(userId: number, roleId: number) {
-    return this.prisma.user_roles.create({
+    return this.db().user_roles.create({
       data: { user_id: userId, role_id: roleId },
     });
   }
 
-  assignRoleWithPermissions(userId: number, roleId: number) {
+  assignRoleWithDetails(userId: number, roleId: number) {
     return this.prisma.user_roles.create({
       data: { user_id: userId, role_id: roleId },
       include: ROLE_WITH_PERMISSIONS,

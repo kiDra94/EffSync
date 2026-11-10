@@ -5,7 +5,6 @@ import { PrismaUserRepository } from "../infrastructure/persistence/prisma-user.
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
-import { RolePermissionsService } from "./role-permissions.service";
 import { AccountDeletionRegistry } from "./account-deletion";
 import { CommunicationAccountDeletion } from "../../communication/infrastructure/communication-account-deletion";
 import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
@@ -54,7 +53,10 @@ function createPrismaMock() {
       }),
     },
     permissions: { findUnique: jest.fn() },
-    roles: { findUnique: jest.fn() },
+    roles: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ role_id: 2, name: "Student" }),
+    },
     user_permissions: {
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
@@ -78,12 +80,10 @@ function createPrismaMock() {
 
 describe("UsersService (characterization, M2)", () => {
   let prisma: ReturnType<typeof createPrismaMock>;
-  let rolePermissions: { assignDefaultPermissionsForRole: jest.Mock };
   let service: UsersService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
-    rolePermissions = { assignDefaultPermissionsForRole: jest.fn() };
     // the chat tables are communication's part of the deletion since M20
     const accountDeletion = new AccountDeletionRegistry();
     new CommunicationAccountDeletion(
@@ -92,7 +92,6 @@ describe("UsersService (characterization, M2)", () => {
     ).onModuleInit();
     service = new UsersService(
       new PrismaUserRepository(prisma as unknown as PrismaService),
-      rolePermissions as unknown as RolePermissionsService,
       { run: (work: () => Promise<unknown>) => work() } as never,
       accountDeletion,
     );
@@ -102,6 +101,7 @@ describe("UsersService (characterization, M2)", () => {
 
   // THESIS: T50 (flipped in M9) – bcrypt cost factor 12
   it("creates a user with a bcrypt hash of cost 12 and without the plain password", async () => {
+    prisma.users.create.mockResolvedValue({ user_id: 9 });
     await service.create({
       firstname: "Max",
       lastname: "M",
@@ -118,6 +118,11 @@ describe("UsersService (characterization, M2)", () => {
     expect(data).not.toHaveProperty("password");
     expect(String(data.password_hash)).toMatch(/^\$2[aby]\$12\$/);
     expect(data.username).toBe("maxm");
+    // review M35: with the Student role, like a registration
+    expect(prisma.roles.findFirst).toHaveBeenCalledWith({
+      where: { name: "Student" },
+    });
+    expect(prisma.user_roles.create).toHaveBeenCalled();
   });
 
   it("finds users by e-mail and by username", async () => {
@@ -162,7 +167,7 @@ describe("UsersService (characterization, M2)", () => {
   });
 
   it("updates the user with the DTO as is", async () => {
-    await service.update(3, { firstname: "Neu" } as never);
+    await service.update(3, { firstname: "Neu" } as never, 99);
     expect(prisma.users.update).toHaveBeenCalledWith({
       where: { user_id: 3 },
       data: { firstname: "Neu" },
@@ -300,7 +305,8 @@ describe("UsersService (characterization, M2)", () => {
       });
     });
 
-    it("assigns a role and its default permissions", async () => {
+    // decision I3 (M35): the role only, its permissions count through it
+    it("assigns a role without copying its permissions", async () => {
       prisma.users.findUnique.mockResolvedValue({ user_id: 1 });
       prisma.roles.findUnique.mockResolvedValue({
         role_id: 2,
@@ -309,43 +315,22 @@ describe("UsersService (characterization, M2)", () => {
       prisma.user_roles.findUnique.mockResolvedValue(null);
       prisma.user_roles.create.mockResolvedValue({ user_id: 1, role_id: 2 });
 
-      await expect(service.addRoleToUser(1, 2)).resolves.toEqual({
+      await expect(service.addRoleToUser(1, 2, 99)).resolves.toEqual({
         user_id: 1,
         role_id: 2,
       });
-      expect(
-        rolePermissions.assignDefaultPermissionsForRole,
-      ).toHaveBeenCalledWith(1, 2, "Teacher");
-    });
-
-    it("keeps the role assignment when the default permissions fail", async () => {
-      jest.spyOn(console, "error").mockImplementation(() => undefined);
-      prisma.users.findUnique.mockResolvedValue({ user_id: 1 });
-      prisma.roles.findUnique.mockResolvedValue({
-        role_id: 2,
-        name: "Teacher",
-      });
-      prisma.user_roles.findUnique.mockResolvedValue(null);
-      prisma.user_roles.create.mockResolvedValue({ user_id: 1, role_id: 2 });
-      rolePermissions.assignDefaultPermissionsForRole.mockRejectedValue(
-        new Error("boom"),
-      );
-
-      await expect(service.addRoleToUser(1, 2)).resolves.toEqual({
-        user_id: 1,
-        role_id: 2,
-      });
+      expect(prisma.user_permissions.create).not.toHaveBeenCalled();
     });
 
     it("rejects assigning a role to an unknown user, an unknown role or twice", async () => {
       prisma.users.findUnique.mockResolvedValueOnce(null);
-      await expect(service.addRoleToUser(1, 2)).rejects.toThrow(
+      await expect(service.addRoleToUser(1, 2, 99)).rejects.toThrow(
         "User 1 nicht gefunden",
       );
 
       prisma.users.findUnique.mockResolvedValue({ user_id: 1 });
       prisma.roles.findUnique.mockResolvedValueOnce(null);
-      await expect(service.addRoleToUser(1, 2)).rejects.toThrow(
+      await expect(service.addRoleToUser(1, 2, 99)).rejects.toThrow(
         "Role 2 nicht gefunden",
       );
 
@@ -357,7 +342,7 @@ describe("UsersService (characterization, M2)", () => {
         user_id: 1,
         role_id: 2,
       });
-      await expect(service.addRoleToUser(1, 2)).rejects.toThrow(
+      await expect(service.addRoleToUser(1, 2, 99)).rejects.toThrow(
         "User hat diese Rolle bereits",
       );
     });
@@ -372,8 +357,13 @@ describe("UsersService (characterization, M2)", () => {
         role_id: 1,
       });
       prisma.user_roles.count.mockResolvedValue(1);
+      // the acting user is a Superuser (review M35)
+      prisma.users.findUnique.mockResolvedValue({
+        user_id: 99,
+        user_roles: [{ roles: { name: "Superuser" } }],
+      });
 
-      await expect(service.removeRoleFromUser(1, 1)).rejects.toThrow(
+      await expect(service.removeRoleFromUser(1, 1, 99)).rejects.toThrow(
         "Kann nicht durchgeführt werden: Es muss mindestens 1 Superuser existieren",
       );
       expect(prisma.user_roles.delete).not.toHaveBeenCalled();
@@ -386,13 +376,13 @@ describe("UsersService (characterization, M2)", () => {
         name: "Admin",
       });
       prisma.user_roles.count.mockResolvedValue(2);
-      await service.removeRoleFromUser(1, 1);
+      await service.removeRoleFromUser(1, 1, 99);
 
       prisma.roles.findUnique.mockResolvedValueOnce({
         role_id: 4,
         name: "Student",
       });
-      await service.removeRoleFromUser(1, 4);
+      await service.removeRoleFromUser(1, 4, 99);
 
       expect(prisma.user_roles.count).toHaveBeenCalledTimes(1);
       expect(prisma.user_roles.delete).toHaveBeenCalledTimes(2);
@@ -400,7 +390,7 @@ describe("UsersService (characterization, M2)", () => {
 
     it("throws 404 when removing an unknown role or a role the user doesn't have", async () => {
       prisma.roles.findUnique.mockResolvedValueOnce(null);
-      await expect(service.removeRoleFromUser(1, 9)).rejects.toThrow(
+      await expect(service.removeRoleFromUser(1, 9, 99)).rejects.toThrow(
         "Role 9 nicht gefunden",
       );
 
@@ -409,7 +399,7 @@ describe("UsersService (characterization, M2)", () => {
         name: "Student",
       });
       prisma.user_roles.findUnique.mockResolvedValue(null);
-      await expect(service.removeRoleFromUser(1, 4)).rejects.toThrow(
+      await expect(service.removeRoleFromUser(1, 4, 99)).rejects.toThrow(
         "User hat diese Rolle nicht",
       );
     });

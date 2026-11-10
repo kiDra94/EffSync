@@ -7,7 +7,6 @@ import { PassportModule } from "@nestjs/passport";
 import { PrismaModule } from "../../shared/infrastructure/prisma/prisma.module";
 import { AuthService } from "./application/auth.service";
 import { PermissionsService } from "./application/permissions.service";
-import { RolePermissionsService } from "./application/role-permissions.service";
 import { RolesService } from "./application/roles.service";
 import { UsersService } from "./application/users.service";
 import { SessionService } from "./application/session.service";
@@ -29,7 +28,6 @@ import { AccountDeletionRegistry } from "./application/account-deletion";
 import { ResetTokens } from "./application/ports/reset-tokens";
 import {
   PermissionRepository,
-  RolePermissionRepository,
   RoleRepository,
 } from "./application/ports/access.repositories";
 import { UserRepository } from "./application/ports/user.repository";
@@ -37,7 +35,6 @@ import { RefreshTokenRepository } from "./application/ports/refresh-token.reposi
 import { jwtModuleOptions } from "./infrastructure/jwt.config";
 import {
   PrismaPermissionRepository,
-  PrismaRolePermissionRepository,
   PrismaRoleRepository,
 } from "./infrastructure/persistence/prisma-access.repositories";
 import { PrismaUserRepository } from "./infrastructure/persistence/prisma-user.repository";
@@ -88,7 +85,6 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     AuthService,
     UsersService,
     RolesService,
-    RolePermissionsService,
     PermissionsService,
     SessionService,
     PasswordResetService,
@@ -110,10 +106,6 @@ import { PasswordChangeGuard } from "./presentation/security/password-change.gua
     { provide: UserRepository, useClass: PrismaUserRepository },
     { provide: PermissionRepository, useClass: PrismaPermissionRepository },
     { provide: RoleRepository, useClass: PrismaRoleRepository },
-    {
-      provide: RolePermissionRepository,
-      useClass: PrismaRolePermissionRepository,
-    },
     { provide: RefreshTokenRepository, useClass: PrismaRefreshTokenRepository },
     JwtStrategy,
     LocalStrategy,

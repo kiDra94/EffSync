@@ -1492,3 +1492,58 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 **Failed / open:**
 - `GradeModal` has no form for grading remarks. Teachers write them in the task detail view, which step 5 allows ("from there or from `GradeModal`").
 - `UserProfileView` keeps its name fields in localStorage (unchanged; T26-like). Another user's profile shows the initials, not their picture, because the view has no data for other users.
+
+## 2026-11-10 – M35: Admin user management and Superuser system configuration
+
+**Decisions:**
+- The user decided I2: flags stay per permission, so the tab edits each role's set and each permission's flags.
+- The user decided I3: role permissions count only through the role, with no copies. This replaces step 1b.
+- Both are recorded in GOALS.md.
+
+**Done:**
+- User management (T75, UC-30, decision Q17): `AdminView` has a "Benutzerverwaltung" tab.
+  - Create and edit go through `UserAccountForm`, on `POST`/`PATCH /users`. Edit sends only the changed fields.
+  - Delete asks for confirmation, naming the ghost-user anonymization (M14). It isn't offered for the own account.
+  - A new account gets the Student role, like a registration, in one unit of work. Since I3, roles are the only source of a user's permissions.
+- Role changes in `AdminView` reload the list. They used to re-select the stale user, so a change showed only after a page reload.
+- Superuser protection (review M35): only a Superuser grants or removes the Superuser role, or edits or deletes a Superuser's account. Anything else gets 403.
+- Decision I3: `addRoleToUser` no longer copies the role's permissions into `user_permissions`.
+  - `RolePermissionsService` and its repository are deleted.
+  - `assignRoleWithPermissions` is renamed `assignRoleWithDetails` (it returns the role for the answer).
+  - The header of `domain/role-permissions.ts` now says it is the seed default.
+- System configuration (T77, UC-40, decisions Q18, A3, I2):
+  - `PUT /roles/:id/permissions` takes `@Roles(SUPERUSER)` plus `manage_system` WRITE. It sets the role's whole permission set and, in the same transaction, the flags of the entries that carry flags. An entry without flags keeps the permission's own.
+  - The answer is 404 for an unknown role and 400 for an unknown or repeated permission.
+- Lock-out guard (`domain/system-configuration.ts`): returns 400 if a change would leave the Superuser role without what the configuration needs. That is `view_dashboard` R, `manage_users` R (the roles and permissions lists) and `manage_system` R+W. Because flags are global, this is checked for every role.
+- `SystemConfiguration` tab: shown when any of the user's roles is Superuser, read from `GET /users/me/permissions`; the token names only the first role.
+  - It lists every permission with an "assigned" box and R/W/X flags; the flags are locked for unassigned rows.
+  - It sends flags only where they changed, and shows the server's refusal.
+
+**Verified:**
+- Done when: `admin-management.e2e-spec.ts` (11 tests) covers:
+  - an admin creating, editing and deleting a user, and a student getting 403 on all three;
+  - the Superuser adding and removing a Student permission, with the student's access changing at once;
+  - a flag change for every role;
+  - an Admin getting 403 on `PUT /roles/:id/permissions`;
+  - the lock-out guard (400): `manage_system` missing or without W, `manage_users` or `view_dashboard` missing, and `view_dashboard` without R set through another role;
+  - unknown permission or role, no copies at role assignment, the Superuser role and accounts out of an admin's reach, and a new account with the Student role.
+- Component tests:
+  - `AdminView.spec.js` covers both tabs: new account, edit, delete with confirmation, the delete report when the list fails to reload, no delete of the own account, and the tab only for a Superuser, even when Superuser isn't the first role.
+  - `UserAccountForm.spec.js` and `SystemConfiguration.spec.js` cover the two new components.
+- Backend: 699 unit tests and 180 E2E tests; lint, knip and depcruise pass.
+- Frontend: 469 tests; lint, knip and the build pass.
+- `act --action-offline-mode`: all four jobs succeeded.
+- `code-review` (high) gave 10 findings; 9 were fixed and 1 stays by decision I3:
+  1. An Admin could assign themselves the Superuser role and so reach the Superuser-only configuration.
+  2. The lock-out guard protected only `manage_system`, so taking away `manage_users` or `view_dashboard` (also through global flags) locked the Superuser out of the tab.
+  3. An Admin could change a Superuser's e-mail and take over the account through a password reset, or delete it.
+  4. The edit form sent unchanged fields, so seeded accounts with short usernames couldn't be edited at all.
+  5. The tab followed only the first role in the token.
+  6. Copies made before M35 keep their permissions. This stays by decision I3; the tab's hint now says that direct permissions count in addition.
+  7. Accounts created by an admin had no role and so no permissions.
+  8. A deletion was reported as failed when only the reload failed.
+  9. A stale screen wrote back old flags of every assigned permission. Only changed flags are sent, and the update skips equal values.
+  10. Stale comments and a misleading name were left behind, and the entry type was declared three times. The comments and name are fixed, and one `RolePermissionEntry` in the port is shared by the service and the repository.
+
+**Failed / open:**
+- Direct grants that `addRoleToUser` copied before M35 stay in `user_permissions` (decision I3). In the dev seed, the direct grants are the deliberate, time-limited ones; `AdminView` lists them per user and can remove them.

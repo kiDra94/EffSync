@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { CreateUserInput, UpdateUserInput } from "./user-inputs";
 import { hash, genSalt } from "bcrypt";
@@ -22,13 +23,11 @@ export interface RolePermissionSummary {
   description: string | null;
   flags: number;
 }
-import { RolePermissionsService } from "./role-permissions.service";
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly users: UserRepository,
-    private rolePermissionsService: RolePermissionsService,
     private readonly unitOfWork: UnitOfWork,
     private readonly accountDeletion: AccountDeletionRegistry,
   ) {}
@@ -38,11 +37,17 @@ export class UsersService {
     const salt = await genSalt(BCRYPT_COST);
     const hashPassword = await hash(createUserDto.password, salt);
     const { password, ...userWithoutPassword } = createUserDto;
-    const user = await this.users.create({
-      ...userWithoutPassword,
-      password_hash: hashPassword,
+    // review M35: with the Student role like a registration, so the new
+    // account can sign in and use the app (decision I3: roles are the source)
+    return this.unitOfWork.run(async () => {
+      const user = await this.users.create({
+        ...userWithoutPassword,
+        password_hash: hashPassword,
+      });
+      const student = await this.users.findRoleByName(RoleName.STUDENT);
+      if (student) await this.users.assignRole(user.user_id, student.role_id);
+      return withoutPasswordHash(user);
     });
-    return withoutPasswordHash(user);
   }
 
   async findByEmail(email: string) {
@@ -67,8 +72,13 @@ export class UsersService {
     return withProfilePicture(user);
   }
 
-  async update(id: number, updateUserDto: UpdateUserInput) {
+  async update(
+    id: number,
+    updateUserDto: UpdateUserInput,
+    actingUserId: number,
+  ) {
     this.assertNotGhost(id);
+    await this.assertMayManageAccount(id, actingUserId);
     return withoutPasswordHash(await this.users.update(id, updateUserDto));
   }
 
@@ -84,6 +94,7 @@ export class UsersService {
         "Das eigene Konto kann nicht gelöscht werden",
       );
     }
+    await this.assertMayManageAccount(id, actingUserId);
     return this.unitOfWork.run(async () => {
       if (!(await this.users.lockForDeletion(id))) {
         throw new NotFoundException(`User ${id} nicht gefunden`);
@@ -95,6 +106,44 @@ export class UsersService {
       await this.accountDeletion.anonymizeUser(id);
       return withoutPasswordHash(await this.users.anonymizeAndDelete(id));
     });
+  }
+
+  private async isSuperuser(userId: number): Promise<boolean> {
+    const user = await this.users.findByIdWithRoles(userId);
+    return !!user?.user_roles?.some(
+      (userRole) => userRole.roles?.name === RoleName.SUPERUSER,
+    );
+  }
+
+  /**
+   * Review M35: only a Superuser changes or deletes a Superuser's account;
+   * otherwise an Admin could take it over (new e-mail, password reset).
+   */
+  private async assertMayManageAccount(userId: number, actingUserId: number) {
+    if (
+      (await this.isSuperuser(userId)) &&
+      !(await this.isSuperuser(actingUserId))
+    ) {
+      throw new ForbiddenException(
+        "Nur ein Superuser darf das Konto eines Superusers ändern",
+      );
+    }
+  }
+
+  /**
+   * Review M35: only a Superuser grants or removes the Superuser role;
+   * otherwise an Admin could make themselves one and reach the Superuser-only
+   * system configuration.
+   */
+  private async assertMayGrant(roleName: string | null, actingUserId: number) {
+    if (
+      roleName === RoleName.SUPERUSER &&
+      !(await this.isSuperuser(actingUserId))
+    ) {
+      throw new ForbiddenException(
+        "Nur ein Superuser darf die Superuser-Rolle vergeben oder entziehen",
+      );
+    }
   }
 
   // the same rule as removeRoleFromUser: one Superuser and one Admin remain
@@ -236,13 +285,14 @@ export class UsersService {
   }
 
   /**
-   * Assigns a role to a user.
-   * Important: all default permissions of the role are added automatically as well!
+   * Assigns a role to a user. Its permissions count through the role, for as
+   * long as the user has it (decision I3: no copies into the user's own
+   * grants, so a change to the role reaches the user at once).
    *
    * @param userId - the user ID
    * @param roleId - the role ID
    */
-  async addRoleToUser(userId: number, roleId: number) {
+  async addRoleToUser(userId: number, roleId: number, actingUserId: number) {
     this.assertNotGhost(userId);
     const user = await this.users.findById(userId);
 
@@ -255,6 +305,7 @@ export class UsersService {
     if (!role) {
       throw new NotFoundException(`Role ${roleId} nicht gefunden`);
     }
+    await this.assertMayGrant(role.name, actingUserId);
 
     const existing = await this.users.findUserRole(userId, roleId);
 
@@ -262,30 +313,7 @@ export class UsersService {
       throw new BadRequestException("User hat diese Rolle bereits");
     }
 
-    // 1. Assign the role
-    const result = await this.users.assignRoleWithPermissions(userId, roleId);
-
-    // 2. Add the role's default permissions automatically
-    try {
-      if (role.name) {
-        await this.rolePermissionsService.assignDefaultPermissionsForRole(
-          userId,
-          roleId,
-          role.name,
-        );
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(
-        "Fehler beim Hinzufügen der Standard-Permissions:",
-        errorMessage,
-      );
-      // Don't fail if the permissions can't be added
-      // The role is already assigned
-    }
-
-    return result;
+    return this.users.assignRoleWithDetails(userId, roleId);
   }
 
   /**
@@ -298,12 +326,18 @@ export class UsersService {
    * @param userId - the user ID
    * @param roleId - the role ID
    */
-  async removeRoleFromUser(userId: number, roleId: number) {
+  async removeRoleFromUser(
+    userId: number,
+    roleId: number,
+    actingUserId: number,
+  ) {
     const role = await this.users.findRoleById(roleId);
 
     if (!role) {
       throw new NotFoundException(`Role ${roleId} nicht gefunden`);
     }
+
+    await this.assertMayGrant(role.name, actingUserId);
 
     const userRole = await this.users.findUserRole(userId, roleId);
 

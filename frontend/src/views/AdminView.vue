@@ -2,10 +2,20 @@
   <div class="admin-container">
     <div class="admin-header">
       <h1>👥 Benutzerverwaltung - Rollen & Permissions</h1>
-      <p class="subtitle">Admin-Panel zur Verwaltung von Rollen und Berechtigungen</p>
+      <p class="subtitle">Admin-Panel zur Verwaltung von Konten, Rollen und Berechtigungen</p>
     </div>
 
-    <div v-if="loading" class="loading-spinner">
+    <!-- T75 (UC-30) and T77 (UC-40), M35: the system configuration is the Superuser's -->
+    <div v-if="isSuperuser" class="admin-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="users" :aria-selected="activeTab === 'users'"
+        :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">👥 Benutzerverwaltung</button>
+      <button type="button" role="tab" data-tab="system" :aria-selected="activeTab === 'system'"
+        :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'">🛠️ Systemkonfiguration</button>
+    </div>
+
+    <SystemConfiguration v-if="activeTab === 'system'" />
+
+    <div v-else-if="loading" class="loading-spinner">
       <p>📋 Lädt Benutzerdaten...</p>
     </div>
 
@@ -18,6 +28,11 @@
       <!-- User list -->
       <div class="users-section">
         <h2>📌 Benutzer</h2>
+        <!-- T75, decision Q17 (M35): admins manage the accounts themselves -->
+        <button type="button" class="btn-add btn-new-user" @click="openAccountForm(null)">+ Neues Konto</button>
+        <UserAccountForm v-if="accountForm" :key="accountForm.key" :user="accountForm.user"
+          @saved="onAccountSaved" @cancel="accountForm = null" />
+        <p v-if="accountError" class="account-error" role="alert">{{ accountError }}</p>
         <div class="user-search-wrap">
           <input
             v-model="userSearch"
@@ -53,6 +68,28 @@
       <!-- Details Panel -->
       <div v-if="selectedUser" class="details-section">
         <h2>⚙️ Verwaltung für: {{ selectedUser.firstname }} {{ selectedUser.lastname }}</h2>
+
+        <!-- The account (T75, decision Q17, M35) -->
+        <div class="management-card">
+          <h3>👤 Konto</h3>
+          <p class="account-line">@{{ selectedUser.username }} · {{ selectedUser.email }}</p>
+          <div class="account-buttons">
+            <button type="button" class="btn-add btn-edit-user" @click="openAccountForm(selectedUser)">✏️ Konto bearbeiten</button>
+            <button v-if="selectedUser.user_id !== authStore.userId" type="button" class="btn-remove btn-delete-user"
+              @click="confirmingDelete = true">🗑️ Konto löschen</button>
+          </div>
+          <div v-if="confirmingDelete" class="delete-confirm" role="alertdialog" aria-labelledby="delete-confirm-text">
+            <p id="delete-confirm-text">
+              Konto von <strong>{{ selectedUser.firstname }} {{ selectedUser.lastname }}</strong> wirklich löschen?
+              Geteilte Inhalte (Aufgaben, Chat, Dokumente) bleiben unter „Gelöschter Benutzer“ erhalten,
+              persönliche Daten werden gelöscht.
+            </p>
+            <button type="button" class="btn-remove btn-confirm-delete" :disabled="isRemoving" @click="deleteSelectedUser">
+              Endgültig löschen
+            </button>
+            <button type="button" class="btn-cancel-delete" @click="confirmingDelete = false">Abbrechen</button>
+          </div>
+        </div>
 
         <!-- Role management -->
         <div class="management-card">
@@ -170,9 +207,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAdminStore } from '@/stores/entities/adminStore';
 import { useAuthStore } from '@/stores/authStore.js';
+import UserAccountForm from '@/components/admin/UserAccountForm.vue';
+import SystemConfiguration from '@/components/admin/SystemConfiguration.vue';
 
 export default {
   name: 'AdminView',
+  components: { UserAccountForm, SystemConfiguration },
   setup() {
     // M25 (decision Q19): data through the store, not the api/ layer
     const adminStore = useAdminStore();
@@ -186,6 +226,16 @@ export default {
     const isRemoving = ref(false);
 
     const userSearch = ref('');
+
+    // M35: the tabs, the account form and the delete confirmation
+    // any of the user's roles, not only the first one the token names (review M35)
+    const myRoles = ref([]);
+    const isSuperuser = computed(() => myRoles.value.includes('Superuser'));
+    const activeTab = ref('users');
+    const accountForm = ref(null);
+    let formKey = 0;
+    const confirmingDelete = ref(false);
+    const accountError = ref('');
 
     const filteredUsers = computed(() => {
       if (!userSearch.value.trim()) return users.value;
@@ -258,10 +308,54 @@ export default {
       }
     };
 
+    // the list again after a change, with the selected user's new data
+    const refreshUsers = async () => {
+      users.value = await adminStore.fetchUsers();
+      selectedUser.value = users.value.find((u) => u.user_id === selectedUserId.value) ?? null;
+      if (!selectedUser.value) selectedUserId.value = null;
+    };
+
+    const openAccountForm = (user) => {
+      accountError.value = '';
+      accountForm.value = { user, key: ++formKey };
+    };
+
+    const onAccountSaved = async (saved) => {
+      accountForm.value = null;
+      if (saved?.user_id) selectedUserId.value = saved.user_id;
+      await refreshUsers();
+    };
+
+    // UC-30, M14: the content moves to the ghost user
+    const deleteSelectedUser = async () => {
+      if (!selectedUser.value) return;
+      try {
+        isRemoving.value = true;
+        accountError.value = '';
+        await adminStore.deleteUser(selectedUser.value.user_id);
+      } catch (err) {
+        accountError.value = err?.response?.data?.message || 'Das Konto konnte nicht gelöscht werden.';
+        return;
+      } finally {
+        isRemoving.value = false;
+      }
+      confirmingDelete.value = false;
+      selectedUserId.value = null;
+      selectedUser.value = null;
+      try {
+        await refreshUsers();
+      } catch {
+        // review M35: the deletion stands; only the list is out of date
+        accountError.value = 'Das Konto wurde gelöscht, die Liste konnte aber nicht neu geladen werden.';
+      }
+    };
+
     const selectUser = async (user) => {
       console.log('👤 Selecting user:', user.username, 'ID:', user.user_id);
       selectedUserId.value = user.user_id;
       selectedUser.value = user;
+      confirmingDelete.value = false;
+      accountError.value = '';
       newRoleId.value = '';
       newPermissionId.value = '';
       newPermissionValidFrom.value = '';
@@ -274,8 +368,8 @@ export default {
       try {
         isAdding.value = true;
         await adminStore.assignRole(selectedUser.value.user_id, parseInt(newRoleId.value));
-        // Reload the users
-        await selectUser(selectedUser.value);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
         newRoleId.value = '';
       } catch (err) {
         error.value = err.message || 'Fehler beim Zuweisen der Rolle';
@@ -291,8 +385,8 @@ export default {
       try {
         isRemoving.value = true;
         await adminStore.removeRole(selectedUser.value.user_id, roleId);
-        // Reload the users
-        await selectUser(selectedUser.value);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
       } catch (err) {
         error.value = err.message || 'Fehler beim Entfernen der Rolle';
         console.error('Error removing role:', err);
@@ -312,8 +406,8 @@ export default {
           newPermissionValidFrom.value || null,
           newPermissionValidTo.value || null
         );
-        // Reload the users
-        await selectUser(selectedUser.value);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
         newPermissionId.value = '';
         newPermissionValidFrom.value = '';
         newPermissionValidTo.value = '';
@@ -331,8 +425,8 @@ export default {
       try {
         isRemoving.value = true;
         await adminStore.removePermission(selectedUser.value.user_id, permissionId);
-        // Reload the users
-        await selectUser(selectedUser.value);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
       } catch (err) {
         error.value = err.message || 'Fehler beim Entfernen der Permission';
         console.error('Error removing permission:', err);
@@ -374,9 +468,19 @@ export default {
         return;
       }
       loadUsers();
+      adminStore.fetchMyRoles().then((names) => { myRoles.value = names; }, () => {});
     });
 
     return {
+      authStore,
+      isSuperuser,
+      activeTab,
+      accountForm,
+      confirmingDelete,
+      accountError,
+      openAccountForm,
+      onAccountSaved,
+      deleteSelectedUser,
       users,
       selectedUser,
       selectedUserId,
@@ -602,6 +706,19 @@ export default {
   padding-bottom: 15px;
   border-bottom: 2px solid #4a90e2;
 }
+
+/* M35: tabs, account buttons and the delete confirmation */
+.admin-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.admin-tabs button { padding: 8px 16px; border: 1px solid #4a90e2; background: white; color: #4a90e2; border-radius: 4px; cursor: pointer; }
+.admin-tabs button.active { background: #4a90e2; color: white; }
+.btn-new-user { margin-bottom: 12px; }
+.account-line { color: #555; margin: 0 0 10px; }
+.account-buttons { display: flex; gap: 8px; }
+.account-buttons .btn-add { width: auto; }
+.delete-confirm { margin-top: 12px; padding: 12px; border: 1px solid #e74c3c; border-radius: 6px; background: #fdecea; }
+.delete-confirm p { margin-top: 0; }
+.btn-cancel-delete { margin-left: 8px; padding: 10px 16px; border: none; border-radius: 4px; background: #6c757d; color: white; cursor: pointer; }
+.account-error { color: #b91c1c; margin: 8px 0 0; }
 
 .management-card {
   background: #f9f9f9;
@@ -984,4 +1101,10 @@ body.dark-mode .loading-spinner,
 .app-container.dark-mode .loading-spinner {
   color: #b2b9cb !important;
 }
+
+/* M35 */
+body.dark-mode .admin-container .admin-tabs button { background: #2c2c3e; }
+body.dark-mode .admin-container .admin-tabs button.active { background: #4a90e2; }
+body.dark-mode .admin-container .delete-confirm { background: #3b2526; }
+body.dark-mode .admin-container .account-line { color: #b2b9cb; }
 </style>

@@ -1,11 +1,11 @@
 import {
+  ForbiddenException,
   BadRequestException,
   ConflictException,
   NotFoundException,
 } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { UserRepository } from "./ports/user.repository";
-import { RolePermissionsService } from "./role-permissions.service";
 import { UnitOfWork } from "../../../shared/application/unit-of-work";
 import type { Transaction } from "../../../shared/domain/transaction";
 import { AccountDeletionRegistry } from "./account-deletion";
@@ -32,6 +32,8 @@ describe("UsersService.remove", () => {
       }),
       findById: jest.fn(),
       update: jest.fn(),
+      // nobody is a Superuser unless a test says so (review M35)
+      findByIdWithRoles: jest.fn().mockResolvedValue({ user_roles: [] }),
     };
     accountDeletion = {
       assertDeletable: jest.fn().mockResolvedValue(undefined),
@@ -44,7 +46,6 @@ describe("UsersService.remove", () => {
     };
     service = new UsersService(
       users as unknown as UserRepository,
-      {} as RolePermissionsService,
       unitOfWork as unknown as UnitOfWork,
       accountDeletion as unknown as AccountDeletionRegistry,
     );
@@ -118,12 +119,28 @@ describe("UsersService.remove", () => {
     expect(users.anonymizeAndDelete).not.toHaveBeenCalled();
   });
 
+  // review M35: an Admin can't delete or change a Superuser's account
+  it("lets only a Superuser delete or change a Superuser's account", async () => {
+    users.findByIdWithRoles.mockImplementation((id: number) =>
+      Promise.resolve({
+        user_roles: id === 7 ? [{ roles: { name: "Superuser" } }] : [],
+      }),
+    );
+
+    await expect(service.remove(7, ADMIN)).rejects.toThrow(ForbiddenException);
+    await expect(service.update(7, { email: "x@y.at" }, ADMIN)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(users.lockForDeletion).not.toHaveBeenCalled();
+    expect(users.update).not.toHaveBeenCalled();
+  });
+
   // review M14 (2): the ghost user's name stands for every deleted account
   it("doesn't change the ghost user", async () => {
-    await expect(service.update(0, { firstname: "Max" })).rejects.toThrow(
+    await expect(service.update(0, { firstname: "Max" }, 99)).rejects.toThrow(
       BadRequestException,
     );
-    await expect(service.addRoleToUser(0, 2)).rejects.toThrow(
+    await expect(service.addRoleToUser(0, 2, 99)).rejects.toThrow(
       BadRequestException,
     );
     await expect(service.addPermissionToUser(0, 3)).rejects.toThrow(

@@ -1,7 +1,8 @@
 /**
- * Default permissions per role
- * This configuration defines which permissions are assigned
- * automatically with a role
+ * Default permissions per role: what the seed writes into `roles_permissions`
+ * for a fresh database. At runtime the Superuser changes that table (M35,
+ * decision Q18); a user has a role's permissions through the role, not as
+ * copies (decision I3).
  */
 
 /**

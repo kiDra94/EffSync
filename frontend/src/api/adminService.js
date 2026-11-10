@@ -21,6 +21,35 @@ export const adminService = {
     return response.data;
   },
 
+  // the accounts themselves (T75, UC-30, decision Q17, M35)
+  async createUser(data) {
+    const response = await apiClient.post('/users', data);
+    return response.data;
+  },
+
+  async updateUser(userId, changes) {
+    const response = await apiClient.patch(`/users/${userId}`, changes);
+    return response.data;
+  },
+
+  // the content moves to the ghost user (M14)
+  async deleteUser(userId) {
+    const response = await apiClient.delete(`/users/${userId}`);
+    return response.data;
+  },
+
+  // the signed-in user's role names, all of them (review M35: the token names the first only)
+  async getMyRoleNames() {
+    const response = await apiClient.get('/users/me/permissions');
+    return (response.data?.roles ?? []).map((role) => role.name);
+  },
+
+  // the Superuser's system configuration (T77, decisions Q18, I2, M35)
+  async setRolePermissions(roleId, permissions) {
+    const response = await apiClient.put(`/roles/${roleId}/permissions`, { permissions });
+    return response.data;
+  },
+
   /**
    * Returns all available roles
    */

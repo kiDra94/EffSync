@@ -34,30 +34,29 @@ export abstract class PermissionRepository {
   ): Promise<PermissionWithAssignments | null>;
 }
 
+/**
+ * One permission of a role in the system configuration (M35); without
+ * `flags` the permission keeps its own (decision I2: they are the
+ * permission's, for every role).
+ */
+export interface RolePermissionEntry {
+  permission_id: number;
+  flags?: number;
+}
+
 /** Roles with their permissions (RolesService). */
 export abstract class RoleRepository {
   abstract findAll(): Promise<RoleWithPermissions[]>;
   abstract findOne(roleId: number): Promise<RoleWithPermissions | null>;
-}
-
-/** Role-derived user permissions (RolePermissionsService). */
-export abstract class RolePermissionRepository {
-  abstract findPermissionIdsOfRole(roleId: number): Promise<number[]>;
-  abstract findPermissionIdByName(name: string): Promise<number | null>;
-  abstract findUserPermission(
-    userId: number,
-    permissionId: number,
-  ): Promise<UserPermissionRecord | null>;
-  abstract grantPermissionFromNow(
-    userId: number,
-    permissionId: number,
-  ): Promise<UserPermissionRecord>;
-  abstract findOtherRoleGranting(
-    userId: number,
-    permissionId: number,
-  ): Promise<UserRoleRecord | null>;
-  abstract revokePermission(
-    userId: number,
-    permissionId: number,
-  ): Promise<UserPermissionRecord>;
+  abstract findPermissionsByIds(
+    permissionIds: number[],
+  ): Promise<{ permission_id: number; name: string; flags: number }[]>;
+  /**
+   * The role's permissions become exactly these, and each entry with flags
+   * gives its permission those flags (decision I2), in one transaction (M35).
+   */
+  abstract replacePermissions(
+    roleId: number,
+    entries: RolePermissionEntry[],
+  ): Promise<void>;
 }

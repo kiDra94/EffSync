@@ -210,8 +210,12 @@ export class UsersController {
   })
   @Patch(":id")
   @Permissions("manage_users", PermissionFlag.WRITE)
-  update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  update(
+    @Param("id") id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.usersService.update(+id, updateUserDto, req.user.userId);
   }
 
   /**
@@ -329,8 +333,13 @@ export class UsersController {
   async addRoleToUser(
     @Param("id") userId: string,
     @Body() dto: { role_id: number },
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.usersService.addRoleToUser(+userId, dto.role_id);
+    return this.usersService.addRoleToUser(
+      +userId,
+      dto.role_id,
+      req.user.userId,
+    );
   }
 
   /**
@@ -349,7 +358,12 @@ export class UsersController {
   async removeRoleFromUser(
     @Param("id") userId: string,
     @Param("roleId") roleId: string,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.usersService.removeRoleFromUser(+userId, +roleId);
+    return this.usersService.removeRoleFromUser(
+      +userId,
+      +roleId,
+      req.user.userId,
+    );
   }
 }

@@ -586,7 +586,7 @@ Rules for all milestones:
   - Done when: each view and section has a component test; the password change, the avatar upload (including a rejected non-image) and writing a comment with an @mention are E2E-tested; non-admins get 403 on the audit-log API.
   - Risk: low. Steps 3–5 depend on M15's routes.
 
-- [ ] **M35: Admin user management and Superuser system configuration**
+- [x] **M35: Admin user management and Superuser system configuration**
   - Why:
     - T75 (UC-30, decision Q17): "Benutzerverwaltung" is separate from UC-31 "Rollen vergeben", so admins manage the accounts themselves.
     - T77 (UC-40, decision Q18): "Systemkonfiguration" is the RBAC configuration, i.e. which permissions with which flags each role has, guarded by `manage_system`.
@@ -753,6 +753,8 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **H2 What a task template stores** (decided 2026-11-08, found in M18): only `name` and `description`, as in the thesis schema (`prisma_schema.tex:286`); no schema change. "Save as template" stores the task's title as `name` and its description; applying a template fills title and description, and the user sets deadline, priority and assignee (07_…:225). The DTO, `TemplateForm` and `TaskForm.applyTemplate` drop the `default_*` fields. Affects: T110, M18.
 - **Q8g Activity log on task delete** (decided 2026-11-06): no schema change. The delete transaction writes a "deleted" entry with the task title, sets `task_id = null` on the task's log rows, then deletes the task. Affects: T32, M15, M27, M33.
 - **I1 Load-test data for NFA-01** (decided 2026-11-09, found in M37): `scripts/load-test-data.sql` keeps the volume (20,000 tasks, notifications and chat messages) but spreads it over a school-sized set of users (750 students, 40 teachers), so a student sees about 200 tasks. M30's version put every task on the 5 seed students; one of them saw 9,336 of 20,000 tasks, and Postgres alone managed only about 40 such list queries per second on the test machine. That case stays in PROGRESS.md as a stress result. No schema change (a visibility table was not chosen). Affects: T61, M30, M37.
+- **I2 Flags in the Systemkonfiguration** (decided 2026-11-10, found in M35): flags stay per permission (`permissions.flags`), as the thesis models them (`06_…:204`, "Permissions sind als Bit-Flags modelliert"); `roles_permissions` gets no flags column. The Superuser tab edits each role's permission set and each permission's R/W/X flags; a flag change applies to every role and every direct grant of that permission. No schema change (Q18 stands). Affects: T77, Q18, M35.
+- **I3 Role permissions reach users live** (decided 2026-11-10, found in M35): assigning a role no longer copies its permissions into `user_permissions`; a role's permissions count only through the role (`roles_permissions`), so a Superuser change or a removed role takes effect at once. Direct grants are individual rights only (like the seed's time-limited ones). Copies made earlier through the API can't be told apart from deliberate grants and stay. This replaces M35 step 1b's "removing a role must also remove the permissions it granted". Affects: T75, T77, M35.
 
 ## Open questions
 
