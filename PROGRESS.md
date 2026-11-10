@@ -1675,3 +1675,30 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
 - `npm run test:coverage`: 686 tests; `task.service.ts` at 100 % lines and 92 % branches (threshold 90).
 - E2E `task-*` and `task-management`: all pass. Lint, knip and depcruise pass.
 
+## 2026-11-10 – Definition of done, part 5: no `.vue` file over 800 lines
+
+**Done:** real parts became components, each with its markup, logic, styles and a spec. Scoped styles don't reach into a child component, so where a part used the parent's field, button or table-cell styles, the child got an exact copy, in the original cascade order.
+- `AdminView.vue`, 1,110 → 726 lines:
+  - `UserAccountCard`, `UserRolesCard` and `UserPermissionsCard`;
+  - their styles are in `admin-card.css`, which each card scopes with `<style scoped src>`, plus the dark rules in `admin-card-dark.css`.
+- `TaskForm.vue`, 1,104 → 714 lines:
+  - `TaskLockNotice`: the lock reason and the unlock dialog;
+  - `TaskMemberChips`: the members chosen for a new task;
+  - 22 scoped `:global(body.dark-mode) .x` rules removed. As in CalendarView (M28), they compiled to bare `body.dark-mode` rules and never styled the form.
+- `DocumentView.vue`, 1,146 → 763 lines:
+  - `DocumentGradeDialog`;
+  - `DocumentGradeRow`: the grade card under a row, with a copy of the page's table-cell rule, without which the following rows sat 1px higher;
+  - `documentFiles.js` with the upload rules, labels and blob helpers, tested on their own.
+
+**Verified (ticked):**
+- The largest `.vue` file now has 763 lines.
+- Screenshots of old against new (Chromium on the test database, through a separate backend on 3001 and Vite on 5174, so the dev setup stayed untouched):
+  - AdminView: details, delete confirmation and edit form, light and dark: pixel-identical.
+  - TaskForm: an open task, a locked task with the unlock dialog, and a new task with chosen members, each also scrolled to the bottom: pixel-identical in light mode. In dark mode only the 1px page border that a removed body rule drew is gone.
+  - DocumentView: a teacher's and a student's list, the grading dialog and the rename field, light and dark: pixel-identical after the table-cell copy.
+- Frontend: 510 tests; lint, knip and the build pass.
+
+**Open:**
+- In dark mode the task form's unlock dialog stays light, before and after.
+- A teacher's "new task" form can't load the members to choose from, because `GET /users` needs `manage_users`. That was already so; this part changes neither.
+

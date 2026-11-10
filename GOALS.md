@@ -165,7 +165,7 @@ The refactor is done when all of the following hold:
 - [x] No spec file whose only assertion is `toBeDefined()`. All spec files are picked up by a jest config.
 - [x] `npx eslint` reports 0 errors in `backend/src` and `frontend/src`, with the `no-unsafe-*` rules back at `error` everywhere (decision Q13), and CI runs lint and `npm run build` for both projects.
 - [x] No source file in `backend/src` over 500 lines, no backend method over 80 lines.
-- [ ] No `.vue` file over 800 lines (including style).
+- [x] No `.vue` file over 800 lines (including style).
 - [x] Role names appear as string literals only in `contexts/identity-access/domain/role-permissions.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
 - [x] Permission checks go only through `PermissionsService` / `PermissionsGuard` / `RolesGuard`: no `user_permissions` or `roles_permissions` queries outside `identity-access/infrastructure`.
 - [x] Exactly one axios instance in `frontend/src/api/`; no `apiClient` import, no `fetch(` (T79) and no import from `@/api/` (T80, decision Q19) in `views/` or `components/`, enforced by an ESLint `no-restricted-imports` rule.
