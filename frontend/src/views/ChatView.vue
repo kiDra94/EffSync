@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useChatStore } from '@/stores/entities/chatStore';
 import { useChat } from '@/composables/useChat';
@@ -16,6 +16,15 @@ onMounted(async () => {
     // a task or class chat opened elsewhere (M21): /chat?room=<id>
     const roomId = Number(route.query.room);
     if (roomId) await handleRoomSelect(roomId);
+});
+
+// M26: a direct chat opened from the search while the chat is already open
+watch(() => route.query.room, async (room) => {
+    const roomId = Number(room);
+    if (roomId && roomId !== chatStore.activeRoomId) {
+        await chatStore.getRooms();
+        await handleRoomSelect(roomId);
+    }
 });
 
 onUnmounted(() => {

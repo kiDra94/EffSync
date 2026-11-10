@@ -54,12 +54,21 @@ const subtasksForRuleBuilder = computed(() => {
 onMounted(async () => {
   await taskStore.getTasks();
   applyStatusFilter();
+  openTaskFromQuery();
 });
 
 // Watcher for URL changes
 watch(() => route.query.status, () => {
   applyStatusFilter();
 });
+
+// M26 (T42): a search result opens its project or task, /tasks?task=<id>
+const openTaskFromQuery = () => {
+  const id = Number(route.query.task);
+  const task = id && taskStore.tasks.find((t) => t.task_id === id);
+  if (task) openTaskForm(task);
+};
+watch(() => route.query.task, openTaskFromQuery);
 
 const applyStatusFilter = () => {
   const statusParam = route.query.status;

@@ -1430,3 +1430,17 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 
 **Failed / open:**
 - `components/tasks/TESTS_README.md:75` documents the api/ layer's own test with `apiClient`, the one line the Done-when grep still finds.
+
+## 2026-11-10 – M26: Global search per thesis
+
+**Done:**
+- `searchStore` (T42, FA-52; T43, FA-53): users join the search through `userStore.fetchForSelection()` (`GET /users/for-chat`, the list the chat uses: names and usernames, no e-mail addresses), loaded once per session (also if that fails, without retrying on every focus; the logout forgets them), and the search goes on without them. The results come as groups in a fixed order: Projekte (matching top-level tasks, decision Q2), Aufgaben (the other matching tasks), Benutzer (by username or full name in either order), Notizen, Vorlagen; tasks match by title and description (no longer by status); at most 5 per group with "+N weitere" for the rest, empty groups left out (the old flat list had 10 in all).
+- `components/layout/SearchResults.vue`: a listbox of named groups (`role=group` with its heading), options reachable with the arrow keys from the input (`role=combobox`), Enter picks, Escape and a click outside close. `searchStore.targetOf` leads a project or task to itself (`/tasks?task=<id>`, `TaskView` opens it, also when it is already open) and a user to a direct chat with them (`chatStore.openDirect`, `/chat?room=<id>`; `ChatView` follows a changed room).
+
+**Verified:**
+- Done when: `searchStore.spec.js` has a test for each category (projects, tasks, users, notes and templates) plus the order, the limit and the user list's loading and failure; `SearchResults.spec.js` is the grouped dropdown's component test (headings, results per group, the chosen result, nothing without results).
+- Frontend: 402 tests (coverage thresholds included); lint, knip and the build pass. `act --action-offline-mode`: all four jobs succeeded.
+- `code-review` (high) gave 10 findings, all fixed: (1) a user result opened the profile page, which shows the signed-in user's own data under the other id (now a direct chat); (2) a second pick on the same page stayed stale (the chat and the task list follow the address); (3) the dropdown's dark-mode rules (`:global(body.dark-mode) .x` in a scoped block) compiled to bare `body.dark-mode` rules that coloured the page (now unscoped and confined to `.search-results`; checked by compiling the styles); (4) no keyboard use and invalid ARIA; (5) a wrapped or empty user answer broke the whole search; (6) a project or task opened only the plain task list; (7) the per-group limit hid matches without saying so; (8) the user list was never reloaded after a logout; (9) status words filled the task groups, and "Nachname Vorname" found nobody; (10) the dropdown never closed on a click outside or Escape.
+
+**Failed / open:**
+- `LayoutView.vue` has the same scoped `:global(body.dark-mode) .x` rules for the user menu and the notifications (lines 256–432), outside the search; they colour the page in dark mode the same way.

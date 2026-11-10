@@ -5,6 +5,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { useSearchStore } from "@/stores/searchStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import SearchResults from "@/components/layout/SearchResults.vue";
 
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
@@ -21,6 +22,10 @@ const closeDropdown = (e) => {
   // Close if the click was NOT inside the user menu
   if (!e.target.closest('.user-menu')) {
     showDropdown.value = false;
+  }
+  // review M26: the search results close on a click outside them too
+  if (!e.target.closest('.search-wrapper')) {
+    showResults.value = false;
   }
 }
 
@@ -80,17 +85,21 @@ const onSearchInput = () => {
   showResults.value = true;
 };
 
-const navigateToResult = (result) => {
+const searchResults = ref(null);
+
+// M26: a project or task opens itself, a user a direct chat with them
+const navigateToResult = async (result) => {
   showResults.value = false;
-  searchStore.reset();
-  const routeMap = {
-    task: { name: 'TaskList' },
-    note: { name: 'NoteLists' },
-    template: { name: 'TemplateLists' },
-  };
-  if (routeMap[result.type]) {
-    router.push(routeMap[result.type]);
+  searchStore.clear();
+  try {
+    router.push(await searchStore.targetOf(result));
+  } catch (error) {
+    console.error('Suchergebnis konnte nicht geöffnet werden:', error);
   }
+};
+
+const closeSearch = () => {
+  showResults.value = false;
 };
 </script>
 
@@ -117,17 +126,11 @@ const navigateToResult = (result) => {
 
         <div v-if="authStore.isAuthenticated" class="search-wrapper">
           <input type="search" placeholder="Search..." v-model="searchStore.query" @focus="onSearchFocus"
-            @input="onSearchInput" />
-          <div v-if="showResults && searchStore.results.length > 0" class="search-results">
-            <div v-for="result in searchStore.results" :key="`${result.type}-${result.id}`" class="search-result-item"
-              @click="navigateToResult(result)">
-              <span class="result-icon">{{ result.icon }}</span>
-              <div class="result-text">
-                <span class="result-label">{{ result.label }}</span>
-                <span class="result-sub">{{ result.sub }}</span>
-              </div>
-            </div>
-          </div>
+            @input="onSearchInput" role="combobox" aria-autocomplete="list" aria-controls="search-results"
+            :aria-expanded="showResults && searchStore.groups.length > 0" aria-label="Suche"
+            @keydown.down.prevent="searchResults?.focusFirst()" @keydown.esc="closeSearch" />
+          <SearchResults v-if="showResults" ref="searchResults" :groups="searchStore.groups"
+            @select="navigateToResult" @close="closeSearch" />
         </div>
         <div v-else style="flex:1"></div>
 
@@ -650,47 +653,6 @@ hr {
     border-radius: 4px;
 }
 
-.search-results {
-    position: absolute;
-    top: 38px;
-    left: 0;
-    width: 100%;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    z-index: 200;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.search-result-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.search-result-item:hover { background: #f5f5f5; }
-
-.result-icon { font-size: 1.1rem; }
-
-.result-text {
-    display: flex;
-    flex-direction: column;
-}
-
-.result-label { font-size: 0.9rem; color: #1f2937; }
-.result-sub   { font-size: 0.75rem; color: #9ca3af; }
-
-:global(body.dark-mode) .search-results {
-    background: #2c2c3e;
-    border-color: #444;
-}
-:global(body.dark-mode) .search-result-item:hover { background: #3b3b54; }
-:global(body.dark-mode) .result-label { color: #ddd; }
 
 </style>
 

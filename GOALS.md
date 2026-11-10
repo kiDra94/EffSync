@@ -561,7 +561,7 @@ Rules for all milestones:
   - Done when: `grep -rnE "apiClient|fetch\(|from '@/api/" frontend/src/views frontend/src/components` returns nothing (only test files may mock `api/`), the ESLint rule runs in CI, `grep -rn "localhost" frontend/src` hits only the config module, a Vitest test shows the theme restored from `/users/me/settings` after login, and E2E shows a theme set by one session being returned to a second session of the same user.
   - Risk: medium. 18 components change how they get their data; the existing component tests that mock `api/` modules have to mock the stores instead.
 
-- [ ] **M26: Global search per thesis**
+- [x] **M26: Global search per thesis**
   - Why: T42 (search covers users and projects; a project is a top-level task, decision Q2) and T43 (results grouped by category).
   - Steps:
     1. Add users to `searchStore`, using the existing `/users` endpoint the chat already uses.
