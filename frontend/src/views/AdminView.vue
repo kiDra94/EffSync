@@ -69,131 +69,12 @@
       <div v-if="selectedUser" class="details-section">
         <h2>⚙️ Verwaltung für: {{ selectedUser.firstname }} {{ selectedUser.lastname }}</h2>
 
-        <!-- The account (T75, decision Q17, M35) -->
-        <div class="management-card">
-          <h3>👤 Konto</h3>
-          <p class="account-line">@{{ selectedUser.username }} · {{ selectedUser.email }}</p>
-          <div class="account-buttons">
-            <button type="button" class="btn-add btn-edit-user" @click="openAccountForm(selectedUser)">✏️ Konto bearbeiten</button>
-            <button v-if="selectedUser.user_id !== authStore.userId" type="button" class="btn-remove btn-delete-user"
-              @click="confirmingDelete = true">🗑️ Konto löschen</button>
-          </div>
-          <div v-if="confirmingDelete" class="delete-confirm" role="alertdialog" aria-labelledby="delete-confirm-text">
-            <p id="delete-confirm-text">
-              Konto von <strong>{{ selectedUser.firstname }} {{ selectedUser.lastname }}</strong> wirklich löschen?
-              Geteilte Inhalte (Aufgaben, Chat, Dokumente) bleiben unter „Gelöschter Benutzer“ erhalten,
-              persönliche Daten werden gelöscht.
-            </p>
-            <button type="button" class="btn-remove btn-confirm-delete" :disabled="isRemoving" @click="deleteSelectedUser">
-              Endgültig löschen
-            </button>
-            <button type="button" class="btn-cancel-delete" @click="confirmingDelete = false">Abbrechen</button>
-          </div>
-        </div>
-
-        <!-- Role management -->
-        <div class="management-card">
-          <h3>🎯 Rollen ({{ selectedUser.user_roles?.length || 0 }})</h3>
-
-          <div v-if="selectedUser.user_roles && selectedUser.user_roles.length > 0" class="roles-list">
-            <div v-for="role in selectedUser.user_roles" :key="role.role_id" class="role-item">
-              <span class="role-name">{{ role.roles?.name }}</span>
-              <button
-                @click="removeRoleFromUser(role.role_id)"
-                :disabled="isRemoving || !canRemoveRole(role)"
-                class="btn-remove"
-                :title="canRemoveRole(role) ? 'Entfernen' : 'Es muss mindestens 1 ' + role.roles?.name + ' existieren'"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <p v-else class="no-items">Noch keine Rollen zugewiesen</p>
-
-          <!-- Add role -->
-          <div class="add-role-section">
-            <label for="role-select">Neue Rolle zuweisen:</label>
-            <select v-model="newRoleId" id="role-select" class="select-field">
-              <option value="">-- Rolle wählen --</option>
-              <option v-for="role in availableRoles" :key="role.role_id" :value="role.role_id">
-                {{ role.name }}
-              </option>
-            </select>
-            <button
-              @click="addRoleToUser"
-              :disabled="!newRoleId || isAdding"
-              class="btn-add"
-            >
-              + Rolle hinzufügen
-            </button>
-          </div>
-        </div>
-
-        <!-- Permissions Management -->
-        <div class="management-card">
-          <h3>🔐 Direkte Permissions ({{ selectedUser.user_permissions?.length || 0 }})</h3>
-
-          <div v-if="selectedUser.user_permissions && selectedUser.user_permissions.length > 0" class="permissions-list">
-            <div v-for="perm in selectedUser.user_permissions" :key="perm.user_permission_id" class="permission-item">
-              <div class="permission-info">
-                <span class="permission-name">{{ perm.permissions?.name }}</span>
-                <span v-if="perm.valid_from || perm.valid_to" class="permission-dates">
-                  📅 {{ formatDate(perm.valid_from) }} 
-                  <span v-if="perm.valid_to">→ {{ formatDate(perm.valid_to) }}</span>
-                </span>
-              </div>
-              <button
-                @click="removePermissionFromUser(perm.permissions?.permission_id)"
-                :disabled="isRemoving"
-                class="btn-remove"
-                title="Entfernen"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <p v-else class="no-items">Noch keine direkten Permissions</p>
-
-          <!-- Add permission -->
-          <div class="add-permission-section">
-            <label for="permission-select">Neue Permission zuweisen:</label>
-            <select v-model="newPermissionId" id="permission-select" class="select-field">
-              <option value="">-- Permission wählen --</option>
-              <option v-for="perm in availablePermissions" :key="perm.permission_id" :value="perm.permission_id">
-                {{ perm.name }}
-              </option>
-            </select>
-
-            <div class="date-inputs">
-              <div class="date-group">
-                <label for="valid-from">Gültig ab (optional):</label>
-                <input
-                  id="valid-from"
-                  v-model="newPermissionValidFrom"
-                  type="date"
-                  class="input-field"
-                />
-              </div>
-              <div class="date-group">
-                <label for="valid-to">Gültig bis (optional):</label>
-                <input
-                  id="valid-to"
-                  v-model="newPermissionValidTo"
-                  type="date"
-                  class="input-field"
-                />
-              </div>
-            </div>
-
-            <button
-              @click="addPermissionToUser"
-              :disabled="!newPermissionId || isAdding"
-              class="btn-add"
-            >
-              + Permission hinzufügen
-            </button>
-          </div>
-        </div>
+        <UserAccountCard :user="selectedUser" :can-delete="selectedUser.user_id !== authStore.userId"
+          :busy="isRemoving" @edit="openAccountForm(selectedUser)" @delete="deleteSelectedUser" />
+        <UserRolesCard :user="selectedUser" :roles="availableRoles" :users="users" :busy="isAdding || isRemoving"
+          @add="addRoleToUser" @remove="removeRoleFromUser" />
+        <UserPermissionsCard :user="selectedUser" :permissions="availablePermissions" :busy="isAdding || isRemoving"
+          @add="addPermissionToUser" @remove="removePermissionFromUser" />
       </div>
 
       <div v-else class="no-selection">
@@ -209,10 +90,13 @@ import { useAdminStore } from '@/stores/entities/adminStore';
 import { useAuthStore } from '@/stores/authStore.js';
 import UserAccountForm from '@/components/admin/UserAccountForm.vue';
 import SystemConfiguration from '@/components/admin/SystemConfiguration.vue';
+import UserAccountCard from '@/components/admin/UserAccountCard.vue';
+import UserRolesCard from '@/components/admin/UserRolesCard.vue';
+import UserPermissionsCard from '@/components/admin/UserPermissionsCard.vue';
 
 export default {
   name: 'AdminView',
-  components: { UserAccountForm, SystemConfiguration },
+  components: { UserAccountForm, SystemConfiguration, UserAccountCard, UserRolesCard, UserPermissionsCard },
   setup() {
     // M25 (decision Q19): data through the store, not the api/ layer
     const adminStore = useAdminStore();
@@ -234,7 +118,6 @@ export default {
     const activeTab = ref('users');
     const accountForm = ref(null);
     let formKey = 0;
-    const confirmingDelete = ref(false);
     const accountError = ref('');
 
     const filteredUsers = computed(() => {
@@ -246,10 +129,6 @@ export default {
       );
     });
 
-    const newRoleId = ref('');
-    const newPermissionId = ref('');
-    const newPermissionValidFrom = ref('');
-    const newPermissionValidTo = ref('');
 
     // For later: once the backend provides endpoints for getAllRoles/getAllPermissions
     const availableRoles = ref([
@@ -339,7 +218,6 @@ export default {
       } finally {
         isRemoving.value = false;
       }
-      confirmingDelete.value = false;
       selectedUserId.value = null;
       selectedUser.value = null;
       try {
@@ -354,23 +232,18 @@ export default {
       console.log('👤 Selecting user:', user.username, 'ID:', user.user_id);
       selectedUserId.value = user.user_id;
       selectedUser.value = user;
-      confirmingDelete.value = false;
       accountError.value = '';
-      newRoleId.value = '';
-      newPermissionId.value = '';
-      newPermissionValidFrom.value = '';
-      newPermissionValidTo.value = '';
     };
 
-    const addRoleToUser = async () => {
-      if (!selectedUser.value || !newRoleId.value) return;
+    // the cards (UserRolesCard, UserPermissionsCard) hand over what to change
+    const addRoleToUser = async (roleId) => {
+      if (!selectedUser.value || !roleId) return;
 
       try {
         isAdding.value = true;
-        await adminStore.assignRole(selectedUser.value.user_id, parseInt(newRoleId.value));
+        await adminStore.assignRole(selectedUser.value.user_id, roleId);
         // review M35: the list again, so the change shows
         await refreshUsers();
-        newRoleId.value = '';
       } catch (err) {
         error.value = err.message || 'Fehler beim Zuweisen der Rolle';
         console.error('Error adding role:', err);
@@ -395,22 +268,14 @@ export default {
       }
     };
 
-    const addPermissionToUser = async () => {
-      if (!selectedUser.value || !newPermissionId.value) return;
+    const addPermissionToUser = async ({ permissionId, validFrom, validTo }) => {
+      if (!selectedUser.value || !permissionId) return;
 
       try {
         isAdding.value = true;
-        await adminStore.assignPermission(
-          selectedUser.value.user_id,
-          parseInt(newPermissionId.value),
-          newPermissionValidFrom.value || null,
-          newPermissionValidTo.value || null
-        );
+        await adminStore.assignPermission(selectedUser.value.user_id, permissionId, validFrom, validTo);
         // review M35: the list again, so the change shows
         await refreshUsers();
-        newPermissionId.value = '';
-        newPermissionValidFrom.value = '';
-        newPermissionValidTo.value = '';
       } catch (err) {
         error.value = err.message || 'Fehler beim Zuweisen der Permission';
         console.error('Error adding permission:', err);
@@ -435,31 +300,6 @@ export default {
       }
     };
 
-    const formatDate = (dateString) => {
-      if (!dateString) return '—';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('de-DE');
-    };
-
-    const canRemoveRole = (role) => {
-      // Critical roles (Superuser/Admin) can't be removed if only 1 is left
-      const criticalRoles = ['Superuser', 'Admin'];
-      
-      if (criticalRoles.includes(role.roles?.name)) {
-        // Count how many users have this role
-        const countInAllUsers = users.value.filter(u => 
-          u.user_roles?.some(ur => ur.role_id === role.role_id)
-        ).length;
-        
-        // If only one user still has this role - don't remove it!
-        if (countInAllUsers <= 1) {
-          return false;
-        }
-      }
-      
-      return true;
-    };
-
     onMounted(() => {
       // Check whether the user is an admin (admin or superuser)
       if (!authStore.isAdmin) {
@@ -476,7 +316,6 @@ export default {
       isSuperuser,
       activeTab,
       accountForm,
-      confirmingDelete,
       accountError,
       openAccountForm,
       onAccountSaved,
@@ -488,10 +327,6 @@ export default {
       error,
       isAdding,
       isRemoving,
-      newRoleId,
-      newPermissionId,
-      newPermissionValidFrom,
-      newPermissionValidTo,
       availableRoles,
       availablePermissions,
       userSearch,
@@ -502,8 +337,6 @@ export default {
       removeRoleFromUser,
       addPermissionToUser,
       removePermissionFromUser,
-      formatDate,
-      canRemoveRole,
     };
   },
 };
@@ -712,130 +545,10 @@ export default {
 .admin-tabs button { padding: 8px 16px; border: 1px solid #4a90e2; background: white; color: #4a90e2; border-radius: 4px; cursor: pointer; }
 .admin-tabs button.active { background: #4a90e2; color: white; }
 .btn-new-user { margin-bottom: 12px; }
-.account-line { color: #555; margin: 0 0 10px; }
-.account-buttons { display: flex; gap: 8px; }
-.account-buttons .btn-add { width: auto; }
-.delete-confirm { margin-top: 12px; padding: 12px; border: 1px solid #e74c3c; border-radius: 6px; background: #fdecea; }
-.delete-confirm p { margin-top: 0; }
-.btn-cancel-delete { margin-left: 8px; padding: 10px 16px; border: none; border-radius: 4px; background: #6c757d; color: white; cursor: pointer; }
 .account-error { color: #b91c1c; margin: 8px 0 0; }
 
-.management-card {
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.management-card h3 {
-  margin-top: 0;
-  color: #1a1a1a;
-}
-
-.roles-list,
-.permissions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.role-item,
-.permission-item {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 12px;
-  border-radius: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.role-name,
-.permission-name {
-  color: #1a1a1a;
-  font-weight: bold;
-}
-
-.permission-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.permission-dates {
-  font-size: 12px;
-  color: #666;
-}
-
-.no-items {
-  text-align: center;
-  color: #999;
-  padding: 15px;
-  background: white;
-  border: 1px dashed #ddd;
-  border-radius: 6px;
-  margin-bottom: 20px;
-}
-
-.add-role-section,
-.add-permission-section {
-  background: white;
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.add-role-section label,
-.add-permission-section label {
-  display: block;
-  margin-bottom: 8px;
-  color: #1a1a1a;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.select-field,
-.input-field {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  margin-bottom: 12px;
-  font-family: inherit;
-}
-
-.select-field:focus,
-.input-field:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-}
-
-.date-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.date-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-group label {
-  margin-bottom: 5px;
-  color: #666;
-  font-weight: normal;
-  font-size: 13px;
-}
-
-.btn-add,
-.btn-remove {
+/* the button for a new account; the cards have their own (admin-card.css) */
+.btn-add {
   padding: 10px 16px;
   border: none;
   border-radius: 4px;
@@ -856,24 +569,6 @@ export default {
 }
 
 .btn-add:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.btn-remove {
-  background: #e74c3c;
-  color: white;
-  padding: 4px 8px;
-  font-size: 11px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.btn-remove:hover:not(:disabled) {
-  background: #c0392b;
-}
-
-.btn-remove:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
@@ -918,10 +613,6 @@ export default {
 
   .user-card {
     flex: 1 1 100%;
-  }
-
-  .date-inputs {
-    grid-template-columns: 1fr;
   }
 }
 </style>
@@ -1019,79 +710,6 @@ body.dark-mode .details-section h2,
   color: #edf0fa !important;
 }
 
-body.dark-mode .management-card,
-.app-container.dark-mode .management-card {
-  background: #25283a !important;
-  border-color: #434963 !important;
-}
-
-body.dark-mode .management-card h3,
-.app-container.dark-mode .management-card h3 {
-  color: #edf0fa !important;
-}
-
-body.dark-mode .role-item,
-body.dark-mode .permission-item,
-.app-container.dark-mode .role-item,
-.app-container.dark-mode .permission-item {
-  background: #2a2f45 !important;
-  border-color: #434963 !important;
-}
-
-body.dark-mode .role-name,
-body.dark-mode .permission-name,
-.app-container.dark-mode .role-name,
-.app-container.dark-mode .permission-name {
-  color: #edf0fa !important;
-}
-
-body.dark-mode .permission-dates,
-.app-container.dark-mode .permission-dates {
-  color: #b2b9cb !important;
-}
-
-body.dark-mode .no-items,
-.app-container.dark-mode .no-items {
-  background: #2a2f45 !important;
-  border-color: #434963 !important;
-  color: #7a8199 !important;
-}
-
-body.dark-mode .add-role-section,
-body.dark-mode .add-permission-section,
-.app-container.dark-mode .add-role-section,
-.app-container.dark-mode .add-permission-section {
-  background: #2a2f45 !important;
-  border-color: #434963 !important;
-}
-
-body.dark-mode .add-role-section label,
-body.dark-mode .add-permission-section label,
-.app-container.dark-mode .add-role-section label,
-.app-container.dark-mode .add-permission-section label {
-  color: #edf0fa !important;
-}
-
-body.dark-mode .date-group label,
-.app-container.dark-mode .date-group label {
-  color: #b2b9cb !important;
-}
-
-body.dark-mode .select-field,
-body.dark-mode .input-field,
-.app-container.dark-mode .select-field,
-.app-container.dark-mode .input-field {
-  background: #31364d !important;
-  border-color: #434963 !important;
-  color: #edf0fa !important;
-}
-
-body.dark-mode .select-field option,
-.app-container.dark-mode .select-field option {
-  background: #31364d !important;
-  color: #edf0fa !important;
-}
-
 body.dark-mode .no-selection,
 .app-container.dark-mode .no-selection {
   color: #7a8199 !important;
@@ -1105,6 +723,4 @@ body.dark-mode .loading-spinner,
 /* M35 */
 body.dark-mode .admin-container .admin-tabs button { background: #2c2c3e; }
 body.dark-mode .admin-container .admin-tabs button.active { background: #4a90e2; }
-body.dark-mode .admin-container .delete-confirm { background: #3b2526; }
-body.dark-mode .admin-container .account-line { color: #b2b9cb; }
 </style>

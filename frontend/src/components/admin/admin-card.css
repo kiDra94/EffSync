@@ -1,0 +1,173 @@
+/* The user cards of AdminView (Definition of done: out of AdminView.vue),
+   scoped into each card with <style scoped src> */
+.management-card {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.management-card h3 {
+  margin-top: 0;
+  color: #1a1a1a;
+}
+
+.roles-list,
+.permissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.role-item,
+.permission-item {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-name,
+.permission-name {
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
+.permission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.permission-dates {
+  font-size: 12px;
+  color: #666;
+}
+
+.no-items {
+  text-align: center;
+  color: #999;
+  padding: 15px;
+  background: white;
+  border: 1px dashed #ddd;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.add-role-section,
+.add-permission-section {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.add-role-section label,
+.add-permission-section label {
+  display: block;
+  margin-bottom: 8px;
+  color: #1a1a1a;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.select-field,
+.input-field {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+
+.select-field:focus,
+.input-field:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.date-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.date-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-group label {
+  margin-bottom: 5px;
+  color: #666;
+  font-weight: normal;
+  font-size: 13px;
+}
+
+.btn-add,
+.btn-remove {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-add {
+  background: #4a90e2;
+  color: white;
+  width: 100%;
+}
+
+.btn-add:hover:not(:disabled) {
+  background: #357abd;
+}
+
+.btn-add:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-remove {
+  background: #e74c3c;
+  color: white;
+  padding: 4px 8px;
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.btn-remove:hover:not(:disabled) {
+  background: #c0392b;
+}
+
+.btn-remove:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* the account card (M35) */
+.account-line { color: #555; margin: 0 0 10px; }
+.account-buttons { display: flex; gap: 8px; }
+.account-buttons .btn-add { width: auto; }
+.delete-confirm { margin-top: 12px; padding: 12px; border: 1px solid #e74c3c; border-radius: 6px; background: #fdecea; }
+.delete-confirm p { margin-top: 0; }
+.btn-cancel-delete { margin-left: 8px; padding: 10px 16px; border: none; border-radius: 4px; background: #6c757d; color: white; cursor: pointer; }
+
+@media (max-width: 768px) {
+  .date-inputs {
+    grid-template-columns: 1fr;
+  }
+}
