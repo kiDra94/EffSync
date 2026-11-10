@@ -20,9 +20,8 @@ describe("AppController (e2e)", () => {
     await app.close();
   });
 
-  // Swagger is registered at "api" before the routes, so it answers GET /api
-  // and AppController's "Hello World!" (GET /api) is unreachable, in
-  // production as well as here.
+  // Swagger is registered at "api", so it answers GET /api (the starter's
+  // unreachable "Hello World!" controller there was deleted, Definition of done)
   it("/api (GET) serves the Swagger UI", async () => {
     const response = await request(app.getHttpServer()).get("/api").expect(200);
 

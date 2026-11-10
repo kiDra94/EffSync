@@ -1,6 +1,4 @@
 import { Module } from "@nestjs/common";
-import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
 import { CommunicationModule } from "./contexts/communication/communication.module";
 import { NotificationsModule } from "./contexts/notifications/notifications.module";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -56,9 +54,7 @@ import { ReportingModule } from "./contexts/reporting/reporting.module";
     PrismaModule,
     ReportingModule,
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

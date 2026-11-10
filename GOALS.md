@@ -155,23 +155,23 @@ The refactor is done when all of the following hold:
 - [ ] `cd backend && npx jest`, `npm run test:e2e` and `cd frontend && npx vitest run` pass, in CI as well. Every characterization test from M1/M2 still passes. Tests marked `// THESIS: <claim ID>` were flipped in the milestone that fixed the claim; any other change is listed in PROGRESS.md with the reason.
 - [ ] **Every descriptive claim in [THESIS_ALIGNMENT.md](THESIS_ALIGNMENT.md) has status Implemented.** Each one is verified by a test that names the claim ID, or by a manual check documented in PROGRESS.md (for UI, browser and performance claims). Ambiguous claims count once their open question is answered. Claims with status Deferred (company version, decision Q1; production operation, decision Q4) are excluded.
 - [ ] **Every Delete item in [UNUSED_CODE.md](UNUSED_CODE.md) is gone, and every Planned item is implemented or listed as an open question.**
-- [ ] **The backend follows the target architecture**: all modules live under `src/contexts/*` or `src/shared/`, and `npx depcruise src --config .dependency-cruiser.cjs` runs in CI with severity `error` and 0 violations.
-- [ ] **`npx knip` reports no unused files, exports or dependencies in backend and frontend**, and runs in CI.
-- [ ] Coverage per the thesis (`08_…:39-43`):
+- [x] **The backend follows the target architecture**: all modules live under `src/contexts/*` or `src/shared/`, and `npx depcruise src --config .dependency-cruiser.cjs` runs in CI with severity `error` and 0 violations.
+- [x] **`npx knip` reports no unused files, exports or dependencies in backend and frontend**, and runs in CI.
+- [x] Coverage per the thesis (`08_…:39-43`):
   - ≥ 90 % lines for `AuthService`, `JwtAuthGuard`, `LocalAuthGuard`, the task use cases/aggregate (thesis: `TaskService`), and the frontend auth store, task store and `httpClient`.
   - ≥ 75 % for the user and permission services and the frontend router guards.
   - Backend overall ≥ 60 %.
 - [ ] Every endpoint listed in `08_…:112-138` has E2E tests for the happy path and the 400/401/403/404 paths (T121, T123).
 - [ ] No spec file whose only assertion is `toBeDefined()`. All spec files are picked up by a jest config.
-- [ ] `npx eslint` reports 0 errors in `backend/src` and `frontend/src`, with the `no-unsafe-*` rules back at `error` everywhere (decision Q13), and CI runs lint and `npm run build` for both projects.
+- [x] `npx eslint` reports 0 errors in `backend/src` and `frontend/src`, with the `no-unsafe-*` rules back at `error` everywhere (decision Q13), and CI runs lint and `npm run build` for both projects.
 - [ ] No source file in `backend/src` over 500 lines, no backend method over 80 lines.
 - [ ] No `.vue` file over 800 lines (including style).
-- [ ] Role names appear as string literals only in `contexts/identity-access/domain/role-permissions.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
+- [x] Role names appear as string literals only in `contexts/identity-access/domain/role-permissions.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
 - [ ] Permission checks go only through `PermissionsService` / `PermissionsGuard` / `RolesGuard`: no `user_permissions` or `roles_permissions` queries outside `identity-access/infrastructure`.
-- [ ] Exactly one axios instance in `frontend/src/api/`; no `apiClient` import, no `fetch(` (T79) and no import from `@/api/` (T80, decision Q19) in `views/` or `components/`, enforced by an ESLint `no-restricted-imports` rule.
-- [ ] No hardcoded `localhost` URLs in `frontend/src` outside one config module.
-- [ ] No domain data in localStorage: it holds only the auth tokens and per-browser UI conveniences (decision D1).
-- [ ] Backend fails to start when `JWT_SECRET` is missing, and there is no fallback secret in the code.
+- [x] Exactly one axios instance in `frontend/src/api/`; no `apiClient` import, no `fetch(` (T79) and no import from `@/api/` (T80, decision Q19) in `views/` or `components/`, enforced by an ESLint `no-restricted-imports` rule.
+- [x] No hardcoded `localhost` URLs in `frontend/src` outside one config module.
+- [x] No domain data in localStorage: it holds only the auth tokens and per-browser UI conveniences (decision D1).
+- [x] Backend fails to start when `JWT_SECRET` is missing, and there is no fallback secret in the code.
 - [ ] API routes, request/response shapes and the Prisma schema change only where a milestone implements a thesis claim or an answered open question requires it. Every such change is listed in PROGRESS.md.
 
 ## Constraints

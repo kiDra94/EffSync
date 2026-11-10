@@ -71,7 +71,6 @@ export const API_TAGS: Record<string, string> = {
   schedules: "Schedules",
   "lesson-slots": "Lesson Slots",
   metrics: "Dashboard Metrics",
-  app: "Health and Info",
 };
 
 function setupSwagger(app: NestExpressApplication) {

@@ -1607,3 +1607,29 @@ Removed: `/api/task-activity` (3 routes), `/api/task-comments` (5), `/api/task-t
 - Frontend: 489 tests; lint, knip and the build pass; the `act` frontend job succeeded.
 
 **Second manual check (user, 2026-11-10):** the week and day views show their tasks in the row "Aufgaben" above the grid, and dragging works. M28 is ticked: Done when met.
+
+## 2026-11-10 – Definition of done, part 1: the measurable criteria
+
+The milestones are all ticked; the loop now goes through GOALS.md's Definition of done one item at a time (user's decision).
+
+**Done:**
+- `AppController`/`AppService` deleted: Nest's starter "Hello World!" on `GET /api`, which Swagger answers first, so it could never be reached (`app.e2e-spec.ts` documented that). With them goes the Swagger tag `app`. The `src/` root now holds only `main.ts`, `app.module.ts` and `app.setup.ts`, plus `contexts/` and `shared/`.
+
+**Verified (ticked):**
+- Architecture: every module under `src/contexts/*` or `src/shared/`; depcruise with 0 violations (304 modules), run in CI, as is `depcruise:contexts`.
+- knip: no findings in backend or frontend; runs in both CI jobs.
+- Coverage: backend overall 82.3 % lines. The per-file targets of `08_…:39-43` are `coverageThreshold`s (backend `package.json`) and vitest thresholds (frontend), which `npm run test:coverage` enforces in CI.
+- ESLint: 0 errors in both projects with `no-unsafe-*` at `error` (M34); CI runs `lint:check` and `npm run build` for both.
+- Role names: no string literal outside `domain/role-permissions.ts` and the seed; every `@Roles(...)` uses `RoleName` or the lists built from it (`STAFF_ROLES`, `PRIVILEGED_ROLES`).
+- One axios instance (`api/httpClient.js`); the ESLint `no-restricted-imports` rule forbids `@/api`, `axios` and `fetch` in views and components (M25).
+- No `localhost` in `frontend/src`; the addresses come from `config/urls.js`.
+- localStorage holds the session (`authToken`, `refreshToken`, `userId`, `userRole`) and `calendarSettings`, the calendar's display hours in this browser, a UI convenience (decision D1).
+- `JWT_SECRET`: the app doesn't start without it (`env.validation.ts`, tested), and there is no fallback secret (M9).
+
+**Failed / open (next parts):**
+- 11 backend spec files assert only `toBeDefined()`.
+- `task-management` reads `user_permissions` itself (`prisma-task-member.repository.ts:87`), outside `identity-access/infrastructure`.
+- `TaskService.update` has 118 lines (limit 80).
+- Three `.vue` files over 800 lines: `DocumentView` 1,145, `AdminView` 1,110, `TaskForm` 1,104.
+- THESIS_ALIGNMENT.md still shows the assessment before the milestones (68 claims Partial, Missing or Contradicted); the statuses need the evidence the milestones produced.
+- Still to verify: the endpoint E2E per `08_…:112-138`, UNUSED_CODE.md, the `// THESIS:` flips and the list of API changes.
