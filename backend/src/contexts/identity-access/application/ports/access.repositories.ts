@@ -15,6 +15,11 @@ export abstract class PermissionRepository {
     roleNames: readonly string[],
   ): Promise<number>;
   abstract findUserRoles(userId: number): Promise<UserRoleWithRole[]>;
+  /** The ids of the users among `userIds` holding one of the roles (M38). */
+  abstract findUserIdsWithRoles(
+    userIds: number[],
+    roleNames: readonly string[],
+  ): Promise<number[]>;
   /**
    * Per asked name: the user's direct grant (with its validity period) and
    * the grant through the user's first role that has it, in one query (M37:

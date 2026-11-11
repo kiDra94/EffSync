@@ -1759,3 +1759,69 @@ The milestones are all ticked; the loop now goes through GOALS.md's Definition o
 
 **Open:** one criterion, the thesis claims. It waits for T71, the check in Edge on Windows.
 
+## 2026-11-11 – M38: Task-level member rights (decisions I4 and I5)
+
+**Decisions** (user, recorded in GOALS.md):
+- I4: each membership carries READ/WRITE/EXECUTE. R lists the members, W adds and removes them, X changes their flags. New members get READ. The creator and Admin/Superuser have RWX, the assignee READ+WRITE. After the first review, the rights carry over from every task above. Direct grants no longer count.
+- I5 (from the first review): a student may use the app privately, so a teacher sees only the tasks they are part of, like a student; Admin and Superuser see all.
+
+**Done:**
+- Schema: `task_members.flags INT NOT NULL DEFAULT 4`, migration `20261111100000_task_member_flags`. The existing memberships get READ through the default.
+- Domain: `task-member-rights.ts`. `effectiveTaskFlags` combines a user's flags over the task chain: a privileged role or a creator anywhere in the chain gives RWX, an assignee READ+WRITE, plus the member rows.
+- Repository `findChain`: the task and its ancestors in one recursive query, the same pattern as `isVisibleTo`, then the tasks with their member rows in a second one.
+- `TaskMembersService`:
+  - Each request loads the chain once (404 without the task) and asks for the role only when the tasks don't already give the required flags.
+  - R lists the members, W adds and removes them; removing a member who holds X needs X; X sets another member's flags (`PATCH /tasks/:id/members/:userId`).
+  - Nobody sets their own flags, and the creator's flags can't be set.
+  - The member list shows the rights that are enforced, per member over the chain, with the role holders in one query (`PermissionsService.usersWithAnyRole`). `fixed_flags` marks rights from a creator in the chain or a role.
+- `TaskVisibilityService`: all tasks only for `PRIVILEGED_ROLES` (I5), so teachers get the visible set like students.
+- `PermissionsService.getValidGrants` is deleted; no direct grant counts for a task any more.
+- Frontend:
+  - `TaskForm` shows `TaskMembersList` for every existing task; the list loads only with READ, and without it shows nothing and makes no further request.
+  - The member cards show R/W/X (`TaskMemberFlags`). An X holder can change another explicit member's flags; flags from the task or a role aren't editable, and neither are one's own.
+  - The remove button appears only where the backend allows it.
+  - A member's flags are locked while a change is on its way, and the answer for a task shown before is dropped.
+  - `TaskMemberRemoveDialog` moved out to keep the file under 800 lines.
+
+**Verified:**
+- Done when:
+  - `task-member-rights.e2e-spec.ts` (9 tests) covers:
+    - the flags per kind of user (creator, Admin, Superuser, assignee, READ/RW/RWX members, the default READ of a row added without flags), and a teacher with only a direct grant who doesn't even see the task;
+    - READ listing but refused on adding, WRITE adding and removing, X changing flags while WRITE can't, an Admin managing without membership, and the refused cases (creator's flags, a non-member, flags 9, a missing task);
+    - the inheritance to subtasks, including the list showing the project's creator with RWX;
+    - a teacher not seeing a student's private task while an admin does, and 404 instead of 403 for an Admin on a missing task.
+  - Unit tests:
+    - `task-member-rights.spec.ts`: flag resolution including the ancestors.
+    - `task-members.service.spec.ts`: rewritten for the new model (T127 style, mocked `PrismaService`), with each rule and each review case.
+    - `task-visibility.service.spec.ts`: teacher like student, admin all.
+  - Component tests for `TaskMembersList`, `TaskMemberFlags` and `TaskMemberRemoveDialog`.
+- Flipped: `guard-order.e2e-spec.ts` let a teacher who isn't part of a task change its deadline; under I5 that teacher joins the task first. The old "rwx-Modell" scenarios with direct grants and their validity windows are replaced: memberships have no validity window.
+- `prisma migrate diff` from the migrated test database to the schema is empty.
+- Backend: 708 unit tests (thresholds hold) and 189 E2E; lint, knip and depcruise pass.
+- Frontend: 528 tests; lint, knip and the build pass; the largest `.vue` file has 796 lines.
+- `act --action-offline-mode`: all four jobs succeeded.
+- `code-review` (high), two rounds:
+  - First round, 10 findings:
+    - the list was for teachers and creators only, and a teacher outside a task got a 403 (resolved by I5 and the READ-gated list);
+    - a creator who was also the assignee showed only RW;
+    - the parent's people had no rights on subtasks (resolved by the inheritance);
+    - two quick toggles overwrote each other;
+    - an X holder could give themselves more, and a W holder could remove an X holder;
+    - an Admin member showed the row's flags;
+    - removing a non-member gave 500;
+    - an extra role query and double task loads;
+    - three names for the same bits.
+  - Second round, 10 findings, all fixed except the document access (below):
+    - the list didn't follow the chain or the roles;
+    - the editor showed on one's own card, and the remove button showed where the backend refuses;
+    - an Admin's assignee card showed only RW;
+    - an Admin got 403 on a missing task;
+    - the chain took one query per level and two walks in `removeMember`;
+    - the list made one role query per member;
+    - a stale list could appear after switching tasks;
+    - the privileged rule existed twice.
+
+**Open:**
+- Documents (second review): `DocumentAccessService` still lets staff read every document and link a document to any task. A teacher who doesn't see a student's private task can therefore still reach its documents. Whether I5 covers documents too is the user's decision.
+- The thesis appendix `prisma_schema.tex` shows `task_members` without `flags` (thesis/ is read-only).
+

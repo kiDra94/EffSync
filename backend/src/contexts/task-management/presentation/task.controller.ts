@@ -44,6 +44,7 @@ import { TaskService } from "../application/task.service";
 import { AuditLogQueryDto } from "./dto/audit-log-query.dto";
 import { CommentDto } from "./dto/comment.dto";
 import { CreateTaskMemberDto } from "./dto/create-task-member.dto";
+import { SetTaskMemberFlagsDto } from "./dto/set-task-member-flags.dto";
 import { CreateTaskTemplateDto } from "./dto/create-task-template.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { GradeRemarkDto } from "./dto/grade-remark.dto";
@@ -380,10 +381,24 @@ export class TaskController {
       user_id: added.user_id,
       joined_at: added.joined_at,
       user: added.users,
+      flags: added.flags,
     };
   }
 
-  // members, or users with READ on the task (403 otherwise)
+  // decision I4 (M38): EXECUTE on the task changes a member's rights
+  @ApiOperation({ summary: "Set a task member's rights (flags)" })
+  @Patch(":id/members/:userId")
+  @Permissions("edit_tasks", PermissionFlag.WRITE)
+  setMemberFlags(
+    @Param("id", ParseIntPipe) id: number,
+    @Param("userId", ParseIntPipe) userId: number,
+    @Body() dto: SetTaskMemberFlagsDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.members.setMemberFlags(id, userId, dto.flags, req.user.userId);
+  }
+
+  // users with READ on the task (403 otherwise), each member with their flags
   @ApiOperation({ summary: "A task's members" })
   @Get(":id/members")
   @Permissions("view_dashboard")
@@ -398,6 +413,8 @@ export class TaskController {
         joined_at: m.joined_at,
         user: m.users,
         role: m.role,
+        flags: m.flags,
+        fixed_flags: m.fixed_flags,
       }),
     );
   }

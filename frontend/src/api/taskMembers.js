@@ -25,6 +25,15 @@ export const taskMembersApi = {
   },
 
   /**
+   * Sets a member's rights on the task (T99, decision I4, M38)
+   * PATCH /tasks/:taskId/members/:userId
+   * Body: { flags: number } (4 = READ, 2 = WRITE, 1 = EXECUTE)
+   */
+  setMemberFlags(taskId, userId, flags) {
+    return apiClient.patch(`/tasks/${taskId}/members/${userId}`, { flags });
+  },
+
+  /**
    * Removes a user from a task
    * DELETE /tasks/:taskId/members/:userId
    */

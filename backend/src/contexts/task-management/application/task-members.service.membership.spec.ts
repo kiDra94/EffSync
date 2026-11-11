@@ -4,10 +4,8 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import {
-  TaskMembersService,
-  TaskPermissionFlags,
-} from "./task-members.service";
+import { TaskMembersService } from "./task-members.service";
+import { TaskFlags } from "../domain/task-member-rights";
 import { PrismaService } from "../../../shared/infrastructure/prisma/prisma.service";
 import { PrismaUnitOfWork } from "../../../shared/infrastructure/prisma/prisma-unit-of-work";
 import { PrismaTaskMemberRepository } from "../infrastructure/persistence/prisma-task-member.repository";
@@ -26,6 +24,16 @@ describe("TaskMembersService - flags, membership and adding members", () => {
   let prisma: PrismaService;
 
   beforeEach(async () => {
+    // M38: the task chain comes from a recursive query and the tasks with
+    // their member rows; here both follow the task tasks.findUnique returns
+    const findTask = jest.fn();
+    type MockTask = {
+      task_id?: number;
+      created_by: number;
+      assigned_to?: number | null;
+      task_members?: { user_id: number; flags: number }[];
+    } | null;
+    const current = async () => (await findTask()) as MockTask;
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TaskMembersService,
@@ -36,8 +44,27 @@ describe("TaskMembersService - flags, membership and adding members", () => {
         {
           provide: PrismaService,
           useValue: {
+            $queryRaw: jest.fn(async () => {
+              const task = await current();
+              return task
+                ? [{ task_id: task.task_id ?? 1, parent_task_id: null }]
+                : [];
+            }),
             tasks: {
-              findUnique: jest.fn(),
+              findUnique: findTask,
+              findMany: jest.fn(async () => {
+                const task = await current();
+                return task
+                  ? [
+                      {
+                        task_id: task.task_id ?? 1,
+                        created_by: task.created_by,
+                        assigned_to: task.assigned_to ?? null,
+                        task_members: task.task_members ?? [],
+                      },
+                    ]
+                  : [];
+              }),
             },
             users: {
               findUnique: jest.fn(),
@@ -48,8 +75,10 @@ describe("TaskMembersService - flags, membership and adding members", () => {
               create: jest.fn(),
               delete: jest.fn(),
             },
-            user_permissions: {
-              findMany: jest.fn(),
+            // M38: Admin/Superuser hold every flag on a task
+            user_roles: {
+              count: jest.fn().mockResolvedValue(0),
+              findMany: jest.fn().mockResolvedValue([]),
             },
           },
         },
@@ -252,9 +281,9 @@ describe("TaskMembersService - flags, membership and adding members", () => {
       (prisma.tasks.findUnique as jest.Mock).mockResolvedValue({
         task_id: taskId,
         created_by: 99, // Different creator
+        assigned_to: null,
+        task_members: [], // M38: no membership, so no WRITE
       });
-
-      (prisma.user_permissions.findMany as jest.Mock).mockResolvedValue([]);
 
       const findUserSpy = jest.spyOn(prisma.users, "findUnique");
 
@@ -290,35 +319,31 @@ describe("TaskMembersService - flags, membership and adding members", () => {
   });
 
   // review M15 (7, 8): the read check lives in the service and answers 403;
-  // the rwx flags take two queries, not six
+  // M38: the rwx flags come from one task query (with the member row) and
+  // one role count
   describe("findMembersFor and permissionFlags", () => {
     it("answers 403 to someone who is neither member nor has READ", async () => {
       jest.spyOn(prisma.tasks, "findUnique").mockResolvedValue({
         task_id: 1,
         created_by: 9,
         assigned_to: null,
+        task_members: [],
       } as never);
-      jest.spyOn(prisma.task_members, "findUnique").mockResolvedValue(null);
-      jest.spyOn(prisma.user_permissions, "findMany").mockResolvedValue([]);
 
       await expect(service.findMembersFor(1, 3)).rejects.toThrow(
         ForbiddenException,
       );
     });
 
-    it("computes all rwx flags from one creator and one permission query", async () => {
-      const findTask = jest
-        .spyOn(prisma.tasks, "findUnique")
-        .mockResolvedValue({ created_by: 9 } as never);
-      const findPermissions = jest
-        .spyOn(prisma.user_permissions, "findMany")
-        .mockResolvedValue([
-          {
-            valid_from: null,
-            valid_to: null,
-            permissions: { flags: 6 },
-          },
-        ] as never);
+    it("computes all rwx flags from the task chain and one role count", async () => {
+      jest.spyOn(prisma.tasks, "findUnique").mockResolvedValue({
+        created_by: 9,
+        assigned_to: null,
+        task_members: [{ user_id: 3, flags: 6 }],
+      } as never);
+      const walkUp = jest.spyOn(prisma, "$queryRaw");
+      const loadTasks = jest.spyOn(prisma.tasks, "findMany");
+      const countRoles = jest.spyOn(prisma.user_roles, "count");
 
       await expect(service.permissionFlags(3, 1)).resolves.toEqual({
         has_read: true,
@@ -326,8 +351,10 @@ describe("TaskMembersService - flags, membership and adding members", () => {
         has_execute: false,
         permission_flags: 6,
       });
-      expect(findTask).toHaveBeenCalledTimes(1);
-      expect(findPermissions).toHaveBeenCalledTimes(1);
+      // one recursive query for the chain, one for its tasks, one role count
+      expect(walkUp).toHaveBeenCalledTimes(1);
+      expect(loadTasks).toHaveBeenCalledTimes(1);
+      expect(countRoles).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -360,6 +387,10 @@ describe("TaskMembersService - flags, membership and adding members", () => {
 
     it("tells the user they were added or removed", async () => {
       await service.addMember(1, 3, 9);
+      // M38: only an existing member is removed (404 otherwise)
+      jest
+        .spyOn(prisma.task_members, "findUnique")
+        .mockResolvedValue({ task_id: 1, user_id: 3, flags: 4 } as never);
       await service.removeMember(1, 3, 9);
 
       expect(memberNotifications.memberAdded).toHaveBeenCalledWith(task, 3, 9);

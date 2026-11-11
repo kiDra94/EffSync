@@ -308,6 +308,9 @@ model task_members {
   task_id   Int
   user_id   Int
   joined_at DateTime @default(now()) @db.Timestamp(6)
+  // the member's rights on the task (T99, decision I4, M38): 4 = READ (see
+  // the members), 2 = WRITE (add and remove them), 1 = EXECUTE (change flags)
+  flags     Int      @default(4)
 
   tasks tasks @relation(fields: [task_id], references: [task_id], onDelete: Cascade)
   users users @relation(fields: [user_id], references: [user_id], onDelete: Cascade)

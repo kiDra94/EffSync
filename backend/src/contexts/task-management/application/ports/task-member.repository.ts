@@ -41,5 +41,22 @@ export abstract class TaskMemberRepository {
   abstract findMembership(
     taskId: number,
   ): Promise<{ created_by: number; assigned_to: number | null } | null>;
-  abstract findCreator(taskId: number): Promise<{ created_by: number } | null>;
+  /**
+   * What decides the rights on the task (T99, decision I4, M38): the task and
+   * every task above it, the task first, each with its creator, assignee and
+   * member rows; null if there's no such task.
+   */
+  abstract findChain(taskId: number): Promise<
+    | {
+        created_by: number;
+        assigned_to: number | null;
+        members: { user_id: number; flags: number }[];
+      }[]
+    | null
+  >;
+  abstract setFlags(
+    taskId: number,
+    userId: number,
+    flags: number,
+  ): Promise<TaskMemberRecord>;
 }

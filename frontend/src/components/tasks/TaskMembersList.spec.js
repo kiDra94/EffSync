@@ -75,8 +75,9 @@ describe('TaskMembersList.vue', () => {
   ];
 
   beforeEach(() => {
+    vi.clearAllMocks();
     taskMembersApi.getTaskMembers.mockResolvedValue({ data: mockMembers });
-    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true } });
     taskMembersApi.addTaskMember.mockResolvedValue({ data: { success: true } });
     taskMembersApi.removeTaskMember.mockResolvedValue({ data: { success: true } });
     usersApi.getAll.mockResolvedValue({ data: mockAllUsers });
@@ -134,6 +135,129 @@ describe('TaskMembersList.vue', () => {
     // Check first member
     expect(memberCards[0].text()).toContain('John Doe');
     expect(memberCards[0].text()).toContain('john@example.com');
+  });
+
+  // T99, decision I4 (M38): each member's rights on the task
+  describe('member rights (flags)', () => {
+    const withFlags = [
+      { ...mockMembers[0], role: 'creator', flags: 7 },
+      { ...mockMembers[1], role: 'member', flags: 4 },
+    ];
+    const mountList = async (permission) => {
+      taskMembersApi.getTaskMembers.mockResolvedValue({ data: withFlags });
+      taskMembersApi.checkPermission.mockResolvedValue({ data: permission });
+      const wrapper = mount(TaskMembersList, {
+        props: { taskId: mockTask.task_id, creatorId: 2, assignedToId: null },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return wrapper;
+    };
+    const card = (wrapper, name) => wrapper.findAll('.member-card').find((c) => c.text().includes(name));
+
+    it('shows each member\'s R, W and X', async () => {
+      const wrapper = await mountList({ has_read: true, has_write: false, has_execute: false });
+
+      const active = (name) => card(wrapper, name).findAll('.flag.on').map((f) => f.text());
+      expect(active('John')).toEqual(['R', 'W', 'X']);
+      expect(active('Jane')).toEqual(['R']);
+      expect(wrapper.find('.flag-editor').exists()).toBe(false);
+    });
+
+    it('lets an EXECUTE holder change an explicit member\'s flags', async () => {
+      taskMembersApi.setMemberFlags.mockResolvedValue({ data: { user_id: 3, flags: 6 } });
+      const wrapper = await mountList({ has_read: true, has_write: true, has_execute: true });
+
+      // the creator's rights come from the task: no editor for them
+      expect(card(wrapper, 'John').find('.flag-editor').exists()).toBe(false);
+      await card(wrapper, 'Jane').find('input[aria-label="Jane Smith: Schreiben"]').setValue(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(taskMembersApi.setMemberFlags).toHaveBeenCalledWith(mockTask.task_id, 3, 6);
+      expect(card(wrapper, 'Jane').findAll('.flag.on').map((f) => f.text())).toEqual(['R', 'W']);
+    });
+
+    // review of M38: the list shows for everyone with READ, and only for them
+    it('stays hidden, without a request or an error, for someone without READ', async () => {
+      const wrapper = await mountList({ has_read: false, has_write: false, has_execute: false });
+
+      expect(wrapper.find('.task-members-section').exists()).toBe(false);
+      expect(taskMembersApi.getTaskMembers).not.toHaveBeenCalled();
+    });
+
+    it('offers no editor for a member whose rights come from their role', async () => {
+      taskMembersApi.getTaskMembers.mockResolvedValue({
+        data: [{ ...mockMembers[1], role: 'member', flags: 7, fixed_flags: true }],
+      });
+      taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true, has_execute: true } });
+      const wrapper = mount(TaskMembersList, { props: { taskId: mockTask.task_id, creatorId: 2, assignedToId: null } });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(card(wrapper, 'Jane').find('.flag-editor').exists()).toBe(false);
+    });
+
+    // review of M38: a second change waits for the first
+    it('locks a member\'s flags while a change is on its way', async () => {
+      let finish;
+      taskMembersApi.setMemberFlags.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+      const wrapper = await mountList({ has_read: true, has_write: true, has_execute: true });
+
+      await card(wrapper, 'Jane').find('input[aria-label="Jane Smith: Schreiben"]').setValue(true);
+      expect(card(wrapper, 'Jane').find('input[aria-label="Jane Smith: Ausführen"]').attributes('disabled')).toBeDefined();
+
+      finish({ data: {} });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(card(wrapper, 'Jane').find('input[aria-label="Jane Smith: Ausführen"]').attributes('disabled')).toBeUndefined();
+    });
+
+    // second review of M38: the controls only where the backend allows them
+    it('offers no editor on the own card (nobody changes their own flags)', async () => {
+      localStorage.setItem('userId', '3');
+      const wrapper = await mountList({ has_read: true, has_write: true, has_execute: true });
+
+      expect(card(wrapper, 'Jane').find('.flag-editor').exists()).toBe(false);
+      localStorage.removeItem('userId');
+    });
+
+    it('offers no remove for a member with EXECUTE to someone without it', async () => {
+      taskMembersApi.getTaskMembers.mockResolvedValue({
+        data: [{ ...mockMembers[1], role: 'member', flags: 7 }],
+      });
+      taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true, has_execute: false } });
+      const wrapper = mount(TaskMembersList, { props: { taskId: mockTask.task_id, creatorId: 2, assignedToId: null } });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(card(wrapper, 'Jane').find('.btn-remove').exists()).toBe(false);
+    });
+
+    it('shows the members of the task it shows, not of the one before', async () => {
+      let firstTask;
+      taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true, has_execute: false } });
+      taskMembersApi.getTaskMembers
+        .mockReturnValueOnce(new Promise((resolve) => { firstTask = resolve; }))
+        .mockResolvedValueOnce({ data: [{ ...mockMembers[1], role: 'member', flags: 4 }] });
+      const wrapper = mount(TaskMembersList, { props: { taskId: 1, creatorId: 2, assignedToId: null } });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      await wrapper.setProps({ taskId: 2 });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      firstTask({ data: [{ ...mockMembers[0], role: 'member', flags: 4 }] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const cards = wrapper.findAll('.member-card').map((c) => c.text());
+      expect(cards).toHaveLength(1);
+      expect(cards[0]).toContain('Jane');
+    });
+
+    it('keeps the old flags and shows the reason when the change fails', async () => {
+      taskMembersApi.setMemberFlags.mockRejectedValue({ response: { data: { message: 'Keine Berechtigung' } } });
+      const wrapper = await mountList({ has_read: true, has_write: true, has_execute: true });
+
+      await card(wrapper, 'Jane').find('input[aria-label="Jane Smith: Schreiben"]').setValue(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(card(wrapper, 'Jane').findAll('.flag.on').map((f) => f.text())).toEqual(['R']);
+      expect(wrapper.text()).toContain('Keine Berechtigung');
+    });
   });
 
   // T47, decision Q8c (M27): the members' profile pictures from the server

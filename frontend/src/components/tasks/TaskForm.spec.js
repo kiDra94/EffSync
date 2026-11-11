@@ -51,7 +51,7 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
 
   beforeEach(() => {
     taskMembersApi.getTaskMembers.mockResolvedValue({ data: [] });
-    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true } });
     usersApi.getAll.mockResolvedValue({ data: [] });
   });
 
@@ -109,11 +109,9 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
       }
     });
 
-    // Wait for component to render
-    await wrapper.vm.$nextTick();
+    // M38: the list shows once the rights (READ) are in
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    // Check if TaskMembersList is rendered
-    // Note: This would be present if TaskMembersList was properly stubbed
     expect(wrapper.html()).toContain('task-members');
   });
 
@@ -453,7 +451,7 @@ describe('TaskForm subtask builder', () => {
     const { useAuthStore } = await import('@/stores/authStore');
     useAuthStore.mockReturnValue(user);
     taskMembersApi.getTaskMembers.mockResolvedValue({ data: [] });
-    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true } });
     usersApi.getAll.mockResolvedValue({ data: [] });
     return mount(TaskForm, { props: { task: existing } });
   };

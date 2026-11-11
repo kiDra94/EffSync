@@ -24,6 +24,21 @@ export class PrismaPermissionRepository extends PermissionRepository {
     super();
   }
 
+  async findUserIdsWithRoles(userIds: number[], roleNames: readonly string[]) {
+    const rows = await this.prisma.user_roles.findMany({
+      where: {
+        user_id: { in: userIds },
+        roles: {
+          OR: roleNames.map((name) => ({
+            name: { equals: name, mode: "insensitive" as const },
+          })),
+        },
+      },
+      select: { user_id: true },
+    });
+    return rows.map((row) => row.user_id);
+  }
+
   countUserRolesNamed(userId: number, roleNames: readonly string[]) {
     return this.prisma.user_roles.count({
       where: {

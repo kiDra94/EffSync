@@ -1,9 +1,13 @@
-import { PermissionsService } from "../../identity-access/application";
+import {
+  PermissionsService,
+  PRIVILEGED_ROLES,
+} from "../../identity-access/application";
 import { TaskRepository } from "./ports/task.repository";
 import { TaskVisibilityService } from "./task-visibility.service";
 
-// decision B3 (M17): staff see every task; a student a task they or one of
-// its ancestors' people include them in
+// decision B3 (M17), changed by I5 (M38): Admin and Superuser see every
+// task; anyone else, teachers included, a task they or one of its ancestors'
+// people include them in
 describe("TaskVisibilityService", () => {
   let tasks: { isVisibleTo: jest.Mock };
   let permissions: { hasAnyRole: jest.Mock };
@@ -20,12 +24,26 @@ describe("TaskVisibilityService", () => {
     );
   });
 
-  it("gives staff every task without a visibility query", async () => {
+  it("gives Admin and Superuser every task without a visibility query", async () => {
     permissions.hasAnyRole.mockResolvedValue(true);
 
-    await expect(service.scopeFor(2)).resolves.toEqual({ all: true });
-    await expect(service.isVisible(99, 2)).resolves.toBe(true);
+    await expect(service.scopeFor(1)).resolves.toEqual({ all: true });
+    await expect(service.isVisible(99, 1)).resolves.toBe(true);
     expect(tasks.isVisibleTo).not.toHaveBeenCalled();
+    expect(permissions.hasAnyRole).toHaveBeenCalledWith(1, PRIVILEGED_ROLES);
+  });
+
+  // THESIS: T128 (decision I5, M38) – a student may use the app privately, so
+  // a teacher sees only the tasks they are part of
+  it("gives a teacher the visible set, like a student", async () => {
+    permissions.hasAnyRole.mockImplementation(
+      (_id: number, roles: readonly string[]) =>
+        Promise.resolve(roles.includes("Teacher")),
+    );
+
+    await expect(service.scopeFor(2)).resolves.toEqual({ viewerId: 2 });
+    await expect(service.isVisible(99, 2)).resolves.toBe(false);
+    expect(tasks.isVisibleTo).toHaveBeenCalledWith(99, 2);
   });
 
   it("checks one task for a student with the targeted query", async () => {

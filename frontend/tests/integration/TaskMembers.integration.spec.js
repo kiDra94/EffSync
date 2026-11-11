@@ -40,7 +40,7 @@ describe('Task Members Integration Tests', () => {
     taskMembersApi.getTaskMembers.mockResolvedValue({ data: mockMembers });
     taskMembersApi.addTaskMember.mockResolvedValue({ data: { user_id: 3, task_id: 1 } });
     taskMembersApi.removeTaskMember.mockResolvedValue({ status: 204 });
-    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true } });
     usersApi.getAllForSelection.mockResolvedValue({ data: { data: mockAllUsers } });
     usersApi.getAll.mockResolvedValue({ data: mockAllUsers });
   });
@@ -207,7 +207,7 @@ describe('Task Members Integration Tests', () => {
     });
 
     it('should disable add member section if no write permission', async () => {
-      taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: false } });
+      taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: false } });
 
       const wrapper = mount(TaskMembersList, {
         props: {

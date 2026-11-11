@@ -11,10 +11,12 @@ describe("PermissionsService", () => {
   let prisma: PrismaService;
   let userRolesFindFirst: jest.Mock;
   let userRolesCount: jest.Mock;
+  let userRolesFindMany: jest.Mock;
 
   beforeEach(async () => {
     userRolesFindFirst = jest.fn();
     userRolesCount = jest.fn();
+    userRolesFindMany = jest.fn();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         { provide: PermissionRepository, useClass: PrismaPermissionRepository },
@@ -27,7 +29,7 @@ describe("PermissionsService", () => {
             user_roles: {
               findFirst: userRolesFindFirst,
               count: userRolesCount,
-              findMany: jest.fn(),
+              findMany: userRolesFindMany,
             },
             permissions: {
               findUnique: jest.fn(),
@@ -158,38 +160,30 @@ describe("PermissionsService", () => {
     });
   });
 
-  // review of the Definition-of-done refactor: one place for the validity
-  // window of direct grants (task-management reads them through it)
-  describe("getValidGrants", () => {
-    it("returns the direct grants valid now, without future or expired ones", async () => {
-      const now = Date.now();
-      (prisma.user_permissions.findMany as jest.Mock).mockResolvedValue([
-        {
-          valid_from: null,
-          valid_to: null,
-          permissions: { name: "create_tasks", flags: 7 },
-        },
-        {
-          valid_from: new Date(now - 86400000),
-          valid_to: new Date(now + 86400000),
-          permissions: { name: "edit_tasks", flags: 6 },
-        },
-        {
-          valid_from: new Date(now + 86400000),
-          valid_to: null,
-          permissions: { name: "view_grades", flags: 4 },
-        },
-        {
-          valid_from: null,
-          valid_to: new Date(now - 86400000),
-          permissions: { name: "manage_users", flags: 7 },
-        },
+  // review of M38: the role holders among many users in one query, for the
+  // task member list (Admin/Superuser hold every flag on a task)
+  describe("usersWithAnyRole", () => {
+    it("returns the users of the list who hold one of the roles", async () => {
+      userRolesFindMany.mockResolvedValue([
+        { user_id: 1 },
+        { user_id: 1 },
+        { user_id: 9 },
       ]);
 
-      await expect(service.getValidGrants(1)).resolves.toEqual([
-        { name: "create_tasks", flags: 7 },
-        { name: "edit_tasks", flags: 6 },
-      ]);
+      await expect(
+        service.usersWithAnyRole(
+          [1, 4, 9],
+          [RoleName.ADMIN, RoleName.SUPERUSER],
+        ),
+      ).resolves.toEqual(new Set([1, 9]));
+      expect(userRolesFindMany).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks nothing for an empty list", async () => {
+      await expect(
+        service.usersWithAnyRole([], [RoleName.ADMIN]),
+      ).resolves.toEqual(new Set());
+      expect(userRolesFindMany).not.toHaveBeenCalled();
     });
   });
 

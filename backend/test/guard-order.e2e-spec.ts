@@ -3,6 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import request from "supertest";
 import { App } from "supertest/types";
 import { AppModule } from "../src/app.module";
+import { PrismaService } from "../src/shared/infrastructure/prisma/prisma.service";
 import { JwtAuthGuard } from "../src/shared/presentation/security";
 import { RolesGuard } from "../src/shared/presentation/security";
 import { PermissionsGuard } from "../src/shared/presentation/security";
@@ -108,6 +109,16 @@ describe("Guard order token → role → permission (e2e)", () => {
         .send({ title: "Guard order deadline task", deadline: "2029-06-01" })
         .expect(201);
       taskId = (response.body as { task_id: number }).task_id;
+      // decision I5 (M38): a teacher sees only the tasks they are part of, so
+      // the other teacher joins this one
+      const other = await app
+        .get(PrismaService)
+        .users.findUniqueOrThrow({ where: { username: "pschmidt" } });
+      await request(app.getHttpServer())
+        .post(`/api/tasks/${taskId}/members`)
+        .set("Authorization", `Bearer ${teacher}`)
+        .send({ user_id: other.user_id })
+        .expect(201);
     });
 
     // M17: the student isn't involved in the teacher's task, so for them it
@@ -120,7 +131,7 @@ describe("Guard order token → role → permission (e2e)", () => {
         .expect(404);
     });
 
-    it("lets another teacher change the deadline", async () => {
+    it("lets another teacher of the task change the deadline", async () => {
       await request(app.getHttpServer())
         .patch(`/api/tasks/${taskId}/deadline-unlock`)
         .set("Authorization", `Bearer ${otherTeacher}`)

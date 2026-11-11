@@ -1,5 +1,6 @@
 <template>
-  <div class="task-members-section">
+  <!-- T99, decision I4 (M38): for everyone with READ on the task -->
+  <div v-if="canRead" class="task-members-section">
     <h3 class="section-title">👥 Task-Mitglieder</h3>
 
     <!-- Loading State -->
@@ -44,11 +45,17 @@
                 👤 Member
               </span>
             </div>
+            <!-- T99, decision I4 (M38): the member's rights on this task -->
+            <TaskMemberFlags :member="member"
+              :editable="canChangeFlags && member.role === 'member' && !member.fixed_flags
+                && Number(member.user_id) !== Number(currentUserId)"
+              :busy="pendingFlags.has(member.user_id)"
+              @change="(bit, checkbox) => changeFlag(member, bit, checkbox)" />
           </div>
 
           <!-- Remove button (only for regular members, not creator/assignee) -->
           <button
-            v-if="canManageMembers && member.role === 'member'"
+            v-if="canManageMembers && member.role === 'member' && ((member.flags & 1) === 0 || canChangeFlags)"
             @click.stop.prevent="openRemoveDialog(member)"
             class="btn-remove"
             title="Mitglied entfernen"
@@ -96,32 +103,8 @@
     </div>
 
     <!-- Remove Confirmation Modal -->
-    <div v-if="showRemoveDialog" class="modal-overlay" @click="handleOverlayClick">
-      <div class="modal-content" @click.stop>
-        <h3>Mitglied entfernen</h3>
-        <p>
-          Sind Sie sicher, dass Sie
-          <strong>{{ memberToRemove?.firstname }} {{ memberToRemove?.lastname }}</strong>
-          von dieser Task entfernen möchten?
-        </p>
-        <div class="modal-actions">
-          <button 
-            @click="handleConfirmRemove" 
-            class="btn-confirm btn-danger"
-            type="button"
-          >
-            Entfernen
-          </button>
-          <button 
-            @click="handleCancelRemove" 
-            class="btn-cancel"
-            type="button"
-          >
-            Abbrechen
-          </button>
-        </div>
-      </div>
-    </div>
+    <TaskMemberRemoveDialog v-if="showRemoveDialog" :member="memberToRemove" @confirm="confirmRemove"
+      @cancel="closeRemoveDialog" />
 
     <!-- Toast Notifications -->
     <div v-if="successMessage" class="toast toast-success">
@@ -138,6 +121,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useTaskMemberStore } from '@/stores/entities/taskMemberStore';
 import { useUserStore } from '@/stores/entities/userStore';
 import UserAvatar from '@/components/profile/UserAvatar.vue';
+import TaskMemberFlags from '@/components/tasks/TaskMemberFlags.vue';
+import TaskMemberRemoveDialog from '@/components/tasks/TaskMemberRemoveDialog.vue';
 
 // M25 (decision Q19): data through stores, not the api/ layer
 const taskMemberStore = useTaskMemberStore();
@@ -166,6 +151,12 @@ const selectedUserIds = ref([]);
 const loading = ref(false);
 const isAddingMember = ref(false);
 const canEditTask = ref(false);
+// READ on the task: the list shows at all (M38)
+const canRead = ref(false);
+// EXECUTE on the task: changes the members' flags (M38)
+const canChangeFlags = ref(false);
+// members whose flag change is on its way: a second one waits (review of M38)
+const pendingFlags = ref(new Set());
 const currentUserId = ref(Number(localStorage.getItem('userId')) || null);
 
 const memberToRemove = ref(null);
@@ -186,16 +177,15 @@ const allMembers = computed(() => {
       profile_picture: userData.profile_picture || null,
       role: m.role || (m.user_id === props.creatorId ? 'creator' : m.user_id === props.assignedToId ? 'assigned' : 'member'),
       joined_at: m.joined_at,
+      flags: m.flags ?? 0,
+      // from the task or a role (Admin/Superuser), not from the member row
+      fixed_flags: m.fixed_flags === true,
     };
   }).filter(m => m.user_id);
 });
 
-const isCurrentUserCreator = computed(() => {
-  if (!currentUserId.value || !props.creatorId) return false;
-  return Number(currentUserId.value) === Number(props.creatorId);
-});
-
-const canManageMembers = computed(() => canEditTask.value || isCurrentUserCreator.value);
+// WRITE on the task (M38: the backend gives the creator every flag)
+const canManageMembers = computed(() => canEditTask.value === true);
 
 const availableUsers = computed(() => {
   return allUsers.value.filter(
@@ -208,10 +198,15 @@ const getInitials = (firstname, lastname) => {
   return `${(firstname || 'U')[0]}${(lastname || 'S')[0]}`.toUpperCase();
 };
 
+// the latest load only: an answer for a task shown before is dropped (review of M38)
+let loadRun = 0;
+
 const loadMembers = async () => {
+  const run = loadRun;
   try {
     loading.value = true;
     const response = await taskMemberStore.fetchMembers(props.taskId);
+    if (run !== loadRun) return;
     members.value = response.data;
     emit('members-updated', allMembers.value);
   } catch (error) {
@@ -243,10 +238,47 @@ const loadUsers = async () => {
 const checkPermissions = async () => {
   try {
     const response = await taskMemberStore.checkPermission(props.taskId);
+    canRead.value = response.data.has_read === true;
     canEditTask.value = response.data.has_write;
+    canChangeFlags.value = response.data.has_execute === true;
   } catch (error) {
     console.error('Fehler beim Prüfen der Berechtigungen:', error);
+    canRead.value = false;
     canEditTask.value = false;
+    canChangeFlags.value = false;
+  }
+};
+
+// the rights first: without READ the list stays hidden and loads nothing
+const load = async () => {
+  loadRun++;
+  members.value = [];
+  await checkPermissions();
+  if (!canRead.value) return;
+  loadMembers();
+  if (canEditTask.value) loadUsers();
+};
+
+/**
+ * T99, decision I4 (M38): EXECUTE on the task changes a member's flags; on an
+ * error the checkbox goes back and the reason shows.
+ */
+const changeFlag = async (member, bit, checkbox) => {
+  const next = checkbox.checked ? member.flags | bit : member.flags & ~bit;
+  pendingFlags.value = new Set(pendingFlags.value).add(member.user_id);
+  try {
+    await taskMemberStore.setMemberFlags(props.taskId, member.user_id, next);
+    members.value = members.value.map((m) =>
+      Number((m.user || m.users || {}).user_id || m.user_id) === Number(member.user_id) ? { ...m, flags: next } : m,
+    );
+    showSuccess(`Rechte von ${member.firstname} ${member.lastname} geändert`);
+  } catch (error) {
+    checkbox.checked = !checkbox.checked;
+    showError(error?.response?.data?.message || 'Die Rechte konnten nicht geändert werden');
+  } finally {
+    const pending = new Set(pendingFlags.value);
+    pending.delete(member.user_id);
+    pendingFlags.value = pending;
   }
 };
 
@@ -287,25 +319,6 @@ const addMembers = async () => {
 const openRemoveDialog = (member) => {
   memberToRemove.value = member;
   showRemoveDialog.value = true;
-};
-
-const handleOverlayClick = (event) => {
-  // Close only when the overlay background itself was clicked
-  if (event.target === event.currentTarget) {
-    closeRemoveDialog();
-  }
-};
-
-const handleConfirmRemove = async (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  await confirmRemove();
-};
-
-const handleCancelRemove = (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  closeRemoveDialog();
 };
 
 const closeRemoveDialog = () => {
@@ -366,17 +379,10 @@ const showError = (message) => {
 };
 
 // Lifecycle
-onMounted(() => {
-  loadMembers();
-  loadUsers();
-  checkPermissions();
-});
+onMounted(load);
 
 // Watch
-watch(() => props.taskId, () => {
-  loadMembers();
-  checkPermissions();
-});
+watch(() => props.taskId, load);
 </script>
 
 <style scoped>
@@ -591,80 +597,6 @@ watch(() => props.taskId, () => {
 }
 
 /* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  cursor: pointer;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  cursor: default;
-}
-
-.modal-content h3 {
-  margin: 0 0 12px 0;
-  color: #333;
-}
-
-.modal-content p {
-  margin: 0 0 20px 0;
-  color: #666;
-  line-height: 1.5;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.btn-confirm,
-.btn-cancel {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-confirm {
-  background: #dc2626;
-  color: white;
-}
-
-.btn-confirm:hover {
-  background: #b91c1c;
-}
-
-.btn-cancel {
-  background: #e5e7eb;
-  color: #333;
-}
-
-.btn-cancel:hover {
-  background: #d1d5db;
-}
-
-.btn-danger {
-  background: #dc2626;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #b91c1c;
-}
 
 /* Toast Messages */
 .toast {

@@ -681,6 +681,19 @@ Rules for all milestones:
   - Done when: `npm run load-test` against the scaled test DB (seed plus `load-test-data.sql`, school-sized spread per decision I1) meets NFA-01 (p97.5 < 200 ms at 10 connections) and NFA-03 (100 connections without failures) for all five endpoints, with before/after numbers in PROGRESS.md.
   - Risk: medium. The notification paging changes the API the frontend reads.
 
+### After the Definition of done
+
+- [x] **M38: Task-level member rights (decision I4)**
+  - Why: T99 (`07_…:29-31`, `09_…:39`): rights are evaluated "kontextabhängig auf Aufgabenebene" with the flags READ/WRITE/EXECUTE, and adding and removing members is strictly validated. Today `TaskMembersService.checkPermission` accepts any valid direct grant with the flags, whatever its name and for every task, while role rights don't count at all (since I3).
+  - Steps:
+    1. `task_members.flags` (`Int`, default 4 = READ); the migration gives existing memberships READ (approved by decision I4).
+    2. The effective flags on a task: creator and Admin/Superuser RWX, assignee READ+WRITE, an explicit member its row's flags, everyone else 0, combined over the task and all its ancestors. Direct grants in `user_permissions` no longer count here.
+    3. R lists the members, W adds and removes them, X changes an explicit member's flags (`PATCH /tasks/:id/members/:userId`, flags 0–7); the route guards stay. `check-permission` answers with these flags; the member list carries each member's flags.
+    4. `TaskMembersList` shows the flags and lets an X holder change them; it shows for everyone with READ on the task.
+    5. Visibility (decision I5): teachers see the tasks they are part of, like students; Admin/Superuser see all.
+  - Done when: unit tests for the flag resolution (incl. ancestors) and each rule; E2E covers a teacher not seeing a student's private task while an admin does, a READ member listing but refused (403) on adding, a WRITE member adding and removing, an X holder changing flags, an Admin without membership managing, the assignee's READ+WRITE, a user with only a direct grant getting 403 and flags 0, `check-permission` per role, and a migrated member having READ. The member list's component test covers the flag editor. CI passes in `act`.
+  - Risk: medium. It changes who may manage members: today the creator (plus anyone with any direct grant); afterwards the creator, admins, the assignee and the members with W.
+
 ## Priorities
 
 | Priority | Milestones | Reason |
@@ -755,6 +768,8 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **I1 Load-test data for NFA-01** (decided 2026-11-09, found in M37): `scripts/load-test-data.sql` keeps the volume (20,000 tasks, notifications and chat messages) but spreads it over a school-sized set of users (750 students, 40 teachers), so a student sees about 200 tasks. M30's version put every task on the 5 seed students; one of them saw 9,336 of 20,000 tasks, and Postgres alone managed only about 40 such list queries per second on the test machine. That case stays in PROGRESS.md as a stress result. No schema change (a visibility table was not chosen). Affects: T61, M30, M37.
 - **I2 Flags in the Systemkonfiguration** (decided 2026-11-10, found in M35): flags stay per permission (`permissions.flags`), as the thesis models them (`06_…:204`, "Permissions sind als Bit-Flags modelliert"); `roles_permissions` gets no flags column. The Superuser tab edits each role's permission set and each permission's R/W/X flags; a flag change applies to every role and every direct grant of that permission. No schema change (Q18 stands). Affects: T77, Q18, M35.
 - **I3 Role permissions reach users live** (decided 2026-11-10, found in M35): assigning a role no longer copies its permissions into `user_permissions`; a role's permissions count only through the role (`roles_permissions`), so a Superuser change or a removed role takes effect at once. Direct grants are individual rights only (like the seed's time-limited ones). Copies made earlier through the API can't be told apart from deliberate grants and stay. This replaces M35 step 1b's "removing a role must also remove the permissions it granted". Affects: T75, T77, M35.
+- **I4 Task-level member rights** (decided 2026-11-11, after the Definition of done): each task membership carries READ/WRITE/EXECUTE flags (`task_members.flags`, approved schema change; existing rows get READ). The flags control member management only: R lists the members, W adds and removes them, X changes members' flags. New members get READ. The creator and Admin/Superuser have RWX without a member row, the assignee READ+WRITE. Rights carry over from every task above: the rights on a subtask are its own plus those on its ancestors (added after the M38 review). Direct grants no longer count for task membership. Task editing, comments and subtasks keep their rules. Affects: T99, T93, T126, T127, M38.
+- **I5 Teachers see only the tasks they are part of** (decided 2026-11-11, M38 review): a student may also use the app privately, so a teacher sees a task only if they, directly or through a task above it, are its creator, assignee or a member: the rule for students. Admin and Superuser keep seeing every task (matching their RWX from I4). GET /tasks, the dashboard counts and the /tasks/:id routes follow this set. The class overview (T128, `09_…:55`) comes from the tasks a teacher creates for the class or gets access to. Replaces "staff see all tasks" from M17. Affects: T128, M17, M38.
 
 ## Open questions
 

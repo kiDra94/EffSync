@@ -35,6 +35,20 @@ export class PermissionsService {
   }
 
   /**
+   * The users among `userIds` who hold at least one of the roles, in one
+   * query (review of M38: not one per member of a list).
+   */
+  async usersWithAnyRole(
+    userIds: number[],
+    roleNames: readonly RoleName[],
+  ): Promise<Set<number>> {
+    if (userIds.length === 0) return new Set();
+    return new Set(
+      await this.permissions.findUserIdsWithRoles(userIds, roleNames),
+    );
+  }
+
+  /**
    * Returns all roles of a user
    */
   async getUserRoles(userId: number): Promise<string[]> {
@@ -122,24 +136,6 @@ export class PermissionsService {
       }
     }
     return true;
-  }
-
-  /**
-   * The user's direct grants that are valid now: started and not expired
-   * (the window hasPermission checks too). Other contexts read a user's
-   * direct grants only through this (Definition of done).
-   */
-  async getValidGrants(
-    userId: number,
-  ): Promise<Array<{ name: string; flags: number }>> {
-    const now = new Date();
-    return (await this.permissions.findPermissionsOfUser(userId))
-      .filter((up) => !(up.valid_from && up.valid_from > now))
-      .filter((up) => !(up.valid_to && up.valid_to < now))
-      .map((up) => ({
-        name: up.permissions.name,
-        flags: up.permissions.flags,
-      }));
   }
 
   /**

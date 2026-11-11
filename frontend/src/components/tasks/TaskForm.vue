@@ -109,7 +109,7 @@
 
         <!-- Task members section (only if the task already exists) -->
         <TaskMembersList
-          v-if="task?.task_id && canManageTaskStructure"
+          v-if="task?.task_id"
           :taskId="task.task_id"
           :creatorId="task.created_by"
           :assignedToId="task.assigned_to"
@@ -200,13 +200,6 @@ const isTaskLocked = computed(() => {
 
 const isTaskCreator = computed(() => props.task?.created_by === authStore.userId);
 const isTeacher = computed(() => ['teacher', 'admin', 'superuser'].includes((authStore.userRole || '').toLowerCase()));
-const canManageTaskStructure = computed(() => {
-  if (!props.task?.task_id) {
-    return isTeacher.value;
-  }
-
-  return isTeacher.value || isTaskCreator.value;
-});
 // T41, decision Q2 (M16): the backend lets only the root task's creator,
 // assignee and members add subtasks, so the builder shows only for them; a
 // new task starts a project of its own
