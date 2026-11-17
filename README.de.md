@@ -1,5 +1,5 @@
 # EffSync: webbasiertes Taskmanagementsystem zur effizienten Organisation und Zusammenarbeit in Teams
-![CI Status](https://github.com/kiDra94/diplom-arbeit/actions/workflows/ci.yml/badge.svg?branch=development)
+![CI Status](https://github.com/kiDra94/EffSync/actions/workflows/ci.yml/badge.svg?branch=development)
 
 🇬🇧 [English](README.md) · 🇩🇪 **Deutsch**
 
