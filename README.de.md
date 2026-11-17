@@ -38,10 +38,14 @@ Legende: ✅ umgesetzt · 🟡 teilweise umgesetzt · ❌ nicht umgesetzt
 | Sortieren nach Fälligkeit und Priorität, Filtern nach Status | Drazen | ✅ |
 | Löschen nur nach Eingabe des Task-Titels (wie bei GitHub) | Drazen | ✅ |
 | Task-Templates | Drazen | ✅ |
-| Mitglieder zu Tasks hinzufügen (Rechte `READ`/`WRITE`/`EXECUTE`) | Ereny | ✅ |
+| Mitglieder zu Tasks hinzufügen, mit Rechten `READ`/`WRITE`/`EXECUTE` pro Task, die auch für seine Subtasks gelten | Ereny / Drazen | ✅ |
+| Private Tasks: Lehrkräfte und Schüler:innen sehen nur die Tasks, an denen sie beteiligt sind, Admins sehen alle | Drazen | ✅ |
 | Logische Verknüpfung von Subtasks (AND, OR, XOR, NOT) für automatisches Abschließen des Parent-Tasks | Drazen | ✅ |
 | Abgaben nach Ablauf der Deadline sperren bzw. Deadline verlängern (nur durch den Ersteller) | Ereny | ✅ |
 | Bewertung von Abgaben durch Lehrkräfte | Ereny | ✅ |
+| Notenansicht für Schüler:innen, Bewertungsbemerkungen in der Task-Detailansicht | Ereny / Drazen | ✅ |
+| Kommentare zu Tasks mit @Erwähnungen | Drazen | ✅ |
+| Aktivitätsprotokoll für jede Task-Änderung, mit Audit-Log-Ansicht für Admins | Drazen | ✅ |
 | Tasks in verpflichtende und optionale Teile einteilen | – | ❌ |
 | Task schließt automatisch nach _n_ erfolgreichen Abgaben (z. B. Code-Challenge) | Ereny | ❌ |
 | Unit-Testergebnisse automatisch als Fortschritt übernehmen | Drazen | ❌ |
@@ -52,14 +56,15 @@ Legende: ✅ umgesetzt · 🟡 teilweise umgesetzt · ❌ nicht umgesetzt
 |---|---|---|
 | Dashboard mit Projektmetriken (Statusverteilung, Fortschritt, überfällige Tasks) | Ereny | ✅ |
 | Kalender mit Jahres-, Monats-, Wochen- und Tagesansicht inkl. Stundenplan | Ereny / Drazen | ✅ |
-| Personalisierung der Oberfläche (aktuell: Dark Mode und Kalendereinstellungen, keine frei wählbaren Elemente) | Drazen | 🟡 |
-| Globale Suche (aktuell: Tasks, Notizen und Templates, noch keine Personen) | Drazen | 🟡 |
+| Personalisierung der Oberfläche (aktuell: Dark Mode, pro User gespeichert, und Kalendereinstellungen; keine frei wählbaren Elemente) | Drazen | 🟡 |
+| Globale Suche über Projekte, Tasks, Notizen, Templates und User, nach Kategorie gruppiert | Drazen | ✅ |
 
 ### Kommunikation & Benachrichtigungen
 
 | Feature | Verantwortlich | Status |
 |---|---|---|
 | Live-Chat (privat und in Gruppen) über WebSockets | Drazen | ✅ |
+| Chats, die mit einem Task oder einer Klasse verknüpft sind; zwei User haben immer genau einen Privatchat | Drazen | ✅ |
 | In-App-Benachrichtigungen bei Deadlines, überfälligen Tasks, Kommentaren und Erwähnungen | Ereny | ✅ |
 | E-Mail-Benachrichtigungen (tägliche Deadline-Erinnerung, Erwähnungen, Kommentare) mit Einstellungen pro User | Ereny | ✅ |
 | Eigene E-Mails bzw. Fragen an alle Mitglieder oder an selbst definierte Gruppen schicken | Ereny | ❌ |
@@ -76,10 +81,12 @@ Legende: ✅ umgesetzt · 🟡 teilweise umgesetzt · ❌ nicht umgesetzt
 
 | Feature | Verantwortlich | Status |
 |---|---|---|
-| Registrierung und Login (JWT) | Ereny | ✅ |
-| Login mit Google (OAuth 2.0) und Passwort-Reset | Ereny | ✅ |
-| Profilverwaltung (Name, Benutzername, E-Mail) | Ereny | ✅ |
+| Registrierung und Login (JWT mit Refresh-Tokens und Logout) | Ereny / Drazen | ✅ |
+| Login mit Google (OAuth 2.0) und Passwort-Reset per E-Mail | Ereny / Drazen | ✅ |
+| Profilverwaltung (Name, Benutzername, E-Mail), Passwort ändern und Profilbild | Ereny / Drazen | ✅ |
 | Rollen und Berechtigungen (RBAC) inkl. Admin-Oberfläche | Ereny | ✅ |
+| Benutzerverwaltung für Admins (anlegen, bearbeiten, löschen; gelöschte Konten werden DSGVO-konform anonymisiert) | Drazen | ✅ |
+| Systemkonfiguration für den Superuser: welche Berechtigungen jede Rolle hat | Drazen | ✅ |
 | Rate-Limiting und Security-Header (`@nestjs/throttler`, `helmet`) | Drazen / Ereny | ✅ |
 | Zwei-Faktor-Authentifizierung (TOTP mit Authenticator-App, Zurücksetzen durch Admins) | Ereny | ✅ |
 
@@ -98,8 +105,26 @@ Legende: ✅ umgesetzt · 🟡 teilweise umgesetzt · ❌ nicht umgesetzt
 | Backend | NestJS 11 (TypeScript), Passport (JWT, Google OAuth 2.0), Socket.io, Nodemailer, Swagger |
 | Datenbank | PostgreSQL mit Prisma 7 (Migrationen und Seed unter `backend/prisma/`) |
 | Tests | Vitest und Cypress (Frontend), Jest inkl. E2E-Tests (Backend) |
-| CI | GitHub Actions (Tests für Frontend und Backend bei jedem Push und PR) |
+| CI | GitHub Actions bei jedem Push und PR: Lint, ungenutzter Code (`knip`), Abhängigkeitsregeln (`dependency-cruiser`), Unit-Tests mit Coverage-Schwellen, Build, Backend-E2E-Tests und die Restore-Probe |
 | Diplomarbeit | LaTeX (`thesis/main.tex`) |
+
+## Architektur
+
+Das Backend ist nach fachlichen Domänen aufgebaut, nicht nach Datenbanktabellen: Jeder **Bounded Context** liegt in `backend/src/contexts/<context>/`, und `backend/src/shared/` enthält, was alle gemeinsam nutzen (Prisma-Client, Unit of Work, Konfigurationsprüfung, Socket.io-Transport).
+
+| Context | Zuständig für |
+|---|---|
+| `identity-access` | Login, Tokens, 2FA, User, Rollen und Berechtigungen, Guards |
+| `task-management` | Tasks, Mitglieder und ihre Rechte, Templates, Kommentare, Bewertungsbemerkungen, Aktivitätsprotokoll |
+| `communication` | Chaträume und Nachrichten |
+| `documents-notes` | Dokumente (inkl. Bewertung) und Notizen |
+| `school-organization` | Klassen, Abteilungen, Fächer, Räume, Stundenpläne, Unterrichtseinheiten |
+| `notifications` | In-App-Benachrichtigungen, E-Mail und ihre Einstellungen, Cronjobs |
+| `reporting` | Dashboard-Metriken |
+
+Jeder Context hat die Schichten `domain/`, `application/`, `infrastructure/` und `presentation/`. Ein anderer Context wird nur über seine `application/index.ts` angesprochen, und eine Task-Änderung wird mit ihrem Eintrag im Aktivitätsprotokoll in einer Transaktion gespeichert. `dependency-cruiser` prüft diese Regeln in der CI. Details (Englisch): [`backend/src/contexts/README.md`](backend/src/contexts/README.md).
+
+Das Frontend hält die Daten in Pinia-Stores (`frontend/src/stores/`), die den einzigen HTTP-Client in `frontend/src/api/` nutzen; Views und Komponenten rufen die API nie direkt auf, was eine ESLint-Regel sicherstellt.
 
 ## Projekt lokal starten
 
@@ -116,7 +141,7 @@ cp .env.example .env
 In der `.env` mindestens diese Werte setzen:
 
 - `DATABASE_URL`: z. B. `postgresql://postgres:postgres@localhost:5432/effsync?schema=public`
-- `JWT_SECRET`
+- `JWT_SECRET` (Pflicht: Ohne ihn und ohne `DATABASE_URL` startet das Backend nicht)
 - `TWO_FACTOR_ENCRYPTION_KEY` (Pflicht): 64 Hex-Zeichen, z. B. von `openssl rand -hex 32`; es verschlüsselt die 2FA-Geheimnisse
 - `GOOGLE_CLIENT_ID` und `GOOGLE_CLIENT_SECRET`: nur für den Google-Login nötig, siehe [`documents/GOOGLE_OAUTH_SETUP.md`](documents/GOOGLE_OAUTH_SETUP.md)
 
@@ -139,7 +164,13 @@ cp .env.example .env
 npm run frontend
 ```
 
-Das Frontend läuft unter `http://localhost:5173`. Nach dem Seed kann man sich z. B. als Admin mit dem Benutzernamen `adminadmin` und dem Passwort `password123` anmelden.
+Das Frontend läuft unter `http://localhost:5173`. Nach dem Seed kann man sich z. B. als Superuser mit dem Benutzernamen `adminadmin` und dem Passwort `password123` anmelden.
+
+> Die Seed-Daten (`backend/prisma/seed.ts` und `backend/prisma/test-seed.ts`), samt dem Demo-Login oben, sind nur für Entwicklung, Demos und Tests gedacht. Eine Produktivdatenbank nie damit befüllen.
+
+### Authentifizierung und CSRF
+
+Die API authentifiziert mit einem JWT, den das Frontend im Header `Authorization: Bearer …` mitschickt. Kein Endpunkt setzt ein Auth-Cookie, daher kann eine Anfrage von einer fremden Seite die Zugangsdaten des Users nicht mitsenden; das ist der CSRF-Schutz (by design, CSRF-Tokens sind nicht nötig). CORS lässt nur den Origin aus `FRONTEND_URL` zu. Der Login akzeptiert den Benutzernamen oder die E-Mail-Adresse. Nach dem Google-Login kommt der Token im URL-Fragment an (`/auth-callback#token=…`), das Browser nie an einen Server schicken; das Frontend entfernt ihn aus der Adressleiste und lädt den User über `GET /api/auth/profile`.
 
 ### Produktion: HTTPS hinter einem Reverse Proxy
 
@@ -177,9 +208,20 @@ Die Geheimnisse werden mit `TWO_FACTOR_ENCRYPTION_KEY` verschlüsselt gespeicher
 ### Tests
 
 ```bash
-(cd backend  && npm test && npm run test:e2e)
+(cd backend  && npm test)
 (cd frontend && npm test && npm run test:e2e)
 ```
+
+Die Backend-E2E-Tests laufen gegen eine eigene, wegwerfbare PostgreSQL-Datenbank, nie gegen die aus `backend/.env`. Vor dem Start setzen sie diese Datenbank mit `prisma migrate reset --force` zurück und befüllen sie aus `prisma/test-seed.ts`:
+
+```bash
+cd backend
+docker compose -f docker-compose.test.yml up -d   # Testdatenbank auf Port 5433
+npm run test:e2e
+docker compose -f docker-compose.test.yml down
+```
+
+Die Verbindung steht in `backend/.env.test`. Das Setup verweigert den Lauf gegen eine Datenbank, deren Name nicht auf `_test` endet.
 
 Weitere Details zum Backend stehen in [`backend/README.md`](backend/README.md).
 
@@ -189,6 +231,13 @@ Weitere Details zum Backend stehen in [`backend/README.md`](backend/README.md).
 - [Git-Workflow](documents/git-flow.md)
 - [Rollen und Berechtigungen](documents/RBAC_ABAC.md)
 - [ERD (dbdiagram.io)](https://dbdiagram.io/d/685e55b0f413ba3508290b48)
+
+Das Backend-Refactoring, das den Code an die Diplomarbeit angeglichen hat, ist auf Englisch dokumentiert:
+
+- [GOALS.md](GOALS.md): Zielarchitektur, Meilensteine und Entscheidungen
+- [PROGRESS.md](PROGRESS.md): was jeder Meilenstein geändert hat und wie es geprüft wurde
+- [THESIS_ALIGNMENT.md](THESIS_ALIGNMENT.md): jede Aussage der Diplomarbeit mit ihrem Stand im Code
+- [UNUSED_CODE.md](UNUSED_CODE.md): ungenutzter Code, der entfernt oder umgesetzt wurde
 
 ## Vergleichbare Systeme
 

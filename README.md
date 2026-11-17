@@ -38,10 +38,14 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 | Sort by due date and priority, filter by status | Drazen | ✅ |
 | Deleting requires typing the task title (like on GitHub) | Drazen | ✅ |
 | Task templates | Drazen | ✅ |
-| Add members to tasks (permissions `READ`/`WRITE`/`EXECUTE`) | Ereny | ✅ |
+| Add members to tasks with rights `READ`/`WRITE`/`EXECUTE` per task, which also apply to its subtasks | Ereny / Drazen | ✅ |
+| Private tasks: teachers and students see only the tasks they are part of, admins see all | Drazen | ✅ |
 | Logical combination of subtasks (AND, OR, XOR, NOT) to automatically complete the parent task | Drazen | ✅ |
 | Lock submissions after the deadline or extend the deadline (creator only) | Ereny | ✅ |
 | Grading of submissions by teachers | Ereny | ✅ |
+| Grades view for students, grading remarks in the task detail view | Ereny / Drazen | ✅ |
+| Comments on tasks with @mentions | Drazen | ✅ |
+| Activity log for every task change, with an audit-log view for admins | Drazen | ✅ |
 | Split tasks into required and optional parts | – | ❌ |
 | Task closes automatically after _n_ successful submissions (e.g. coding challenge) | Ereny | ❌ |
 | Automatically use unit test results as progress | Drazen | ❌ |
@@ -52,14 +56,15 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 |---|---|---|
 | Dashboard with project metrics (status distribution, progress, overdue tasks) | Ereny | ✅ |
 | Calendar with year, month, week and day view incl. timetable | Ereny / Drazen | ✅ |
-| UI personalization (currently: dark mode and calendar settings, no freely selectable elements) | Drazen | 🟡 |
-| Global search (currently: tasks, notes and templates, no people yet) | Drazen | 🟡 |
+| UI personalization (currently: dark mode, saved per user, and calendar settings; no freely selectable elements) | Drazen | 🟡 |
+| Global search over projects, tasks, notes, templates and users, grouped by category | Drazen | ✅ |
 
 ### Communication & notifications
 
 | Feature | Responsible | Status |
 |---|---|---|
 | Live chat (direct and group) via WebSockets | Drazen | ✅ |
+| Chats linked to a task or a class; two users always share one direct chat | Drazen | ✅ |
 | In-app notifications for deadlines, overdue tasks, comments and mentions | Ereny | ✅ |
 | Email notifications (daily deadline reminder, mentions, comments) with per-user settings | Ereny | ✅ |
 | Send custom emails or questions to all members or to self-defined groups | Ereny | ❌ |
@@ -76,10 +81,12 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 
 | Feature | Responsible | Status |
 |---|---|---|
-| Registration and login (JWT) | Ereny | ✅ |
-| Sign in with Google (OAuth 2.0) and password reset | Ereny | ✅ |
-| Profile management (name, username, email) | Ereny | ✅ |
+| Registration and login (JWT with refresh tokens and logout) | Ereny / Drazen | ✅ |
+| Sign in with Google (OAuth 2.0) and password reset by e-mail | Ereny / Drazen | ✅ |
+| Profile management (name, username, email), password change and profile picture | Ereny / Drazen | ✅ |
 | Roles and permissions (RBAC) incl. admin interface | Ereny | ✅ |
+| User management for admins (create, edit, delete; deleted accounts are anonymized per GDPR) | Drazen | ✅ |
+| System configuration for the Superuser: which permissions each role has | Drazen | ✅ |
 | Rate limiting and security headers (`@nestjs/throttler`, `helmet`) | Drazen / Ereny | ✅ |
 | Two-factor authentication (TOTP with an authenticator app, admin reset) | Ereny | ✅ |
 
@@ -98,8 +105,26 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 | Backend | NestJS 11 (TypeScript), Passport (JWT, Google OAuth 2.0), Socket.io, Nodemailer, Swagger |
 | Database | PostgreSQL with Prisma 7 (migrations and seed in `backend/prisma/`) |
 | Testing | Vitest and Cypress (frontend), Jest incl. E2E tests (backend) |
-| CI | GitHub Actions (frontend and backend tests on every push and PR) |
+| CI | GitHub Actions on every push and PR: lint, unused code (`knip`), dependency rules (`dependency-cruiser`), unit tests with coverage thresholds, build, backend E2E tests and the restore drill |
 | Thesis | LaTeX (`thesis/main.tex`) |
+
+## Architecture
+
+The backend is organized by business domain, not by database table: each **bounded context** lives in `backend/src/contexts/<context>/`, and `backend/src/shared/` holds what all of them use (Prisma client, unit of work, config validation, Socket.io transport).
+
+| Context | Responsible for |
+|---|---|
+| `identity-access` | login, tokens, 2FA, users, roles and permissions, guards |
+| `task-management` | tasks, members and their rights, templates, comments, grade remarks, activity log |
+| `communication` | chat rooms and messages |
+| `documents-notes` | documents (incl. grading) and notes |
+| `school-organization` | classes, departments, subjects, rooms, schedules, lesson slots |
+| `notifications` | in-app notifications, e-mail and its preferences, cron jobs |
+| `reporting` | dashboard metrics |
+
+Each context has the layers `domain/`, `application/`, `infrastructure/` and `presentation/`. Another context is reached only through its `application/index.ts`, and a task change and its activity-log entry are saved in one transaction. `dependency-cruiser` enforces these rules in CI. Details: [`backend/src/contexts/README.md`](backend/src/contexts/README.md).
+
+The frontend keeps data in Pinia stores (`frontend/src/stores/`), which use the single HTTP client in `frontend/src/api/`; views and components never call the API directly, which an ESLint rule enforces.
 
 ## Running the project locally
 
@@ -139,7 +164,7 @@ cp .env.example .env
 npm run frontend
 ```
 
-The frontend runs at `http://localhost:5173`. After seeding you can log in, for example as admin with the username `adminadmin` and the password `password123`.
+The frontend runs at `http://localhost:5173`. After seeding you can log in, for example as Superuser with the username `adminadmin` and the password `password123`.
 
 > The seed data (`backend/prisma/seed.ts` and `backend/prisma/test-seed.ts`), including the demo login above, is for development, demos and tests only. Never seed a production database with it.
 
@@ -208,6 +233,13 @@ The project documentation in `documents/` is written in German.
 - [Git workflow](documents/git-flow.md)
 - [Roles and permissions](documents/RBAC_ABAC.md)
 - [ERD (dbdiagram.io)](https://dbdiagram.io/d/685e55b0f413ba3508290b48)
+
+The backend refactor that aligned the code with the thesis is documented in English:
+
+- [GOALS.md](GOALS.md): target architecture, milestones and decisions
+- [PROGRESS.md](PROGRESS.md): what each milestone changed and how it was verified
+- [THESIS_ALIGNMENT.md](THESIS_ALIGNMENT.md): every claim of the thesis, with its status in the code
+- [UNUSED_CODE.md](UNUSED_CODE.md): unused code that was removed or implemented
 
 ## Similar systems
 

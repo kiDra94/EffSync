@@ -27,9 +27,9 @@ The dependency rules are checked by `.dependency-cruiser.cjs` (`npx depcruise sr
 
 1. `domain-no-framework`: `domain/` imports only its own `domain/` and `shared/domain/`, nothing from NestJS, Prisma or other contexts.
 2. `layers-inward`: presentation → application → domain; infrastructure → application | domain; application never imports infrastructure or presentation, and Prisma only as `import type` (generated row types in repository ports, decision G1).
-3. `context-via-application`: another context is reached only through its `application/index.ts`. During the migration the legacy `src/modules/` count as other contexts in both directions. `shared/` depends on no context, except `shared/presentation/security/`, which re-exports identity-access's guards and decorators.
+3. `context-via-application`: another context is reached only through its `application/index.ts`. `shared/` depends on no context, except `shared/presentation/security/`, which re-exports identity-access's guards and decorators.
 4. `no-circular`: `identity-access` depends on no other context. Cycles between contexts are checked at context level by `scripts/check-context-cycles.cjs` (`npm run depcruise:contexts`), because dependency-cruiser's own cycle check only sees cycles between files; type-only imports don't count.
 
 Repositories take the use case's `Transaction` (`shared/domain/transaction.ts`) or ask `PrismaUnitOfWork.client()` for it. A nested `UnitOfWork.run()` joins the open transaction.
 
-Until M34 the rules report as warnings; M34 switches them to errors.
+All four rules have severity `error` (since M34): CI fails on any violation.
