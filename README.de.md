@@ -195,3 +195,10 @@ Weitere Details zum Backend stehen in [`backend/README.md`](backend/README.md).
 - [Smartsheet](https://www.smartsheet.com/)
 - [Quickbase](https://www.quickbase.com/)
 - [Jira](https://www.atlassian.com/de/software/jira)
+
+## Lizenz
+
+Copyright © 2025–2026 Dražen Plavšić, Ereny Micail
+
+- **Quellcode** (`backend/`, `frontend/` und alles, was unten nicht genannt ist): [MIT](LICENSE)
+- **Diplomarbeit, Dokumentation und Logos** (`thesis/`, `documents/`, `logos/`): [CC BY-NC-ND 4.0](LICENSE-CC-BY-NC-ND-4.0.txt). Weitergabe mit Namensnennung ist erlaubt, aber nicht kommerziell und nicht in veränderter Form.

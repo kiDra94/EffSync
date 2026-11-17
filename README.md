@@ -214,3 +214,10 @@ The project documentation in `documents/` is written in German.
 - [Smartsheet](https://www.smartsheet.com/)
 - [Quickbase](https://www.quickbase.com/)
 - [Jira](https://www.atlassian.com/de/software/jira)
+
+## License
+
+Copyright © 2025–2026 Dražen Plavšić, Ereny Micail
+
+- **Source code** (`backend/`, `frontend/` and everything else not listed below): [MIT](LICENSE)
+- **Thesis, documentation and logos** (`thesis/`, `documents/`, `logos/`): [CC BY-NC-ND 4.0](LICENSE-CC-BY-NC-ND-4.0.txt). You may share them with attribution, but not commercially and not in modified form.
