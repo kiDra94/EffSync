@@ -1,304 +1,119 @@
-# Thesis Backend - Task Management System
+# EffSync Backend
 
-A modern, scalable REST API for a comprehensive task management system, built with **NestJS**, **Prisma ORM** and **PostgreSQL**.
+The REST and WebSocket API of EffSync, built with **NestJS 11**, **Prisma 7** and **PostgreSQL 17**. Setup, production operation (HTTPS, backups, 2FA) and the feature list are in the [main README](../README.md); this file covers what you need when working on the backend itself.
 
-## 📋 Table of Contents
+## Requirements
 
-- [Overview](#overview)
-- [Technology Stack](#technology-stack)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Database Setup](#database-setup)
-- [Development](#development)
-- [Testing](#testing)
-- [API Documentation](#api-documentation)
-- [Project Structure](#project-structure)
-- [Deployment](#deployment)
-- [Contributors](#contributors)
-- [License](#license)
+- Node.js 22
+- PostgreSQL 17 (for development; the E2E tests bring their own in Docker)
+- Docker, for the E2E test database
 
-## 🎯 Overview
-
-This backend system is the backbone of a task management system and offers the following features:
-
-- **User Management**: Authentication, roles & permissions
-- **Classes & Teachers**: Management of classes, students and teaching staff
-- **Task Management**: Create, manage and track tasks
-- **Chat System**: Real-time communication between users
-- **Document Management**: Store, share and manage documents
-- **Notifications**: Event-based notifications
-- **Scheduling System**: Management of lesson plans and time slots
-
-## 🛠️ Technology Stack
-
-- **Runtime**: Node.js (v18+)
-- **Framework**: NestJS 10+
-- **Language**: TypeScript
-- **Database**: PostgreSQL 14+
-- **ORM**: Prisma 5+
-- **Authentication**: JWT (Passport.js)
-- **Testing**: Jest, Supertest
-- **Linting**: ESLint, Prettier
-- **Validation**: class-validator, class-transformer
-
-## ✅ Prerequisites
-
-- **Node.js**: v18 or higher
-- **npm**: v9 or higher
-- **PostgreSQL**: v14 or higher
-- **Git**: For version control
-
-## 📦 Installation
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/kiDra94/diplom-arbeit.git
-cd diplom-arbeit/backend
-```
-
-### 2. Install dependencies
+## Getting started
 
 ```bash
 npm install
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-Create a `.env` file based on `.env.example`:
-
-```bash
-cp .env.example .env
-```
-
-### Required Environment Variables
-
-```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/diplom_arbeit
-
-# JWT Secret
-JWT_SECRET=your-super-secret-key-change-this-in-production
-
-# JWT Expiration
-JWT_EXPIRATION=24h
-
-# Server Port
-PORT=3000
-
-# Node Environment
-NODE_ENV=development
-```
-
-## 🗄️ Database Setup
-
-### Initialize the Database
-
-```bash
-# Run database migrations
-npm run prisma:migrate:dev
-
-# Alternatively: With a name for the new migration
-npx prisma migrate dev --name "migration_name"
-```
-
-### Prisma Studio (GUI for Database Data)
-
-```bash
-npm run prisma:studio
-```
-
-This opens a graphical interface at `http://localhost:5555` for managing database entries.
-
-## 🚀 Development
-
-### Start Development Server
-
-```bash
-# With watch mode (Hot Reload)
+cp .env.example .env      # then set at least DATABASE_URL, JWT_SECRET and TWO_FACTOR_ENCRYPTION_KEY
+npx prisma migrate dev    # create the database and apply the migrations
+npm run seed              # demo data, for development only
 npm run start:dev
-
-# Compile and run once
-npm run start
-
-# Production build
-npm run build
-npm run start:prod
 ```
 
-The server runs by default at `http://localhost:3000`
+The API runs at `http://localhost:3000/api`. The Swagger documentation of every endpoint is served at the same address, and the OpenAPI document at `http://localhost:3000/api-json`.
 
-### Available NPM Scripts
+The backend refuses to start without `DATABASE_URL`, `JWT_SECRET` or a valid `TWO_FACTOR_ENCRYPTION_KEY` (64 hex characters), and in production without an `https://` `PUBLIC_URL` (`src/shared/infrastructure/config/env.validation.ts`). All variables are described in [`.env.example`](.env.example).
 
-```bash
-npm run start           # Start the application
-npm run start:dev       # Start with watch mode
-npm run start:debug     # Debug mode with Inspector
-npm run start:prod      # Production mode
-npm run build          # Build for production
-npm run lint           # Run ESLint
-npm run format         # Format code with Prettier
-```
+## Architecture
 
-## 🧪 Testing
-
-### Run Unit Tests
-
-```bash
-npm run test
-npm run test:watch     # Watch mode
-npm run test:cov       # With coverage report
-```
-
-### Run E2E Tests
-
-```bash
-npm run test:e2e
-npm run test:e2e:watch # Watch mode
-```
-
-### Auth Throttle E2E Tests
-
-```bash
-npm run test:e2e -- auth-throttle
-```
-
-## 📚 API Documentation
-
-### Swagger/OpenAPI
-
-The API documentation is automatically available at the following URL:
-
-```
-http://localhost:3000/api/docs
-```
-
-### Main Endpoints
-
-#### Authentication
-- `POST /auth/login` - User login
-- `POST /auth/register` - Register new user
-- `POST /auth/refresh` - Refresh token
-- `POST /auth/logout` - User logout
-
-#### Users
-- `GET /users` - Get all users
-- `GET /users/:id` - Get user details
-- `PUT /users/:id` - Update user
-- `DELETE /users/:id` - Delete user
-
-#### Classes
-- `GET /classes` - Get all classes
-- `POST /classes` - Create new class
-- `GET /classes/:id` - Get class details
-- `PUT /classes/:id` - Update class
-
-#### Tasks
-- `GET /tasks` - Get all tasks
-- `POST /tasks` - Create new task
-- `GET /tasks/:id` - Get task details
-- `PUT /tasks/:id` - Update task
-- `DELETE /tasks/:id` - Delete task
-
-#### Documents
-- `GET /documents` - Get all documents
-- `POST /documents` - Upload document
-- `GET /documents/:id` - Download document
-- `DELETE /documents/:id` - Delete document
-
-#### Chat
-- `POST /chat-rooms` - Create chat room
-- `GET /chat-rooms` - Get all chat rooms
-- `POST /chat-messages` - Send message
-- `GET /chat-messages/:roomId` - Get messages from room
-
-For a complete list of all endpoints see Swagger documentation.
-
-## 📁 Project Structure
+The code is organized in **bounded contexts**, one folder per business domain:
 
 ```
 src/
-├── modules/                    # Business logic modules
-│   ├── auth/                   # Authentication & JWT
-│   ├── users/                  # User management
-│   ├── classes/                # Class management
-│   ├── students/               # Student management
-│   ├── teachers/               # Teacher management
-│   ├── tasks/                  # Task management
-│   ├── documents/              # Document management
-│   ├── chat-rooms/             # Chat system
-│   ├── notifications/          # Notifications
-│   ├── roles/                  # Role management
-│   ├── permissions/            # Permission management
-│   └── ...                     # Additional modules
-├── prisma/                     # Prisma service
-├── common/                     # Shared utilities/Guards
-├── app.module.ts              # Root module
-├── app.controller.ts          # Root controller
-├── main.ts                    # Entry point
-└── ...
-
-prisma/
-├── schema.prisma              # Database schema
-├── migrations/                # Database migrations
-└── seeds/                     # Seed data
-
-test/
-├── app.e2e-spec.ts           # E2E tests
-└── jest-e2e.json             # Jest configuration
+├── main.ts, app.setup.ts, app.module.ts   entry point, global setup, root module
+├── contexts/
+│   ├── identity-access/        login, tokens, 2FA, users, roles, permissions, guards
+│   ├── task-management/        tasks, members, templates, comments, grade remarks, activity log
+│   ├── communication/          chat rooms, messages, the chat part of the WebSocket gateway
+│   ├── documents-notes/        documents (incl. grading), notes
+│   ├── school-organization/    classes, departments, subjects, rooms, schedules, lesson slots
+│   ├── notifications/          in-app notifications, e-mail, preferences, cron jobs
+│   └── reporting/              dashboard metrics
+└── shared/                     Prisma client, unit of work, config validation, Socket.io transport,
+                                re-exported security decorators
 ```
 
-## � Deployment
+Each context has the same four layers, plus its NestJS module at the context root:
 
-When you're ready to deploy your NestJS application to production, there are several options available. For cloud-based deployment, we recommend **Mau** - the official platform for deploying NestJS applications on AWS.
+| Layer | Contains | May import |
+|---|---|---|
+| `domain/` | entities, aggregates, value objects, repository interfaces | its own `domain/` and `shared/domain/`, no NestJS or Prisma |
+| `application/` | use cases and their transaction (`UnitOfWork`); `index.ts` is the only entry point for other contexts | `domain/` |
+| `infrastructure/` | Prisma repositories and adapters (mail, realtime) that implement the ports | `application/`, `domain/` |
+| `presentation/` | controllers, DTOs, gateway handlers | `application/` |
 
-### Deploy with Mau (Recommended)
+Contexts talk to each other only through `application/index.ts`, `identity-access` depends on no other context, and there are no cycles between contexts. A task use case saves the task and its activity-log entry in one transaction. These rules are checked by [`dependency-cruiser`](.dependency-cruiser.cjs) and fail the CI on any violation; [`src/contexts/README.md`](src/contexts/README.md) explains them in detail.
 
-Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Main routes
+
+All routes are under `/api`. Swagger lists every endpoint with its request and response shapes.
+
+| Context | Routes |
+|---|---|
+| `identity-access` | `/auth` (login, register, refresh, logout, Google, password reset and change), `/auth/2fa`, `/users` (incl. `/users/me/settings` and avatars), `/roles`, `/permissions` |
+| `task-management` | `/tasks`, with task-scoped sub-routes: `/tasks/:id/members`, `/tasks/:id/comments`, `/tasks/:id/grade-remarks`, `/tasks/:id/activity`, `/tasks/activity`, `/tasks/templates` |
+| `communication` | `/chat-rooms`, incl. `/chat-rooms/:id/messages`; live messages over Socket.io |
+| `documents-notes` | `/documents` (upload, download, grading, `my-grades`), `/notes` |
+| `school-organization` | `/classes`, `/departments`, `/subjects`, `/rooms`, `/schedules`, `/lesson-slots` |
+| `notifications` | `/notifications`, `/email-preferences` |
+| `reporting` | `/metrics` |
+
+Every request needs a JWT in `Authorization: Bearer …`, except login, registration, token refresh, password reset and Google sign-in. Access is checked in the order token → role (`@Roles`) → permission (`@Permissions`), and on a task additionally by the member's `READ`/`WRITE`/`EXECUTE` rights.
+
+## Scripts
+
+| Script | What it does |
+|---|---|
+| `npm run start:dev` | start with watch mode |
+| `npm run start:debug` | start with the inspector and watch mode |
+| `npm run build` / `npm run start:prod` | build to `dist/` and run the build |
+| `npm run seed` | fill the database from `prisma/seed.ts` |
+| `npm run db:reset` | reset the database, apply all migrations and seed it again |
+| `npm test` / `npm run test:watch` | unit tests (Jest) |
+| `npm run test:coverage` | unit tests with the coverage thresholds from `package.json` |
+| `npm run test:e2e` | E2E tests against the test database (see below) |
+| `npm run lint` / `npm run lint:check` | ESLint with autofix / without, failing on any warning (as in CI) |
+| `npm run format` | Prettier |
+| `npm run knip` | report unused files, exports and dependencies |
+| `npm run depcruise` | check the dependency rules |
+| `npm run depcruise:contexts` | check for cycles between contexts |
+| `npm run load-test` | load test of the main endpoints (`scripts/load-test.mjs`, see its header) |
+
+`scripts/` also holds `backup.sh`, `restore.sh` and `restore-drill.sh`; how to use them is in the [main README](../README.md#backup-and-restore-runbook).
+
+## Tests
+
+- **Unit tests** (`src/**/*.spec.ts`) mock the database. CI enforces at least 90 % coverage for `auth.service.ts`, the JWT and local auth guards and `task.service.ts`, and 75 % for `users.service.ts` and `permissions.service.ts`.
+- **E2E tests** (`test/*.e2e-spec.ts`) run the whole app with Supertest against a disposable PostgreSQL database. They cover every endpoint documented in the thesis with its happy path and its 400/401/403/404 cases.
 
 ```bash
-# Install Mau globally
-npm install -g @nestjs/mau
-
-# Deploy your application
-mau deploy
+docker compose -f docker-compose.test.yml up -d   # test database on port 5433
+npm run test:e2e
+docker compose -f docker-compose.test.yml down
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure. The deployment involves:
+Before the suite starts, the database from `.env.test` is reset with `prisma migrate reset --force` and filled from `prisma/test-seed.ts`. The setup refuses to run against a database whose name doesn't end in `_test`, so it never touches the one in `.env`.
 
-1. Building your NestJS application
-2. Uploading to AWS infrastructure
-3. Setting up database connections
-4. Configuring environment variables
-5. SSL/TLS certificate management
+## Database
 
-### General Deployment Guidelines
+- Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`.
+- New migration: change the schema, then `npx prisma migrate dev --name <name>`.
+- Production: `npx prisma migrate deploy`. Never run `npm run seed` there: the seed data and its demo logins are for development, demos and tests only.
+- Browse the data: `npx prisma studio`.
 
-When deploying to production:
+## Contributors
 
-1. Make sure all environment variables are properly configured
-2. Build the application: `npm run build`
-3. Run production mode: `npm run start:prod`
-4. Ensure database migrations are applied: `npm run prisma:migrate:deploy`
-5. Set up monitoring and logging
-6. Configure backups for your PostgreSQL database
+- **Dražen Plavšić**
+- **Ereny Micail**
 
-For more information on deployment, visit the [NestJS Deployment Documentation](https://docs.nestjs.com/deployment).
+## License
 
-## �👥 Contributors
-
-- **Ereny** - Backend Development
-- **Drazen** - Backend Development
-
-## 📄 License
-
-This project is part of a thesis and is subject to school guidelines.
-
----
-
-
-
-
+MIT, see [`LICENSE`](../LICENSE).

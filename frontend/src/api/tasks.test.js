@@ -45,6 +45,35 @@ describe('Tasks API', () => {
             mock.onGet('/tasks').reply(500);
             await expect(fetchTasks()).rejects.toThrow();
         })
+
+        // M17 (decision B3): the list is paged; the store needs every page
+        it('reads all pages of the paged list', async () => {
+            mock.onGet('/tasks').reply((config) => {
+                const page = config.params.page;
+                const data = page === 1
+                    ? Array.from({ length: 100 }, (_, i) => ({ task_id: i + 1 }))
+                    : [{ task_id: 101 }];
+                return [200, { data, meta: { total: 101, page, limit: 100, totalPages: 2 } }];
+            });
+
+            const tasks = await fetchTasks();
+
+            expect(tasks).toHaveLength(101);
+            expect(mock.history.get.map((r) => r.params)).toEqual([
+                { includeRelations: true, page: 1, limit: 100 },
+                { includeRelations: true, page: 2, limit: 100 },
+            ]);
+        })
+    })
+
+    // M18: tags (T59) and the template link (T110) reach the backend
+    describe('task payload', () => {
+        it('sends tags and template_id', async () => {
+            mock.onPost('/tasks').reply(201, { task_id: '9' });
+            await createTask({ title: 'A', tags: ['mathe'], template_id: 3, unknown: 'x' });
+            expect(JSON.parse(mock.history.post[0].data)).toMatchObject({ tags: ['mathe'], template_id: 3 });
+            expect(JSON.parse(mock.history.post[0].data)).not.toHaveProperty('unknown');
+        })
     })
 
     describe('fetchTaskById', () => {

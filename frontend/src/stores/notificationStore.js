@@ -1,16 +1,25 @@
 import { defineStore } from 'pinia';
+import { WS_URL } from '@/config/urls';
 import { ref, computed } from 'vue';
 import { io } from 'socket.io-client';
-import { fetchAllNotifications, markNotificationAsRead, deleteNotification as apiDeleteNotification } from '@/api/notification';
+import { socketAuth, reconnectWithFreshToken } from '@/api/socketAuth';
+import { fetchNotificationPage, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification as apiDeleteNotification } from '@/api/notification';
 
 let notificationSocket = null;
 
-// Toast-Benachrichtigungen speichern (für DeadlineToast Component)
+// Stores toast notifications (for the DeadlineToast component)
 const activeToasts = ref([]);
 
 export const useNotificationStore = defineStore('notification', () => {
     const notifications = ref([]);
     const isLoading = ref(false);
+    // M37: unread notifications on the pages that aren't loaded
+    const unreadOnOlderPages = ref(0);
+    const loadedPage = ref(0);
+    const totalPages = ref(0);
+    const hasMore = computed(() => loadedPage.value < totalPages.value);
+    const isUnread = (n) => !n.is_read && !n.read;
+    const idOf = (n) => n.notification_id || n.id;
 
     const sortedNotifications = computed(() => {
         return [...notifications.value].sort((a, b) => {
@@ -25,7 +34,7 @@ export const useNotificationStore = defineStore('notification', () => {
     });
 
     const unreadCount = computed(() => {
-        return unreadNotifications.value.length;
+        return unreadNotifications.value.length + unreadOnOlderPages.value;
     });
 
     // Feature #27: Deadline & Overdue Notifications
@@ -45,10 +54,39 @@ export const useNotificationStore = defineStore('notification', () => {
     async function fetchNotifications() {
         isLoading.value = true;
         try {
-            const response = await fetchAllNotifications();
-            notifications.value = response.data || response || [];
+            const [response, unreadTotal] = await Promise.all([
+                fetchNotificationPage(1),
+                fetchUnreadCount().catch((error) => {
+                    console.error('Fehler beim Abrufen der ungelesenen Benachrichtigungen:', error);
+                    return null;
+                }),
+            ]);
+            notifications.value = response.notifications;
+            loadedPage.value = 1;
+            totalPages.value = response.meta?.totalPages ?? 1;
+            const unreadHere = notifications.value.filter(isUnread).length;
+            unreadOnOlderPages.value = unreadTotal === null ? 0 : Math.max(0, unreadTotal - unreadHere);
         } catch (error) {
             console.error('Fehler beim Abrufen der Benachrichtigungen:', error);
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    // review M37: the next older page, so all notifications stay reachable
+    async function loadMore() {
+        if (!hasMore.value || isLoading.value) return;
+        isLoading.value = true;
+        try {
+            const response = await fetchNotificationPage(loadedPage.value + 1);
+            const known = new Set(notifications.value.map(idOf));
+            const added = response.notifications.filter(n => !known.has(idOf(n)));
+            notifications.value = [...notifications.value, ...added];
+            unreadOnOlderPages.value = Math.max(0, unreadOnOlderPages.value - added.filter(isUnread).length);
+            loadedPage.value += 1;
+            totalPages.value = response.meta?.totalPages ?? loadedPage.value;
+        } catch (error) {
+            console.error('Fehler beim Nachladen der Benachrichtigungen:', error);
         } finally {
             isLoading.value = false;
         }
@@ -69,22 +107,21 @@ export const useNotificationStore = defineStore('notification', () => {
         }
     }
 
-    // Feature #27: Mark all as read
+    // Feature #27: Mark all as read; M37: on the server, so the older pages too
     async function markAllAsRead() {
-        const unread = unreadNotifications.value;
-
-        // Optimistisch lokal auf gelesen setzen, damit der Zähler sofort auf 0 springt
+        // Mark as read locally right away, so the counter drops to 0 immediately
         notifications.value = notifications.value.map((notification) => ({
             ...notification,
             is_read: true,
             read: true,
         }));
+        unreadOnOlderPages.value = 0;
 
         try {
-            await Promise.all(unread.map(n => markAsRead(n.notification_id || n.id)));
+            await markAllNotificationsAsRead();
         } catch (error) {
             console.error('Fehler beim Markieren aller Benachrichtigungen als gelesen:', error);
-            // Im Fehlerfall neu laden, damit der lokale Zustand wieder zur DB passt
+            // On error, reload so the local state matches the DB again
             await fetchNotifications();
         }
     }
@@ -130,13 +167,13 @@ export const useNotificationStore = defineStore('notification', () => {
         return notifications.value.filter(n => n.type === type);
     }
 
-    // Feature #27: Toast Notifications für Deadlines/Overdue
+    // Feature #27: toast notifications for deadlines/overdue
     function addToast(notification) {
         const toastId = Date.now();
         const toast = { ...notification, toastId };
         activeToasts.value.push(toast);
         
-        // Auto-remove nach 5 Sekunden
+        // Auto-remove after 5 seconds
         setTimeout(() => {
             activeToasts.value = activeToasts.value.filter(t => t.toastId !== toastId);
         }, 5000);
@@ -148,11 +185,11 @@ export const useNotificationStore = defineStore('notification', () => {
 
     function initSocketListeners() {
         if (!notificationSocket) {
-            const token = localStorage.getItem('authToken');
-            notificationSocket = io(import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || '', {
-                auth: { token },
+            notificationSocket = io(WS_URL, {
+                auth: socketAuth(),
                 transports: ['websocket'],
             });
+            reconnectWithFreshToken(notificationSocket);
         }
 
         // Feature #27: Handle deadline notifications
@@ -164,7 +201,7 @@ export const useNotificationStore = defineStore('notification', () => {
             if (!exists) {
                 notifications.value.unshift(newNotification);
                 
-                // Zeige Toast für kritische Notifications
+                // Show a toast for critical notifications
                 if (newNotification.type === 'task_deadline' || newNotification.type === 'task_overdue') {
                     addToast(newNotification);
                 }
@@ -203,6 +240,8 @@ export const useNotificationStore = defineStore('notification', () => {
         taskLockedNotifications,      // Feature #27
         activeToasts,                 // Feature #27
         fetchNotifications,
+        loadMore,                     // M37
+        hasMore,                      // M37
         markAsRead,
         markAllAsRead,                // Feature #27
         removeNotification,

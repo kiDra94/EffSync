@@ -2,10 +2,20 @@
   <div class="admin-container">
     <div class="admin-header">
       <h1>👥 Benutzerverwaltung - Rollen & Permissions</h1>
-      <p class="subtitle">Admin-Panel zur Verwaltung von Rollen und Berechtigungen</p>
+      <p class="subtitle">Admin-Panel zur Verwaltung von Konten, Rollen und Berechtigungen</p>
     </div>
 
-    <div v-if="loading" class="loading-spinner">
+    <!-- T75 (UC-30) and T77 (UC-40), M35: the system configuration is the Superuser's -->
+    <div v-if="isSuperuser" class="admin-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="users" :aria-selected="activeTab === 'users'"
+        :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">👥 Benutzerverwaltung</button>
+      <button type="button" role="tab" data-tab="system" :aria-selected="activeTab === 'system'"
+        :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'">🛠️ Systemkonfiguration</button>
+    </div>
+
+    <SystemConfiguration v-if="activeTab === 'system'" />
+
+    <div v-else-if="loading" class="loading-spinner">
       <p>📋 Lädt Benutzerdaten...</p>
     </div>
 
@@ -15,9 +25,14 @@
     </div>
 
     <div v-else class="admin-content">
-      <!-- Benutzer Liste -->
+      <!-- User list -->
       <div class="users-section">
         <h2>📌 Benutzer</h2>
+        <!-- T75, decision Q17 (M35): admins manage the accounts themselves -->
+        <button type="button" class="btn-add btn-new-user" @click="openAccountForm(null)">+ Neues Konto</button>
+        <UserAccountForm v-if="accountForm" :key="accountForm.key" :user="accountForm.user"
+          @saved="onAccountSaved" @cancel="accountForm = null" />
+        <p v-if="accountError" class="account-error" role="alert">{{ accountError }}</p>
         <div class="user-search-wrap">
           <input
             v-model="userSearch"
@@ -54,109 +69,13 @@
       <div v-if="selectedUser" class="details-section">
         <h2>⚙️ Verwaltung für: {{ selectedUser.firstname }} {{ selectedUser.lastname }}</h2>
 
-        <!-- Rollen Management -->
-        <div class="management-card">
-          <h3>🎯 Rollen ({{ selectedUser.user_roles?.length || 0 }})</h3>
-
-          <div v-if="selectedUser.user_roles && selectedUser.user_roles.length > 0" class="roles-list">
-            <div v-for="role in selectedUser.user_roles" :key="role.role_id" class="role-item">
-              <span class="role-name">{{ role.roles?.name }}</span>
-              <button
-                @click="removeRoleFromUser(role.role_id)"
-                :disabled="isRemoving || !canRemoveRole(role)"
-                class="btn-remove"
-                :title="canRemoveRole(role) ? 'Entfernen' : 'Es muss mindestens 1 ' + role.roles?.name + ' existieren'"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <p v-else class="no-items">Noch keine Rollen zugewiesen</p>
-
-          <!-- Rolle hinzufügen -->
-          <div class="add-role-section">
-            <label for="role-select">Neue Rolle zuweisen:</label>
-            <select v-model="newRoleId" id="role-select" class="select-field">
-              <option value="">-- Rolle wählen --</option>
-              <option v-for="role in availableRoles" :key="role.role_id" :value="role.role_id">
-                {{ role.name }}
-              </option>
-            </select>
-            <button
-              @click="addRoleToUser"
-              :disabled="!newRoleId || isAdding"
-              class="btn-add"
-            >
-              + Rolle hinzufügen
-            </button>
-          </div>
-        </div>
-
-        <!-- Permissions Management -->
-        <div class="management-card">
-          <h3>🔐 Direkte Permissions ({{ selectedUser.user_permissions?.length || 0 }})</h3>
-
-          <div v-if="selectedUser.user_permissions && selectedUser.user_permissions.length > 0" class="permissions-list">
-            <div v-for="perm in selectedUser.user_permissions" :key="perm.user_permission_id" class="permission-item">
-              <div class="permission-info">
-                <span class="permission-name">{{ perm.permissions?.name }}</span>
-                <span v-if="perm.valid_from || perm.valid_to" class="permission-dates">
-                  📅 {{ formatDate(perm.valid_from) }} 
-                  <span v-if="perm.valid_to">→ {{ formatDate(perm.valid_to) }}</span>
-                </span>
-              </div>
-              <button
-                @click="removePermissionFromUser(perm.permissions?.permission_id)"
-                :disabled="isRemoving"
-                class="btn-remove"
-                title="Entfernen"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <p v-else class="no-items">Noch keine direkten Permissions</p>
-
-          <!-- Permission hinzufügen -->
-          <div class="add-permission-section">
-            <label for="permission-select">Neue Permission zuweisen:</label>
-            <select v-model="newPermissionId" id="permission-select" class="select-field">
-              <option value="">-- Permission wählen --</option>
-              <option v-for="perm in availablePermissions" :key="perm.permission_id" :value="perm.permission_id">
-                {{ perm.name }}
-              </option>
-            </select>
-
-            <div class="date-inputs">
-              <div class="date-group">
-                <label for="valid-from">Gültig ab (optional):</label>
-                <input
-                  id="valid-from"
-                  v-model="newPermissionValidFrom"
-                  type="date"
-                  class="input-field"
-                />
-              </div>
-              <div class="date-group">
-                <label for="valid-to">Gültig bis (optional):</label>
-                <input
-                  id="valid-to"
-                  v-model="newPermissionValidTo"
-                  type="date"
-                  class="input-field"
-                />
-              </div>
-            </div>
-
-            <button
-              @click="addPermissionToUser"
-              :disabled="!newPermissionId || isAdding"
-              class="btn-add"
-            >
-              + Permission hinzufügen
-            </button>
-          </div>
-        </div>
+        <!-- keyed by the user: a half-filled form doesn't carry over to the next one -->
+        <UserAccountCard :key="'account-' + selectedUser.user_id" :user="selectedUser" :can-delete="selectedUser.user_id !== authStore.userId"
+          :busy="isRemoving" @edit="openAccountForm(selectedUser)" @delete="deleteSelectedUser" />
+        <UserRolesCard :key="'roles-' + selectedUser.user_id" :user="selectedUser" :roles="availableRoles" :users="users" :busy="isAdding || isRemoving"
+          @add="addRoleToUser" @remove="removeRoleFromUser" />
+        <UserPermissionsCard :key="'permissions-' + selectedUser.user_id" :user="selectedUser" :permissions="availablePermissions" :busy="isAdding || isRemoving"
+          @add="addPermissionToUser" @remove="removePermissionFromUser" />
       </div>
 
       <div v-else class="no-selection">
@@ -168,12 +87,20 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
-import { adminService } from '@/api/adminService.js';
+import { useAdminStore } from '@/stores/entities/adminStore';
 import { useAuthStore } from '@/stores/authStore.js';
+import UserAccountForm from '@/components/admin/UserAccountForm.vue';
+import SystemConfiguration from '@/components/admin/SystemConfiguration.vue';
+import UserAccountCard from '@/components/admin/UserAccountCard.vue';
+import UserRolesCard from '@/components/admin/UserRolesCard.vue';
+import UserPermissionsCard from '@/components/admin/UserPermissionsCard.vue';
 
 export default {
   name: 'AdminView',
+  components: { UserAccountForm, SystemConfiguration, UserAccountCard, UserRolesCard, UserPermissionsCard },
   setup() {
+    // M25 (decision Q19): data through the store, not the api/ layer
+    const adminStore = useAdminStore();
     const authStore = useAuthStore();
     const users = ref([]);
     const selectedUser = ref(null);
@@ -185,6 +112,15 @@ export default {
 
     const userSearch = ref('');
 
+    // M35: the tabs, the account form and the delete confirmation
+    // any of the user's roles, not only the first one the token names (review M35)
+    const myRoles = ref([]);
+    const isSuperuser = computed(() => myRoles.value.includes('Superuser'));
+    const activeTab = ref('users');
+    const accountForm = ref(null);
+    let formKey = 0;
+    const accountError = ref('');
+
     const filteredUsers = computed(() => {
       if (!userSearch.value.trim()) return users.value;
       const q = userSearch.value.trim().toLowerCase();
@@ -194,12 +130,8 @@ export default {
       );
     });
 
-    const newRoleId = ref('');
-    const newPermissionId = ref('');
-    const newPermissionValidFrom = ref('');
-    const newPermissionValidTo = ref('');
 
-    // Für später: wenn Backend Endpoints für getAllRoles/getAllPermissions bereitstellt
+    // For later: once the backend provides endpoints for getAllRoles/getAllPermissions
     const availableRoles = ref([
       { role_id: 1, name: 'Admin' },
       { role_id: 2, name: 'Teacher' },
@@ -223,30 +155,30 @@ export default {
         loading.value = true;
         error.value = null;
         
-        // Erst Benutzer laden
+        // Load the users first
         console.log('📥 AdminView: Loading users...');
-        users.value = await adminService.getAllUsers();
+        users.value = await adminStore.fetchUsers();
         console.log(`✅ AdminView: Loaded ${users.value?.length || 0} users`);
         
-        // Dann Rollen und Permissions nacheinander (nicht parallel)
+        // Then roles and permissions one after the other (not in parallel)
         try {
           console.log('📥 AdminView: Loading roles...');
-          availableRoles.value = await adminService.getAllRoles();
+          availableRoles.value = await adminStore.fetchRoles();
           console.log(`✅ AdminView: Loaded ${availableRoles.value?.length || 0} roles`);
         } catch (err) {
           console.error('❌ Fehler beim Laden der Rollen:', err?.response?.status, err?.response?.data || err?.message);
           availableRoles.value = [];
-          // Fallback auf default Rollen
+          // Fall back to the default roles
         }
         
         try {
           console.log('📥 AdminView: Loading permissions...');
-          availablePermissions.value = await adminService.getAllPermissions();
+          availablePermissions.value = await adminStore.fetchPermissions();
           console.log(`✅ AdminView: Loaded ${availablePermissions.value?.length || 0} permissions`);
         } catch (err) {
           console.error('❌ Fehler beim Laden der Permissions:', err?.response?.status, err?.response?.data || err?.message);
           availablePermissions.value = [];
-          // Fallback auf default Permissions
+          // Fall back to the default permissions
         }
       } catch (err) {
         error.value = err.message || 'Fehler beim Laden der Benutzer';
@@ -256,28 +188,69 @@ export default {
       }
     };
 
+    // the list again after a change, with the selected user's new data
+    const refreshUsers = async () => {
+      users.value = await adminStore.fetchUsers();
+      selectedUser.value = users.value.find((u) => u.user_id === selectedUserId.value) ?? null;
+      if (!selectedUser.value) selectedUserId.value = null;
+    };
+
+    const openAccountForm = (user) => {
+      accountError.value = '';
+      accountForm.value = { user, key: ++formKey };
+    };
+
+    const onAccountSaved = async (saved) => {
+      accountForm.value = null;
+      if (saved?.user_id) selectedUserId.value = saved.user_id;
+      await refreshUsers();
+    };
+
+    // UC-30, M14: the content moves to the ghost user
+    const deleteSelectedUser = async () => {
+      if (!selectedUser.value) return;
+      try {
+        isRemoving.value = true;
+        accountError.value = '';
+        await adminStore.deleteUser(selectedUser.value.user_id);
+      } catch (err) {
+        accountError.value = err?.response?.data?.message || 'Das Konto konnte nicht gelöscht werden.';
+        return;
+      } finally {
+        isRemoving.value = false;
+      }
+      selectedUserId.value = null;
+      selectedUser.value = null;
+      try {
+        await refreshUsers();
+      } catch {
+        // review M35: the deletion stands; only the list is out of date
+        accountError.value = 'Das Konto wurde gelöscht, die Liste konnte aber nicht neu geladen werden.';
+      }
+    };
+
     const selectUser = async (user) => {
       console.log('👤 Selecting user:', user.username, 'ID:', user.user_id);
       selectedUserId.value = user.user_id;
       selectedUser.value = user;
-      newRoleId.value = '';
-      newPermissionId.value = '';
-      newPermissionValidFrom.value = '';
-      newPermissionValidTo.value = '';
+      accountError.value = '';
     };
 
-    const addRoleToUser = async () => {
-      if (!selectedUser.value || !newRoleId.value) return;
+    // the cards (UserRolesCard, UserPermissionsCard) hand over what to change
+    // true once it's done: only then the card clears its form
+    const addRoleToUser = async (roleId) => {
+      if (!selectedUser.value || !roleId) return false;
 
       try {
         isAdding.value = true;
-        await adminService.assignRoleToUser(selectedUser.value.user_id, parseInt(newRoleId.value));
-        // Benutzer neu laden
-        await selectUser(selectedUser.value);
-        newRoleId.value = '';
+        await adminStore.assignRole(selectedUser.value.user_id, roleId);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
+        return true;
       } catch (err) {
         error.value = err.message || 'Fehler beim Zuweisen der Rolle';
         console.error('Error adding role:', err);
+        return false;
       } finally {
         isAdding.value = false;
       }
@@ -288,9 +261,9 @@ export default {
 
       try {
         isRemoving.value = true;
-        await adminService.removeRoleFromUser(selectedUser.value.user_id, roleId);
-        // Benutzer neu laden
-        await selectUser(selectedUser.value);
+        await adminStore.removeRole(selectedUser.value.user_id, roleId);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
       } catch (err) {
         error.value = err.message || 'Fehler beim Entfernen der Rolle';
         console.error('Error removing role:', err);
@@ -299,25 +272,19 @@ export default {
       }
     };
 
-    const addPermissionToUser = async () => {
-      if (!selectedUser.value || !newPermissionId.value) return;
+    const addPermissionToUser = async ({ permissionId, validFrom, validTo }) => {
+      if (!selectedUser.value || !permissionId) return false;
 
       try {
         isAdding.value = true;
-        await adminService.assignPermissionToUser(
-          selectedUser.value.user_id,
-          parseInt(newPermissionId.value),
-          newPermissionValidFrom.value || null,
-          newPermissionValidTo.value || null
-        );
-        // Benutzer neu laden
-        await selectUser(selectedUser.value);
-        newPermissionId.value = '';
-        newPermissionValidFrom.value = '';
-        newPermissionValidTo.value = '';
+        await adminStore.assignPermission(selectedUser.value.user_id, permissionId, validFrom, validTo);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
+        return true;
       } catch (err) {
         error.value = err.message || 'Fehler beim Zuweisen der Permission';
         console.error('Error adding permission:', err);
+        return false;
       } finally {
         isAdding.value = false;
       }
@@ -328,9 +295,9 @@ export default {
 
       try {
         isRemoving.value = true;
-        await adminService.removePermissionFromUser(selectedUser.value.user_id, permissionId);
-        // Benutzer neu laden
-        await selectUser(selectedUser.value);
+        await adminStore.removePermission(selectedUser.value.user_id, permissionId);
+        // review M35: the list again, so the change shows
+        await refreshUsers();
       } catch (err) {
         error.value = err.message || 'Fehler beim Entfernen der Permission';
         console.error('Error removing permission:', err);
@@ -339,42 +306,26 @@ export default {
       }
     };
 
-    const formatDate = (dateString) => {
-      if (!dateString) return '—';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('de-DE');
-    };
-
-    const canRemoveRole = (role) => {
-      // Kritische Rollen (Superuser/Admin) können nicht entfernt werden wenn nur noch 1 existiert
-      const criticalRoles = ['Superuser', 'Admin'];
-      
-      if (criticalRoles.includes(role.roles?.name)) {
-        // Zähle wie viele User diese Rolle haben
-        const countInAllUsers = users.value.filter(u => 
-          u.user_roles?.some(ur => ur.role_id === role.role_id)
-        ).length;
-        
-        // Wenn nur noch ein User diese Rolle hat - nicht entfernen!
-        if (countInAllUsers <= 1) {
-          return false;
-        }
-      }
-      
-      return true;
-    };
-
     onMounted(() => {
-      // Prüfe, ob der Benutzer admin ist (admin oder superuser)
+      // Check whether the user is an admin (admin or superuser)
       if (!authStore.isAdmin) {
         error.value = '⛔ Sie haben keine Berechtigung, diese Seite zu besuchen.';
         loading.value = false;
         return;
       }
       loadUsers();
+      adminStore.fetchMyRoles().then((names) => { myRoles.value = names; }, () => {});
     });
 
     return {
+      authStore,
+      isSuperuser,
+      activeTab,
+      accountForm,
+      accountError,
+      openAccountForm,
+      onAccountSaved,
+      deleteSelectedUser,
       users,
       selectedUser,
       selectedUserId,
@@ -382,10 +333,6 @@ export default {
       error,
       isAdding,
       isRemoving,
-      newRoleId,
-      newPermissionId,
-      newPermissionValidFrom,
-      newPermissionValidTo,
       availableRoles,
       availablePermissions,
       userSearch,
@@ -396,8 +343,6 @@ export default {
       removeRoleFromUser,
       addPermissionToUser,
       removePermissionFromUser,
-      formatDate,
-      canRemoveRole,
     };
   },
 };
@@ -601,122 +546,15 @@ export default {
   border-bottom: 2px solid #4a90e2;
 }
 
-.management-card {
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
+/* M35: tabs, account buttons and the delete confirmation */
+.admin-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.admin-tabs button { padding: 8px 16px; border: 1px solid #4a90e2; background: white; color: #4a90e2; border-radius: 4px; cursor: pointer; }
+.admin-tabs button.active { background: #4a90e2; color: white; }
+.btn-new-user { margin-bottom: 12px; }
+.account-error { color: #b91c1c; margin: 8px 0 0; }
 
-.management-card h3 {
-  margin-top: 0;
-  color: #1a1a1a;
-}
-
-.roles-list,
-.permissions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.role-item,
-.permission-item {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 12px;
-  border-radius: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.role-name,
-.permission-name {
-  color: #1a1a1a;
-  font-weight: bold;
-}
-
-.permission-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.permission-dates {
-  font-size: 12px;
-  color: #666;
-}
-
-.no-items {
-  text-align: center;
-  color: #999;
-  padding: 15px;
-  background: white;
-  border: 1px dashed #ddd;
-  border-radius: 6px;
-  margin-bottom: 20px;
-}
-
-.add-role-section,
-.add-permission-section {
-  background: white;
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.add-role-section label,
-.add-permission-section label {
-  display: block;
-  margin-bottom: 8px;
-  color: #1a1a1a;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.select-field,
-.input-field {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  margin-bottom: 12px;
-  font-family: inherit;
-}
-
-.select-field:focus,
-.input-field:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-}
-
-.date-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.date-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-group label {
-  margin-bottom: 5px;
-  color: #666;
-  font-weight: normal;
-  font-size: 13px;
-}
-
-.btn-add,
-.btn-remove {
+/* the button for a new account; the cards have their own (admin-card.css) */
+.btn-add {
   padding: 10px 16px;
   border: none;
   border-radius: 4px;
@@ -724,9 +562,6 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
-}
-
-.btn-add {
   background: #4a90e2;
   color: white;
   width: 100%;
@@ -737,24 +572,6 @@ export default {
 }
 
 .btn-add:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.btn-remove {
-  background: #e74c3c;
-  color: white;
-  padding: 4px 8px;
-  font-size: 11px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.btn-remove:hover:not(:disabled) {
-  background: #c0392b;
-}
-
-.btn-remove:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
@@ -799,10 +616,6 @@ export default {
 
   .user-card {
     flex: 1 1 100%;
-  }
-
-  .date-inputs {
-    grid-template-columns: 1fr;
   }
 }
 </style>
@@ -900,79 +713,6 @@ body.dark-mode .details-section h2,
   color: #edf0fa !important;
 }
 
-body.dark-mode .management-card,
-.app-container.dark-mode .management-card {
-  background: #25283a !important;
-  border-color: #434963 !important;
-}
-
-body.dark-mode .management-card h3,
-.app-container.dark-mode .management-card h3 {
-  color: #edf0fa !important;
-}
-
-body.dark-mode .role-item,
-body.dark-mode .permission-item,
-.app-container.dark-mode .role-item,
-.app-container.dark-mode .permission-item {
-  background: #2a2f45 !important;
-  border-color: #434963 !important;
-}
-
-body.dark-mode .role-name,
-body.dark-mode .permission-name,
-.app-container.dark-mode .role-name,
-.app-container.dark-mode .permission-name {
-  color: #edf0fa !important;
-}
-
-body.dark-mode .permission-dates,
-.app-container.dark-mode .permission-dates {
-  color: #b2b9cb !important;
-}
-
-body.dark-mode .no-items,
-.app-container.dark-mode .no-items {
-  background: #2a2f45 !important;
-  border-color: #434963 !important;
-  color: #7a8199 !important;
-}
-
-body.dark-mode .add-role-section,
-body.dark-mode .add-permission-section,
-.app-container.dark-mode .add-role-section,
-.app-container.dark-mode .add-permission-section {
-  background: #2a2f45 !important;
-  border-color: #434963 !important;
-}
-
-body.dark-mode .add-role-section label,
-body.dark-mode .add-permission-section label,
-.app-container.dark-mode .add-role-section label,
-.app-container.dark-mode .add-permission-section label {
-  color: #edf0fa !important;
-}
-
-body.dark-mode .date-group label,
-.app-container.dark-mode .date-group label {
-  color: #b2b9cb !important;
-}
-
-body.dark-mode .select-field,
-body.dark-mode .input-field,
-.app-container.dark-mode .select-field,
-.app-container.dark-mode .input-field {
-  background: #31364d !important;
-  border-color: #434963 !important;
-  color: #edf0fa !important;
-}
-
-body.dark-mode .select-field option,
-.app-container.dark-mode .select-field option {
-  background: #31364d !important;
-  color: #edf0fa !important;
-}
-
 body.dark-mode .no-selection,
 .app-container.dark-mode .no-selection {
   color: #7a8199 !important;
@@ -982,4 +722,11 @@ body.dark-mode .loading-spinner,
 .app-container.dark-mode .loading-spinner {
   color: #b2b9cb !important;
 }
+
+/* M35 */
+body.dark-mode .admin-container .admin-tabs button { background: #2c2c3e; }
+body.dark-mode .admin-container .admin-tabs button.active { background: #4a90e2; }
 </style>
+
+<!-- the user cards' dark mode, unscoped and loaded once (review: not per card) -->
+<style src="../components/admin/admin-card-dark.css"></style>

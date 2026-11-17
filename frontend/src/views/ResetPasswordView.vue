@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { authApi } from '@/api/authService'
 import { useAuthStore } from '@/stores/authStore'
+import { takeTokenFromHash } from '@/utils/tokenFromHash'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,15 +16,18 @@ const errorMessage = ref('')
 const isDark = ref(false)
 const token = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
   isDark.value = document.body.classList.contains('dark-mode')
-  token.value = route.query.token
+  // the Google reset callback sends the token in the URL fragment (decision Q9)
+  token.value = await takeTokenFromHash(route, router)
   if (!token.value) {
     errorMessage.value = 'Ungültiger oder abgelaufener Link. Bitte starte den Vorgang erneut.'
   } else {
-    // Token im Store und localStorage setzen, damit authApi-Calls funktionieren
+    // Put the token into the store and localStorage so authApi calls work
     authStore.token = token.value
     localStorage.setItem('authToken', token.value)
+    // the reset token starts no session (M12): drop a previous session's refresh token
+    localStorage.removeItem('refreshToken')
   }
 })
 watch(isDark, (val) => document.body.classList.toggle('dark-mode', val))
@@ -33,8 +36,9 @@ const handleSubmit = async () => {
   errorMessage.value = ''
   message.value = ''
 
-  if (password.value.length < 6) {
-    errorMessage.value = 'Passwort muss mindestens 6 Zeichen lang sein.'
+  // the same rules as the backend (NewPasswordDto) and the registration
+  if (password.value.length < 7 || password.value.length > 32) {
+    errorMessage.value = 'Das Passwort muss 7 bis 32 Zeichen lang sein.'
     return
   }
   if (password.value !== passwordConfirm.value) {
@@ -44,7 +48,7 @@ const handleSubmit = async () => {
 
   isLoading.value = true
   try {
-    await authApi.setNewPassword(password.value)
+    await authStore.setNewPassword(password.value)
     message.value = 'Passwort erfolgreich geändert! Du wirst zum Login weitergeleitet...'
     authStore.logout()
     setTimeout(() => router.push({ name: 'Login' }), 2500)
@@ -77,7 +81,7 @@ const handleSubmit = async () => {
             type="password"
             v-model="password"
             required
-            placeholder="Mindestens 6 Zeichen"
+            placeholder="7 bis 32 Zeichen"
             :disabled="!token"
           />
         </div>

@@ -6,7 +6,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import NotificationsList from '@/components/notifications/NotificationsList.vue';
 import SecurityTab from '@/components/notifications/SecurityTab.vue';
 import EmailPreferences from '@/components/notifications/EmailPreferences.vue';
-import { emailPreferencesService } from '@/api/emailPreferences';
+import AvatarEditor from '@/components/profile/AvatarEditor.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,13 +15,12 @@ const notificationStore = useNotificationStore();
 
 const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
-const tabs = computed(() => {
-  const baseTabs = ['profile', 'security', 'activity'];
-  if (isOwnProfile.value) {
-    baseTabs.push('notifications');
-  }
-  return baseTabs;
-});
+// security and notifications are the signed-in user's own (review M27: the
+// password form changes the own password, whose profile is shown or not)
+const OWN_TABS = ['security', 'notifications'];
+const tabs = computed(() =>
+  isOwnProfile.value ? ['profile', 'security', 'activity', 'notifications'] : ['profile', 'activity'],
+);
 
 const STORAGE_KEY_PREFIX = 'effsync_user_profile_';
 
@@ -56,6 +55,7 @@ const getBaseUser = () => {
 };
 
 const user = ref(getBaseUser());
+const initials = computed(() => `${user.value.firstname?.[0] ?? ''}${user.value.lastname?.[0] ?? ''}`);
 
 const editMode = ref(false);
 const formData = ref({ ...user.value });
@@ -70,7 +70,7 @@ const loadUserProfile = () => {
 
     if (stored) {
       const storedUser = JSON.parse(stored);
-      // Lokale Präferenzen beibehalten, aber Auth-Daten priorisieren
+      // Keep local preferences, but prefer the auth data
       user.value = {
         ...storedUser,
         ...base,
@@ -119,9 +119,9 @@ const goBack = () => {
 onMounted(() => {
   loadUserProfile();
   notificationStore.initFromStorage();
-  // Tab aus Query-Parameter setzen (z.B. ?tab=notifications)
+  // Set the tab from the query parameter (e.g. ?tab=notifications)
   if (route.query.tab) {
-    if (route.query.tab === 'notifications' && !isOwnProfile.value) {
+    if (OWN_TABS.includes(route.query.tab) && !isOwnProfile.value) {
       activeTab.value = 'profile';
     } else {
       activeTab.value = route.query.tab;
@@ -136,8 +136,10 @@ onMounted(() => {
 
     <div class="profile-header">
       <div class="avatar-section">
-        <div class="avatar-large">
-          {{ user.firstname[0] }}{{ user.lastname[0] }}
+        <!-- T47, decision Q8c (M27): the own picture can be changed here -->
+        <AvatarEditor v-if="isOwnProfile" :initials="initials" />
+        <div v-else class="avatar-large">
+          {{ initials }}
         </div>
         <div class="user-title">
           <h1>{{ user.firstname }} {{ user.lastname }}</h1>
@@ -175,7 +177,7 @@ onMounted(() => {
     </div>
 
     <div class="tab-content">
-      <!-- Profil Tab -->
+      <!-- Profile tab -->
       <div v-if="activeTab === 'profile'" class="content-section">
         <div class="form-group">
           <label>Vorname</label>
@@ -241,16 +243,16 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Sicherheit Tab - mit neuen Komponenten -->
+      <!-- Security tab - with the new components -->
       <div v-if="activeTab === 'security'" class="content-section">
-        <!-- 1. Security Features (Passwort + 2FA) -->
+        <!-- 1. Security features (password + 2FA) -->
         <SecurityTab />
         
         <!-- 2. Email Preferences -->
         <EmailPreferences />
       </div>
 
-      <!-- Aktivität Tab -->
+      <!-- Activity tab -->
       <div v-if="activeTab === 'activity'" class="content-section">
         <div class="activity-card">
           <h2>Anmeldungshistorie</h2>
@@ -271,7 +273,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Benachrichtigungen Tab -->
+      <!-- Notifications tab -->
       <div v-if="activeTab === 'notifications'" class="content-section">
         <NotificationsList />
       </div>
@@ -538,7 +540,7 @@ onMounted(() => {
 </style>
 
 <style>
-/* Dark Mode Styles für UserProfileView */
+/* Dark mode styles for UserProfileView */
 body.dark-mode .profile-view {
   background-color: #1a1a2e !important;
   color: white !important;

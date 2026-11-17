@@ -132,7 +132,7 @@ const handleDelete = (messageId) => {
     margin: auto;
 }
 
-/* Typing Indikator */
+/* Typing indicator */
 .chat-window__typing {
     display: flex;
     align-items: center;

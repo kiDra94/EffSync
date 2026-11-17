@@ -2,19 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import TaskForm from './TaskForm.vue';
 import TaskMembersList from './TaskMembersList.vue';
+import TaskComments from './TaskComments.vue';
+import TaskGradeRemarks from './TaskGradeRemarks.vue';
 import { taskMembersApi } from '@/api/taskMembers';
 import { usersApi } from '@/api/usersService';
-import { useTaskStore } from '@/stores/entities/taskStore';
 
 vi.mock('@/api/taskMembers');
-// Eingeloggter User ist der Ersteller des Tasks (created_by: 1)
+// The logged-in user is the task's creator (created_by: 1)
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: vi.fn(() => ({ userId: 1, userRole: 'student' }))
 }));
 vi.mock('@/api/usersService');
+const storeTasks = vi.hoisted(() => []);
 vi.mock('@/stores/entities/taskStore', () => ({
   useTaskStore: vi.fn(() => ({
-    getSubtasks: vi.fn(() => [])
+    getSubtasks: vi.fn(() => []),
+    tasks: storeTasks,
   }))
 }));
 
@@ -24,6 +27,13 @@ vi.mock('@/components/tasks/TaskTemplateSelector.vue', () => ({
 
 vi.mock('@/components/tasks/SubtaskBuilder.vue', () => ({
   default: { name: 'SubtaskBuilder', template: '<div></div>' }
+}));
+
+vi.mock('@/stores/entities/taskCommentStore', () => ({
+  useTaskCommentStore: () => ({
+    fetchComments: vi.fn().mockResolvedValue([]),
+    fetchGradeRemarks: vi.fn().mockResolvedValue([]),
+  }),
 }));
 
 describe('TaskForm.vue with TaskMembersList Integration', () => {
@@ -41,7 +51,7 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
 
   beforeEach(() => {
     taskMembersApi.getTaskMembers.mockResolvedValue({ data: [] });
-    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_write: true } });
+    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true } });
     usersApi.getAll.mockResolvedValue({ data: [] });
   });
 
@@ -99,12 +109,9 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
       }
     });
 
-    // Wait for component to render
-    await wrapper.vm.$nextTick();
+    // M38: the list shows once the rights (READ) are in
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    // Check if TaskMembersList is rendered
-    const taskMembersSection = wrapper.find('.task-members-section');
-    // Note: This would be present if TaskMembersList was properly stubbed
     expect(wrapper.html()).toContain('task-members');
   });
 
@@ -121,6 +128,21 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
     expect(mockExistingTask.task_id).toBe(1);
     expect(mockExistingTask.created_by).toBe(1);
     expect(mockExistingTask.assigned_to).toBe(2);
+  });
+
+  // T09, T74, decision Q16 (M27): comments and grading remarks in the task detail view
+  it('shows the comments and the grading remarks for an existing task', () => {
+    const wrapper = mount(TaskForm, { props: { task: mockExistingTask } });
+
+    expect(wrapper.findComponent(TaskComments).props('taskId')).toBe(1);
+    expect(wrapper.findComponent(TaskGradeRemarks).props()).toEqual({ taskId: 1, canWrite: false });
+  });
+
+  it('has no comments or remarks for a new task', () => {
+    const wrapper = mount(TaskForm, { props: { task: null } });
+
+    expect(wrapper.findComponent(TaskComments).exists()).toBe(false);
+    expect(wrapper.findComponent(TaskGradeRemarks).exists()).toBe(false);
   });
 
   it('loads form data for existing task', () => {
@@ -408,5 +430,61 @@ describe('TaskForm.vue with TaskMembersList Integration', () => {
     });
 
     expect(existingTaskWrapper.find('.btn-primary').text()).toContain('Speichern');
+  });
+});
+
+// T41, decision Q2 (M16): only the project's people add subtasks to an existing task
+describe('TaskForm subtask builder', () => {
+  const existing = {
+    task_id: 4,
+    title: 'Projekt',
+    deadline: '2026-12-31T23:59:59Z',
+    priority_id: 2,
+    status: 'TODO',
+    progress: 0,
+    created_by: 9,
+    assigned_to: 8,
+    task_members: [{ user_id: 7 }],
+  };
+
+  const mountAs = async (user) => {
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.mockReturnValue(user);
+    taskMembersApi.getTaskMembers.mockResolvedValue({ data: [] });
+    taskMembersApi.checkPermission.mockResolvedValue({ data: { has_read: true, has_write: true } });
+    usersApi.getAll.mockResolvedValue({ data: [] });
+    return mount(TaskForm, { props: { task: existing } });
+  };
+
+  it('hides it from a teacher who is not involved in the task', async () => {
+    const wrapper = await mountAs({ userId: 1, userRole: 'teacher' });
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(false);
+  });
+
+  it.each([9, 8, 7])('shows it to user %s of the task', async (userId) => {
+    const wrapper = await mountAs({ userId, userRole: 'student' });
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(true);
+  });
+
+  // review M16: the backend checks the root task, so the form does too
+  it('decides for a subtask by the root task', async () => {
+    storeTasks.splice(0, storeTasks.length, { ...existing, task_members: [{ user_id: 7 }] });
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.mockReturnValue({ userId: 7, userRole: 'student' });
+    const sub = { ...existing, task_id: 5, parent_task_id: 4, created_by: 9, assigned_to: null, task_members: [] };
+
+    const wrapper = mount(TaskForm, { props: { task: sub } });
+
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(true);
+    storeTasks.splice(0, storeTasks.length);
+  });
+
+  it('shows it to a student creating a new project', async () => {
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.mockReturnValue({ userId: 3, userRole: 'student' });
+
+    const wrapper = mount(TaskForm, { props: { task: null } });
+
+    expect(wrapper.findComponent({ name: 'SubtaskBuilder' }).exists()).toBe(true);
   });
 });

@@ -1,6 +1,26 @@
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
-export function useTaskFilters(tasks, searchQuery, filterStatus, sortBy) {
+const DAY = 24 * 60 * 60 * 1000;
+
+// T57 (M18): the due-date filter; 'overdue' means past and not completed
+function matchesDue(task, due, now) {
+    if (due === 'all') return true;
+    if (due === 'none') return !task.deadline;
+    if (!task.deadline) return false;
+    const deadline = new Date(task.deadline).getTime();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const today = startOfToday.getTime();
+    if (due === 'overdue') return deadline < now.getTime() && task.status !== 'COMPLETED';
+    if (due === 'today') return deadline >= today && deadline < today + DAY;
+    // today and the six days after it
+    if (due === 'week') return deadline >= today && deadline < today + 7 * DAY;
+    return true;
+}
+
+export function useTaskFilters(tasks, searchQuery, filterStatus, sortBy, options = {}) {
+    const filterPriority = options.filterPriority ?? ref('all');
+    const filterDue = options.filterDue ?? ref('all');
 
     const searchedTasks = computed(() => {
         if (!searchQuery.value) return tasks.value;
@@ -13,8 +33,12 @@ export function useTaskFilters(tasks, searchQuery, filterStatus, sortBy) {
     });
 
     const filteredTasks = computed(() => {
-        if (filterStatus.value === 'all') return searchedTasks.value;
-        return searchedTasks.value.filter(t => t.status === filterStatus.value);
+        const now = new Date();
+        return searchedTasks.value.filter(t =>
+            (filterStatus.value === 'all' || t.status === filterStatus.value) &&
+            (filterPriority.value === 'all' || Number(t.priority_id) === Number(filterPriority.value)) &&
+            matchesDue(t, filterDue.value, now)
+        );
     });
 
     const sortedTasks = computed(() => {

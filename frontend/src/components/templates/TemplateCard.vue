@@ -16,20 +16,6 @@
       </div>
     </div>
     
-    <div class="template-defaults">
-      <div class="default-item" v-if="template.default_title">
-        <span class="label">Standard-Titel:</span>
-        <span class="value">{{ template.default_title }}</span>
-      </div>
-      <div class="default-item" v-if="template.default_priority_id">
-        <span class="label">Standard-Priorität:</span>
-        <span class="value">{{ getPriorityName(template.default_priority_id) }}</span>
-      </div>
-      <div class="default-item" v-if="template.default_deadline_days">
-        <span class="label">Standard-Deadline:</span>
-        <span class="value">{{ template.default_deadline_days }} Tage</span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -42,11 +28,6 @@ defineProps({
 });
 
 defineEmits(['edit', 'delete']);
-
-const getPriorityName = (id) => {
-  const priorities = { 1: 'Niedrig', 2: 'Mittel', 3: 'Hoch', 4: 'Dringend' };
-  return priorities[id] || 'Mittel';
-};
 </script>
 
 <style scoped>

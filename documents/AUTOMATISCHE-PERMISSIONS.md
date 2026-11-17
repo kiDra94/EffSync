@@ -6,7 +6,7 @@ Wenn ein Benutzer eine Rolle (z.B. "Student", "Teacher") zugewiesen bekam, erhie
 ## Lösung
 Die Lösung implementiert **automatische Standard-Permissions**, die eine Rolle mitbringt:
 
-### 1. **Zentrale Konfiguration** (`src/config/role-permissions.config.ts`)
+### 1. **Zentrale Konfiguration** (`src/contexts/identity-access/domain/role-permissions.ts`)
 Definiert, welche Permissions jede Rolle standardmäßig haben soll:
 
 ```typescript
@@ -78,7 +78,7 @@ async addRoleToUser(userId: number, roleId: number) {
 
 ## Modifikation der Standard-Permissions
 
-Wenn du die Permissions einer Rolle ändern möchtest, bearbeite [role-permissions.config.ts](../../config/role-permissions.config.ts):
+Wenn du die Permissions einer Rolle ändern möchtest, bearbeite [role-permissions.ts](../backend/src/contexts/identity-access/domain/role-permissions.ts):
 
 ```typescript
 [RoleName.TEACHER]: [
@@ -133,7 +133,7 @@ Die Lösung gibt ausführliches Logging aus:
 ### Im Backend:
 - **UsersService.addRoleToUser()** - Löst Zuweisung aus
 - **RolePermissionsService.assignDefaultPermissionsForRole()** - Fügt Permissions zu
-- **role-permissions.config.ts** - Zentrale Konfiguration
+- **role-permissions.ts** (`contexts/identity-access/domain/`) - Zentrale Konfiguration
 
 ### In der Datenbank (Prisma):
 ```prisma

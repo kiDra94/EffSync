@@ -6,14 +6,14 @@ import DeadlineToast from '@/components/notifications/DeadlineToast.vue'
 
 const notificationStore = useNotificationStore()
 
-// Feature #27: Toast-Notifications anzeigen
+// Feature #27: show toast notifications
 const activeToasts = computed(() => {
   return notificationStore.activeToasts
 })
 </script>
 
 <template>
-  <!-- Feature #27: Toast Container für Deadline-Benachrichtigungen -->
+  <!-- Feature #27: toast container for deadline notifications -->
   <div class="toasts-container">
     <DeadlineToast
       v-for="toast in activeToasts"
@@ -26,7 +26,7 @@ const activeToasts = computed(() => {
 </template>
 
 <style>
-/* Optional: Globale Styles hier, z.B. Reset */
+/* Optional: global styles go here, e.g. a reset */
 body {
   margin: 0;
   padding: 0;

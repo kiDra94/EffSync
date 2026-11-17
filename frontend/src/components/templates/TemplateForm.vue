@@ -19,39 +19,6 @@
             placeholder="Wofür wird dieses Template verwendet?"></textarea>
         </div>
 
-        <fieldset class="form-section">
-          <legend>Standard-Werte für neue Aufgaben</legend>
-
-          <div class="form-group">
-            <label for="default_title">Standard-Titel</label>
-            <input v-model="formData.default_title" id="default_title" type="text"
-              placeholder="z.B. Hausübung Kapitel X" />
-          </div>
-
-          <div class="form-group">
-            <label for="default_description">Standard-Beschreibung</label>
-            <textarea v-model="formData.default_description" id="default_description" rows="2"
-              placeholder="Bitte die Aufgaben im Buch bearbeiten"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="default_priority_id">Standard-Priorität</label>
-            <select v-model.number="formData.default_priority_id" id="default_priority_id">
-              <option :value="1">Niedrig</option>
-              <option :value="2">Mittel</option>
-              <option :value="3">Hoch</option>
-              <option :value="4">Dringend</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="default_deadline_days">Standard-Deadline (Tage)</label>
-            <input v-model.number="formData.default_deadline_days" id="default_deadline_days" type="number" min="1"
-              placeholder="z.B. 7 (für 1 Woche)" />
-            <span class="hint">Automatische Deadline ab Erstellung</span>
-          </div>
-
-        </fieldset>
 
         <div class="form-actions">
           <button type="submit" class="btn-primary">
@@ -78,13 +45,10 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'close']);
 
+// T110 (M18, decision H2): a template is a name and a description
 const formData = reactive({
   name: props.template?.name || '',
-  description: props.template?.description || '',
-  default_title: props.template?.default_title || '',
-  default_description: props.template?.default_description || '',
-  default_priority_id: props.template?.default_priority_id || 2,
-  default_deadline_days: props.template?.default_deadline_days || null
+  description: props.template?.description || ''
 });
 
 const submitTemplate = () => {

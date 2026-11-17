@@ -45,10 +45,11 @@ export const useChat = () => {
         });
 
         socket_off('room:new');
-        socket_on('room:new', async ({ roomId }) => {
+        // M21: someone added this user to a room (a DM, a task or class
+        // chat); the server already put the sockets into it, so the list is
+        // refreshed without switching away from the open conversation
+        socket_on('room:new', async () => {
             await chatStore.getRooms();
-            socket_emit('join:room', roomId);
-            await chatStore.selectRoom(roomId);
         });
 
         socket_off('delete:room');

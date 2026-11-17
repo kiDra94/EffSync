@@ -36,6 +36,7 @@ export const gradeDocument = async (document_id, payload) => {
   return normalizeEntity(response.data, ID_KEY);
 };
 
+/** @public grade overview for GradesView, GOALS.md M27 (UC-13) */
 export const fetchMyGrades = async () => {
   const response = await apiClient.get(`${ENDPOINT}/my-grades`);
   const grades = response.data?.data ?? response.data;

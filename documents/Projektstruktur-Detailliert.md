@@ -171,7 +171,6 @@ backend/prisma/
 │   │   └── migration.sql        # Noten mit Task-Bezug
 │   └── ... (weitere ~15+ Migrationen)
 │
-└── diplom_arbeit_postgres.sql   # SQL-Dump der kompletten DB
 
 ```
 
@@ -286,10 +285,6 @@ frontend/src/
 │   └── index.js                 # API-Services aggregieren
 │
 ├── components/                  # Wiederverwendbare UI-Komponenten
-│   ├── Badge.vue                # Status-Badges
-│   ├── Dashboard.vue            # Dashboard-Container
-│   ├── DocumentUploadForm.vue    # Datei-Upload Formular
-│   ├── UserProfile.vue          # Benutzer-Profil Widget
 │   │
 │   ├── chat/                    # Chat-Komponenten
 │   │   ├── ChatInput.vue        # Nachricht-Eingabe
@@ -305,8 +300,6 @@ frontend/src/
 │   │   ├── TaskDetail.vue       # Detail-Ansicht
 │   │   ├── TaskForm.vue         # Erstellung/Bearbeitung
 │   │   ├── TaskFilter.vue       # Filter & Suche
-│   │   ├── AddMemberDialog.vue  # Mitglied hinzufügen
-│   │   ├── AddMemberDialog.spec.js
 │   │   └── [weitere Task-Control-Komponenten]
 │   │
 │   ├── classes/                 # Klassen-Verwaltung
@@ -326,9 +319,7 @@ frontend/src/
 │   │   ├── NoteDeleteDialog.vue
 │   │
 │   ├── notifications/           # Benachrichtigungen
-│   │   ├── NotificationCenter.vue   # Zentrale für Meldungen
 │   │   ├── NotificationsList.vue    # Liste aller Notifications
-│   │   ├── NotificationToast.vue    # Pop-up Toasts
 │   │   └── DeadlineToast.vue        # Deadline-Benachrichtigungen
 │   │
 │   ├── schedules/               # Stundenplan
@@ -362,14 +353,12 @@ frontend/src/
 │
 ├── stores/                      # Pinia Global State Management
 │   ├── authStore.js             # Auth-State (user, token, isAuthenticated)
-│   ├── userStore.js             # User-Data Store
 │   ├── notificationStore.js      # Notifications State
 │   ├── searchStore.js            # Suchverlauf & Filter
 │   ├── useSocket.js             # WebSocket Connection State
 │   └── entities/                # Pinia Stores für Models
 │       ├── taskStore.js         # Tasks State
 │       ├── chatStore.js         # Chat State
-│       ├── userStore.js         # User State
 │       └── [weitere Entity Stores]
 │
 ├── composables/                 # Vue 3 Composition API Funktionen
@@ -545,7 +534,7 @@ Chat zeigt neue Nachricht ✅
 ```
 Browser: TaskDetail.vue (frontend/src/components/tasks/TaskDetail.vue)
   ↓ [Klick: "Mitglied hinzufügen"]
-Modal: AddMemberDialog.vue (frontend/src/components/tasks/AddMemberDialog.vue)
+Komponente: TaskMembersList.vue (frontend/src/components/tasks/TaskMembersList.vue, Abschnitt "Mitglieder hinzufügen")
   ↓ API POST /api/task-members
 Backend: task-members.controller.ts (backend/src/modules/task-members/)
   ↓ @Post()

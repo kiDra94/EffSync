@@ -1,4 +1,5 @@
 <script setup>
+import { API_URL } from '@/config/urls'
 import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
@@ -6,16 +7,26 @@ import { useAuthStore } from '@/stores/authStore'
 const router = useRouter()
 const authStore = useAuthStore()
 
-const credentials = reactive({ username: '', password: '' })
+// identifier: username or e-mail address (T49)
+const credentials = reactive({ identifier: '', password: '' })
 const errorMessage = ref('')
 const isLoading = ref(false)
+// UC-01b (M32): after the password, the code of the authenticator app
+const challengeToken = ref(null)
+const code = ref('')
 
-// Dark Mode Status
+// Dark mode state
 const isDark = ref(false)
 
 onMounted(() => {
-  // Beim Laden prüfen, ob DarkMode schon an ist
+  // On load, check whether dark mode is already on
   isDark.value = document.body.classList.contains('dark-mode')
+  // M32: a 2FA user coming back from the Google sign-in enters the code here
+  const fromGoogle = sessionStorage.getItem('twoFactorChallenge')
+  if (fromGoogle) {
+    sessionStorage.removeItem('twoFactorChallenge')
+    challengeToken.value = fromGoogle
+  }
 })
 
 watch(isDark, (val) => {
@@ -26,7 +37,11 @@ const handleLogin = async () => {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    await authStore.login(credentials)
+    const result = await authStore.login(credentials)
+    if (result?.twoFactorRequired) {
+      challengeToken.value = result.challengeToken
+      return
+    }
     router.push({ name: 'Dashboard' })
   } catch (error) {
     const status = error.response?.status
@@ -52,9 +67,39 @@ const handleLogin = async () => {
   }
 }
 
+const handleTwoFactor = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    await authStore.completeTwoFactorLogin(challengeToken.value, code.value)
+    router.push({ name: 'Dashboard' })
+  } catch (error) {
+    const status = error.response?.status
+    if (status === 401) {
+      errorMessage.value = 'Ungültiger oder abgelaufener Code.'
+    } else if (status === 429) {
+      errorMessage.value = 'Zu viele Versuche. Bitte warte 1 Minute.'
+    } else if (status === 400) {
+      errorMessage.value = 'Der Code hat 6 Ziffern.'
+    } else {
+      // httpClient turns a 429 into an Error with its own message
+      errorMessage.value = (!error.response && error.message) || 'Ein Fehler ist aufgetreten.'
+    }
+    code.value = ''
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// back to the password, e.g. when the challenge expired (5 minutes)
+const backToPassword = () => {
+  challengeToken.value = null
+  code.value = ''
+  errorMessage.value = ''
+}
+
 const handleGoogleLogin = () => {
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-  window.location.href = `${backendUrl}/auth/google`
+  window.location.href = `${API_URL}/auth/google`
 }
 </script>
 
@@ -72,17 +117,36 @@ const handleGoogleLogin = () => {
       <div class="logo"><strong>EffSync</strong></div>
       <h2>Anmelden</h2>
 
-      <form @submit.prevent="handleLogin">
+      <form v-if="challengeToken" @submit.prevent="handleTwoFactor">
+        <p class="two-factor-hint">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
         <div class="form-group">
-          <label>Benutzername</label>
+          <label>Bestätigungscode</label>
+          <input type="text" v-model="code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+            placeholder="123456" autocomplete="one-time-code" />
+        </div>
 
-          <input type="text" v-model="credentials.username" required minlength="3" maxlength="32"
-            placeholder="Benutzername" />
+        <div v-if="errorMessage" class="error-msg">{{ errorMessage }}</div>
+
+        <button type="submit" :disabled="isLoading">
+          {{ isLoading ? '...' : 'Bestätigen' }}
+        </button>
+
+        <div class="login-footer">
+          <a href="#" class="link-text" @click.prevent="backToPassword">Zurück zur Anmeldung</a>
+        </div>
+      </form>
+
+      <form v-else @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label>Benutzername oder E-Mail</label>
+
+          <input type="text" v-model="credentials.identifier" required minlength="3" maxlength="254"
+            placeholder="Benutzername oder E-Mail" autocomplete="username" />
         </div>
 
         <div class="form-group">
           <label>Passwort</label>
-          <input type="password" v-model="credentials.password" required minlength="8" maxlength="32"
+          <input type="password" v-model="credentials.password" required maxlength="128"
             placeholder="Passwort" />
         </div>
 
@@ -111,7 +175,12 @@ const handleGoogleLogin = () => {
 </template>
 
 <style scoped>
-/* Nur Layout & Basis-Styling hier */
+/* Only layout & base styling here */
+.two-factor-hint {
+  margin: 0 0 1rem;
+  color: #6b7280;
+}
+
 .top-right-actions {
   position: absolute;
   top: 20px;
@@ -125,7 +194,7 @@ const handleGoogleLogin = () => {
   align-items: center;
   height: 100vh;
   background-color: #f4f4f9;
-  /* Standard Hell */
+  /* Default light */
   transition: background-color 0.3s;
 }
 
@@ -220,7 +289,7 @@ button:hover {
   border-color: #ccc;
 }
 
-/* Dark Mode für Google Button */
+/* Dark mode for the Google button */
 :global(body.dark-mode) .btn-google {
   background-color: #31364d;
   color: #edf0fa;
@@ -308,7 +377,7 @@ button:hover {
   color: #ccc;
 }
 
-/* Dark Mode Anpassung für Links */
+/* Dark mode adjustment for links */
 :global(body.dark-mode) .link-text {
   color: #aaa;
 }

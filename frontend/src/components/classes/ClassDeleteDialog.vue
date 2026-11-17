@@ -7,7 +7,7 @@
       <div class="modal-body">
         <p>Möchtest du diese Klasse wirklich löschen?</p>
         <p v-if="classObj" class="preview">
-          <strong>{{ classObj.name }}</strong> ({{ classObj.department_name }})
+          <strong>{{ classObj.name }}</strong><span v-if="classObj.department"> ({{ classObj.department.name }})</span>
         </p>
         <p class="warning-text">Diese Aktion kann nicht rückgängig gemacht werden.</p>
       </div>

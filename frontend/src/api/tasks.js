@@ -20,6 +20,9 @@ const ALLOWED_TASK_FIELDS = new Set([
     'priority_id',
     'auto_complete',
     'completion_rule',
+    // M18: tags (T59) and the template a task was created from (T110)
+    'tags',
+    'template_id',
 ]);
 
 const sanitizeTaskPayload = (payload) => {
@@ -29,12 +32,20 @@ const sanitizeTaskPayload = (payload) => {
     );
 };
 
-export const fetchTasks = async () => {
+// the list is paged (decision B3, M17); the store holds all of a user's tasks
+const PAGE_SIZE = 100;
 
-    const response = await apiClient.get(ENDPOINT, {
-        params: { includeRelations: true },
-    });
-	const tasks = response.data?.data ?? response.data;
+export const fetchTasks = async () => {
+    const tasks = [];
+    for (let page = 1; ; page++) {
+        const response = await apiClient.get(ENDPOINT, {
+            params: { includeRelations: true, page, limit: PAGE_SIZE },
+        });
+        const body = response.data;
+        tasks.push(...(body?.data ?? body ?? []));
+        const totalPages = body?.meta?.totalPages ?? 1;
+        if (!Array.isArray(body?.data) || page >= totalPages) break;
+    }
     return normalizeEntities(tasks, ID_KEY);
 };
 

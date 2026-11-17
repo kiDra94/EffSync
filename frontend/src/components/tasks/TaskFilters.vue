@@ -13,6 +13,22 @@
             <option value="COMPLETED">✅ Abgeschlossen</option>
         </select>
 
+        <!-- T57 (M18): priority and due date -->
+        <select :value="filterPriority" @change="$emit('update:filterPriority', $event.target.value)"
+            class="control-select" aria-label="Priorität filtern">
+            <option value="all">Alle Prioritäten</option>
+            <option v-for="priority in PRIORITIES" :key="priority.id" :value="String(priority.id)">{{ priority.label }}</option>
+        </select>
+
+        <select :value="filterDue" @change="$emit('update:filterDue', $event.target.value)"
+            class="control-select" aria-label="Fälligkeit filtern">
+            <option value="all">Jede Fälligkeit</option>
+            <option value="overdue">Überfällig</option>
+            <option value="today">Heute fällig</option>
+            <option value="week">Nächste 7 Tage</option>
+            <option value="none">Ohne Termin</option>
+        </select>
+
         <select :value="sortBy" @change="$emit('update:sortBy', $event.target.value)" class="control-select">
             <option value="date">📅 Nach Datum</option>
             <option value="title">🔤 Alphabetisch</option>
@@ -21,6 +37,8 @@
     </div>
 </template>
 <script setup>
+import { PRIORITIES } from '@/config/priorities';
+
 defineProps({
     searchQuery: {
         type: String,
@@ -33,10 +51,18 @@ defineProps({
     sortBy: {
         type: String,
         default: 'date'
+    },
+    filterPriority: {
+        type: String,
+        default: 'all'
+    },
+    filterDue: {
+        type: String,
+        default: 'all'
     }
 });
 
-defineEmits(['update:searchQuery', 'update:filterStatus', 'update:sortBy']);
+defineEmits(['update:searchQuery', 'update:filterStatus', 'update:sortBy', 'update:filterPriority', 'update:filterDue']);
 </script>
 <style scoped>
 .controls-bar {

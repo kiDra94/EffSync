@@ -8,6 +8,9 @@ import {
     fetchAllUsers,
     createRoom as createRoomApi,
     addMember,
+    openDirectChat,
+    openTaskChat as openTaskChatApi,
+    openClassChat as openClassChatApi,
 } from '@/api/chat';
 
 export const useChatStore = defineStore('chat', () => {
@@ -42,6 +45,12 @@ export const useChatStore = defineStore('chat', () => {
         await getRooms();
         return room;
     };
+
+    // M21: one room per pair, task and class; the server finds or creates it
+    // (ChatView loads the room list when it opens the room)
+    const openDirect = (userId) => openDirectChat(userId);
+    const openTaskChat = (taskId) => openTaskChatApi(taskId);
+    const openClassChat = (classId) => openClassChatApi(classId);
 
     const getUsers = async () => {
         const response = await fetchAllUsers();
@@ -139,6 +148,9 @@ export const useChatStore = defineStore('chat', () => {
         typingUsers,
         getRooms,
         createRoom,
+        openDirect,
+        openTaskChat,
+        openClassChat,
         getUsers,
         selectRoom,
         loadMessages,

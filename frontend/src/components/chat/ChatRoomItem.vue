@@ -33,15 +33,16 @@ const roomName = computed(() => {
     return 'Direktnachricht';
 });
 
-const roomType = computed(() => {
-    const memberCount = props.room.chat_room_users?.length ?? 0;
-    return memberCount <= 2 ? 'Direkt' : 'Gruppe';
+// the room's kind from its data (M21), not from its member count: a task
+// chat of two people is no direct chat
+const kind = computed(() => {
+    if (props.room.task_id) return { type: 'Aufgabe', icon: '📋' };
+    if (props.room.class_id) return { type: 'Klasse', icon: '🏫' };
+    if (props.room.is_private) return { type: 'Direkt', icon: '💬' };
+    return { type: 'Gruppe', icon: '👥' };
 });
-
-const roomIcon = computed(() => {
-    const memberCount = props.room.chat_room_users?.length ?? 0;
-    return memberCount <= 2 ? '💬' : '👥';
-});
+const roomType = computed(() => kind.value.type);
+const roomIcon = computed(() => kind.value.icon);
 
 const handleDeleteRoom = (event) => {
     event.stopPropagation();

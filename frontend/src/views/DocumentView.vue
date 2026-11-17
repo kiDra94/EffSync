@@ -148,22 +148,7 @@
                   </button>
                 </td>
               </tr>
-              <!-- Bewertungs-Notiz Row -->
-              <tr v-if="doc.grade || doc.feedback" class="grade-detail-row">
-                <td colspan="6">
-                  <div class="grade-detail-card">
-                    <div class="grade-detail-header">
-                      <span class="grade-label">📝 Bewertung:</span>
-                      <span class="grade-value">{{ doc.grade || '—' }}</span>
-                      <span class="grade-teacher">von {{ doc.graded_by_user?.firstname }} {{ doc.graded_by_user?.lastname }}</span>
-                      <span class="grade-date">{{ formatDate(doc.graded_at) }}</span>
-                    </div>
-                    <div v-if="doc.feedback" class="grade-feedback">
-                      <p>{{ doc.feedback }}</p>
-                    </div>
-                  </div>
-                </td>
-              </tr>
+              <DocumentGradeRow v-if="doc.grade || doc.feedback" :document="doc" />
             </template>
           </tbody>
         </table>
@@ -177,67 +162,37 @@
     </div>
 
     <Transition name="fade">
-      <div v-if="gradeDocumentTarget" class="modal-overlay" @click.self="closeGradeDialog">
-        <div class="modal-card">
-          <div class="modal-header">
-            <div>
-              <h2>Dokument bewerten</h2>
-              <p>{{ gradeDocumentTarget.name }}</p>
-            </div>
-            <button class="close-btn" @click="closeGradeDialog">×</button>
-          </div>
-
-          <div class="modal-body">
-            <label class="field-label" for="document-grade">Note / Bewertung</label>
-            <input
-              id="document-grade"
-              v-model.trim="gradeForm.grade"
-              class="text-input"
-              maxlength="32"
-              placeholder="z. B. 1, Sehr gut oder 95/100"
-            />
-
-            <label class="field-label" for="document-feedback">Feedback</label>
-            <textarea
-              id="document-feedback"
-              v-model.trim="gradeForm.feedback"
-              class="text-area"
-              rows="6"
-              maxlength="2000"
-              placeholder="Optionales Feedback für den Schüler"
-            />
-
-            <p class="modal-hint">
-              Nach dem Speichern erhält der Schüler automatisch eine Benachrichtigung.
-            </p>
-          </div>
-
-          <div class="modal-actions">
-            <button class="btn-secondary" @click="closeGradeDialog">Abbrechen</button>
-            <button class="btn-primary" :disabled="isSavingGrade" @click="saveGrade">
-              {{ isSavingGrade ? 'Speichert…' : 'Bewertung speichern' }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <DocumentGradeDialog v-if="gradeDocumentTarget" :document="gradeDocumentTarget" :saving="isSavingGrade"
+        @close="closeGradeDialog" @save="saveGrade" />
     </Transition>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { fetchTasks } from '@/api/tasks';
+import { useDocumentStore } from '@/stores/entities/documentStore';
+import { useTaskStore } from '@/stores/entities/taskStore';
+import DocumentGradeDialog from '@/components/documents/DocumentGradeDialog.vue';
+import DocumentGradeRow from '@/components/documents/DocumentGradeRow.vue';
 import {
-  deleteDocument,
-  fetchDocumentBinary,
-  fetchDocuments,
-  gradeDocument,
-  renameDocument,
-  uploadDocument,
-} from '@/api/documents';
+  validateFile,
+  isPreviewable,
+  simpleType as getSimpleType,
+  formatBytes,
+  formatDate,
+  uploaderLabel as getUploaderLabel,
+  uploaderRole as getUploaderRole,
+  gradeSummary as getGradeSummary,
+  fileNameFromResponse as getFileNameFromResponse,
+  openBlob,
+  saveBlob,
+} from '@/components/documents/documentFiles';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const documentStore = useDocumentStore();
+const taskStore = useTaskStore();
 const authStore = useAuthStore();
 const route = useRoute();
 
@@ -253,33 +208,9 @@ const editingDocumentId = ref(null);
 const renameDrafts = ref({});
 const gradeDocumentTarget = ref(null);
 const selectedTaskId = ref('');
-const gradeForm = reactive({
-  grade: '',
-  feedback: '',
-});
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = [
-  'pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
-  'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'csv',
-  'xls', 'xlsx', 'ppt', 'pptx', 'ods', 'odp',
-];
-const PREVIEWABLE_MIME_PREFIXES = ['image/', 'text/'];
-const PREVIEWABLE_MIME_SUBSTRINGS = ['pdf'];
-
-const normalizeRole = (role) => {
-  const raw = String(role || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-  if (raw === 'schuler' || raw === 'schueler') return 'student';
-  if (raw === 'lehrer' || raw === 'dozent') return 'teacher';
-  if (raw === 'administrator') return 'admin';
-
-  return raw;
-};
+// role names as in the backend's RoleName enum; German aliases are gone (decision Q10)
+const normalizeRole = (role) => String(role || '').toLowerCase().trim();
 
 const normalizedRole = computed(() => normalizeRole(authStore.userRole));
 const canUpload = computed(() => ['student', 'teacher', 'admin', 'superuser'].includes(normalizedRole.value));
@@ -336,7 +267,7 @@ const loadDocuments = async () => {
   clearMessages();
 
   try {
-    documents.value = await fetchDocuments();
+    documents.value = await documentStore.fetchDocuments();
   } catch (error) {
     console.error('Fehler beim Laden der Dokumente:', error);
     errorMessage.value = error.response?.data?.message || 'Dokumente konnten nicht geladen werden.';
@@ -347,8 +278,8 @@ const loadDocuments = async () => {
 
 const loadTasksForUpload = async () => {
   try {
-    const loaded = await fetchTasks();
-    tasks.value = Array.isArray(loaded?.data) ? loaded.data : loaded;
+    await taskStore.getTasks();
+    tasks.value = taskStore.tasks;
   } catch (error) {
     console.warn('Taskliste für Upload-Kontext konnte nicht geladen werden:', error?.message || error);
     tasks.value = [];
@@ -371,25 +302,6 @@ const triggerFileInput = () => {
   fileInput.value?.click();
 };
 
-const validateFile = (file) => {
-  if (!file) {
-    return 'Bitte wähle eine Datei aus.';
-  }
-
-  if (file.size > MAX_FILE_SIZE) {
-    return 'Datei überschreitet das Limit von 25 MB.';
-  }
-
-  const extension = file.name.split('.').pop()?.toLowerCase();
-  const isAllowedExtension = extension && ALLOWED_EXTENSIONS.includes(extension);
-
-  if (!isAllowedExtension) {
-    return 'Erlaubte Formate: PDF, JPG/JPEG, PNG, GIF, BMP, WEBP, DOC/DOCX, ODT, RTF, TXT, MD, CSV, XLS/XLSX, PPT/PPTX, ODS, ODP.';
-  }
-
-  return '';
-};
-
 const handleFileUpload = async (event) => {
   const file = event.target.files?.[0];
   clearMessages();
@@ -403,7 +315,7 @@ const handleFileUpload = async (event) => {
 
   try {
     isUploading.value = true;
-    const created = await uploadDocument(file, selectedTaskId.value || undefined);
+    const created = await documentStore.uploadDocument(file, selectedTaskId.value || undefined);
     documents.value = [created, ...documents.value.filter((doc) => doc.document_id !== created.document_id)];
     setSuccessMessage('Dokument erfolgreich hochgeladen.');
   } catch (error) {
@@ -438,7 +350,7 @@ const saveRename = async (document) => {
 
   try {
     clearMessages();
-    const updated = await renameDocument(document.document_id, nextName);
+    const updated = await documentStore.renameDocument(document.document_id, nextName);
     documents.value = documents.value.map((entry) =>
       entry.document_id === updated.document_id ? updated : entry,
     );
@@ -453,17 +365,14 @@ const saveRename = async (document) => {
 const openGradeDialog = (document) => {
   clearMessages();
   gradeDocumentTarget.value = document;
-  gradeForm.grade = document.grade || '';
-  gradeForm.feedback = document.feedback || '';
 };
 
 const closeGradeDialog = () => {
   gradeDocumentTarget.value = null;
-  gradeForm.grade = '';
-  gradeForm.feedback = '';
 };
 
-const saveGrade = async () => {
+// DocumentGradeDialog hands over what was entered
+const saveGrade = async (gradeForm) => {
   if (!gradeDocumentTarget.value) {
     return;
   }
@@ -476,7 +385,7 @@ const saveGrade = async () => {
   try {
     isSavingGrade.value = true;
     clearMessages();
-    const updated = await gradeDocument(gradeDocumentTarget.value.document_id, {
+    const updated = await documentStore.gradeDocument(gradeDocumentTarget.value.document_id, {
       grade: gradeForm.grade || undefined,
       feedback: gradeForm.feedback || undefined,
     });
@@ -502,7 +411,7 @@ const deleteOwnDocument = async (document) => {
 
   try {
     clearMessages();
-    await deleteDocument(document.document_id);
+    await documentStore.deleteDocument(document.document_id);
     documents.value = documents.value.filter((entry) => entry.document_id !== document.document_id);
     setSuccessMessage('Dokument gelöscht.');
   } catch (error) {
@@ -511,113 +420,13 @@ const deleteOwnDocument = async (document) => {
   }
 };
 
-const getSimpleType = (mime = '') => {
-  const normalizedMime = String(mime || '').toLowerCase();
-
-  if (normalizedMime.includes('pdf')) return 'PDF';
-  if (normalizedMime.includes('word') || normalizedMime.includes('officedocument.wordprocessingml') || normalizedMime.includes('opendocument.text') || normalizedMime.includes('rtf')) return 'Dokument';
-  if (normalizedMime.includes('excel') || normalizedMime.includes('spreadsheetml') || normalizedMime.includes('csv') || normalizedMime.includes('opendocument.spreadsheet')) return 'Tabelle';
-  if (normalizedMime.includes('powerpoint') || normalizedMime.includes('presentationml') || normalizedMime.includes('opendocument.presentation')) return 'Präsentation';
-  if (normalizedMime.includes('text')) return 'Text';
-  if (mime.startsWith('image/')) return 'Bild';
-  return 'Datei';
-};
-
-const formatBytes = (bytes) => {
-  const size = Number(bytes || 0);
-  if (size === 0) return '0 Bytes';
-
-  const units = ['Bytes', 'KB', 'MB', 'GB'];
-  const index = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  return `${(size / 1024 ** index).toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
-};
-
-const formatDate = (date) => {
-  if (!date) return 'Unbekanntes Datum';
-
-  return new Intl.DateTimeFormat('de-AT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date));
-};
-
-const getUploaderLabel = (document) => {
-  return document.uploader?.full_name || document.uploader?.username || 'Unbekannt';
-};
-
-const getUploaderRole = (document) => {
-  const role = String(document.uploader?.role || '').toLowerCase();
-  if (role === 'student') return 'Schüler';
-  if (role === 'teacher') return 'Lehrer';
-  if (role === 'admin') return 'Admin';
-  if (role === 'superuser') return 'Superuser';
-  return 'Benutzer';
-};
-
-const getGradeSummary = (document) => {
-  if (document.grade) {
-    return `Note: ${document.grade}`;
-  }
-
-  if (document.feedback) {
-    return 'Feedback vorhanden';
-  }
-
-  return document.is_gradeable ? 'Noch offen' : 'Keine Bewertung';
-};
-
-const isPreviewable = (document) => {
-  return String(document.mime_type || '').includes('pdf') || String(document.mime_type || '').startsWith('image/');
-};
-
-const getFileNameFromResponse = (response, fallbackName) => {
-  const disposition = response.headers?.['content-disposition'] || '';
-  const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
-  if (encodedMatch?.[1]) {
-    return decodeURIComponent(encodedMatch[1]);
-  }
-
-  const plainMatch = disposition.match(/filename="?([^\"]+)"?/i);
-  return plainMatch?.[1] || fallbackName;
-};
-
-const openBlob = (blob, fileName) => {
-  const objectUrl = URL.createObjectURL(blob);
-  const newWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
-
-  if (!newWindow) {
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = fileName;
-    link.click();
-  }
-
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-};
-
-const saveBlob = (blob, fileName) => {
-  const objectUrl = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = objectUrl;
-  link.download = fileName;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
-};
-
 const openDocument = async (document) => {
   try {
     clearMessages();
-    const response = await fetchDocumentBinary(document.document_id);
+    const response = await documentStore.fetchDocumentBinary(document.document_id);
     const fileName = getFileNameFromResponse(response, document.name);
     const mimeType = String(response.data?.type || document.mime_type || '').toLowerCase();
-    const isPreviewable =
-      PREVIEWABLE_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix))
-      || PREVIEWABLE_MIME_SUBSTRINGS.some((part) => mimeType.includes(part));
-
-    if (isPreviewable) {
+    if (isPreviewable(mimeType)) {
       openBlob(response.data, fileName);
       return;
     }
@@ -633,7 +442,7 @@ const openDocument = async (document) => {
 const downloadDocument = async (document) => {
   try {
     clearMessages();
-    const response = await fetchDocumentBinary(document.document_id);
+    const response = await documentStore.fetchDocumentBinary(document.document_id);
     saveBlob(response.data, getFileNameFromResponse(response, document.name));
   } catch (error) {
     console.error('Fehler beim Download:', error);
@@ -801,114 +610,6 @@ const downloadDocument = async (document) => {
   color: #92400e;
 }
 
-/* Grade Detail Row Styles */
-.grade-detail-row {
-  background: #f9fafb;
-  border-top: 2px solid #e5e7eb;
-}
-
-.grade-detail-row td {
-  padding: 16px !important;
-}
-
-.grade-detail-card {
-  background: white;
-  border-left: 4px solid #3b82f6;
-  border-radius: 6px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.grade-detail-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.grade-label {
-  font-weight: 700;
-  color: #374151;
-  font-size: 0.95rem;
-}
-
-.grade-value {
-  background: #dbeafe;
-  color: #1e40af;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.grade-teacher {
-  color: #6b7280;
-  font-size: 0.9rem;
-}
-
-.grade-date {
-  color: #9ca3af;
-  font-size: 0.85rem;
-}
-
-.grade-feedback {
-  background: #f0f9ff;
-  border-left: 3px solid #0284c7;
-  padding: 12px;
-  border-radius: 4px;
-  line-height: 1.6;
-  color: #1f2937;
-}
-
-.grade-feedback p {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-@media (prefers-color-scheme: dark) {
-  .grade-detail-row {
-    background: #111827;
-    border-top-color: #374151;
-  }
-
-  .grade-detail-card {
-    background: #1f2937;
-    border-left-color: #60a5fa;
-  }
-
-  .grade-label,
-  .grade-feedback {
-    color: #f3f4f6;
-  }
-
-  .grade-teacher,
-  .grade-date {
-    color: #9ca3af;
-  }
-
-  .grade-feedback {
-    background: #0f172a;
-    color: #e5e7eb;
-    border-left-color: #0284c7;
-  }
-}
-
-@media (max-width: 768px) {
-  .grade-detail-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .grade-value,
-  .grade-teacher,
-  .grade-date {
-    display: block;
-    width: 100%;
-  }
-}
-
 .actions-cell {
   white-space: nowrap;
 }
@@ -918,7 +619,6 @@ const downloadDocument = async (document) => {
 }
 
 .btn-primary,
-.btn-secondary,
 .btn-inline {
   border: none;
   border-radius: 10px;
@@ -934,7 +634,6 @@ const downloadDocument = async (document) => {
 }
 
 .btn-primary:hover:not(:disabled),
-.btn-secondary:hover,
 .btn-inline:hover,
 .btn-icon:hover {
   transform: translateY(-1px);
@@ -945,7 +644,6 @@ const downloadDocument = async (document) => {
   cursor: wait;
 }
 
-.btn-secondary,
 .btn-inline {
   background: #e2e8f0;
   color: #1e293b;
@@ -975,9 +673,7 @@ const downloadDocument = async (document) => {
   gap: 8px;
 }
 
-.rename-input,
-.text-input,
-.text-area {
+.rename-input {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
@@ -985,8 +681,7 @@ const downloadDocument = async (document) => {
   font: inherit;
 }
 
-.rename-actions,
-.modal-actions {
+.rename-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
@@ -1028,67 +723,11 @@ const downloadDocument = async (document) => {
   font-size: 3rem;
 }
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(15, 23, 42, 0.55);
-  padding: 20px;
-  z-index: 1100;
-}
-
-.modal-card {
-  width: min(100%, 620px);
-  background: #ffffff;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
-}
-
-.modal-header,
-.modal-body,
-.modal-actions {
-  padding: 20px 24px;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h2 {
-  margin: 0 0 4px;
-}
-
-.modal-header p,
-.modal-hint {
-  margin: 0;
-  color: #64748b;
-}
-
 .field-label {
   display: block;
   font-weight: 700;
   color: #1f2937;
   margin-bottom: 8px;
-}
-
-.field-label + .text-input,
-.field-label + .text-area {
-  margin-bottom: 16px;
-}
-
-.close-btn {
-  border: none;
-  background: transparent;
-  font-size: 2rem;
-  line-height: 1;
-  color: #64748b;
-  cursor: pointer;
 }
 
 .fade-enter-active,
@@ -1118,8 +757,7 @@ const downloadDocument = async (document) => {
 }
 
 @media (prefers-color-scheme: dark) {
-  .card,
-  .modal-card {
+  .card {
     background: #111827;
     color: #f9fafb;
   }
@@ -1129,30 +767,24 @@ const downloadDocument = async (document) => {
     color: #9ca3af;
   }
 
-  .document-table td,
-  .modal-header {
+  .document-table td {
     border-color: #374151;
   }
 
   .subtitle,
   .text-muted,
   .file-date,
-  .feedback-preview,
-  .modal-header p,
-  .modal-hint {
+  .feedback-preview {
     color: #9ca3af;
   }
 
   .rename-input,
-  .text-input,
-  .text-area,
   .task-select {
     background: #0f172a;
     color: #f9fafb;
     border-color: #475569;
   }
 
-  .btn-secondary,
   .btn-inline {
     background: #334155;
     color: #f8fafc;

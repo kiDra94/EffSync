@@ -84,9 +84,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import { gradeDocument } from '@/api/documents';
-import { fetchDocuments } from '@/api/documents';
-import { useAuthStore } from '@/stores/authStore';
+import { useDocumentStore } from '@/stores/entities/documentStore';
 
 export default {
   name: 'GradeModal',
@@ -98,7 +96,8 @@ export default {
   },
   emits: ['close', 'saved'],
   setup(props, { emit }) {
-    const authStore = useAuthStore();
+    // M25 (decision Q19): data through the store, not the api/ layer
+    const documentStore = useDocumentStore();
     const form = ref({
       feedback: '',
       grade: ''
@@ -111,13 +110,13 @@ export default {
     const selectedDocumentId = ref(null);
     const isLoadingDocuments = ref(true);
 
-    // Laden der für diesen Task verknüpften Dokumente
+    // Load the documents linked to this task
     const loadLinkedDocuments = async () => {
       try {
         isLoadingDocuments.value = true;
-        const allDocs = await fetchDocuments();
+        const allDocs = await documentStore.fetchDocuments();
         
-        // Filter: Nur Dokumente die mit dem Task verknüpft sind
+        // Filter: only documents linked to the task
         linkedDocuments.value = allDocs.filter(doc => 
           doc.task_documents?.some(td => td.task_id === props.task.task_id)
         );
@@ -150,9 +149,9 @@ export default {
       try {
         isSubmitting.value = true;
 
-        // Sende die Bewertung zum Backend - das freizeigibt oder sperrt
-        // automatisch den Task basierend auf der Bewertung
-        await gradeDocument(selectedDocumentId.value, {
+        // Send the grade to the backend, which releases or locks
+        // the task automatically based on the grade
+        await documentStore.gradeDocument(selectedDocumentId.value, {
           grade: form.value.grade.trim() || null,
           feedback: form.value.feedback.trim() || null,
         });

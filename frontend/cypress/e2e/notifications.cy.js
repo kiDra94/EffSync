@@ -1,4 +1,4 @@
-// Hilfsfunktion: Mock localStorage mit Test-Daten
+// Helper: mock localStorage with test data
 const setupTestData = () => {
   const testNotifications = [
     {
@@ -46,10 +46,10 @@ const setupTestData = () => {
   return testNotifications;
 };
 
-// Hilfsfunktion: Mock Auth Session
+// Helper: mock the auth session
 const mockAuthSession = () => {
   cy.window().then((win) => {
-    // Mock localStorage für Auth
+    // Mock localStorage for auth
     win.localStorage.setItem('effsync_auth', JSON.stringify({
       accessToken: 'test-token-12345',
       userId: 1,
@@ -71,121 +71,121 @@ const mockAuthSession = () => {
 
 describe('Notifications Feature E2E Tests', () => {
   beforeEach(() => {
-    // Cy Visit mit Fallback
+    // cy.visit with a fallback
     cy.visit('http://localhost:5173', {
-      onBeforeLoad: (win) => {
+      onBeforeLoad: () => {
         mockAuthSession();
       },
       onLoad: (win) => {
-        // Stelle sicher dass Auth Store die Daten hat
+        // Make sure the auth store has the data
         win.localStorage.getItem('effsync_auth');
       }
     });
     
-    // Warte bis Dashboard da ist
+    // Wait until the dashboard is there
     cy.get('.app-container', { timeout: 10000 }).should('exist');
     cy.wait(500);
   });
 
   describe('Notifications Tab in Profile', () => {
     it('sollte zum Profil navigieren und Benachrichtigungen-Tab öffnen', () => {
-      // Zum Profil navigieren über Avatar-Menu
+      // Navigate to the profile through the avatar menu
       cy.get('.avatar', { timeout: 5000 }).should('be.visible').click();
       cy.wait(300);
       
-      // "Mein Profil" Link klicken
+      // Click the "Mein Profil" link
       cy.contains('👤 Mein Profil').should('be.visible').click();
       cy.wait(500);
       
-      // URL sollte /profile enthalten
+      // The URL should contain /profile
       cy.url().should('include', '/profile');
       
-      // Notifications-Tab muss angezeigt sein (klickbar)
+      // The notifications tab must be shown (clickable)
       cy.contains('📬 Benachrichtigungen').should('be.visible');
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Notifications Container sollte aktiv sein
+      // The notifications container should be active
       cy.get('.notifications-container', { timeout: 3000 }).should('be.visible');
     });
 
     it('sollte Filter-Tabs anzeigen und funktionieren', () => {
-      // Zum Profil navigieren
+      // Navigate to the profile
       cy.get('.avatar').click();
       cy.contains('👤 Mein Profil').click();
       cy.wait(300);
       
-      // Benachrichtigungen-Tab öffnen
+      // Open the notifications tab
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Filter-Tabs sollten existieren
+      // The filter tabs should exist
       cy.get('.filter-tab').should('have.length', 4);
       
-      // Tab-Label überprüfen
+      // Check the tab labels
       cy.contains('button', 'Alle').should('be.visible');
       cy.contains('button', 'Änderungen').should('be.visible');
       cy.contains('button', 'Kommentare').should('be.visible');
       cy.contains('button', 'Fällig').should('be.visible');
       
-      // "Alle" sollte aktiv sein
+      // "Alle" should be active
       cy.get('.filter-tab.active').first().should('contain', 'Alle');
       
-      // Auf "Änderungen" klicken
+      // Click "Änderungen"
       cy.contains('button.filter-tab', 'Änderungen').click();
       cy.wait(200);
       
-      // "Änderungen" sollte jetzt aktiv sein
+      // "Änderungen" should be active now
       cy.get('.filter-tab.active').should('contain', 'Änderungen');
     });
 
     it('sollte "Alle lesen" Button anzeigen wenn unread Notifications existieren', () => {
-      // Direkt zum Profil via URL
+      // Go to the profile directly by URL
       cy.visit('http://localhost:5173/profile/1', {
-        onBeforeLoad: (win) => {
+        onBeforeLoad: () => {
           mockAuthSession();
         }
       });
       
       cy.wait(500);
       
-      // Benachrichtigungen-Tab klicken
+      // Click the notifications tab
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // "Alle lesen" Button sollte sichtbar sein (mind. 2 unread notifications)
+      // The "Alle lesen" button should be visible (at least 2 unread notifications)
       cy.contains('button', '✓ Alle lesen').should('be.visible');
     });
 
     it('sollte Notifications-Badge mit unread Count anzeigen', () => {
-      // Badge wird im Profil-Tab angezeigt
+      // The badge is shown in the profile tab
       cy.get('.avatar', { timeout: 5000 }).should('be.visible');
       cy.get('.avatar').click();
       cy.wait(300);
       
-      // "Mein Profil" öffnen
+      // Open "Mein Profil"
       cy.contains('👤 Mein Profil').click();
       cy.wait(500);
       
-      // Tab Badge sollte angezeigt werden mit unread count (3 unread notifications)
+      // The tab badge should show the unread count (3 unread notifications)
       cy.get('.tab-badge', { timeout: 5000 }).should('be.visible');
       cy.get('.tab-badge').should('have.text', '3');
     });
 
     it('sollte Notifications-Reihen mit Daten anzeigen', () => {
-      // Zum Profil navigieren
+      // Navigate to the profile
       cy.get('.avatar').click();
       cy.contains('👤 Mein Profil').click();
       cy.wait(300);
       
-      // Benachrichtigungen-Tab
+      // Notifications tab
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Notification-Reihen sollten existieren
+      // The notification rows should exist
       cy.get('.notification-row').should('have.length.greaterThan', 0);
       
-      // Erste Notification sollte die erwartete Struktur haben
+      // The first notification should have the expected structure
       cy.get('.notification-row').first().should('be.visible');
       cy.contains('Aufgabe aktualisiert').should('be.visible');
     });
@@ -198,14 +198,14 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Notification-Reihen mit unread Klasse
+      // Notification rows with the unread class
       cy.get('.notification-row.unread').should('have.length', 3);
       
-      // Auf erste Notification klicken
+      // Click the first notification
       cy.get('.notification-row.unread').first().click();
       cy.wait(200);
       
-      // Nach Klick sollte ein unread weniger sein
+      // After the click there should be one unread less
       cy.get('.notification-row.unread').should('have.length.lessThan', 3);
     });
 
@@ -217,14 +217,14 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Initial sollten Notifications existieren
-      const initialCount = cy.get('.notification-row').then(el => el.length);
+      // Initially there should be 4 notifications
+      cy.get('.notification-row').should('have.length', 4);
       
-      // Close-Button klicken (X-Button)
+      // Click the close button (X button)
       cy.get('.notification-row-close').first().click();
       cy.wait(200);
       
-      // Eine weniger sollte angezeigt werden
+      // One less should be shown
       cy.get('.notification-row').should('have.length', 3);
     });
 
@@ -236,14 +236,14 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Initial sollten 4 Notifications da sein
+      // Initially there should be 4 notifications
       cy.get('.notification-row').should('have.length', 4);
       
-      // "Löschen" Button klicken
+      // Click the "Löschen" button
       cy.contains('button', '🗑️ Löschen').click();
       cy.wait(300);
       
-      // Empty state sollte angezeigt werden
+      // The empty state should be shown
       cy.get('.empty-state').should('be.visible');
       cy.contains('✨ Keine Benachrichtigungen').should('exist');
     });
@@ -251,23 +251,23 @@ describe('Notifications Feature E2E Tests', () => {
 
   describe('Dark Mode Styling', () => {
     it('sollte im Dark Mode richtig ausgeben', () => {
-      // Dark Mode Toggle finden und aktivieren
+      // Find and switch on the dark mode toggle
       cy.get('.checkbox').first().check({ force: true });
       cy.wait(500);
       
-      // Zur Profil-Seite navigieren
+      // Navigate to the profile page
       cy.get('.avatar').click();
       cy.contains('👤 Mein Profil').click();
       cy.wait(300);
       
-      // Benachrichtigungen-Tab
+      // Notifications tab
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Überprüfe dass CSS angewendet ist (Dark Mode Klasse)
+      // Check that the CSS is applied (dark mode class)
       cy.get('body').should('have.class', 'dark-mode');
       
-      // Filter-Tabs sollten dennoch lesbar sein
+      // The filter tabs should still be readable
       cy.get('.filter-tab').should('be.visible');
     });
   });
@@ -281,27 +281,27 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Alle sollten angezeigt werden (4 Notifications total)
+      // All should be shown (4 notifications in total)
       cy.get('.notification-row').should('have.length', 4);
       
-      // Filter auf "Änderungen" (change type)
+      // Filter on "Änderungen" (change type)
       cy.contains('button.filter-tab', 'Änderungen').click();
       cy.wait(200);
       cy.get('.notification-row').should('have.length', 1);
       cy.contains('Aufgabe aktualisiert').should('be.visible');
       
-      // Filter auf "Kommentare"
+      // Filter on "Kommentare"
       cy.contains('button.filter-tab', 'Kommentare').click();
       cy.wait(200);
       cy.get('.notification-row').should('have.length', 1);
       cy.contains('Neuer Kommentar').should('be.visible');
       
-      // Filter auf "Fällig"
+      // Filter on "Fällig"
       cy.contains('button.filter-tab', 'Fällig').click();
       cy.wait(200);
       cy.get('.notification-row').should('have.length', 1);
       
-      // Zurück zu "Alle"
+      // Back to "Alle"
       cy.contains('button.filter-tab', 'Alle').click();
       cy.wait(200);
       cy.get('.notification-row').should('have.length', 4);
@@ -315,7 +315,7 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Filter-Counts überprüfen
+      // Check the filter counts
       // "Alle" = 4, "Änderungen" = 1, "Kommentare" = 1, "Fällig" = 1, (info = 1)
       cy.get('.filter-tab').contains('Alle').find('.filter-count').should('contain', '4');
       cy.get('.filter-tab').contains('Änderungen').find('.filter-count').should('contain', '1');
@@ -333,21 +333,21 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Unread Notifications sollten existieren (3 unread von setupTestData)
+      // Unread notifications should exist (3 unread from setupTestData)
       cy.get('.notification-row.unread').should('have.length', 3);
       
-      // "Alle lesen" klicken
+      // Click "Alle lesen"
       cy.contains('button', '✓ Alle lesen').click();
       cy.wait(300);
       
-      // Keine unread mehr
+      // No unread ones left
       cy.get('.notification-row.unread').should('have.length', 0);
     });
   });
 
   describe('Empty State', () => {
     it('sollte Empty State anzeigen wenn keine Notifications existieren', () => {
-      // Leere Notifications setzen
+      // Set empty notifications
       cy.window().then((win) => {
         const emptyAuth = {
           accessToken: 'test-token-12345',
@@ -368,15 +368,15 @@ describe('Notifications Feature E2E Tests', () => {
       cy.visit('http://localhost:5173/profile/1');
       cy.wait(500);
       
-      // Benachrichtigungen-Tab
+      // Notifications tab
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(300);
       
-      // Empty State sollte angezeigt werden
+      // The empty state should be shown
       cy.get('.empty-state').should('be.visible');
       cy.contains('✨ Keine Benachrichtigungen').should('exist');
       
-      // Buttons sollten nicht existieren
+      // The buttons should not exist
       cy.contains('✓ Alle lesen').should('not.exist');
       cy.contains('🗑️ Löschen').should('not.exist');
     });
@@ -384,9 +384,9 @@ describe('Notifications Feature E2E Tests', () => {
 
   describe('Notification Types Behavior', () => {
     it('sollte verschiedene Notification Typen korrekt anzeigen', () => {
-      // Refresh page mit fresh data
+      // Refresh the page with fresh data
       cy.visit('http://localhost:5173', {
-        onBeforeLoad: (win) => {
+        onBeforeLoad: () => {
           mockAuthSession();
         }
       });
@@ -400,18 +400,18 @@ describe('Notifications Feature E2E Tests', () => {
       cy.contains('📬 Benachrichtigungen').click();
       cy.wait(500);
       
-      // Notifications Container sollte sichtbar sein
+      // The notifications container should be visible
       cy.get('.notifications-container', { timeout: 5000 }).should('be.visible');
       
-      // Überprüf dass die notification rows da sind
+      // Check that the notification rows are there
       cy.get('.notification-row', { timeout: 5000 }).should('have.length', 4);
       
-      // Einzelne Notifications überprüfen via die Texte in den Headers/Rows
+      // Check single notifications through the texts in the headers/rows
       cy.get('.notification-row').first().within(() => {
         cy.contains('Aufgabe aktualisiert').should('exist'); // change type
       });
       
-      // Anzahl der verschiedenen Typen im Filter überprüfen
+      // Check the number of the different types in the filter
       cy.get('.filter-tab').contains('Änderungen').find('.filter-count').should('contain', '1');
       cy.get('.filter-tab').contains('Kommentare').find('.filter-count').should('contain', '1');
       cy.get('.filter-tab').contains('Fällig').find('.filter-count').should('contain', '1');

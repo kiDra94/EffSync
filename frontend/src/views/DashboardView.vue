@@ -1,21 +1,24 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useNoteStore } from '@/stores/entities/noteStore';
 import { useTaskStore } from '@/stores/entities/taskStore';
-import { apiClient } from '@/api/httpClient';
-import { fetchAllLessonSlots } from '@/api/lessonSlots';
-import { fetchMetrics } from '@/api/metrics';
+import { useMetricsStore } from '@/stores/metricsStore';
 import StatusDistributionChart from '@/components/dashboard/StatusDistributionChart.vue';
 import TaskProgressChart from '@/components/dashboard/TaskProgressChart.vue';
+import TrendChart from '@/components/dashboard/TrendChart.vue';
+import ProjectProgressList from '@/components/dashboard/ProjectProgressList.vue';
+import TopMembersList from '@/components/dashboard/TopMembersList.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const noteStore = useNoteStore();
 const taskStore = useTaskStore();
+// M25 (decision Q19): the tiles' counts come from the store, not api/
+const metricsStore = useMetricsStore();
 
-// Schnelle Notiz
+// Quick note
 const quickNote = ref('');
 const noteInput = ref('');
 
@@ -36,7 +39,7 @@ const addQuickNote = async () => {
   }
 };
 
-// Dynamische Metriken
+// Dynamic metrics
 const metrics = ref([
   { 
     id: 1, 
@@ -91,73 +94,51 @@ const metrics = ref([
     icon: '🏢', 
     color: '#1abc9c',
     route: 'DepartmentList'
+  },
+  // GOALS.md M36: subjects and rooms are managed in the app
+  {
+    id: 7,
+    title: 'Fächer',
+    value: '0',
+    subtext: 'Im System',
+    icon: '📚',
+    color: '#34495e',
+    route: 'SubjectList',
+    adminOnly: true
+  },
+  {
+    id: 8,
+    title: 'Räume',
+    value: '0',
+    subtext: 'Im System',
+    icon: '🚪',
+    color: '#7f8c8d',
+    route: 'RoomList',
+    adminOnly: true
   }
 ]);
 
-const unwrapArray = (input) => {
-  if (Array.isArray(input)) return input;
-  if (!input || typeof input !== 'object') return [];
+// subjects and rooms are managed by Admin and Superuser only (M36)
+const visibleMetrics = computed(() => metrics.value.filter((item) => !item.adminOnly || authStore.isAdmin));
 
-  if (Array.isArray(input.data)) return input.data;
-  if (input.data && Array.isArray(input.data.data)) return input.data.data;
-
-  return [];
-};
-
-// Funktion zum Aktualisieren der Metriken
 const updateMetrics = async () => {
-  // Alle Zählungen parallel via API laden
-  const [taskProgressRes, classesRes, documentsRes, slotsRes, departmentsRes] = await Promise.allSettled([
-    fetchMetrics('task-progress'),
-    apiClient.get('/classes'),
-    apiClient.get('/documents'),
-    fetchAllLessonSlots(),
-    apiClient.get('/departments'),
-  ]);
-
-  const getCount = (result, fallbackKey, directArray = false) => {
-    if (result.status === 'fulfilled') {
-      const data = directArray ? unwrapArray(result.value) : unwrapArray(result.value);
-      return Array.isArray(data) ? data.length : 0;
-    }
-    // Fallback: localStorage-Cache aus dem jeweiligen View
-    try {
-      const cached = localStorage.getItem(`effsync_${fallbackKey}`);
-      if (!cached) return 0;
-      const parsed = JSON.parse(cached);
-      return Array.isArray(parsed) ? parsed.length : 0;
-    } catch { return 0; }
-  };
-
-  const currentUserId = Number(authStore.userId ?? localStorage.getItem('userId'));
-  const documentsData = documentsRes.status === 'fulfilled' ? unwrapArray(documentsRes.value) : [];
-  const ownDocumentsCount = Number.isFinite(currentUserId)
-    ? documentsData.filter((doc) => Number(doc?.added_by) === currentUserId).length
-    : documentsData.length;
-
-  const openTasks = taskProgressRes.status === 'fulfilled'
-    ? Number(taskProgressRes.value?.openTasks ?? (
-        Math.max(0,
-          Number(taskProgressRes.value?.totalTasks ?? 0)
-            - Number(taskProgressRes.value?.completedTasks ?? 0)
-        )
-      ))
-    : taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
+  // the school data comes only from the API (M36, decision D1): no browser cache
+  const counts = await metricsStore.loadDashboardCounts({
+    userId: authStore.userId ?? localStorage.getItem('userId'),
+    isAdmin: authStore.isAdmin,
+  });
+  // without the metric, the loaded tasks give the open ones
+  const openTasks = counts.openTasks
+    ?? taskStore.tasks.filter((t) => String(t.status).toUpperCase() !== 'COMPLETED').length;
 
   metrics.value[0].value = String(openTasks);
-  metrics.value[1].value = String(getCount(classesRes, 'classes'));
-  metrics.value[2].value = String(
-    documentsRes.status === 'fulfilled'
-      ? ownDocumentsCount
-      : getCount({ status: 'rejected' }, 'documents')
-  );
+  metrics.value[1].value = String(counts.classes);
+  metrics.value[2].value = String(counts.ownDocuments);
   metrics.value[3].value = String(noteStore.notes.length);
-  metrics.value[4].value = String(
-    slotsRes.status === 'fulfilled'
-      ? unwrapArray(slotsRes.value).length
-      : getCount({ status: 'rejected' }, 'schedules')
-  );
-  metrics.value[5].value = String(getCount(departmentsRes, 'departments'));
+  metrics.value[4].value = String(counts.lessonSlots);
+  metrics.value[5].value = String(counts.departments);
+  metrics.value[6].value = String(counts.subjects);
+  metrics.value[7].value = String(counts.rooms);
 };
 
 onMounted(() => {
@@ -187,7 +168,7 @@ const handleCardClick = (routeName) => {
     
     <div class="metrics-grid">
       <div 
-        v-for="item in metrics" 
+        v-for="item in visibleMetrics" 
         :key="item.id" 
         class="metric-card"
         :class="{ 'clickable': item.route }" 
@@ -205,7 +186,7 @@ const handleCardClick = (routeName) => {
     </div>
 
     <div class="content-section">
-      <!-- Stundenplan -->
+      <!-- Timetable -->
       <div class="placeholder-box clickable" @click="router.push({name: 'Schedules', query: { today: 'true' }})">
         <h3>📅 Heutiger Stundenplan</h3>
         <p class="schedule-subtitle">Deine heutigen Stunden anschauen...</p>
@@ -214,7 +195,7 @@ const handleCardClick = (routeName) => {
         </button>
       </div>
 
-      <!-- Schnelle Notizen -->
+      <!-- Quick notes -->
       <div class="placeholder-box">
         <h3>⚡ Schnelle Notiz erfassen</h3>
         <input
@@ -237,9 +218,13 @@ const handleCardClick = (routeName) => {
     </div>
 
     <!-- Dashboard Metrics -->
+    <!-- FA-30 to FA-35 (M24) -->
     <div class="metrics-section">
       <StatusDistributionChart />
       <TaskProgressChart />
+      <ProjectProgressList />
+      <TopMembersList />
+      <TrendChart class="wide" />
     </div>
   </div>
 </template>
@@ -252,7 +237,7 @@ const handleCardClick = (routeName) => {
 
 .page-title {
   margin-bottom: 5px;
-  color: #23234c; /* Standard Hell */
+  color: #23234c; /* Default light */
 }
 
 .subtitle {
@@ -268,7 +253,7 @@ const handleCardClick = (routeName) => {
   margin-bottom: 40px;
 }
 
-/* --- KARTEN (Basis) --- */
+/* --- CARDS (base) --- */
 .metric-card {
   background: white;
   padding: 20px;
@@ -391,6 +376,10 @@ const handleCardClick = (routeName) => {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
   margin-top: 40px;
+}
+
+.metrics-section .wide {
+  grid-column: 1 / -1;
 }
 
 :global(body.dark-mode) .dashboard-container .page-title {
