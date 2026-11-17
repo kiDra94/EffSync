@@ -18,6 +18,8 @@ model chat_messages {
   updated_at DateTime?   @updatedAt @db.Timestamp(6)
   chat_rooms chat_rooms? @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction)
   users      users?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([room_id, created_at])
 }
 
 model chat_room_users {
@@ -29,6 +31,7 @@ model chat_room_users {
   users      users      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([room_id, user_id, joined_at])
+  @@index([user_id])
 }
 
 model chat_rooms {
@@ -158,14 +161,14 @@ model notes {
 }
 
 model comments {
-  comment_id         Int              @id @default(autoincrement())
-  task_id            Int?
-  created_by         Int?
-  content            String?
-  created_at         DateTime?        @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?        @db.Timestamp(6)
-  users              users?           @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  tasks              tasks?           @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
+  comment_id Int       @id @default(autoincrement())
+  task_id    Int?
+  created_by Int?
+  content    String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @db.Timestamp(6)
+  users      users?    @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tasks      tasks?    @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model notes_users {
@@ -186,13 +189,15 @@ model notifications {
   created_at      DateTime? @default(now()) @db.Timestamp(6)
   is_read         Boolean?  @default(false)
   users           users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id, created_at])
 }
 
 model permissions {
   permission_id     Int                 @id @default(autoincrement())
-  name              String              @db.VarChar  // z.B. 'create_task', 'edit_grades'
+  name              String              @db.VarChar // z.B. 'create_task', 'edit_grades'
   description       String?
-  flags             Int                 @default(7)          // 4=READ, 2=WRITE, 1=EXECUTE (7=RWX)
+  flags             Int                 @default(7) // 4=READ, 2=WRITE, 1=EXECUTE (7=RWX)
   created_at        DateTime?           @default(now()) @db.Timestamp(6)
   updated_at        DateTime?           @updatedAt @db.Timestamp(6)
   roles_permissions roles_permissions[]
@@ -273,9 +278,12 @@ model task_activity_log {
   timestamp DateTime? @default(now()) @db.Timestamp(6)
   tasks     tasks?    @relation(fields: [task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
   users     users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([task_id])
 }
 
-model task_comments {
+/// Teachers' grading remarks on a task (decision Q16, M15); discussion comments are in `comments`.
+model task_grade {
   comment_id Int       @id @default(autoincrement())
   task_id    Int?
   user_id    Int?
@@ -300,11 +308,15 @@ model task_members {
   task_id   Int
   user_id   Int
   joined_at DateTime @default(now()) @db.Timestamp(6)
+  // the member's rights on the task (T99, decision I4, M38): 4 = READ (see
+  // the members), 2 = WRITE (add and remove them), 1 = EXECUTE (change flags)
+  flags     Int      @default(4)
 
-  tasks     tasks    @relation(fields: [task_id], references: [task_id], onDelete: Cascade)
-  users     users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  tasks tasks @relation(fields: [task_id], references: [task_id], onDelete: Cascade)
+  users users @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@id([task_id, user_id])
+  @@index([user_id])
 }
 
 model task_templates {
@@ -326,7 +338,8 @@ model tasks {
   status                         task_status?        @default(TODO)
   progress                       Int?
   deadline                       DateTime?           @db.Timestamp(6)
-  created_by                     Int?
+  /// T101 (decision Q20, M33): every task has a creator; deleted accounts' tasks go to the ghost user 0
+  created_by                     Int
   assigned_to                    Int?
   template_id                    Int?
   priority_id                    Int?
@@ -339,16 +352,22 @@ model tasks {
   updated_at                     DateTime?           @updatedAt @db.Timestamp(6)
   chat_rooms                     chat_rooms[]
   task_activity_log              task_activity_log[]
-  task_comments                  task_comments[]
+  task_grade                     task_grade[]
+  task_tags                      task_tags[]
   task_documents                 task_documents[]
   task_members                   task_members[]
-    comments                       comments[]
+  comments                       comments[]
   users_tasks_assigned_toTousers users?              @relation("tasks_assigned_toTousers", fields: [assigned_to], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  users_tasks_created_byTousers  users?              @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tasks_created_byTousers  users               @relation("tasks_created_byTousers", fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   tasks                          tasks?              @relation("tasksTotasks", fields: [parent_task_id], references: [task_id], onDelete: NoAction, onUpdate: NoAction)
   other_tasks                    tasks[]             @relation("tasksTotasks")
   priorities                     priorities?         @relation(fields: [priority_id], references: [priority_id], onDelete: NoAction, onUpdate: NoAction)
   task_templates                 task_templates?     @relation(fields: [template_id], references: [template_id], onDelete: NoAction, onUpdate: NoAction)
+
+  // M30 (T87, decision Q8h): the joins and filters of the main queries
+  @@index([parent_task_id])
+  @@index([created_by])
+  @@index([assigned_to])
 }
 
 model teachers {
@@ -365,14 +384,14 @@ model teachers {
 model user_permissions {
   user_id       Int
   permission_id Int
-  valid_from    DateTime?   @default(now()) @db.Timestamp(6)     // Wann die Permission startet
-  valid_to      DateTime?                   @db.Timestamp(6)     // Wann die Permission ENDET (null=unbegrenzt)
+  valid_from    DateTime?   @default(now()) @db.Timestamp(6) // Wann die Permission startet
+  valid_to      DateTime?   @db.Timestamp(6) // Wann die Permission ENDET (null=unbegrenzt)
   assigned_at   DateTime?   @default(now()) @db.Timestamp(6)
   permissions   permissions @relation(fields: [permission_id], references: [permission_id], onDelete: Cascade, onUpdate: NoAction)
   users         users       @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([user_id, permission_id])
-  @@index([valid_from, valid_to])  // Für schnelle Zeitabfragen
+  @@index([valid_from, valid_to]) // Für schnelle Zeitabfragen
 }
 
 model user_roles {
@@ -410,12 +429,12 @@ model users {
   notes                                  notes[]
   notes_users                            notes_users[]
   notifications                          notifications[]
-    comments                              comments[]
+  comments                               comments[]
   email_preferences                      email_preferences?
   email_logs                             email_logs[]
   students                               students?
   task_activity_log                      task_activity_log[]
-  task_comments                          task_comments[]
+  task_grade                             task_grade[]
   tasks_tasks_assigned_toTousers         tasks[]             @relation("tasks_assigned_toTousers")
   tasks_tasks_created_byTousers          tasks[]             @relation("tasks_created_byTousers")
   teachers_teachers_supervisor_idTousers teachers[]          @relation("teachers_supervisor_idTousers")
@@ -425,6 +444,10 @@ model users {
   taskTemplates                          task_templates[]
   task_members                           task_members[]
   chat_rooms_created                     chat_rooms[]        @relation("chat_rooms_created")
+  refresh_tokens                         refresh_tokens[]
+  user_two_factor                        user_two_factor?
+  user_settings                          user_settings?
+  user_avatars                           user_avatars?
 }
 
 model email_preferences {
@@ -459,4 +482,61 @@ enum task_status {
   IN_REVIEW
   ON_HOLD
   COMPLETED
+}
+
+/// One login session (decision Q8b, T51): only the SHA-256 hash of the refresh
+/// token is stored; refresh rotates it (revoked_at set, new row), logout revokes it.
+/// T31 (decision Q8d, M32): the user's TOTP secret, encrypted with
+/// TWO_FACTOR_ENCRYPTION_KEY; enabled_at is null until the first code confirms
+/// the setup. An admin reset deletes the row; deleting the user deletes it.
+model user_two_factor {
+  user_id          Int       @id
+  secret_encrypted String    @db.VarChar
+  enabled_at       DateTime? @db.Timestamp(6)
+  users            users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+/// T68 (decision Q8f, M25): the user's settings, stored on the server so they
+/// follow the user to every device; theme is light, dark or system.
+model user_settings {
+  user_id Int    @id
+  theme   String @default("light") @db.VarChar(10)
+  users   users  @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+// the profile picture (T47, decision Q8c, M27): image bytes, at most 1 MB
+model user_avatars {
+  user_id    Int      @id
+  mime_type  String   @db.VarChar(50)
+  data       Bytes
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  users      users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model refresh_tokens {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token_hash String    @unique @db.VarChar(64)
+  expires_at DateTime  @db.Timestamp(6)
+  revoked_at DateTime? @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+/// Tags/labels on tasks (T59, FA-25, decision Q8e, M18)
+model tags {
+  tag_id    Int         @id @default(autoincrement())
+  name      String      @unique @db.VarChar(50)
+  task_tags task_tags[]
+}
+
+model task_tags {
+  task_id Int
+  tag_id  Int
+  tasks   tasks @relation(fields: [task_id], references: [task_id], onDelete: Cascade)
+  tags    tags  @relation(fields: [tag_id], references: [tag_id], onDelete: Cascade)
+
+  @@id([task_id, tag_id])
+  @@index([tag_id])
 }

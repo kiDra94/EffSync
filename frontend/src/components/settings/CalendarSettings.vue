@@ -3,14 +3,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 
 const calendarSettings = ref({
     showTasks: true,
-    showTaskStatuses: {     // ✅ Aus Schema: task_status enum
+    showTaskStatuses: {     // ✅ From the schema: task_status enum
         TODO: true,
         IN_PROGRESS: true,
         IN_REVIEW: true,
         ON_HOLD: true,
         COMPLETED: true
     },
-    showTaskPriorities: {   // ✅ 1-4 aus priorities table
+    showTaskPriorities: {   // ✅ 1-4 from the priorities table
         1: true,    // low
         2: true,    // medium
         3: true,    // high
@@ -26,19 +26,6 @@ const calendarSettings = ref({
     onlyMyTasks: false,
     hideCompleted: false
 })
-
-// ✅ Active Status Filter
-const activeStatuses = computed(() =>
-    Object.keys(calendarSettings.value.showTaskStatuses)
-        .filter(status => calendarSettings.value.showTaskStatuses[status])
-)
-
-// ✅ Active Priority Filter  
-const activePriorities = computed(() =>
-    Object.keys(calendarSettings.value.showTaskPriorities)
-        .filter(p => calendarSettings.value.showTaskPriorities[p])
-        .map(Number)
-)
 
 const timeSlots = computed(() => {
     const slots = []
@@ -71,7 +58,7 @@ watch(calendarSettings, saveSettings, { deep: true })
     <div class="calendar-settings">
         <h3 class="settings-title">Kalender Einstellungen</h3>
 
-        <!-- Anzeige Toggle -->
+        <!-- Display toggle -->
         <div class="settings-group">
             <h4>Anzeigen</h4>
             <div class="toggle-list">
@@ -126,7 +113,7 @@ watch(calendarSettings, saveSettings, { deep: true })
             </div>
         </div>
 
-        <!-- Prioritäten Filter -->
+        <!-- Priority filter -->
         <div class="settings-group" v-if="calendarSettings.showTasks">
             <h4>Priorität</h4>
             <div class="chip-grid">
@@ -153,7 +140,7 @@ watch(calendarSettings, saveSettings, { deep: true })
             </div>
         </div>
 
-        <!-- Zeitbereich -->
+        <!-- Time range -->
         <div class="settings-group">
             <h4>Uhrzeitbereich</h4>
             <div class="time-range">
@@ -253,7 +240,7 @@ watch(calendarSettings, saveSettings, { deep: true })
     flex-shrink: 0;
 }
 
-/* ✅ Chip Grid (Status + Priorität) */
+/* ✅ Chip grid (status + priority) */
 .chip-grid {
     display: flex;
     flex-wrap: wrap;
@@ -293,7 +280,7 @@ watch(calendarSettings, saveSettings, { deep: true })
     display: none;
 }
 
-/* ✅ Zeit Input */
+/* ✅ Time input */
 .time-range {
     display: flex;
     align-items: flex-end;

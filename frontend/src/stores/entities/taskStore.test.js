@@ -76,7 +76,9 @@ describe('TaskStore', () => {
 
             try {
                 await store.addTask({});
-            } catch (e) {}
+            } catch {
+                // the rejection itself is not under test here
+            }
 
             expect(store.tasks).toContainEqual(existing);
         });
@@ -128,9 +130,10 @@ describe('TaskStore', () => {
     });
 
     describe('changeStatus', () => {
-        it('changes task status to COMPLETED and sets progress to 100', async () => {
+        // T100 (M16): COMPLETED only at 100 %; the store no longer sets the progress itself
+        it('changes task status to COMPLETED without touching the progress', async () => {
             const store = useTaskStore();
-            const task = createMockTask({ task_id: '1', progress: 50 });
+            const task = createMockTask({ task_id: '1', progress: 100 });
             store.tasks = [task];
             vi.mocked(tasksApi.patchTask).mockResolvedValue({});
 
@@ -138,6 +141,7 @@ describe('TaskStore', () => {
 
             expect(store.tasks[0].status).toBe('COMPLETED');
             expect(store.tasks[0].progress).toBe(100);
+            expect(tasksApi.patchTask).toHaveBeenCalledWith('1', { status: 'COMPLETED' });
         });
 
         it('changes status without modifying progress for non-COMPLETED', async () => {
@@ -158,6 +162,8 @@ describe('TaskStore', () => {
             vi.mocked(tasksApi.patchTask).mockRejectedValue(new Error('Patch Failed'));
 
             await expect(store.changeStatus('1', 'COMPLETED')).rejects.toThrow('Patch Failed');
+            // review M16: a refused change (e.g. COMPLETED below 100 %) is rolled back
+            expect(store.tasks[0].status).toBe('TODO');
         });
     });
 
@@ -531,5 +537,47 @@ describe('TaskStore', () => {
 
         //     expect(result).toBe(false);
         // });
+    });
+});
+
+// M25 (decision Q19): the calendar and the task form change deadlines
+// through the store, not through the api/ layer
+describe('TaskStore deadlines', () => {
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        vi.clearAllMocks();
+    });
+
+    it('moves a deadline and keeps the loaded task in step', async () => {
+        const store = useTaskStore();
+        store.tasks = [{ task_id: 4, deadline: '2026-11-01T10:00:00.000Z' }];
+        vi.mocked(tasksApi.patchTask).mockResolvedValue({});
+
+        await store.moveDeadline(4, '2026-11-12T10:00:00.000Z');
+
+        expect(tasksApi.patchTask).toHaveBeenCalledWith(4, { deadline: '2026-11-12T10:00:00.000Z' });
+        expect(store.tasks[0].deadline).toBe('2026-11-12T10:00:00.000Z');
+    });
+
+    it('unlocks a task with a new deadline and reloads the tasks', async () => {
+        const store = useTaskStore();
+        vi.mocked(tasksApi.updateDeadlineAndUnlock).mockResolvedValue({});
+        vi.mocked(tasksApi.fetchTasks).mockResolvedValue([{ task_id: 4, is_locked: false }]);
+
+        await store.unlockWithDeadline(4, '2026-11-12T10:00:00.000Z');
+
+        expect(tasksApi.updateDeadlineAndUnlock).toHaveBeenCalledWith(4, '2026-11-12T10:00:00.000Z');
+        expect(store.tasks).toEqual([{ task_id: 4, is_locked: false }]);
+    });
+
+    // review M25: the unlock went through, a failed reload doesn't undo that
+    it('reports the unlock as done when only the reload fails', async () => {
+        const store = useTaskStore();
+        vi.mocked(tasksApi.updateDeadlineAndUnlock).mockResolvedValue({});
+        vi.mocked(tasksApi.fetchTasks).mockRejectedValue(new Error('offline'));
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        await expect(store.unlockWithDeadline(4, '2026-11-12T10:00:00.000Z')).resolves.toBeUndefined();
     });
 });

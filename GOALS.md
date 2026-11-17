@@ -40,7 +40,7 @@ Thesis-related findings (T01–T130) are in [THESIS_ALIGNMENT.md](THESIS_ALIGNME
 1. **Bug: search is ignored for non-teachers.** `backend/src/modules/tasks/tasks.service.ts:109` sets `where.OR` for the search term, then `:129` overwrites `where.OR` with the visibility filter. Students' `?search=` has no effect.
 2. **A read endpoint writes to the DB, with N+1 queries.** `TasksService.findAll()` calls `recalculateTaskCompletionFromGrades()` for every returned task (`tasks.service.ts:191-208`). That function can `UPDATE` tasks (`:776`), and it runs 3–4 queries per task. The recalculation on read itself is thesis behavior (T119); the N+1 queries are the problem.
 3. **Duplicated completion logic.** `TasksService.recalculateTaskCompletionFromGrades` (`tasks.service.ts:670-785`) and `DocumentsService.completeTaskIfAllParticipantsGraded` (`documents.service.ts:423-541`) are near-identical ~115-line copies.
-4. **Role checks via hardcoded role-name strings, implemented 4+ times.** `tasks.service.ts:122-127` and `:151-161` (same check twice in one function), `documents.service.ts:185-286` (`normalizeRole`, `isTeacher`, `isStudentContext`, including German aliases such as "schueler"/"lehrer"), `documents.service.ts:288` (`getTeacherNotificationRecipients`). A `RoleName` enum already exists in `backend/src/config/role-permissions.config.ts` but these places don't use it.
+4. **Role checks via hardcoded role-name strings, implemented 4+ times.** `tasks.service.ts:122-127` and `:151-161` (same check twice in one function), `documents.service.ts:185-286` (`normalizeRole`, `isTeacher`, `isStudentContext`, including German aliases such as "schueler"/"lehrer"), `documents.service.ts:288` (`getTeacherNotificationRecipients`). A `RoleName` enum already exists in `backend/src/contexts/identity-access/domain/role-permissions.ts` but these places don't use it.
 5. **Permission check copied inline instead of using `PermissionsService`.** `TasksService.remove()` (`tasks.service.ts:463-528`) re-implements the flag and validity-window check with a magic `READ_FLAG = 4`, even though `PermissionsService` is injected into the same class (`:19`) and has `hasAnyPermission()`.
 6. **Three authorization mechanisms, but only one in use.**
    - Used everywhere: `auth/guards/permissions.guard.ts` + `@Permissions()`.
@@ -152,27 +152,27 @@ backend/src/shared/{domain,application,infrastructure,presentation}/
 
 The refactor is done when all of the following hold:
 
-- [ ] `cd backend && npx jest`, `npm run test:e2e` and `cd frontend && npx vitest run` pass, in CI as well. Every characterization test from M1/M2 still passes. Tests marked `// THESIS: <claim ID>` were flipped in the milestone that fixed the claim; any other change is listed in PROGRESS.md with the reason.
+- [x] `cd backend && npx jest`, `npm run test:e2e` and `cd frontend && npx vitest run` pass, in CI as well. Every characterization test from M1/M2 still passes. Tests marked `// THESIS: <claim ID>` were flipped in the milestone that fixed the claim; any other change is listed in PROGRESS.md with the reason.
 - [ ] **Every descriptive claim in [THESIS_ALIGNMENT.md](THESIS_ALIGNMENT.md) has status Implemented.** Each one is verified by a test that names the claim ID, or by a manual check documented in PROGRESS.md (for UI, browser and performance claims). Ambiguous claims count once their open question is answered. Claims with status Deferred (company version, decision Q1; production operation, decision Q4) are excluded.
-- [ ] **Every Delete item in [UNUSED_CODE.md](UNUSED_CODE.md) is gone, and every Planned item is implemented or listed as an open question.**
-- [ ] **The backend follows the target architecture**: all modules live under `src/contexts/*` or `src/shared/`, and `npx depcruise src --config .dependency-cruiser.cjs` runs in CI with severity `error` and 0 violations.
-- [ ] **`npx knip` reports no unused files, exports or dependencies in backend and frontend**, and runs in CI.
-- [ ] Coverage per the thesis (`08_…:39-43`):
+- [x] **Every Delete item in [UNUSED_CODE.md](UNUSED_CODE.md) is gone, and every Planned item is implemented or listed as an open question.**
+- [x] **The backend follows the target architecture**: all modules live under `src/contexts/*` or `src/shared/`, and `npx depcruise src --config .dependency-cruiser.cjs` runs in CI with severity `error` and 0 violations.
+- [x] **`npx knip` reports no unused files, exports or dependencies in backend and frontend**, and runs in CI.
+- [x] Coverage per the thesis (`08_…:39-43`):
   - ≥ 90 % lines for `AuthService`, `JwtAuthGuard`, `LocalAuthGuard`, the task use cases/aggregate (thesis: `TaskService`), and the frontend auth store, task store and `httpClient`.
   - ≥ 75 % for the user and permission services and the frontend router guards.
   - Backend overall ≥ 60 %.
-- [ ] Every endpoint listed in `08_…:112-138` has E2E tests for the happy path and the 400/401/403/404 paths (T121, T123).
-- [ ] No spec file whose only assertion is `toBeDefined()`. All spec files are picked up by a jest config.
-- [ ] `npx eslint` reports 0 errors in `backend/src` and `frontend/src`, with the `no-unsafe-*` rules back at `error` everywhere (decision Q13), and CI runs lint and `npm run build` for both projects.
-- [ ] No source file in `backend/src` over 500 lines, no backend method over 80 lines.
-- [ ] No `.vue` file over 800 lines (including style).
-- [ ] Role names appear as string literals only in `config/role-permissions.config.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
-- [ ] Permission checks go only through `PermissionsService` / `PermissionsGuard` / `RolesGuard`: no `user_permissions` or `roles_permissions` queries outside `identity-access/infrastructure`.
-- [ ] Exactly one axios instance in `frontend/src/api/`; no `apiClient` import, no `fetch(` (T79) and no import from `@/api/` (T80, decision Q19) in `views/` or `components/`, enforced by an ESLint `no-restricted-imports` rule.
-- [ ] No hardcoded `localhost` URLs in `frontend/src` outside one config module.
-- [ ] No domain data in localStorage: it holds only the auth tokens and per-browser UI conveniences (decision D1).
-- [ ] Backend fails to start when `JWT_SECRET` is missing, and there is no fallback secret in the code.
-- [ ] API routes, request/response shapes and the Prisma schema change only where a milestone implements a thesis claim or an answered open question requires it. Every such change is listed in PROGRESS.md.
+- [x] Every endpoint listed in `08_…:112-138` has E2E tests for the happy path and the 400/401/403/404 paths (T121, T123).
+- [x] No spec file whose only assertion is `toBeDefined()`. All spec files are picked up by a jest config.
+- [x] `npx eslint` reports 0 errors in `backend/src` and `frontend/src`, with the `no-unsafe-*` rules back at `error` everywhere (decision Q13), and CI runs lint and `npm run build` for both projects.
+- [x] No source file in `backend/src` over 500 lines, no backend method over 80 lines.
+- [x] No `.vue` file over 800 lines (including style).
+- [x] Role names appear as string literals only in `contexts/identity-access/domain/role-permissions.ts` (the `RoleName` enum) and `prisma/seed.ts`. `@Roles(...)` uses the enum.
+- [x] Permission checks go only through `PermissionsService` / `PermissionsGuard` / `RolesGuard`: no `user_permissions` or `roles_permissions` queries outside `identity-access/infrastructure`.
+- [x] Exactly one axios instance in `frontend/src/api/`; no `apiClient` import, no `fetch(` (T79) and no import from `@/api/` (T80, decision Q19) in `views/` or `components/`, enforced by an ESLint `no-restricted-imports` rule.
+- [x] No hardcoded `localhost` URLs in `frontend/src` outside one config module.
+- [x] No domain data in localStorage: it holds only the auth tokens and per-browser UI conveniences (decision D1).
+- [x] Backend fails to start when `JWT_SECRET` is missing, and there is no fallback secret in the code.
+- [x] API routes, request/response shapes and the Prisma schema change only where a milestone implements a thesis claim or an answered open question requires it. Every such change is listed in PROGRESS.md.
 
 ## Constraints
 
@@ -216,7 +216,7 @@ Rules for all milestones:
 
 ### Foundation
 
-- [ ] **M1: Characterization tests for tasks and documents**
+- [x] **M1: Characterization tests for tasks and documents**
   - Why: the two largest services (`tasks.service.ts` 35 % covered, `documents.service.ts` 59 %) are the main refactor targets and contain the authorization rules. Without tests, the later milestones can't be verified.
   - Scope:
     - `TasksService`:
@@ -231,7 +231,7 @@ Rules for all milestones:
   - Done when: `npx jest --coverage` shows ≥ 70 % lines for both files, all tests pass, and every thesis contradiction touched has its `// THESIS:` marker.
   - Risk: low. Only test files are added.
 
-- [ ] **M2: Characterization tests for permissions, task members, users, auth and chat rooms**
+- [x] **M2: Characterization tests for permissions, task members, users, auth and chat rooms**
   - Why: `permissions.service.ts` (68 %), `users.service.ts` (8 %), `task-members.service.ts` (44 %), the `PermissionsGuard` and the chat-room controller back the RBAC that M6–M9 change. `backend/test/task-members.service.spec.ts` never runs (T127, UNUSED_CODE.md: Keep and move).
   - Done when:
     - The orphaned spec is moved under `src/` and runs, merged with the existing one.
@@ -243,7 +243,7 @@ Rules for all milestones:
     - `users.service.ts` ≥ 60 %, `permissions.service.ts` ≥ 80 %.
   - Risk: low. Only test files and jest config change.
 
-- [ ] **M3: Automated E2E setup with a separate test database and `test-seed.ts`**
+- [x] **M3: Automated E2E setup with a separate test database and `test-seed.ts`**
   - Why: T122 (`08_…:105`): before the API suite the DB is reset with `prisma migrate reset --force` and refilled from `test-seed.ts`, automated through the Jest config. Today `test/jest-e2e.json` has no setup, `prisma/test-seed.ts` is unused (UNUSED_CODE.md: Planned/Keep), and `mitgliederverwaltung.e2e-spec.ts` writes to the dev DB (T04, T126).
   - Steps:
     1. Add `.env.test` with its own `DATABASE_URL`.
@@ -255,7 +255,7 @@ Rules for all milestones:
   - Done when: `npm run test:e2e` runs all 3 E2E files twice in a row with identical results and never touches the dev DB. The CI E2E job is green; `mitgliederverwaltung` stays red only for documented thesis gaps (T130), which are marked `// THESIS:`.
   - Risk: medium. `mitgliederverwaltung.e2e-spec.ts` has never run against the real prefix and may need fixes.
 
-- [ ] **M4: Make lint and build usable and add them to CI**
+- [x] **M4: Make lint and build usable and add them to CI**
   - Why: `npm run lint` auto-fixes files and reports 441 backend and 306 frontend errors. Frontend `npm run build` fails (`vue-tsc` missing). The thesis says CI runs tests **and builds** (T22). Per decision Q4 this CI also fulfils the "CI/CD-Pipeline" of T17; the CD part is the deployment, which is future work (F1).
   - Steps:
     1. Add `lint:check` scripts without `--fix`.
@@ -268,7 +268,7 @@ Rules for all milestones:
   - Done when: `npm run lint:check` and `npm run build` exit 0 in both projects, the `no-unsafe-*` warning count is recorded in PROGRESS.md as the baseline, and CI is green with the new steps.
   - Risk: medium. The mass formatting commit touches most files; it is a separate commit so that `git blame` can skip it (`.git-blame-ignore-revs`). No coordination with Ereny is needed (decision Q12).
 
-- [ ] **M5: Remove unused code**
+- [x] **M5: Remove unused code**
   - Why: UNUSED_CODE.md. No effort should go into migrating code that gets deleted.
   - Scope: **every item with recommendation "Delete" in [UNUSED_CODE.md](UNUSED_CODE.md)**, including the newly found ones:
     - the stub modules `templates` and `task-activity`, with `frontend/src/api/taskTemplates.js` repointed to `/task-templates` in the same change. This fixes T110's endpoint and un-shadows T33's API.
@@ -287,7 +287,7 @@ Rules for all milestones:
 
 ### Security alignment (before the restructuring, because these are exploitable today)
 
-- [ ] **M6: Chat-room authorization**
+- [x] **M6: Chat-room authorization**
   - Why: T02, T114, T96, T128.
     - `POST /chat/rooms/:id` and `POST /chat/rooms/:id/members` let anyone add anyone to any room.
     - `DELETE /chat/rooms/:id` (`leaveRoom`, `chat-rooms.controller.ts:48`) removes any user named in the request body, and it shadows the creator-checked `deleteRoom` (`:60`).
@@ -302,7 +302,7 @@ Rules for all milestones:
   - Done when: the M2 `// THESIS: T02` tests are flipped and unauthorized attempts get 403. `GET /api-json` has no `/chat/` route left. E2E tests cover leave, kick by the creator, kick by a non-creator (403), add by the creator, and add by a non-creator member (403).
   - Risk: medium. The frontend `chatStore` and `api/chat.js:4-5` call these routes and have to change in the same milestone.
 
-- [ ] **M7: `RolesGuard` and role checks per thesis (+ search bug)**
+- [x] **M7: `RolesGuard` and role checks per thesis (+ search bug)**
   - Why:
     - T92/T97: `RolesGuard` + `@Roles(...)` and the check order token → role → permission (UNUSED_CODE.md: Planned).
     - Problem 4: role-name checks duplicated in `tasks.service.ts:122`, `:151` and `documents.service.ts:185-286`, `:288`.
@@ -321,7 +321,7 @@ Rules for all milestones:
   - First step of the milestone (decisions Q10, C1): run `SELECT name FROM roles;` on every database in use and record the result in PROGRESS.md. The aliases are removed only if every result shows English role names; a database with German names first gets a one-off rename to the English names.
   - Risk: medium. Changing role checks can lock users out; the guard-order and visibility tests cover it.
 
-- [ ] **M8: Permission flags and explicit permissions**
+- [x] **M8: Permission flags and explicit permissions**
   - Why:
     - T94: `PermissionsGuard` always checks `READ` (`permissions.guard.ts:63`).
     - T54/T72: many endpoints use `@Permissions()` without arguments, so e.g. `POST /tasks` never returns 403.
@@ -333,7 +333,7 @@ Rules for all milestones:
   - Done when: every `@Permissions()` call has at least one argument (checked by grep), flag tests exist, the M1 `remove` tests pass unchanged, and E2E covers 403 for `POST /tasks` without `create_tasks`.
   - Risk: medium. Tightening permissions can lock out seeded users, so check the seed against the new table.
 
-- [ ] **M9: Login, hashing and secrets per thesis**
+- [x] **M9: Login, hashing and secrets per thesis**
   - Why:
     - T116: `LocalAuthGuard` with `passport-local`.
     - T49: login with username or e-mail.
@@ -359,7 +359,7 @@ Rules for all milestones:
 
 ### Domain-driven restructuring and thesis alignment per context
 
-- [ ] **M10: Context skeleton and dependency rules (warn mode)**
+- [x] **M10: Context skeleton and dependency rules (warn mode)**
   - Why: L1. Sets up the target architecture before anything moves.
   - Steps:
     1. Create `src/contexts/<context>/{domain,application,infrastructure,presentation}` for the seven contexts, plus `src/shared/`.
@@ -370,13 +370,13 @@ Rules for all milestones:
   - Done when: `npx depcruise src --config .dependency-cruiser.cjs` runs in CI, the build is green, and the baseline is recorded.
   - Risk: low. Nothing moves yet.
 
-- [ ] **M11: Migrate `identity-access`**
+- [x] **M11: Migrate `identity-access`**
   - Why: L1. All other contexts depend on authentication and authorization, so this context goes first.
   - Scope: `auth`, `users`, `roles`, `permissions`; the guards and decorators go to `identity-access/presentation/security/` and are re-exported via `shared/presentation/security/`.
   - Done when: these modules live only under `contexts/identity-access`, it has 0 dependency-cruiser violations, all M2 tests pass unchanged, and `GET /api-json` is unchanged.
   - Risk: medium. Every controller imports the guards, so the re-export path must be stable before the other contexts move.
 
-- [ ] **M12: Token model per thesis: access, refresh, logout**
+- [x] **M12: Token model per thesis: access, refresh, logout**
   - Why: T51 (access token 15 min, refresh token 7 days, `05_…:550-551`) and T123 (`/api/auth/logout`, `08_…:123`).
   - Steps:
     1. Issue a 15-minute access token plus a 7-day refresh token.
@@ -387,17 +387,19 @@ Rules for all milestones:
   - Done when: E2E covers login → refresh → logout, an expired access token returns 401, a revoked or already-rotated refresh token returns 401, logout on one session leaves another session working, and the frontend refresh is tested in Vitest.
   - Risk: medium. It changes session behavior for every user, and the WebSocket JWT (`websocket.module.ts:13`) has to follow the same lifetime. Additive schema change (approved, Q8b); `seed.ts` and `test-seed.ts` clear the table.
 
-- [ ] **M13: Password reset by e-mail**
+- [x] **M13: Password reset by e-mail**
   - Why: T52. `ForgotPasswordView` posts to `/auth/forgot-password`, which doesn't exist; reset works only via Google.
   - Steps:
     1. Add `POST /auth/forgot-password`, which sends a reset link through the existing `EmailService`. It always answers 204, so it doesn't reveal whether an e-mail exists.
     2. The link carries a signed JWT (purpose `reset`, 30 min), signed with `JWT_SECRET` plus the user's current password hash, so it stops working once the password has changed (decision Q8a, no schema change).
     3. Accept the token in `set-new-password`.
     4. Keep the Google reset path.
-  - Done when: an E2E test requests a reset, reads the token from the test mail transport and sets a new password; reusing the same link afterwards and using an expired link both return 401; the frontend flow works against the real backend.
+    5. Found in M11: `GoogleStrategy` looks an account up by `username` = the Google e-mail and otherwise creates a new user, so a local account whose username differs from its e-mail collides on the unique `email` and the callback fails with 500. Look accounts up by `google_id`, then by e-mail, and move the user provisioning (with the default role) from the strategy into `AuthService` behind `UserRepository`, so registration and Google sign-in share one rule.
+    6. Found in M12: setting a new password (reset link or Google reset) leaves the user's refresh tokens active, so a stolen session keeps refreshing. Revoke all of the user's sessions in `refresh_tokens` when the password changes.
+  - Done when: an E2E test requests a reset, reads the token from the test mail transport and sets a new password; reusing the same link afterwards and using an expired link both return 401; a refresh token issued before the password change returns 401 afterwards; the frontend flow works against the real backend.
   - Risk: low–medium. No schema change. `set-new-password` must tell a reset token apart from a normal access token by its purpose claim.
 
-- [ ] **M14: Ghost-user anonymization on account deletion (DSGVO)**
+- [x] **M14: Ghost-user anonymization on account deletion (DSGVO)**
   - Why: T10 (`03_…:295-299`). Deleting an account must anonymize instead of hard-deleting (per-user rows in `refresh_tokens`, `user_settings`, `user_avatars` and `user_two_factor` are deleted with the personal record; a milestone that adds one of these tables after M14 extends the deletion and its test): messages are reassigned to a ghost user with `user_id 0`, which the seed creates.
   - Steps:
     1. Seed user 0 (and `test-seed.ts`).
@@ -405,7 +407,7 @@ Rules for all milestones:
   - Done when: the M2 `// THESIS: T10` test is flipped, and an E2E test deletes a user with messages and shows the chat history intact under the ghost user.
   - Risk: medium. FK rules (`NoAction`) on several tables have to be checked; if one needs a schema change, it goes under Open questions first.
 
-- [ ] **M15: Migrate `task-management` (L1 core)**
+- [x] **M15: Migrate `task-management` (L1 core)**
   - Why: `11_…:29-31`, `10_…:9`, T32. This is the thesis's central example.
   - Steps:
     1. Create the `Task` aggregate in `domain/`, with `validateNoCircularReference`, `buildTree`, `evaluateCondition` and the status rules.
@@ -427,6 +429,7 @@ Rules for all milestones:
        4. Deleting a task deletes its comments and grading remarks, as it deletes `task_comments` today.
        5. Update `seed.ts` and `test-seed.ts`.
     5. Take over the remaining `task-members`, `task-templates` and `task-activity-log` code into the context and remove the old modules.
+    6. Found in M14: `PrismaUserRepository.anonymizeAndDelete` (identity-access) writes the task tables directly (`tasks`, `comments`, `task_comments`, `task_activity_log`, `task_templates`). Move that part behind an account-deletion port that task-management implements and identity-access calls inside the same unit of work, so rule 4 holds. M19 (documents, notes), M20 (chat) and M22 (teachers, students, classes) do the same for their tables.
   - Done when:
     - The task code lives only under `contexts/task-management`, with 0 dependency-cruiser violations.
     - A test makes the activity-log write fail and shows the task change rolled back.
@@ -437,7 +440,7 @@ Rules for all milestones:
     - No file is over 500 lines.
   - Risk: high. This is the largest move and touches `TasksService`'s consumers in documents and websocket; rely on M1. It includes the approved schema change (table rename plus data migration), after which the schema differs from the thesis appendix (`prisma_schema.tex:326`) by decision Q16.
 
-- [ ] **M16: Task rules and notifications per thesis**
+- [x] **M16: Task rules and notifications per thesis**
   - Why:
     - T100: `COMPLETED` only at 100 %; the UI blocks the checkbox and the backend enforces it.
     - T107: auto-completion events go to all involved users.
@@ -449,20 +452,22 @@ Rules for all milestones:
     3. Send realtime updates to creator, assignee and members.
     4. Notify on create/assign, member add/remove and status change through the `notifications` application port.
     5. Creating a subtask (`POST /tasks` with `parent_task_id`, `createSubTask`) requires being the creator or a member of the root task, otherwise 403. Creating a top-level task starts a new project and stays open to every authenticated user with `create_tasks`.
+    6. Found in M14: the ghost user 0 is no real person. It can't be added as a task member (400), an `@geloeschter-nutzer` mention sends no mail, and no notification is created for user 0 (for example when a ghost-owned document is graded).
   - Done when: the `// THESIS: T100/T107` tests are flipped, new tests cover each notification type, the frontend checkbox has a Vitest test, and E2E shows a non-member getting 403 when creating a subtask and a member succeeding.
   - Risk: medium. Auto-completion and the cascade-to-children logic set progress themselves and must keep working. The membership check is a behavior change: check the seed and the frontend's subtask flow for users who aren't members today.
 
-- [ ] **M17: Unify completion from grades, keeping the read-time recalculation**
+- [x] **M17: Unify completion from grades, keeping the read-time recalculation**
   - Why: problems 2 and 3, T119. The thesis's own unit test (`08_…:84-90`) pins that `findOne` recalculates the status on read, so the recalculation stays. Decision B3: student pagination is wrong today (a page plus all its descendants, counted as `total`).
   - Steps:
     1. Keep one implementation of `completeIfAllStudentsGraded` in `task-management/application`, called by grading in `documents-notes` and by the read paths.
     2. Load participants and graded submissions for all listed tasks in batched queries instead of per task.
     3. Add the thesis test "recalculates task status in findOne".
     4. For students, first determine the set of visible task IDs (created, assigned, member, plus all descendants), then page, sort and count over that set, so a page holds at most `limit` tasks and `meta.total`/`totalPages` are correct (decision B3).
-  - Done when: exactly one implementation exists, the thesis test exists and passes, `findAll` uses a constant number of queries regardless of page size (asserted with a Prisma mock call count), and a test with 25 visible tasks (including subtasks) and `limit=10` returns 10, 10 and 5 tasks with `total` 25 and `totalPages` 3 for a student.
+    5. Found in M15: `GET /tasks/:id` and its sub-resources (`/comments` read and write, `/activity`, `/documents`, `/subtasks`, `/tree`) check only `view_dashboard`, so a student can read a task, its discussion and its log, and comment on it, outside their visible set. Apply the same visibility rule (staff, or the task is in the user's visible set from step 4) to all of them and answer 404 otherwise; the grading remarks (member or staff) and the member list (member or READ) keep their own checks.
+  - Done when: exactly one implementation exists, the thesis test exists and passes, a student gets 404 on `GET /tasks/:id/comments` of a task outside their visible set, `findAll` uses a constant number of queries regardless of page size (asserted with a Prisma mock call count), and a test with 25 visible tasks (including subtasks) and `limit=10` returns 10, 10 and 5 tasks with `total` 25 and `totalPages` 3 for a student.
   - Risk: medium. Grading semantics are subtle; rely on M1's document tests.
 
-- [ ] **M18: Task list, priorities and templates per thesis**
+- [x] **M18: Task list, priorities and templates per thesis**
   - Why:
     - T57: filter by status, priority, due date and text.
     - T58: four priority levels (niedrig, mittel, hoch, dringend); today the seed has 10 and the UI shows wrong names.
@@ -471,12 +476,15 @@ Rules for all milestones:
   - Steps:
     1. Add priority and due-date filters to `useTaskFilters`/`TaskFilters.vue`.
     2. Seed exactly the four priorities with the names the UI shows. A data migration (decision Q15) renames IDs 1–4 to Niedrig, Mittel, Hoch, Dringend (what users selected in `TaskForm`), maps tasks and notes with IDs 5–10 by name (Sehr Wichtig, Hoch → 3; Sehr Hoch, Dringend, Kritisch, Blocker → 4), then deletes IDs 5–10. Update `seed.ts` (e.g. `:410`) and `test-seed.ts`.
-    3. Add a "save as template" action in `TaskForm` that calls `/tasks/templates` (decision Q6).
+    3. Add a "save as template" action in `TaskForm` that calls `/tasks/templates` (decision Q6). Make the template API work end to end; since M5 the frontend calls the real `/task-templates`, and found there:
+       - `task-templates.service.ts` `basicInclude` selects `first_name`/`last_name` (the columns are `firstname`/`lastname`) and includes `task` (the relation is `tasks`), so every query returns 500 today.
+       - `CreateTaskTemplateDto` accepts `default_title`, `default_description` and `default_status`, which are not columns of `task_templates` (only `name`, `description`); `TemplateForm.vue` also sends `default_priority_id` and `default_deadline_days` (400), and `TaskForm.applyTemplate` reads all `default_*` fields. Decide in M18 whether the template stores these defaults (schema change) or the UI drops them.
+       - Visibility and ownership (decision E1: private): `GET /task-templates` returns only the requester's templates, update/delete check the owner, and the creator's email is no longer returned. Fix this before or together with the field names, so a working API never exposes other users' templates.
     4. Add the tables `tags` and `task_tags` (approved, Q8e), set tags through the task create/update DTOs, add a tag input to `TaskForm` and tag chips to `TaskCard`. Deleting a task removes its `task_tags` rows.
   - Done when: `useTaskFilters` tests cover the new filters, a seed test checks the four priorities, E2E creates a template from a task and applies it, and E2E creates a task with two tags and reads them back.
   - Risk: medium. The data migration rewrites `priority_id` on existing tasks and notes; a migration test on a copy of the seeded DB checks the mapping. Notes resolve priorities by name (`notes.service.ts:142-158`) and keep working with the four names.
 
-- [ ] **M19: Migrate `documents-notes`**
+- [x] **M19: Migrate `documents-notes`**
   - Why: L1 and problem 10. `documents.service.ts` has 1,197 lines mixing file validation, storage, access control, grading and UI mapping.
   - Steps:
     1. Domain: the access policy (`document_shares`, T96).
@@ -486,12 +494,12 @@ Rules for all milestones:
   - Done when: no file is over 500 lines, there are 0 violations, and the M1 document tests pass unchanged.
   - Risk: medium. The access rules are subtle.
 
-- [ ] **M20: Migrate `communication`**
+- [x] **M20: Migrate `communication`**
   - Why: L1. Chat rooms, messages and the chat handlers of `websocket.gateway.ts` go into one context. The Socket.io transport moves to `shared/infrastructure/realtime`, and contexts publish through a port.
   - Done when: there are 0 violations, the M6 tests pass, and the cross-browser chat check from `08_…:216` (two browsers, both directions, reload keeps the history) passes manually and is documented in PROGRESS.md.
   - Risk: medium. The gateway also emits task and notification events, which need to move to ports without changing event names.
 
-- [ ] **M21: DM deduplication, and task- and class-linked chats**
+- [x] **M21: DM deduplication, and task- and class-linked chats**
   - Why:
     - T113 (`07_…:267-269`): the server builds a deterministic `direct_chat_hash` from both user IDs, and on a `UNIQUE` conflict returns the existing room's ID.
     - T29: group chats linked to a task (`task_id`) or a class (`class_id`).
@@ -501,12 +509,12 @@ Rules for all milestones:
   - Done when: an E2E test creates the same DM twice and gets one room ID, and a task's chat can be opened from the task card with `task_id` set.
   - Risk: low–medium. Duplicate DMs that already exist need a one-off merge or must be accepted; document which.
 
-- [ ] **M22: Migrate `school-organization`**
+- [x] **M22: Migrate `school-organization`**
   - Why: L1. Classes, departments, subjects, rooms, schedules and lesson slots move into their own context. This context isn't named in the thesis; its features are listed in `05_…:60`.
   - Done when: there are 0 violations, all existing tests pass and `GET /api-json` is unchanged.
   - Risk: low. These are mostly CRUD modules.
 
-- [ ] **M36: School organization on the real API**
+- [x] **M36: School organization on the real API**
   - Why:
     - T26 (`05_…:60`, `:105`, UC-20 `:611`, decision D1): classes, departments, schedules, subjects and rooms are managed in the app, not per browser.
     - Decision D2: classes have real students and teachers, which the class chat (T29, M21) needs.
@@ -520,12 +528,12 @@ Rules for all milestones:
   - Done when: no view under `views/` writes school data to localStorage (grep), each store has Vitest tests, E2E covers creating a class, assigning two students and a teacher, reading them back, and a teacher of another class getting 403; the manual click-through of all five areas is documented in PROGRESS.md.
   - Risk: medium. Data that so far exists only in a browser's localStorage is not migrated (it was never shared); the seed provides the demo data. Opening the class views to teachers is a visible change for that role.
 
-- [ ] **M23: Migrate `notifications`**
+- [x] **M23: Migrate `notifications`**
   - Why: L1. Notifications, e-mail service, preferences and cron jobs move here, and other contexts trigger them only through `notifications/application` (M16's port).
   - Done when: there are 0 violations, the e-mail cron (T46) and @mention mail (T09) are covered by tests, and the hourly overdue job has a test.
   - Risk: low.
 
-- [ ] **M24: Migrate `reporting`, with dashboard metrics per thesis**
+- [x] **M24: Migrate `reporting`, with dashboard metrics per thesis**
   - Why:
     - L1.
     - T41 (FA-30): overview of active projects, i.e. top-level tasks that aren't completed (decision Q2).
@@ -543,7 +551,7 @@ Rules for all milestones:
 
 ### Frontend alignment
 
-- [ ] **M25: Frontend layering through stores, one HTTP client, theme per user**
+- [x] **M25: Frontend layering through stores, one HTTP client, theme per user**
   - Why: T79 and T80 (`06_…:51`, decision Q19): views and components only render; data goes through stores, which use the `api/` layer. Also problems 13 and 14, and T68: the theme is persisted per user.
   - Steps:
     1. Move the `DashboardView.vue` and `StatusDistributionChart.vue` requests into an `api/` module plus a store.
@@ -553,7 +561,7 @@ Rules for all milestones:
   - Done when: `grep -rnE "apiClient|fetch\(|from '@/api/" frontend/src/views frontend/src/components` returns nothing (only test files may mock `api/`), the ESLint rule runs in CI, `grep -rn "localhost" frontend/src` hits only the config module, a Vitest test shows the theme restored from `/users/me/settings` after login, and E2E shows a theme set by one session being returned to a second session of the same user.
   - Risk: medium. 18 components change how they get their data; the existing component tests that mock `api/` modules have to mock the stores instead.
 
-- [ ] **M26: Global search per thesis**
+- [x] **M26: Global search per thesis**
   - Why: T42 (search covers users and projects; a project is a top-level task, decision Q2) and T43 (results grouped by category).
   - Steps:
     1. Add users to `searchStore`, using the existing `/users` endpoint the chat already uses.
@@ -562,7 +570,7 @@ Rules for all milestones:
   - Done when: `searchStore` has tests for each category and the grouped dropdown has a component test.
   - Risk: low.
 
-- [ ] **M27: Planned frontend features: grades view, password change, avatar, audit-log view, comments**
+- [x] **M27: Planned frontend features: grades view, password change, avatar, audit-log view, comments**
   - Why:
     - UNUSED_CODE.md Planned: `GradesView.vue` and its `GET /documents/my-grades` endpoint are complete but unrouted; UC-13 "Note einsehen".
     - T47: the password fields in `SecurityTab.vue` have no handler, and there is no avatar to edit (decision Q8c).
@@ -578,19 +586,20 @@ Rules for all milestones:
   - Done when: each view and section has a component test; the password change, the avatar upload (including a rejected non-image) and writing a comment with an @mention are E2E-tested; non-admins get 403 on the audit-log API.
   - Risk: low. Steps 3–5 depend on M15's routes.
 
-- [ ] **M35: Admin user management and Superuser system configuration**
+- [x] **M35: Admin user management and Superuser system configuration**
   - Why:
     - T75 (UC-30, decision Q17): "Benutzerverwaltung" is separate from UC-31 "Rollen vergeben", so admins manage the accounts themselves.
     - T77 (UC-40, decision Q18): "Systemkonfiguration" is the RBAC configuration, i.e. which permissions with which flags each role has, guarded by `manage_system`.
   - Steps:
     1. `AdminView`: a user list with create, edit (first name, last name, username, e-mail) and delete, on the existing `POST/PATCH/DELETE /users` endpoints (`manage_users`). Delete runs the ghost-user anonymization (M14) and asks for confirmation.
+    1b. Found in M11: `UsersService.removeRoleFromUser` deletes only the `user_roles` row; the direct `user_permissions` that `addRoleToUser` created for that role stay (`RolePermissionsService.removeRolePermissionsIfNotNeeded` has no caller). Removing a role must also remove the permissions it granted.
     2. Backend in `identity-access` (after M11): `PUT /roles/:id/permissions` with `@Roles(RoleName.SUPERUSER)` and `@Permissions('manage_system')`. Today Admin also holds `manage_system` (`role-permissions.config.ts:42`), so the role check is what makes it Superuser-only. The new mapping is written in one transaction.
     3. A "Systemkonfiguration" tab in `AdminView`, visible only to the Superuser, that edits the role → permission mapping and the flags.
     4. Lock-out guard: a request that would take `manage_system` away from the Superuser role is rejected with 400.
   - Done when: E2E covers an admin creating, editing and deleting a user, a non-admin getting 403 on those endpoints, the Superuser changing a role's permissions with the effect visible on a user of that role, an Admin getting 403 on `PUT /roles/:id/permissions`, and the lock-out guard returning 400. Both `AdminView` tabs have component tests.
-  - Risk: medium. A runtime change to a role's permissions affects every user of that role at once; `role-permissions.config.ts` remains the default for fresh databases.
+  - Risk: medium. A runtime change to a role's permissions affects every user of that role at once; `contexts/identity-access/domain/role-permissions.ts` remains the default for fresh databases.
 
-- [ ] **M28: Shrink `CalendarView.vue` with `useCalendarUtils`**
+- [x] **M28: Shrink `CalendarView.vue` with `useCalendarUtils`**
   - Why: problems 16 and 17. UNUSED_CODE.md: `useCalendarUtils.js` is Planned/Keep and should replace the inline copies.
   - Steps:
     1. Use `useCalendarUtils` for date math.
@@ -601,7 +610,7 @@ Rules for all milestones:
 
 ### Quality and operations per thesis
 
-- [ ] **M29: Coverage targets and API endpoint tests per thesis**
+- [x] **M29: Coverage targets and API endpoint tests per thesis**
   - Why: T115 and T117 (`08_…:39-43`), T70, T121 and T123 (`08_…:102`, `:112-138`).
   - Steps:
     1. Bring the units the thesis names to ≥ 90 % or ≥ 75 %, in their new context locations.
@@ -611,7 +620,7 @@ Rules for all milestones:
   - Done when: CI fails if a threshold drops, and all endpoint/status combinations from the table are tested.
   - Risk: low.
 
-- [ ] **M30: Verify the non-functional requirements and complete the Swagger docs**
+- [x] **M30: Verify the non-functional requirements and complete the Swagger docs**
   - Why:
     - T61 (NFA-01–03): < 200 ms, frontend loaded in 3 s, 100 concurrent users.
     - T65 (NFA-10): all endpoints documented.
@@ -629,7 +638,7 @@ Rules for all milestones:
   - Done when: the load-test results meet NFA-01 and NFA-03, the measured load time meets NFA-02, every controller has `@ApiTags`, the index migration is applied with before/after numbers in PROGRESS.md, an E2E test in production mode shows an `http` request redirected and an `https` request served, and the manual checklist is documented. Any failed target becomes its own fix milestone.
   - Risk: medium. Meeting < 200 ms may need query work beyond M17.
 
-- [ ] **M31: Backup and restore scripts**
+- [x] **M31: Backup and restore scripts**
   - Why: T15 (`03_…:155`, `05_…:109`): the backup/restore strategy is implemented. It exists only as a document (`documents/AP7-6.md`). T16 (UC-41): per decision Q7 the Superuser fulfils it as the operator who runs these scripts with the runbook; there is no in-app backup function.
   - Steps:
     1. Add `scripts/backup.sh` (`pg_dump -Fc`) and `scripts/restore.sh` (`pg_restore`) with a short runbook.
@@ -637,7 +646,7 @@ Rules for all milestones:
   - Done when: the CI restore drill is green and the runbook is in the README, naming the Superuser/operator as the person who runs it (UC-41).
   - Risk: low.
 
-- [ ] **M32: Two-factor authentication (TOTP)**
+- [x] **M32: Two-factor authentication (TOTP)**
   - Why: T31 (`05_…:356-358`, UC-01b `05_…:664-693`, `03_…:155`).
   - Steps:
     1. Enable 2FA in the profile with a QR code and confirmation code.
@@ -648,7 +657,7 @@ Rules for all milestones:
   - Done when: E2E covers enable → login with code → wrong code 401 → admin reset, the stored secret is not plain text, and the `SecurityTab` button works.
   - Risk: medium. Additive schema change (approved, Q8d). Account lockout is covered only by the admin reset; there are no recovery codes.
 
-- [ ] **M33: Creator required at database level**
+- [x] **M33: Creator required at database level**
   - Why: T101 (`07_…:82`, decision Q20): "auf Datenbankebene sichergestellt, dass jede Aufgabe einem Ersteller … zugewiesen ist". The other schema items that used to wait here were decided and moved into their feature milestones: tags → M18 (Q8e), theme → M25 (Q8f), avatar → M27 (Q8c), FK indexes → M30 (Q8h), refresh tokens → M12 (Q8b), TOTP → M32 (Q8d), activity log → M15 (Q8g). Reminders need no change (Q22).
   - Prerequisite: M14 (ghost user 0 exists and account deletion reassigns tasks to it).
   - Steps:
@@ -657,10 +666,33 @@ Rules for all milestones:
   - Done when: the migration runs on a copy of the seeded DB that contains a task with `created_by = NULL`, an insert without a creator fails at DB level (test), and all task tests pass.
   - Risk: medium. Migrations touch the schema shown in the thesis appendix (`prisma_schema.tex`), so each change must stay compatible with what the thesis documents.
 
-- [ ] **M34: Switch the dependency rules and the type-safety lint rules to `error`**
+- [x] **M34: Switch the dependency rules and the type-safety lint rules to `error`**
   - Why: L1, and T64 (NFA-09, SOLID and modular). The architecture must stay enforced.
   - Done when: all contexts are migrated, dependency-cruiser runs with severity `error` and reports 0 violations, CI fails on a deliberately added violation (tried once, then reverted), and the `no-unsafe-*` ESLint rules are `error` for the whole backend with 0 findings (decision Q13).
   - Risk: low.
+
+- [x] **M37: Performance at realistic data volume**
+  - Why: M30 found that T61 (NFA-01, < 200 ms) holds on the seed data but fails once the test DB has 20,000 tasks, notifications and chat messages (`scripts/load-test-data.sql`): at 10 connections the task list answers in 454–514 ms (p97.5), the task-progress metrics in ~1.7 s, and `GET /api/notifications` times out. The join indexes of M30 don't help, because the app loads whole result sets.
+  - Steps:
+    1. Let the task list count and page in the database instead of loading every visible task into memory.
+    2. Compute the task-progress metrics with aggregate queries (`groupBy`/`count`) instead of loading the tasks.
+    3. Page `GET /api/notifications` (limit and cursor or offset, newest first) and adapt the frontend's notification store.
+    4. Measure the per-request auth and permission queries (~29 ms today) and cache the user's permissions per request, if that is the gap.
+  - Done when: `npm run load-test` against the scaled test DB (seed plus `load-test-data.sql`, school-sized spread per decision I1) meets NFA-01 (p97.5 < 200 ms at 10 connections) and NFA-03 (100 connections without failures) for all five endpoints, with before/after numbers in PROGRESS.md.
+  - Risk: medium. The notification paging changes the API the frontend reads.
+
+### After the Definition of done
+
+- [x] **M38: Task-level member rights (decision I4)**
+  - Why: T99 (`07_…:29-31`, `09_…:39`): rights are evaluated "kontextabhängig auf Aufgabenebene" with the flags READ/WRITE/EXECUTE, and adding and removing members is strictly validated. Today `TaskMembersService.checkPermission` accepts any valid direct grant with the flags, whatever its name and for every task, while role rights don't count at all (since I3).
+  - Steps:
+    1. `task_members.flags` (`Int`, default 4 = READ); the migration gives existing memberships READ (approved by decision I4).
+    2. The effective flags on a task: creator and Admin/Superuser RWX, assignee READ+WRITE, an explicit member its row's flags, everyone else 0, combined over the task and all its ancestors. Direct grants in `user_permissions` no longer count here.
+    3. R lists the members, W adds and removes them, X changes an explicit member's flags (`PATCH /tasks/:id/members/:userId`, flags 0–7); the route guards stay. `check-permission` answers with these flags; the member list carries each member's flags.
+    4. `TaskMembersList` shows the flags and lets an X holder change them; it shows for everyone with READ on the task.
+    5. Visibility (decision I5): teachers see the tasks they are part of, like students; Admin/Superuser see all.
+  - Done when: unit tests for the flag resolution (incl. ancestors) and each rule; E2E covers a teacher not seeing a student's private task while an admin does, a READ member listing but refused (403) on adding, a WRITE member adding and removing, an X holder changing flags, an Admin without membership managing, the assignee's READ+WRITE, a user with only a direct grant getting 403 and flags 0, `check-permission` per role, and a migrated member having READ. The member list's component test covers the flag editor. CI passes in `act`.
+  - Risk: medium. It changes who may manage members: today the creator (plus anyone with any direct grant); afterwards the creator, admins, the assignee and the members with W.
 
 ## Priorities
 
@@ -671,10 +703,10 @@ Rules for all milestones:
 | **Essential** | M6, M7, M8, M9 | Thesis security claims that are exploitable or wrong today (T02, T92, T94, T54, T116, T49, T50) |
 | **Essential** | M10–M24, M34, M36 | DDD restructuring per `11_Reflexion.tex:25-31`, plus the thesis claims of each context |
 | **Essential** | M25, M26, M27, M35 | Frontend thesis claims (T79, T68, T42, T43, T47, T33, T75, T77) and Planned items |
-| **Essential** | M29, M30, M31, M32, M33 | Testing, non-functional, backup, 2FA and the creator constraint (T101) |
+| **Essential** | M29, M30, M37, M31, M32, M33 | Testing, non-functional (M37: performance at realistic volume), backup, 2FA and the creator constraint (T101) |
 | Nice-to-have | M28 | File size and duplication only; no thesis claim is affected beyond keeping T60 working |
 
-Suggested order: M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → M9 → M10 → M11 → M12 → M13 → M14 → M15 → M16 → M17 → M18 → M19 → M20 → M22 → M36 → M21 → M23 → M24 → M29 → M30 → M31 → M32 → M33 → M34. The frontend milestones M25 → M26 → M27 → M35 → M28 run in parallel after M5 (their backend steps wait for M11 or M15, see the milestone rules). M33 needs M14.
+Suggested order: M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → M9 → M10 → M11 → M12 → M13 → M14 → M15 → M16 → M17 → M18 → M19 → M20 → M22 → M36 → M21 → M23 → M24 → M29 → M30 → M37 → M31 → M32 → M33 → M34. The frontend milestones M25 → M26 → M27 → M35 → M28 run in parallel after M5 (their backend steps wait for M11 or M15, see the milestone rules). M33 needs M14.
 
 ## Decisions log
 
@@ -724,7 +756,20 @@ Each entry records an open question that was decided, and the parts of the plan 
 - **C4 Planning files** (decided 2026-11-06): not committed for now. Affects: nothing.
 - **D1 School structure on the real API** (decided 2026-11-06, from a new audit finding): classes, departments and schedules move from localStorage to the existing APIs through stores, and subjects and rooms get a simple UI. New milestone M36 after M22. No schema change. Affects: T26, problem 19, M36, Definition of done.
 - **D2 Class membership** (decided 2026-11-06, answers UNUSED_CODE.md question 5): `GET /classes/:id` returns students, teachers and head teacher; `PUT /classes/:id/students` and `/teachers` assign them; admins for all classes, teachers for their own classes. The class chat (M21) uses this membership. No schema change. Affects: T26, T29, M21, M36.
+- **E1 Task template visibility** (decided 2026-11-07, found in M5): templates are private. Each user sees, edits and deletes only their own templates (`GET /task-templates` returns only the requester's, update/delete of someone else's gives 404 or 403), and responses no longer include the creator's email. Affects: T110, M18.
+- **F1 Base permission** (decided 2026-11-07, found in M8): features every logged-in user needs (chat, notes, notifications, own profile, reading tasks and documents) require `view_dashboard`, which all four roles have. Affects: T54, M8.
+- **F2 Students create tasks** (decided 2026-11-07): Student gets `create_tasks` and `edit_tasks` (UC-10…12 list Member/Student as actors; TaskView offers personal tasks). Editing or deleting others' tasks stays limited by the ownership checks. Admin gets the same two, because UC-10 names Admin as an actor. Affects: T54, M8.
+- **F3 School administration permission** (decided 2026-11-07): subjects, rooms, departments, schedules and lesson slots use `manage_classes` instead of the non-existent `manage_subjects`/`manage_rooms`/`manage_departments`/`manage_schedules`. Affects: M8, M36.
+- **F4 Permissions in existing databases** (decided 2026-11-07): `seed.ts` and `test-seed.ts` follow `contexts/identity-access/domain/role-permissions.ts`, and a data migration inserts the missing `roles_permissions` rows by name into existing databases. Affects: M8.
+- **G1 Migration with repository ports** (decided 2026-11-07, found in M11): services in `application/` work through repository ports; Prisma repositories in `infrastructure/` make exactly today's queries. "M2 tests pass unchanged" means every test case, mock and assertion stays the same; only the line that constructs the service under test (and import paths) change. Applies to all context migrations (M11–M24).
+- **H1 Rows of a deleted account** (decided 2026-11-07, found in M14): shared content moves to the ghost user 0 (`chat_messages`, `tasks.created_by`, `comments`, `task_comments`/task_grade, `chat_rooms.created_by`, `documents.added_by` for documents attached to a task and `graded_by`, `task_activity_log`, `task_templates.created_by`); `tasks.assigned_to` and `teachers.supervisor_id` become NULL; personal rows are deleted (`user_roles`, `chat_room_users`, `document_shares`, `notifications`, the user's uploads that belong to no task, the user's `notes` with their shares and document links, the user's `notes_users` entries, the `students`/`teachers` row; cascades: `user_permissions`, `email_*`, `refresh_tokens`, `task_members`), and the name is replaced in other members' chat notifications. A teacher who is still head teacher, class teacher or has lesson slots can't be deleted (409) until an admin reassigns them. Nobody can delete their own account or the last Superuser/Admin (400, the same rule as removing a role), and the ghost user can't be changed or deleted. Note (M18): templates are private (decision E1), so under the ghost user they could never be read or deleted again; they count as personal rows and are deleted, and the tasks created from them keep everything but the link. Affects: T10, M14, M15, M16, M18.
+- **H2 What a task template stores** (decided 2026-11-08, found in M18): only `name` and `description`, as in the thesis schema (`prisma_schema.tex:286`); no schema change. "Save as template" stores the task's title as `name` and its description; applying a template fills title and description, and the user sets deadline, priority and assignee (07_…:225). The DTO, `TemplateForm` and `TaskForm.applyTemplate` drop the `default_*` fields. Affects: T110, M18.
 - **Q8g Activity log on task delete** (decided 2026-11-06): no schema change. The delete transaction writes a "deleted" entry with the task title, sets `task_id = null` on the task's log rows, then deletes the task. Affects: T32, M15, M27, M33.
+- **I1 Load-test data for NFA-01** (decided 2026-11-09, found in M37): `scripts/load-test-data.sql` keeps the volume (20,000 tasks, notifications and chat messages) but spreads it over a school-sized set of users (750 students, 40 teachers), so a student sees about 200 tasks. M30's version put every task on the 5 seed students; one of them saw 9,336 of 20,000 tasks, and Postgres alone managed only about 40 such list queries per second on the test machine. That case stays in PROGRESS.md as a stress result. No schema change (a visibility table was not chosen). Affects: T61, M30, M37.
+- **I2 Flags in the Systemkonfiguration** (decided 2026-11-10, found in M35): flags stay per permission (`permissions.flags`), as the thesis models them (`06_…:204`, "Permissions sind als Bit-Flags modelliert"); `roles_permissions` gets no flags column. The Superuser tab edits each role's permission set and each permission's R/W/X flags; a flag change applies to every role and every direct grant of that permission. No schema change (Q18 stands). Affects: T77, Q18, M35.
+- **I3 Role permissions reach users live** (decided 2026-11-10, found in M35): assigning a role no longer copies its permissions into `user_permissions`; a role's permissions count only through the role (`roles_permissions`), so a Superuser change or a removed role takes effect at once. Direct grants are individual rights only (like the seed's time-limited ones). Copies made earlier through the API can't be told apart from deliberate grants and stay. This replaces M35 step 1b's "removing a role must also remove the permissions it granted". Affects: T75, T77, M35.
+- **I4 Task-level member rights** (decided 2026-11-11, after the Definition of done): each task membership carries READ/WRITE/EXECUTE flags (`task_members.flags`, approved schema change; existing rows get READ). The flags control member management only: R lists the members, W adds and removes them, X changes members' flags. New members get READ. The creator and Admin/Superuser have RWX without a member row, the assignee READ+WRITE. Rights carry over from every task above: the rights on a subtask are its own plus those on its ancestors (added after the M38 review). Direct grants no longer count for task membership. Task editing, comments and subtasks keep their rules. Affects: T99, T93, T126, T127, M38.
+- **I5 Teachers see only the tasks they are part of** (decided 2026-11-11, M38 review): a student may also use the app privately, so a teacher sees a task only if they, directly or through a task above it, are its creator, assignee or a member: the rule for students. Admin and Superuser keep seeing every task (matching their RWX from I4). GET /tasks, the dashboard counts and the /tasks/:id routes follow this set. The class overview (T128, `09_…:55`) comes from the tasks a teacher creates for the class or gets access to. Replaces "staff see all tasks" from M17. Affects: T128, M17, M38.
 
 ## Open questions
 

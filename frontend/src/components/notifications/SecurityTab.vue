@@ -1,34 +1,154 @@
 <script setup>
-// Kein State, keine API-Calls - nur statische Security-Features
+import { reactive, ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
+
+// T31, FA-06 (M32): 2FA with an authenticator app; T47 (M27): the password
+// change; both through the auth store (M25, decision Q19)
+const authStore = useAuthStore()
+const twoFactorEnabled = ref(false)
+const setup = ref(null) // { secret, qr_code } while the setup waits for its code
+const code = ref('')
+const message = ref('')
+const busy = ref(false)
+
+const errorText = (error) => {
+  const backendMessage = error.response?.data?.message
+  if (Array.isArray(backendMessage)) return backendMessage.join(' ')
+  return backendMessage || 'Ein Fehler ist aufgetreten.'
+}
+
+const run = async (action) => {
+  busy.value = true
+  message.value = ''
+  try {
+    await action()
+  } catch (error) {
+    message.value = errorText(error)
+  } finally {
+    busy.value = false
+  }
+}
+
+onMounted(() =>
+  run(async () => {
+    twoFactorEnabled.value = (await authStore.getTwoFactorStatus()).enabled
+  }),
+)
+
+const startSetup = () =>
+  run(async () => {
+    setup.value = await authStore.setupTwoFactor()
+    code.value = ''
+  })
+
+const confirmSetup = () =>
+  run(async () => {
+    await authStore.enableTwoFactor(code.value)
+    twoFactorEnabled.value = true
+    setup.value = null
+    code.value = ''
+  })
+
+// T47 (M27): the password change with the current password
+const passwords = reactive({ current: '', next: '', confirm: '' })
+const passwordMessage = ref('')
+const passwordError = ref('')
+
+const changePassword = async () => {
+  passwordMessage.value = ''
+  passwordError.value = ''
+  if (passwords.next !== passwords.confirm) {
+    passwordError.value = 'Die Passwörter stimmen nicht überein.'
+    return
+  }
+  // the backend's rule (registration, NewPasswordDto)
+  if (passwords.next.length < 7 || passwords.next.length > 32) {
+    passwordError.value = 'Das Passwort muss 7 bis 32 Zeichen lang sein.'
+    return
+  }
+  busy.value = true
+  try {
+    await authStore.changePassword(passwords.current, passwords.next)
+    Object.assign(passwords, { current: '', next: '', confirm: '' })
+    passwordMessage.value = 'Passwort geändert.'
+  } catch (error) {
+    passwordError.value = errorText(error)
+  } finally {
+    busy.value = false
+  }
+}
+
+const disable = () =>
+  run(async () => {
+    await authStore.disableTwoFactor(code.value)
+    twoFactorEnabled.value = false
+    code.value = ''
+  })
 </script>
 
 <template>
   <div class="content-section">
-    <!-- Passwort ändern -->
+    <!-- Change password -->
     <div class="security-card">
       <h2>Passwort ändern</h2>
-      <form class="security-form">
+      <form class="security-form" @submit.prevent="changePassword">
         <div class="form-group">
-          <label>Aktuelles Passwort</label>
-          <input type="password" class="form-input" placeholder="••••••••" />
+          <label for="current-password">Aktuelles Passwort</label>
+          <input id="current-password" v-model="passwords.current" type="password" class="form-input"
+            placeholder="••••••••" autocomplete="current-password" required />
         </div>
         <div class="form-group">
-          <label>Neues Passwort</label>
-          <input type="password" class="form-input" placeholder="••••••••" />
+          <label for="new-password">Neues Passwort</label>
+          <input id="new-password" v-model="passwords.next" type="password" class="form-input"
+            placeholder="••••••••" autocomplete="new-password" required />
         </div>
         <div class="form-group">
-          <label>Passwort bestätigen</label>
-          <input type="password" class="form-input" placeholder="••••••••" />
+          <label for="confirm-password">Passwort bestätigen</label>
+          <input id="confirm-password" v-model="passwords.confirm" type="password" class="form-input"
+            placeholder="••••••••" autocomplete="new-password" required />
         </div>
-        <button type="button" class="btn-secondary">Passwort ändern</button>
+        <p v-if="passwordError" class="error-msg password-error" role="alert">{{ passwordError }}</p>
+        <p v-if="passwordMessage" class="password-message" role="status">{{ passwordMessage }}</p>
+        <button type="submit" class="btn-secondary" :disabled="busy">Passwort ändern</button>
       </form>
     </div>
 
-    <!-- 2FA -->
+    <!-- 2FA (M32) -->
     <div class="security-card">
       <h2>Zwei-Faktor-Authentifizierung</h2>
-      <p>Sichern Sie Ihr Konto mit 2FA.</p>
-      <button class="btn-secondary">2FA aktivieren</button>
+
+      <template v-if="twoFactorEnabled">
+        <p>✅ 2FA ist aktiv: Bei der Anmeldung wird ein Code aus Ihrer Authenticator-App abgefragt.</p>
+        <div class="form-group">
+          <label>Code zum Deaktivieren</label>
+          <input v-model="code" class="form-input code-input" inputmode="numeric" maxlength="6"
+            placeholder="123456" autocomplete="one-time-code" />
+        </div>
+        <button type="button" class="btn-secondary" :disabled="busy || code.length !== 6" @click="disable">
+          2FA deaktivieren
+        </button>
+      </template>
+
+      <template v-else-if="setup">
+        <p>Scannen Sie den QR-Code mit einer Authenticator-App (z. B. Google Authenticator) und geben Sie den angezeigten Code ein.</p>
+        <img class="qr-code" :src="setup.qr_code" alt="QR-Code für die Authenticator-App" />
+        <p class="secret">Manuell: <code>{{ setup.secret }}</code></p>
+        <div class="form-group">
+          <label>Bestätigungscode</label>
+          <input v-model="code" class="form-input code-input" inputmode="numeric" maxlength="6"
+            placeholder="123456" autocomplete="one-time-code" />
+        </div>
+        <button type="button" class="btn-secondary" :disabled="busy || code.length !== 6" @click="confirmSetup">
+          Bestätigen
+        </button>
+      </template>
+
+      <template v-else>
+        <p>Sichern Sie Ihr Konto mit 2FA.</p>
+        <button type="button" class="btn-secondary" :disabled="busy" @click="startSetup">2FA aktivieren</button>
+      </template>
+
+      <p v-if="message" class="error-msg" role="alert">{{ message }}</p>
     </div>
   </div>
 </template>
@@ -97,6 +217,42 @@
 
 .btn-secondary:hover {
   background-color: #e5e7eb;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.qr-code {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: 0 0 12px;
+  background: white;
+}
+
+.secret code {
+  word-break: break-all;
+}
+
+.code-input {
+  max-width: 12rem;
+  letter-spacing: 0.2em;
+}
+
+.security-card .form-group {
+  margin-bottom: 12px;
+}
+
+.password-message {
+  margin: 0;
+  color: #047857;
+}
+
+.security-card .error-msg {
+  margin: 12px 0 0;
+  color: #b91c1c;
 }
 </style>
 

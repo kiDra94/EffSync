@@ -38,10 +38,14 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 | Sort by due date and priority, filter by status | Drazen | ✅ |
 | Deleting requires typing the task title (like on GitHub) | Drazen | ✅ |
 | Task templates | Drazen | ✅ |
-| Add members to tasks (permissions `READ`/`WRITE`/`EXECUTE`) | Ereny | ✅ |
+| Add members to tasks with rights `READ`/`WRITE`/`EXECUTE` per task, which also apply to its subtasks | Ereny / Drazen | ✅ |
+| Private tasks: teachers and students see only the tasks they are part of, admins see all | Drazen | ✅ |
 | Logical combination of subtasks (AND, OR, XOR, NOT) to automatically complete the parent task | Drazen | ✅ |
 | Lock submissions after the deadline or extend the deadline (creator only) | Ereny | ✅ |
 | Grading of submissions by teachers | Ereny | ✅ |
+| Grades view for students, grading remarks in the task detail view | Ereny / Drazen | ✅ |
+| Comments on tasks with @mentions | Drazen | ✅ |
+| Activity log for every task change, with an audit-log view for admins | Drazen | ✅ |
 | Split tasks into required and optional parts | – | ❌ |
 | Task closes automatically after _n_ successful submissions (e.g. coding challenge) | Ereny | ❌ |
 | Automatically use unit test results as progress | Drazen | ❌ |
@@ -52,14 +56,15 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 |---|---|---|
 | Dashboard with project metrics (status distribution, progress, overdue tasks) | Ereny | ✅ |
 | Calendar with year, month, week and day view incl. timetable | Ereny / Drazen | ✅ |
-| UI personalization (currently: dark mode and calendar settings, no freely selectable elements) | Drazen | 🟡 |
-| Global search (currently: tasks, notes and templates, no people yet) | Drazen | 🟡 |
+| UI personalization (currently: dark mode, saved per user, and calendar settings; no freely selectable elements) | Drazen | 🟡 |
+| Global search over projects, tasks, notes, templates and users, grouped by category | Drazen | ✅ |
 
 ### Communication & notifications
 
 | Feature | Responsible | Status |
 |---|---|---|
 | Live chat (direct and group) via WebSockets | Drazen | ✅ |
+| Chats linked to a task or a class; two users always share one direct chat | Drazen | ✅ |
 | In-app notifications for deadlines, overdue tasks, comments and mentions | Ereny | ✅ |
 | Email notifications (daily deadline reminder, mentions, comments) with per-user settings | Ereny | ✅ |
 | Send custom emails or questions to all members or to self-defined groups | Ereny | ❌ |
@@ -76,12 +81,14 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 
 | Feature | Responsible | Status |
 |---|---|---|
-| Registration and login (JWT) | Ereny | ✅ |
-| Sign in with Google (OAuth 2.0) and password reset | Ereny | ✅ |
-| Profile management (name, username, email) | Ereny | ✅ |
+| Registration and login (JWT with refresh tokens and logout) | Ereny / Drazen | ✅ |
+| Sign in with Google (OAuth 2.0) and password reset by e-mail | Ereny / Drazen | ✅ |
+| Profile management (name, username, email), password change and profile picture | Ereny / Drazen | ✅ |
 | Roles and permissions (RBAC) incl. admin interface | Ereny | ✅ |
+| User management for admins (create, edit, delete; deleted accounts are anonymized per GDPR) | Drazen | ✅ |
+| System configuration for the Superuser: which permissions each role has | Drazen | ✅ |
 | Rate limiting and security headers (`@nestjs/throttler`, `helmet`) | Drazen / Ereny | ✅ |
-| Two-factor authentication (currently only a button in the settings, with no functionality behind it) | Ereny | ❌ |
+| Two-factor authentication (TOTP with an authenticator app, admin reset) | Ereny | ✅ |
 
 ### School administration
 
@@ -98,8 +105,26 @@ Legend: ✅ implemented · 🟡 partially implemented · ❌ not implemented
 | Backend | NestJS 11 (TypeScript), Passport (JWT, Google OAuth 2.0), Socket.io, Nodemailer, Swagger |
 | Database | PostgreSQL with Prisma 7 (migrations and seed in `backend/prisma/`) |
 | Testing | Vitest and Cypress (frontend), Jest incl. E2E tests (backend) |
-| CI | GitHub Actions (frontend and backend tests on every push and PR) |
+| CI | GitHub Actions on every push and PR: lint, unused code (`knip`), dependency rules (`dependency-cruiser`), unit tests with coverage thresholds, build, backend E2E tests and the restore drill |
 | Thesis | LaTeX (`thesis/main.tex`) |
+
+## Architecture
+
+The backend is organized by business domain, not by database table: each **bounded context** lives in `backend/src/contexts/<context>/`, and `backend/src/shared/` holds what all of them use (Prisma client, unit of work, config validation, Socket.io transport).
+
+| Context | Responsible for |
+|---|---|
+| `identity-access` | login, tokens, 2FA, users, roles and permissions, guards |
+| `task-management` | tasks, members and their rights, templates, comments, grade remarks, activity log |
+| `communication` | chat rooms and messages |
+| `documents-notes` | documents (incl. grading) and notes |
+| `school-organization` | classes, departments, subjects, rooms, schedules, lesson slots |
+| `notifications` | in-app notifications, e-mail and its preferences, cron jobs |
+| `reporting` | dashboard metrics |
+
+Each context has the layers `domain/`, `application/`, `infrastructure/` and `presentation/`. Another context is reached only through its `application/index.ts`, and a task change and its activity-log entry are saved in one transaction. `dependency-cruiser` enforces these rules in CI. Details: [`backend/src/contexts/README.md`](backend/src/contexts/README.md).
+
+The frontend keeps data in Pinia stores (`frontend/src/stores/`), which use the single HTTP client in `frontend/src/api/`; views and components never call the API directly, which an ESLint rule enforces.
 
 ## Running the project locally
 
@@ -116,7 +141,8 @@ cp .env.example .env
 Set at least these values in `.env`:
 
 - `DATABASE_URL`: e.g. `postgresql://postgres:postgres@localhost:5432/effsync?schema=public`
-- `JWT_SECRET`
+- `JWT_SECRET` (required: the backend refuses to start without it and without `DATABASE_URL`)
+- `TWO_FACTOR_ENCRYPTION_KEY` (required): 64 hex characters, e.g. from `openssl rand -hex 32`; it encrypts the 2FA secrets
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: only needed for Google sign-in, see [`documents/GOOGLE_OAUTH_SETUP.md`](documents/GOOGLE_OAUTH_SETUP.md)
 
 Then create the database, fill it with test data and start the server:
@@ -138,14 +164,64 @@ cp .env.example .env
 npm run frontend
 ```
 
-The frontend runs at `http://localhost:5173`. After seeding you can log in, for example as admin with the username `adminadmin` and the password `password123`.
+The frontend runs at `http://localhost:5173`. After seeding you can log in, for example as Superuser with the username `adminadmin` and the password `password123`.
+
+> The seed data (`backend/prisma/seed.ts` and `backend/prisma/test-seed.ts`), including the demo login above, is for development, demos and tests only. Never seed a production database with it.
+
+### Authentication and CSRF
+
+The API authenticates with a JWT that the frontend sends in the `Authorization: Bearer …` header. No endpoint sets an auth cookie, so a request from another site can't carry the user's credentials; this is the CSRF protection (by design, no CSRF tokens needed). CORS only allows the origin in `FRONTEND_URL`. Login accepts the username or the e-mail address. After Google sign-in, the token arrives in the URL fragment (`/auth-callback#token=…`), which browsers never send to a server; the frontend removes it from the address bar and loads the user from `GET /api/auth/profile`.
+
+### Production: HTTPS behind a reverse proxy
+
+In production (`NODE_ENV=production`) the backend expects a reverse proxy (for example nginx or Traefik) in front of it that terminates TLS and sets `X-Forwarded-Proto`. The app trusts the first proxy, redirects every request that came in over plain HTTP with `308` (method and body are kept) to the same path under `PUBLIC_URL`, the backend's public `https://` address, which is required in production, and sends HSTS headers. Without such a proxy every request counts as HTTP and is redirected. Because the app trusts the proxy's `X-Forwarded-For` and `X-Forwarded-Proto`, the backend port (3000) must be reachable only through the proxy, not published or open in the network: otherwise a client can fake its IP address around the rate limit and skip the redirect. `THROTTLE_LIMIT` sets how many requests one IP address may make per minute (default 10); when the users share one public address, as behind a school's NAT, set it accordingly higher.
+
+### Backup and restore (runbook)
+
+Backup and restore (UC-41) is the Superuser's job: they run these scripts as the operator of the server; there is no in-app backup function (decision Q7). The scripts make a full logical dump in PostgreSQL's custom format (`documents/AP7-6.md`). They need the PostgreSQL client tools at least in the server's major version (17); `PG_BINDIR` points to them if another version comes first in the `PATH`. `DATABASE_URL` is the backend's.
+
+**Back up** (daily, e.g. with a systemd timer or cron):
+
+```bash
+cd backend
+DATABASE_URL=postgresql://… BACKUP_DIR=/var/backups/effsync BACKUP_KEEP_DAYS=14 scripts/backup.sh
+```
+
+It writes `effsync-<UTC time>.dump` (by default to `backend/backups`, which git ignores), readable only by its owner, reads all of the archive back, deletes the dumps older than `BACKUP_KEEP_DAYS` days in that folder and prints the file name. The password from `DATABASE_URL` goes to the PostgreSQL tools as `PGPASSWORD`, not on the command line. Copy the dumps off the server as well (e.g. with `rclone`); a dump on the same disk doesn't survive the disk. With one dump a day, at most a day of data is lost (RPO 24 h).
+
+**Restore:**
+
+1. Stop the backend, so nobody writes during the restore.
+2. Run `DATABASE_URL=postgresql://… scripts/restore.sh /var/backups/effsync/effsync-<time>.dump`; it shows the database and server and asks for the database name to confirm. The schema `public` is dropped with everything in it, tables of later migrations too, and recreated from the dump, in one transaction: either the database is the dump afterwards, or nothing changes.
+3. Start the backend of the same version as the backup (its migrations must match the dump), then sign in and check a few tasks.
+
+**Drill:** CI runs `scripts/restore-drill.sh` on every pull request and push to `main` and `development`: it backs up the seeded test database, restores it into a fresh one and compares the schema, the data (sequences included) and the row count of every table, checks that a restore without confirmation writes nothing, and restores again over changed data and a newer table. It runs only on a database whose name ends in `_test`. Locally: `DATABASE_URL=postgresql://postgres:postgres@localhost:5433/effsync_test scripts/restore-drill.sh` with the test database running.
+
+### Two-factor authentication
+
+Users turn 2FA on in their profile (Security tab): the backend makes a TOTP secret and shows it as a QR code for an authenticator app (e.g. Google Authenticator); the first 6-digit code turns it on. From then on, `POST /api/auth/login` answers a correct password with `{ two_factor_required: true, challenge_token }` instead of tokens, and `POST /api/auth/2fa/verify` with the challenge and the current code returns the access and refresh token; a wrong code is a `401`, and after 5 minutes the challenge expires (sign in again). Each code works once, and after five wrong codes in a row the check locks for 15 minutes. Sign-in with Google asks for the code the same way. Turning 2FA on ends the user's other sessions.
+
+The secrets are stored encrypted (AES-256-GCM) with `TWO_FACTOR_ENCRYPTION_KEY`. Back the key up apart from the database dumps: without it, the 2FA of a restored database can't be read, and every user has to have it reset.
+
+**Admin reset** (lost phone, there are no recovery codes): an admin with `manage_users` calls `DELETE /api/users/<id>/two-factor`; the user then signs in with the password alone and can set 2FA up again. Without the API, the operator can do the same in the database: `DELETE FROM user_two_factor WHERE user_id = <id>;`.
 
 ### Tests
 
 ```bash
-(cd backend  && npm test && npm run test:e2e)
+(cd backend  && npm test)
 (cd frontend && npm test && npm run test:e2e)
 ```
+
+The backend E2E tests run against their own disposable PostgreSQL database, never against the one in `backend/.env`. Before the suite starts, they reset that database with `prisma migrate reset --force` and fill it from `prisma/test-seed.ts`:
+
+```bash
+cd backend
+docker compose -f docker-compose.test.yml up -d   # test database on port 5433
+npm run test:e2e
+docker compose -f docker-compose.test.yml down
+```
+
+The connection is configured in `backend/.env.test`. The setup refuses to run against a database whose name doesn't end in `_test`.
 
 More details on the backend can be found in [`backend/README.md`](backend/README.md).
 
@@ -158,8 +234,22 @@ The project documentation in `documents/` is written in German.
 - [Roles and permissions](documents/RBAC_ABAC.md)
 - [ERD (dbdiagram.io)](https://dbdiagram.io/d/685e55b0f413ba3508290b48)
 
+The backend refactor that aligned the code with the thesis is documented in English:
+
+- [GOALS.md](GOALS.md): target architecture, milestones and decisions
+- [PROGRESS.md](PROGRESS.md): what each milestone changed and how it was verified
+- [THESIS_ALIGNMENT.md](THESIS_ALIGNMENT.md): every claim of the thesis, with its status in the code
+- [UNUSED_CODE.md](UNUSED_CODE.md): unused code that was removed or implemented
+
 ## Similar systems
 
 - [Smartsheet](https://www.smartsheet.com/)
 - [Quickbase](https://www.quickbase.com/)
 - [Jira](https://www.atlassian.com/de/software/jira)
+
+## License
+
+Copyright © 2025–2026 Dražen Plavšić, Ereny Micail
+
+- **Source code** (`backend/`, `frontend/` and everything else not listed below): [MIT](LICENSE)
+- **Thesis, documentation and logos** (`thesis/`, `documents/`, `logos/`): [CC BY-NC-ND 4.0](LICENSE-CC-BY-NC-ND-4.0.txt). You may share them with attribution, but not commercially and not in modified form.

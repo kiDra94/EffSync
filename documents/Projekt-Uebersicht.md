@@ -212,7 +212,6 @@ API Services (REST/WebSocket)
 
 **Stores im Projekt:**
 - `authStore` - Authentifizierung & Benutzer-Session
-- `userStore` - Benutzer-Metadaten
 - `notificationStore` - Benachrichtigungen
 - `searchStore` - Suchfunktionalität
 

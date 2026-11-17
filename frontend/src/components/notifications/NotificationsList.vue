@@ -1,6 +1,6 @@
 <template>
   <div class="notifications-container">
-    <!-- Header mit Filter -->
+    <!-- Header with filter -->
     <div class="notifications-header">
       <h3>📬 Benachrichtigungen ({{ notificationStore.notifications.length }})</h3>
       <div class="header-buttons">
@@ -86,6 +86,16 @@
         </button>
       </div>
     </div>
+
+    <!-- M37: the API pages the notifications; older ones load on demand -->
+    <button
+      v-if="notificationStore.hasMore"
+      class="btn-secondary load-more"
+      :disabled="notificationStore.isLoading"
+      @click="notificationStore.loadMore()"
+    >
+      {{ notificationStore.isLoading ? 'Lädt …' : 'Ältere laden' }}
+    </button>
   </div>
 </template>
 
@@ -109,7 +119,7 @@ const tabs = [
   { type: 'urgency', icon: '⏰', label: 'Fällig' },
 ];
 
-// Toast-Icons
+// Toast icons
 const getIcon = (type) => {
   const icons = {
     'change': '✏️',
@@ -120,7 +130,7 @@ const getIcon = (type) => {
   return icons[type] || 'ℹ️';
 };
 
-// Zeitstempel formatieren
+// Format the timestamp
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
   const now = new Date();
@@ -133,7 +143,7 @@ const formatTime = (timestamp) => {
   return date.toLocaleDateString('de-DE');
 };
 
-// Filtern nach Typ
+// Filter by type
 const filteredNotifications = computed(() => {
   if (activeFilter.value === 'all') {
     return notificationStore.sortedNotifications;
@@ -141,13 +151,13 @@ const filteredNotifications = computed(() => {
   return notificationStore.sortedNotifications.filter(n => n.type === activeFilter.value);
 });
 
-// Anzahl pro Typ
+// Count per type
 const getCountByType = (type) => {
   if (type === 'all') return notificationStore.notifications.length;
   return notificationStore.notifications.filter(n => n.type === type).length;
 };
 
-// Benachrichtigung klicken → als gelesen markieren + passend navigieren
+// Click a notification → mark it as read + navigate to it
 const handleNotificationClick = async (notification) => {
   const notificationId = notification.notification_id || notification.id;
   await notificationStore.markAsRead(notificationId);
@@ -176,14 +186,14 @@ const handleNotificationClick = async (notification) => {
   });
 };
 
-// Checkbox togglen
+// Toggle the checkbox
 const toggleSelect = (id) => {
   const idx = selectedIds.value.indexOf(id);
   if (idx === -1) selectedIds.value.push(id);
   else selectedIds.value.splice(idx, 1);
 };
 
-// Alle auswählen / abwählen
+// Select / deselect all
 const allSelected = computed(() => {
   return filteredNotifications.value.length > 0 &&
     filteredNotifications.value.every(n => selectedIds.value.includes(n.notification_id || n.id));
@@ -197,7 +207,7 @@ const toggleSelectAll = () => {
   }
 };
 
-// Ausgewählte löschen
+// Delete the selected ones
 const deleteSelected = async () => {
   await notificationStore.deleteNotifications([...selectedIds.value]);
   selectedIds.value = [];
@@ -246,6 +256,11 @@ const deleteSelected = async () => {
 .btn-secondary:hover {
   background: #f5f5f5;
   border-color: #999;
+}
+
+.load-more {
+  display: block;
+  margin: 12px auto 0;
 }
 
 .text-danger {
@@ -447,7 +462,7 @@ const deleteSelected = async () => {
 </style>
 
 <style>
-/* Dark Mode Styles für NotificationsList */
+/* Dark mode styles for NotificationsList */
 body.dark-mode .notifications-container {
   background-color: #2c2c3e !important;
 }

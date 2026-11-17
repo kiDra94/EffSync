@@ -122,8 +122,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { usersApi } from '@/api/usersService';
+import { useUserStore } from '@/stores/entities/userStore';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const userStore = useUserStore();
 const loading = ref(true);
 const error = ref(null);
 const permissions = ref({
@@ -155,7 +157,7 @@ const refreshPermissions = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await usersApi.getMyPermissions();
+    const response = await userStore.fetchMyPermissions();
     permissions.value = response.data;
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Fehler beim Laden der Permissions';

@@ -115,5 +115,5 @@ const handleRegister = async () => {
 </template>
 
 <style scoped>
-/* Leer, da style.css übernimmt */
+/* Empty, style.css takes care of it */
 </style>

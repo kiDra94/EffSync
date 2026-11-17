@@ -1,8 +1,8 @@
 import { apiClient } from '@/api/httpClient';
 import { normalizeEntity, normalizeEntities } from '@/config/api.config';
 
-const ROOMS_ENDPOINT = '/chat/rooms';
-const MESSAGES_ENDPOINT = (roomId) => `/chat/rooms/${roomId}/messages`;
+const ROOMS_ENDPOINT = '/chat-rooms';
+const MESSAGES_ENDPOINT = (roomId) => `${ROOMS_ENDPOINT}/${roomId}/messages`;
 const ID_KEY = 'room_id';
 const MSG_ID_KEY = 'message_id';
 
@@ -10,11 +10,6 @@ export const fetchRooms = async () => {
     const response = await apiClient.get(ROOMS_ENDPOINT);
     const rooms = response.data?.data ?? response.data;
     return normalizeEntities(rooms, ID_KEY);
-};
-
-export const fetchRoomById = async (roomId) => {
-    const response = await apiClient.get(`${ROOMS_ENDPOINT}/${roomId}`);
-    return normalizeEntity(response.data, ID_KEY);
 };
 
 export const fetchMessages = async (roomId) => {
@@ -28,18 +23,34 @@ export const createRoom = async (roomData) => {
     return normalizeEntity(response.data, ID_KEY);
 };
 
+// M21: the server finds or creates these rooms (T113 DM hash, T29 links)
+export const openDirectChat = async (userId) => {
+    const response = await apiClient.post(`${ROOMS_ENDPOINT}/direct`, { user_id: userId });
+    return normalizeEntity(response.data, ID_KEY);
+};
+
+export const openTaskChat = async (taskId) => {
+    const response = await apiClient.post(`${ROOMS_ENDPOINT}/task/${taskId}`);
+    return normalizeEntity(response.data, ID_KEY);
+};
+
+export const openClassChat = async (classId) => {
+    const response = await apiClient.post(`${ROOMS_ENDPOINT}/class/${classId}`);
+    return normalizeEntity(response.data, ID_KEY);
+};
+
 export const sendMessageRest = async (roomId, content) => {
     const response = await apiClient.post(MESSAGES_ENDPOINT(roomId), { message: content });
     return normalizeEntity(response.data, MSG_ID_KEY);
 };
 
 export const editMessage = async (messageId, content) => {
-    const response = await apiClient.patch(`/chat/messages/${messageId}`, { content });
+    const response = await apiClient.patch(`${ROOMS_ENDPOINT}/messages/${messageId}`, { message: content });
     return normalizeEntity(response.data, MSG_ID_KEY);
 };
 
 export const deleteMessage = async (messageId) => {
-    const response = await apiClient.delete(`/chat/messages/${messageId}`);
+    const response = await apiClient.delete(`${ROOMS_ENDPOINT}/messages/${messageId}`);
     return response.data;
 };
 

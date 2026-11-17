@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
+import { authGuard } from "./guards";
 
 const routes = [
     {
@@ -81,14 +82,15 @@ const routes = [
                 path: 'classes',
                 name: 'ClassList',
                 component: () => import('@/views/ClassListView.vue'),
-                meta: { roles: ['admin', 'superuser'] },
+                // teachers change the members of their classes (M36, UC-20)
+                meta: { roles: ['admin', 'superuser', 'teacher'] },
             },
             {
                 path: 'classes/:id',
                 name: 'ClassDetail',
                 component: () => import('@/views/ClassDetail.vue'),
                 props: true,
-                meta: { roles: ['admin', 'superuser'] },
+                meta: { roles: ['admin', 'superuser', 'teacher'] },
             },
             {
                 path: 'departments',
@@ -97,10 +99,35 @@ const routes = [
                 meta: { roles: ['admin', 'superuser'] },
             },
             {
+                path: 'subjects',
+                name: 'SubjectList',
+                component: () => import('@/views/SubjectView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                path: 'rooms',
+                name: 'RoomList',
+                component: () => import('@/views/RoomView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
                 path: 'admin/users',
                 name: 'AdminUsers',
                 component: () => import('@/views/AdminView.vue'),
                 meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                // M27 (T33, UC-32): the activity log of all tasks
+                path: 'admin/audit-log',
+                name: 'AuditLog',
+                component: () => import('@/views/AuditLogView.vue'),
+                meta: { roles: ['admin', 'superuser'] },
+            },
+            {
+                // M27 (UC-13 "Note einsehen"): the student's grades
+                path: 'grades',
+                name: 'Grades',
+                component: () => import('@/views/GradesView.vue'),
             },
             {
                 path: 'permissions',
@@ -131,52 +158,7 @@ const router = createRouter({
     routes,
 })
 
-// --- Optimierter Navigation Guard ---
-router.beforeEach(async (to) => {
-    const authStore = useAuthStore()
-
-    // isAuthenticated ist ein Boolean, token ist der String.
-    // Wir prüfen hier auf den Token im State (oder LocalStorage durch initDevMode)
-    const hasToken = authStore.isAuthenticated
-
-    const routeRequiresAuth = to.matched.some(record => record.meta.requiresAuth)
-
-    // 1. Nicht eingeloggt & Route braucht Auth -> Login
-    if (!hasToken && routeRequiresAuth) {
-        return { name: 'Login' }
-    }
-
-    // 2. Eingeloggt & will zu Login/Register -> Dashboard
-    if (hasToken && (to.name === 'Login' || to.name === 'Register')) {
-        return { name: 'Dashboard' }
-    }
-
-    // 3. User Daten laden (für F5 Refresh), falls Token da ist, aber User leer
-    if (hasToken && !authStore.userDetails) {
-        try {
-            await authStore.loadUser()
-        } catch (error) {
-            // Falls Token ungültig war -> Logout passiert im Store, hier Redirect
-            console.error('Fehler beim Laden der Benutzerdaten:', error)
-            return { name: 'Login' }
-        }
-    }
-
-    // 4. Rollen-Check (erst NACHDEM User geladen wurde)
-    if (hasToken && to.meta.roles) {
-        // Jetzt ist userRole sicher verfügbar
-        console.log('🔐 Router Guard - Route requires roles:', to.meta.roles)
-        console.log('🔐 Router Guard - User role:', authStore.userRole)
-        console.log('🔐 Router Guard - Has required role:', to.meta.roles.includes(authStore.userRole))
-        
-        if (!to.meta.roles.includes(authStore.userRole)) {
-            // Optional: Redirect zu einer "Unauthorized" Seite oder zurück zum Dashboard
-            console.warn('⚠️ Zugriff verweigert: Fehlende Rolle', authStore.userRole, 'benötigt:', to.meta.roles)
-            return { name: 'Dashboard' }
-        }
-    }
-
-    return true
-})
+// the guard logic lives in guards.js, so it can be tested (M29, T70)
+router.beforeEach((to) => authGuard(to, useAuthStore()))
 
 export default router

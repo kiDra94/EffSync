@@ -1,0 +1,142 @@
+import { Controller, Get, INestApplication, UseGuards } from "@nestjs/common";
+import { Test, TestingModule } from "@nestjs/testing";
+import request from "supertest";
+import { App } from "supertest/types";
+import { AppModule } from "../src/app.module";
+import { PrismaService } from "../src/shared/infrastructure/prisma/prisma.service";
+import { JwtAuthGuard } from "../src/shared/presentation/security";
+import { RolesGuard } from "../src/shared/presentation/security";
+import { PermissionsGuard } from "../src/shared/presentation/security";
+import { Roles } from "../src/shared/presentation/security";
+import { Permissions } from "../src/shared/presentation/security";
+import { RoleName } from "../src/contexts/identity-access/application";
+import { createTestApp } from "./setup/create-test-app";
+
+// THESIS: T97 – the backend checks the token, then the role, then the permission.
+// The test seed gives teachers view_dashboard … edit_grades, but not manage_users.
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@Controller("guard-order-test")
+class GuardOrderTestController {
+  @Get()
+  @Roles(RoleName.TEACHER)
+  @Permissions("manage_users")
+  check() {
+    return { ok: true };
+  }
+}
+
+describe("Guard order token → role → permission (e2e)", () => {
+  let app: INestApplication<App>;
+  let student: string;
+  let teacher: string;
+  let otherTeacher: string;
+
+  async function login(username: string): Promise<string> {
+    const response = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ identifier: username, password: "password123" })
+      .expect(201);
+    return (response.body as { token: string }).token;
+  }
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+      controllers: [GuardOrderTestController],
+    }).compile();
+    app = await createTestApp(moduleFixture);
+    // three logins per app instance: the login throttle allows 3 per minute
+    student = await login("ffuchs");
+    teacher = await login("alehrerin");
+    otherTeacher = await login("pschmidt");
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("answers 401 without a token", async () => {
+    await request(app.getHttpServer()).get("/api/guard-order-test").expect(401);
+  });
+
+  it("answers 403 for the role before looking at the permission", async () => {
+    // a student has neither the role nor the permission: the role check fails first
+    const response = await request(app.getHttpServer())
+      .get("/api/guard-order-test")
+      .set("Authorization", `Bearer ${student}`)
+      .expect(403);
+
+    expect((response.body as { message: string }).message).toMatch(
+      /Insufficient role/,
+    );
+  });
+
+  it("answers 403 for the permission once the role is present", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/guard-order-test")
+      .set("Authorization", `Bearer ${teacher}`)
+      .expect(403);
+
+    expect((response.body as { message: string }).message).toBe(
+      "Missing permission: manage_users",
+    );
+  });
+
+  // M7: the endpoints that are role-restricted get @Roles(Teacher, Admin, Superuser)
+  it.each([
+    ["PATCH", "/api/documents/1/grade", { grade: "1" }],
+    ["PATCH", "/api/documents/1/allow-resubmit", {}],
+  ])("%s %s answers 403 for a student", async (_method, url, body) => {
+    const response = await request(app.getHttpServer())
+      .patch(url)
+      .set("Authorization", `Bearer ${student}`)
+      .send(body)
+      .expect(403);
+
+    expect((response.body as { message: string }).message).toMatch(
+      /Insufficient role/,
+    );
+  });
+
+  // staff or the task's creator; uses its own task so the seed data stays untouched
+  describe("PATCH /api/tasks/:id/deadline-unlock", () => {
+    let taskId: number;
+
+    beforeAll(async () => {
+      const response = await request(app.getHttpServer())
+        .post("/api/tasks")
+        .set("Authorization", `Bearer ${teacher}`)
+        .send({ title: "Guard order deadline task", deadline: "2029-06-01" })
+        .expect(201);
+      taskId = (response.body as { task_id: number }).task_id;
+      // decision I5 (M38): a teacher sees only the tasks they are part of, so
+      // the other teacher joins this one
+      const other = await app
+        .get(PrismaService)
+        .users.findUniqueOrThrow({ where: { username: "pschmidt" } });
+      await request(app.getHttpServer())
+        .post(`/api/tasks/${taskId}/members`)
+        .set("Authorization", `Bearer ${teacher}`)
+        .send({ user_id: other.user_id })
+        .expect(201);
+    });
+
+    // M17: the student isn't involved in the teacher's task, so for them it
+    // doesn't exist (404); the staff-or-creator rule is in the M1 locking tests
+    it("answers 404 for a student who can't see the task", async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}/deadline-unlock`)
+        .set("Authorization", `Bearer ${student}`)
+        .send({ deadline: "2030-01-01" })
+        .expect(404);
+    });
+
+    it("lets another teacher of the task change the deadline", async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}/deadline-unlock`)
+        .set("Authorization", `Bearer ${otherTeacher}`)
+        .send({ deadline: "2030-01-01" })
+        .expect(200);
+    });
+  });
+});

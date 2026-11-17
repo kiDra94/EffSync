@@ -1,53 +1,24 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import DepartmentForm from '@/components/departments/DepartmentForm.vue';
 import DepartmentDeleteDialog from '@/components/departments/DepartmentDeleteDialog.vue';
+import { useDepartmentStore } from '@/stores/entities/schoolStores';
 
-const STORAGE_KEY = 'effsync_departments';
-
-const defaultDepartments = [
-  { department_id: 1, name: 'Informationstechnologie', class_count: 3 },
-  { department_id: 2, name: 'Elektrotechnik', class_count: 2 },
-  { department_id: 3, name: 'Maschinenbau', class_count: 2 },
-];
-
-const departments = ref([]);
+// GOALS.md M36 (decision D1): departments from the API, nothing in the browser
+const departmentStore = useDepartmentStore();
 const selectedDepartment = ref(null);
 const activeModal = ref(null);
 const searchQuery = ref('');
 
+const departments = computed(() => departmentStore.items);
 const filteredDepartments = computed(() => {
-  if (!searchQuery.value) return departments.value;
-  return departments.value.filter(dept =>
-    dept.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  const query = searchQuery.value.toLowerCase();
+  if (!query) return departments.value;
+  return departments.value.filter((dept) => (dept.name || '').toLowerCase().includes(query));
 });
 
-const loadFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      departments.value = JSON.parse(stored);
-    } else {
-      departments.value = JSON.parse(JSON.stringify(defaultDepartments));
-      saveToStorage();
-    }
-  } catch (error) {
-    console.error('Fehler beim Laden:', error);
-    departments.value = JSON.parse(JSON.stringify(defaultDepartments));
-  }
-};
-
-const saveToStorage = () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(departments.value));
-  } catch (error) {
-    console.error('Fehler beim Speichern:', error);
-  }
-};
-
 const openDepartmentForm = (dept = null) => {
-  selectedDepartment.value = dept ? JSON.parse(JSON.stringify(dept)) : null;
+  selectedDepartment.value = dept ? { ...dept } : null;
   activeModal.value = 'form';
 };
 
@@ -61,39 +32,27 @@ const closeModal = () => {
   selectedDepartment.value = null;
 };
 
-const saveDepartment = async (deptData) => {
+const saveDepartment = async ({ department_id, name }) => {
   try {
-    if (deptData.department_id) {
-      const index = departments.value.findIndex(d => d.department_id === deptData.department_id);
-      if (index !== -1) {
-        departments.value[index] = deptData;
-      }
-    } else {
-      deptData.department_id = Math.max(...departments.value.map(d => d.department_id), 0) + 1;
-      deptData.class_count = 0;
-      departments.value.push(deptData);
-    }
-    saveToStorage();
+    if (department_id) await departmentStore.edit(department_id, { name });
+    else await departmentStore.add({ name });
     closeModal();
-  } catch (error) {
-    console.error('Fehler beim Speichern:', error);
+  } catch {
+    // the store keeps the message for the page
   }
 };
 
 const deleteDepartment = async () => {
-  if (selectedDepartment.value) {
-    try {
-      departments.value = departments.value.filter(d => d.department_id !== selectedDepartment.value.department_id);
-      saveToStorage();
-      closeModal();
-    } catch (error) {
-      console.error('Fehler beim Löschen:', error);
-    }
+  try {
+    await departmentStore.remove(selectedDepartment.value.department_id);
+  } catch {
+    // e.g. 409: the department still has classes
   }
+  closeModal();
 };
 
 onMounted(() => {
-  loadFromStorage();
+  departmentStore.load().catch(() => {});
 });
 </script>
 
@@ -105,6 +64,8 @@ onMounted(() => {
         + Neue Abteilung
       </button>
     </div>
+
+    <p v-if="departmentStore.error" class="error-message">{{ departmentStore.error }}</p>
 
     <div class="filters" v-if="departments.length > 0">
       <input
@@ -152,6 +113,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.error-message {
+  color: #b91c1c;
+  margin-bottom: 12px;
+}
+
 .department-view {
   max-width: 1000px;
   margin: 0 auto;

@@ -2,14 +2,25 @@
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { takeTokensFromHash } from '@/utils/tokenFromHash'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
+// decision Q9: the Google callback sends the tokens in the URL fragment
+// (/auth-callback#token=…&refreshToken=…, M12); the store loads the user
+// (M25: views reach the API only through stores, decision Q19)
 onMounted(async () => {
-  const token = route.query.token
-  const userJson = route.query.user
+  // the tokens must not stay in the address bar or the browser history
+  const { token, refreshToken, challenge } = await takeTokensFromHash(route, router)
+
+  // M32: with 2FA on, the login page asks for the code first
+  if (challenge) {
+    sessionStorage.setItem('twoFactorChallenge', challenge)
+    router.push({ name: 'Login' })
+    return
+  }
 
   if (!token) {
     console.error('❌ Kein Token in Auth-Callback erhalten')
@@ -18,26 +29,7 @@ onMounted(async () => {
   }
 
   try {
-    // Parse user data from query param
-    const user = userJson ? JSON.parse(decodeURIComponent(userJson)) : {}
-
-    // Update auth store directly (these are refs)
-    authStore.token = token
-    authStore.userId = user.userId || user.id
-    authStore.userRole = user.role || 'student'
-    authStore.userDetails = user
-
-    // Also save to localStorage
-    localStorage.setItem('authToken', token)
-    localStorage.setItem('userId', String(user.userId || user.id))
-    localStorage.setItem('userRole', String(user.role || 'student'))
-
-    console.log('✅ Google OAuth erfolgreich!')
-    console.log('👤 User:', user)
-    
-    // Give a moment for reactivity to update
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
+    await authStore.completeGoogleSignIn({ token, refreshToken })
     router.push({ name: 'Dashboard' })
   } catch (error) {
     console.error('❌ Fehler beim Verarbeiten des Auth-Callbacks:', error)

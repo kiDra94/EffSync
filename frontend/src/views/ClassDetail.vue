@@ -1,77 +1,89 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
+import { useClassStore } from '@/stores/entities/schoolStores';
+import { useChatStore } from '@/stores/entities/chatStore';
 
+// GOALS.md M36 (decision D2): the class's real students and teachers from the API
 const route = useRoute();
 const router = useRouter();
-const classId = computed(() => route.params.id);
+const authStore = useAuthStore();
+const classStore = useClassStore();
+const chatStore = useChatStore();
+const chatError = ref('');
+const classId = computed(() => Number(route.params.id));
 
-// Mock data
-const classData = ref({
-  class_id: null,
-  name: '',
-  department_name: '',
-  head_teacher_name: '',
-  students: [],
-  teachers: [],
-  schedule: null
+const activeTab = ref('overview');
+const editing = ref(null); // 'students' | 'teachers' while a list is edited
+const selection = ref([]);
+
+const classData = computed(() => classStore.current);
+const personName = (person) => (person ? `${person.firstname} ${person.lastname}` : '–');
+const formatDate = (value) => (value ? String(value).slice(0, 10) : '–');
+
+// Admin and Superuser manage all classes; a teacher of this class changes its members (UC-20)
+const canEditMembers = computed(() => {
+  if (authStore.isAdmin) return true;
+  const me = Number(authStore.userId);
+  const cls = classData.value;
+  return Boolean(
+    cls && (cls.head_teacher?.user_id === me || cls.teachers.some((t) => t.user_id === me))
+  );
 });
 
-const isLoading = ref(false);
-const activeTab = ref('overview');
+const candidates = computed(() =>
+  editing.value === 'students' ? classStore.assignable.students : classStore.assignable.teachers
+);
 
-const STORAGE_KEY = 'effsync_classes';
-
-onMounted(async () => {
+const startEditing = async (list) => {
   try {
-    // Versuche Daten aus localStorage zu laden
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const classes = JSON.parse(stored);
-      const found = classes.find(c => c.class_id === parseInt(classId.value));
-      if (found) {
-        classData.value = { ...found };
-        // Füge Mock-Daten für Students/Teachers hinzu
-        classData.value.students = [
-          { student_id: 1, firstname: 'Max', lastname: 'Mustermann' },
-          { student_id: 2, firstname: 'Anna', lastname: 'Schmidt' },
-        ];
-        classData.value.teachers = [
-          { teacher_id: 1, firstname: 'Dr.', lastname: 'Müller' },
-          { teacher_id: 2, firstname: 'Prof.', lastname: 'Weber' },
-        ];
-        classData.value.schedule = {
-          name: 'Stundenplan WS 2025/26',
-          valid_from: '2025-09-01',
-          valid_to: '2026-06-30'
-        };
-        return;
-      }
-    }
-    
-    // Fallback: Mock-Daten
-    classData.value = {
-      class_id: classId.value,
-      name: '3AKIFT',
-      department_name: 'Informationstechnologie',
-      head_teacher_name: 'Dr. Müller',
-      students: [
-        { student_id: 1, firstname: 'Max', lastname: 'Mustermann' },
-        { student_id: 2, firstname: 'Anna', lastname: 'Schmidt' },
-      ],
-      teachers: [
-        { teacher_id: 1, firstname: 'Dr.', lastname: 'Müller' },
-        { teacher_id: 2, firstname: 'Prof.', lastname: 'Weber' },
-      ],
-      schedule: {
-        name: 'Stundenplan WS 2025/26',
-        valid_from: '2025-09-01',
-        valid_to: '2026-06-30'
-      }
-    };
-  } catch (error) {
-    console.error('Fehler beim Laden der Klassendetails:', error);
+    await classStore.loadAssignable();
+  } catch {
+    return; // without the candidates the editor can't show anyone (review M36)
   }
+  selection.value = classData.value[list].map((person) => person.user_id);
+  editing.value = list;
+};
+
+const saveMembers = async () => {
+  try {
+    if (editing.value === 'students') await classStore.setStudents(classId.value, selection.value);
+    else await classStore.setTeachers(classId.value, selection.value);
+    editing.value = null;
+  } catch {
+    // the store keeps the message (e.g. 403) for the page
+  }
+};
+
+// T29 (M21): the class chat with its students and teachers (decision D2)
+const isMember = computed(() => {
+  const me = Number(authStore.userId);
+  const cls = classData.value;
+  return Boolean(
+    cls &&
+      (cls.head_teacher?.user_id === me ||
+        cls.teachers.some((t) => t.user_id === me) ||
+        cls.students.some((s) => s.user_id === me))
+  );
+});
+
+const openClassChat = async () => {
+  chatError.value = '';
+  try {
+    const room = await chatStore.openClassChat(classId.value);
+    router.push({ name: 'Chat', query: { room: String(room.room_id) } });
+  } catch {
+    chatError.value = 'Der Klassenchat konnte nicht geöffnet werden.';
+  }
+};
+
+const otherClassHint = (person) =>
+  person.class_id && person.class_id !== classId.value ? ' (wechselt die Klasse)' : '';
+
+onMounted(() => {
+  classStore.current = null;
+  classStore.open(classId.value).catch(() => {});
 });
 </script>
 
@@ -79,84 +91,157 @@ onMounted(async () => {
   <div class="class-detail-view">
     <div class="header">
       <button @click="router.back()" class="btn-back">← Zurück</button>
-      <h1 v-if="classData.class_id">{{ classData.name }}</h1>
-      <h1 v-else>Klasse wird geladen...</h1>
+      <h1 v-if="classData">{{ classData.name }}</h1>
+      <h1 v-else-if="!classStore.catalog.error">Klasse wird geladen...</h1>
+      <button v-if="isMember" @click="openClassChat" class="btn-secondary class-chat-btn">💬 Klassenchat</button>
     </div>
 
-    <div class="tabs">
-      <button
-        v-for="tab in ['overview', 'students', 'teachers', 'schedule']"
-        :key="tab"
-        :class="{ active: activeTab === tab }"
-        @click="activeTab = tab"
-        class="tab-btn"
-      >
-        {{ tab === 'overview' ? 'Übersicht' : tab === 'students' ? 'Schüler' : tab === 'teachers' ? 'Lehrer' : 'Stundenplan' }}
-      </button>
-    </div>
+    <p v-if="classStore.catalog.error" class="error-message">{{ classStore.catalog.error }}</p>
+    <p v-if="chatError" class="error-message">{{ chatError }}</p>
 
-    <div class="tab-content">
-      <!-- Übersicht Tab -->
-      <div v-if="activeTab === 'overview'" class="content-section">
-        <div class="info-card">
-          <h2>Klassninformationen</h2>
-          <div class="info-grid">
-            <div class="info-item">
-              <label>Klassenname:</label>
-              <p>{{ classData.name }}</p>
-            </div>
-            <div class="info-item">
-              <label>Abteilung:</label>
-              <p>{{ classData.department_name }}</p>
-            </div>
-            <div class="info-item">
-              <label>Klassenvorstand:</label>
-              <p>{{ classData.head_teacher_name }}</p>
-            </div>
-            <div class="info-item">
-              <label>Anzahl Schüler:</label>
-              <p>{{ classData.students.length }}</p>
+    <template v-if="classData">
+      <div class="tabs">
+        <button
+          v-for="tab in ['overview', 'students', 'teachers', 'schedule']"
+          :key="tab"
+          :class="{ active: activeTab === tab }"
+          @click="activeTab = tab; editing = null"
+          class="tab-btn"
+        >
+          {{ tab === 'overview' ? 'Übersicht' : tab === 'students' ? 'Schüler' : tab === 'teachers' ? 'Lehrer' : 'Stundenplan' }}
+        </button>
+      </div>
+
+      <div class="tab-content">
+        <div v-if="activeTab === 'overview'" class="content-section">
+          <div class="info-card">
+            <h2>Klasseninformationen</h2>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Klassenname:</label>
+                <p>{{ classData.name }}</p>
+              </div>
+              <div class="info-item">
+                <label>Abteilung:</label>
+                <p>{{ classData.department?.name || '–' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Klassenvorstand:</label>
+                <p>{{ personName(classData.head_teacher) }}</p>
+              </div>
+              <div class="info-item">
+                <label>Anzahl Schüler:</label>
+                <p>{{ classData.students.length }}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Schüler Tab -->
-      <div v-if="activeTab === 'students'" class="content-section">
-        <h2>Schüler ({{ classData.students.length }})</h2>
-        <div v-if="classData.students.length > 0" class="list">
-          <div v-for="student in classData.students" :key="student.student_id" class="list-item">
-            <span>{{ student.firstname }} {{ student.lastname }}</span>
+        <div v-for="list in ['students', 'teachers']" :key="list">
+          <div v-if="activeTab === list" class="content-section">
+            <div class="section-header">
+              <h2>{{ list === 'students' ? 'Schüler' : 'Unterrichtende Lehrer' }} ({{ classData[list].length }})</h2>
+              <button v-if="canEditMembers && editing !== list" @click="startEditing(list)" class="btn-secondary">
+                Bearbeiten
+              </button>
+            </div>
+
+            <div v-if="editing === list" class="list member-editor">
+              <label v-for="person in candidates" :key="person.user_id" class="list-item">
+                <input type="checkbox" :value="person.user_id" v-model="selection" />
+                <span>{{ personName(person) }}<small v-if="list === 'students'">{{ otherClassHint(person) }}</small></span>
+              </label>
+              <div class="modal-actions">
+                <button @click="saveMembers" class="btn-primary">Speichern</button>
+                <button @click="editing = null" class="btn-secondary">Abbrechen</button>
+              </div>
+            </div>
+            <div v-else-if="classData[list].length > 0" class="list">
+              <div v-for="person in classData[list]" :key="person.user_id" class="list-item">
+                <span>{{ personName(person) }}</span>
+              </div>
+            </div>
+            <div v-else class="empty-message">
+              {{ list === 'students' ? 'Keine Schüler in dieser Klasse.' : 'Keine Lehrer zugeordnet.' }}
+            </div>
           </div>
         </div>
-        <div v-else class="empty-message">Keine Schüler in dieser Klasse.</div>
-      </div>
 
-      <!-- Lehrer Tab -->
-      <div v-if="activeTab === 'teachers'" class="content-section">
-        <h2>Unterrichtende Lehrer</h2>
-        <div v-if="classData.teachers.length > 0" class="list">
-          <div v-for="teacher in classData.teachers" :key="teacher.teacher_id" class="list-item">
-            <span>{{ teacher.firstname }} {{ teacher.lastname }}</span>
+        <div v-if="activeTab === 'schedule'" class="content-section">
+          <h2>Stundenplan</h2>
+          <div v-if="classData.schedule" class="schedule-info">
+            <p><strong>{{ classData.schedule.name }}</strong></p>
+            <p>Gültig von {{ formatDate(classData.schedule.valid_from) }} bis {{ formatDate(classData.schedule.valid_to) }}</p>
           </div>
+          <div v-else class="empty-message">Kein Stundenplan zugeordnet.</div>
         </div>
-        <div v-else class="empty-message">Keine Lehrer zugeordnet.</div>
       </div>
-
-      <!-- Stundenplan Tab -->
-      <div v-if="activeTab === 'schedule'" class="content-section">
-        <h2>Stundenplan</h2>
-        <div v-if="classData.schedule" class="schedule-info">
-          <p><strong>{{ classData.schedule.name }}</strong></p>
-          <p>Gültig von {{ classData.schedule.valid_from }} bis {{ classData.schedule.valid_to }}</p>
-        </div>
-        <div v-else class="empty-message">Kein Stundenplan zugeordnet.</div>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.btn-primary {
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #4338ca;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.error-message {
+  color: #b91c1c;
+  margin-bottom: 12px;
+}
+
+.class-chat-btn {
+  margin-left: auto;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.member-editor .list-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.member-editor small {
+  color: #6b7280;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .class-detail-view {
   max-width: 1000px;
   margin: 0 auto;

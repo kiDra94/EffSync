@@ -4,40 +4,26 @@ import { useRoute } from 'vue-router';
 import ScheduleForm from '@/components/schedules/ScheduleForm.vue';
 import ScheduleDeleteDialog from '@/components/schedules/ScheduleDeleteDialog.vue';
 import { useAuthStore } from '@/stores/authStore';
+import { useScheduleStore } from '@/stores/entities/schoolStores';
 
-const STORAGE_KEY = 'effsync_schedules';
+// GOALS.md M36 (decision D1): schedules from the API, nothing in the browser
+const scheduleStore = useScheduleStore();
+const formatDate = (value) => (value ? String(value).slice(0, 10) : '');
+// the list shape the view shows: the counts come from the API's classes and lesson slots
+const schedules = computed(() =>
+  scheduleStore.items.map((schedule) => ({
+    ...schedule,
+    valid_from: formatDate(schedule.valid_from),
+    valid_to: formatDate(schedule.valid_to),
+    class_count: schedule.classes?.length ?? 0,
+    lesson_count: schedule.lesson_slots?.length ?? 0,
+  }))
+);
 
-const defaultSchedules = [
-  { 
-    schedule_id: 1, 
-    name: 'Stundenplan Wintersemester 2025/26',
-    valid_from: '2025-09-01',
-    valid_to: '2026-01-31',
-    class_count: 12,
-    lesson_count: 48
-  },
-  { 
-    schedule_id: 2, 
-    name: 'Stundenplan Sommersemester 2025/26',
-    valid_from: '2026-02-01',
-    valid_to: '2026-06-30',
-    class_count: 12,
-    lesson_count: 52
-  },
-  { 
-    schedule_id: 3, 
-    name: 'Stundenplan 2026/27 (Entwurf)',
-    valid_from: '2026-09-01',
-    valid_to: '2027-06-30',
-    class_count: 0,
-    lesson_count: 0
-  },
-];
-
-const schedules = ref([]);
 const selectedSchedule = ref(null);
 const activeModal = ref(null);
-const activeView = ref('week'); // Schüler: 'week', Admin: 'list'
+// the view has a list and a detail; 'week' rendered nothing (M36)
+const activeView = ref('list');
 const searchQuery = ref('');
 const authStore = useAuthStore();
 const route = useRoute();
@@ -47,47 +33,12 @@ const canManageSchedules = computed(() => {
   return ['admin', 'superuser', 'director'].includes(role);
 });
 
-// Limitiere View-Mode für Schüler
-const allowedViewModes = computed(() => {
-  return canManageSchedules.value ? ['list', 'week', 'day', 'month'] : ['week', 'day'];
-});
-
-// Stelle sicher dass activeView erlaubt ist
-const ensureValidViewMode = () => {
-  if (!allowedViewModes.value.includes(activeView.value)) {
-    activeView.value = canManageSchedules.value ? 'list' : 'week';
-  }
-};
-
 const filteredSchedules = computed(() => {
   if (!searchQuery.value) return schedules.value;
   return schedules.value.filter(s =>
     s.name.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
-
-const loadFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      schedules.value = JSON.parse(stored);
-    } else {
-      schedules.value = JSON.parse(JSON.stringify(defaultSchedules));
-      saveToStorage();
-    }
-  } catch (error) {
-    console.error('Fehler beim Laden:', error);
-    schedules.value = JSON.parse(JSON.stringify(defaultSchedules));
-  }
-};
-
-const saveToStorage = () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules.value));
-  } catch (error) {
-    console.error('Fehler beim Speichern:', error);
-  }
-};
 
 const openScheduleForm = (schedule = null) => {
   if (!canManageSchedules.value) return;
@@ -111,39 +62,28 @@ const closeModal = () => {
   selectedSchedule.value = null;
 };
 
-const saveSchedule = async (scheduleData) => {
+const saveSchedule = async ({ schedule_id, name, valid_from, valid_to }) => {
   if (!canManageSchedules.value) return;
+  const data = { name, valid_from: valid_from || undefined, valid_to: valid_to || undefined };
   try {
-    if (scheduleData.schedule_id) {
-      const index = schedules.value.findIndex(s => s.schedule_id === scheduleData.schedule_id);
-      if (index !== -1) {
-        schedules.value[index] = scheduleData;
-      }
-    } else {
-      scheduleData.schedule_id = Math.max(...schedules.value.map(s => s.schedule_id), 0) + 1;
-      scheduleData.class_count = 0;
-      scheduleData.lesson_count = 0;
-      schedules.value.push(scheduleData);
-    }
-    saveToStorage();
+    if (schedule_id) await scheduleStore.edit(schedule_id, data);
+    else await scheduleStore.add(data);
     closeModal();
     activeView.value = 'list';
-  } catch (error) {
-    console.error('Fehler beim Speichern:', error);
+  } catch {
+    // the store keeps the message for the page
   }
 };
 
 const deleteSchedule = async () => {
-  if (!canManageSchedules.value) return;
-  if (selectedSchedule.value) {
-    try {
-      schedules.value = schedules.value.filter(s => s.schedule_id !== selectedSchedule.value.schedule_id);
-      saveToStorage();
-      closeModal();
-    } catch (error) {
-      console.error('Fehler beim Löschen:', error);
-    }
+  if (!canManageSchedules.value || !selectedSchedule.value) return;
+  try {
+    await scheduleStore.remove(selectedSchedule.value.schedule_id);
+    activeView.value = 'list';
+  } catch {
+    // e.g. 400: the schedule still has lessons
   }
+  closeModal();
 };
 
 const isActive = (schedule) => {
@@ -158,9 +98,8 @@ const goBackToList = () => {
   selectedSchedule.value = null;
 };
 
-onMounted(() => {
-  loadFromStorage();
-  ensureValidViewMode();  // Validiere View-Mode für Schüler
+onMounted(async () => {
+  await scheduleStore.load().catch(() => {});
   // Auto-open today's active schedule if navigated with ?today=true
   if (route.query.today === 'true') {
     const active = schedules.value.find(s => isActive(s));
@@ -179,6 +118,8 @@ onMounted(() => {
           + Neuer Stundenplan
         </button>
       </div>
+
+      <p v-if="scheduleStore.error" class="error-message">{{ scheduleStore.error }}</p>
 
       <div class="controls">
         <input
@@ -293,6 +234,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.error-message {
+  color: #b91c1c;
+  margin-bottom: 12px;
+}
+
 .schedules-view {
   max-width: 1200px;
   margin: 0 auto;

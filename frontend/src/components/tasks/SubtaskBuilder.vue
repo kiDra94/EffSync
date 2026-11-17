@@ -15,10 +15,7 @@
                     <input v-model="subtask.title" type="text" placeholder="Subtask-Titel" class="subtask-input"
                         @input="emitUpdate" />
                     <select v-model.number="subtask.priority_id" class="subtask-priority" @change="emitUpdate">
-                        <option :value="1">Niedrig</option>
-                        <option :value="2">Mittel</option>
-                        <option :value="3">Hoch</option>
-                        <option :value="4">Dringend</option>
+                        <option v-for="priority in PRIORITIES" :key="priority.id" :value="priority.id">{{ priority.label }}</option>
                     </select>
                     <button type="button" @click="removeSubtask(idx)" class="btn-remove" title="Entfernen">
                         ×
@@ -29,6 +26,7 @@
     </div>
 </template>
 <script setup>
+import { PRIORITIES } from '@/config/priorities';
 import { ref, watch } from 'vue';
 
 const props = defineProps({

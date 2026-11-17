@@ -1,15 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { fetchMetrics } from '@/api/metrics';
+import { useMetricsStore } from '@/stores/metricsStore';
 
+// M25 (decision Q19): data through the store, not the api/ layer
+const metricsStore = useMetricsStore();
 const router = useRouter();
 const metrics = ref(null);
 const loading = ref(true);
 
 onMounted(async () => {
   try {
-    const data = await fetchMetrics('task-progress');
+    const data = await metricsStore.getMetric('task-progress');
     metrics.value = data;
   } catch (error) {
     console.error('Fehler beim Laden der Fortschrittsmetriken:', error);

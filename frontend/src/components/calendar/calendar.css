@@ -1,0 +1,962 @@
+/*
+ * The calendar's styles (M28): moved out of CalendarView.vue so the extracted
+ * views in this folder share them. Scoped styles don't reach into child
+ * components, so every rule sits under the page's root class `.calendar-page`
+ * (or the task form's `.calendar-task-modal`), dark mode included. The old
+ * scoped `:global(body.dark-mode) .x` rules are gone: they compiled to bare
+ * `body.dark-mode` rules that styled the whole app, not the calendar.
+ */
+.calendar-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ========== LOADING & ERROR STATES ========== */
+.calendar-page .error-banner {
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: #c00;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.calendar-page .retry-btn {
+  background: #c00;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.calendar-page .retry-btn:hover {
+  background: #a00;
+}
+
+.calendar-page .loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 12px;
+}
+
+.calendar-page .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f0f0f0;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.calendar-page .loading-indicator p {
+  color: #666;
+  font-weight: 500;
+}
+
+.calendar-page .header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.calendar-page .page-title {
+  color: #23234c;
+  margin: 0;
+}
+
+.calendar-page .header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.calendar-page .view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f5f5f5;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.calendar-page .view-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+  padding-left: 6px;
+}
+
+.calendar-page .view-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #333;
+  font-weight: 500;
+  padding: 8px 34px 8px 12px;
+  cursor: pointer;
+  min-width: 140px;
+  background-image: linear-gradient(45deg, transparent 50%, #666 50%), linear-gradient(135deg, #666 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% - 3px), calc(100% - 11px) calc(50% - 3px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.calendar-page .view-select:hover {
+  border-color: #999;
+}
+
+.calendar-page .view-select:focus {
+  outline: 2px solid #c7d2fe;
+  outline-offset: 1px;
+  border-color: #4f46e5;
+}
+
+.calendar-page .tab-btn {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.calendar-page .tab-btn.active {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+}
+
+.calendar-page .tab-btn:hover:not(.active) {
+  border-color: #999;
+}
+
+.calendar-page .btn-today {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #555;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.calendar-page .btn-today:hover {
+  background: #f0f0f0;
+}
+
+/* ========== CALENDAR CARD (MONTH VIEW) ========== */
+.calendar-page .calendar-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.calendar-page .cal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-page .cal-header h2,
+.calendar-page .week-header h2 {
+  margin: 0;
+  color: #23234c;
+  text-transform: capitalize;
+}
+
+.calendar-page .nav-btn {
+  background: #f4f4f9;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: bold;
+  color: #555;
+  transition: background 0.2s;
+}
+
+.calendar-page .nav-btn:hover {
+  background: #e0e0e0;
+}
+
+.calendar-page .nav-btn.drag-over {
+  background: #dfe3ff;
+  color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+}
+
+/* Grid System */
+.calendar-page .weekdays-row,
+.calendar-page .days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.calendar-page .weekdays-row {
+  margin-bottom: 10px;
+}
+
+.calendar-page .weekday {
+  text-align: center;
+  font-weight: bold;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.calendar-page .day-cell {
+  min-height: 90px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 6px;
+  position: relative;
+  background-color: #fafafa;
+  transition: 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.calendar-page .day-cell:hover {
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-color: #ddd;
+}
+
+.calendar-page .day-cell.is-padding {
+  background-color: transparent;
+  border: none;
+  pointer-events: none;
+}
+
+.calendar-page .day-cell.is-today {
+  border: 2px solid #3498db;
+  background-color: #f0f8ff;
+}
+
+.calendar-page .day-cell.drag-over {
+  outline: 2px dashed #4f46e5;
+  outline-offset: -2px;
+  background-color: #eef0ff;
+}
+
+.calendar-page .day-number {
+  font-weight: bold;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.calendar-page .day-cell.is-today .day-number {
+  color: #3498db;
+}
+
+.calendar-page .events-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.calendar-page .event-box {
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.calendar-page .event-box:hover {
+  opacity: 0.85;
+}
+
+.calendar-page .event-box[draggable='true'] {
+  cursor: grab;
+}
+
+.calendar-page .event-box[draggable='true']:active {
+  cursor: grabbing;
+}
+
+/* ========== YEAR VIEW ========== */
+.calendar-page .year-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calendar-page .year-month-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafafa;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+.calendar-page .year-month-card:hover {
+  transform: translateY(-1px);
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.calendar-page .year-month-card.is-current {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+}
+
+.calendar-page .year-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f4f5f7;
+}
+
+.calendar-page .year-month-name {
+  font-weight: 700;
+  color: #23234c;
+  text-transform: capitalize;
+  font-size: 0.98rem;
+}
+
+.calendar-page .year-month-count {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.calendar-page .mini-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-page .mini-weekday {
+  text-align: center;
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 0;
+  border-right: 1px solid #eef0f3;
+  background: #f8f9fb;
+}
+
+.calendar-page .mini-weekday:last-child {
+  border-right: none;
+}
+
+.calendar-page .mini-weekday.is-weekend {
+  color: #4b5563;
+  font-weight: 700;
+}
+
+.calendar-page .mini-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  padding: 6px 8px 8px;
+  row-gap: 3px;
+}
+
+.calendar-page .mini-day-cell {
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  position: relative;
+}
+
+.calendar-page .mini-day-cell.is-padding {
+  border: none;
+  background: transparent;
+}
+
+.calendar-page .mini-day-cell.has-task {
+  background: rgba(79, 70, 229, 0.10);
+}
+
+.calendar-page .mini-day-cell.is-today {
+  outline: 1px solid #4f46e5;
+  outline-offset: -1px;
+}
+
+.calendar-page .mini-day-number {
+  font-size: 0.72rem;
+  color: #374151;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.calendar-page .mini-day-number.is-weekend {
+  font-weight: 700;
+}
+
+.calendar-page .mini-day-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d62828;
+  position: absolute;
+  bottom: 2px;
+}
+
+.calendar-page .year-month-footer {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px 8px;
+}
+
+.calendar-page .year-task-overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: #4f46e5;
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* ========== WEEK VIEW / TIMETABLE ========== */
+.calendar-page .week-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.calendar-page .week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-page .timetable-container {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  max-height: 800px;
+  overflow-y: auto;
+  /* the same scrollbar room as .timetable-top, so the columns line up */
+  scrollbar-gutter: stable;
+}
+
+/* the day headers and their tasks above the scrolling grid (manual check
+   M28: the tasks were under the 24-hour grid or at 00:00, out of sight) */
+.calendar-page .timetable-top {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: #f9fafb;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+}
+
+.calendar-page .timetable-top .time-header {
+  border-right: 1px solid #e5e7eb;
+}
+
+.calendar-page .timetable-top .tasks-label {
+  height: auto;
+  font-size: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.calendar-page .timetable-top .tasks-row {
+  /* minmax: a long title is cut, it doesn't widen its column past the grid's */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: none;
+  border-bottom: 2px solid #e5e7eb;
+  min-height: 48px;
+}
+
+.calendar-page .timetable-top .tasks-row--day {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.calendar-page .timetable-top .day-tasks {
+  min-width: 0;
+}
+
+.calendar-page .timetable-top .task-card {
+  max-width: 100%;
+}
+
+.calendar-page .timetable-top + .timetable-container {
+  border-top: none;
+}
+
+.calendar-page .time-column {
+  background: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 5;
+}
+
+.calendar-page .time-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+}
+
+.calendar-page .time-slot {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #999;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.calendar-page .days-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-page .days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  border-bottom: 2px solid #e5e7eb;
+  background: #f9fafb;
+  height: 60px;
+}
+
+.calendar-page .day-header-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-right: 1px solid #f0f0f0;
+}
+
+.calendar-page .day-header-cell.is-today {
+  background: #e3f2fd;
+}
+
+.calendar-page .day-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.calendar-page .day-date {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 2px;
+}
+
+.calendar-page .day-header-cell.is-today .day-name {
+  color: #3498db;
+}
+
+.calendar-page .day-header-cell.is-today .day-date {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.calendar-page .tasks-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  border-top: 2px solid #e5e7eb;
+  background: #fafafa;
+  min-height: 80px;
+}
+
+.calendar-page .day-tasks {
+  border-right: 1px solid #f0f0f0;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.calendar-page .day-tasks.drag-over {
+  background: #eef0ff;
+}
+
+.calendar-page .day-tasks:last-child {
+  border-right: none;
+}
+
+.calendar-page .task-card {
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.calendar-page .task-card:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: scale(1.02);
+}
+
+.calendar-page .task-card[draggable='true'] {
+  cursor: grab;
+}
+
+.calendar-page .task-card[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.calendar-page .task-title {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* the deadline's time in front of the title */
+.calendar-page .task-card {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.calendar-page .task-card .task-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendar-page .task-time {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+
+
+.calendar-page .grid-wrapper {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  position: relative;
+}
+
+.calendar-page .day-column-grid {
+  position: relative;
+  border-right: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-page .day-column-grid:last-child {
+  border-right: none;
+}
+
+.calendar-page .grid-cell {
+  height: 30px;
+  border-bottom: 1px solid #f0f0f0;
+  background: white;
+}
+
+.calendar-page .grid-cell:nth-child(odd) {
+  background: #fafafa;
+}
+
+.calendar-page .lessons-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.calendar-page .lesson-card {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  padding: 6px;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.8rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.calendar-page .lesson-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transform: scale(1.02);
+}
+
+.calendar-page .lesson-subject {
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-page .lesson-time {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.calendar-page .lesson-room {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.calendar-page .grid-wrapper--day {
+  grid-template-columns: 1fr;
+}
+
+.calendar-page .days-header--day {
+  grid-template-columns: 1fr;
+}
+
+.calendar-task-modal.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+/* dark mode, as CalendarView.vue had it in its unscoped block; the task form
+   is rendered outside .calendar-page, as .calendar-task-modal (review M28) */
+body.dark-mode .calendar-page,
+.app-container.dark-mode .calendar-page {
+  color: #e8ebf5 !important;
+}
+
+body.dark-mode .calendar-page .calendar-card,
+body.dark-mode .calendar-page .week-card,
+.app-container.dark-mode .calendar-page .calendar-card,
+.app-container.dark-mode .calendar-page .week-card {
+  background: #25283a !important;
+  border: 1px solid #3f445d !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.dark-mode .calendar-page .view-tabs,
+.app-container.dark-mode .calendar-page .view-tabs {
+  background: #2a2e44 !important;
+  border: 1px solid #4e5470 !important;
+}
+
+body.dark-mode .calendar-page .view-label,
+.app-container.dark-mode .calendar-page .view-label,
+body.dark-mode .calendar-page .weekday,
+.app-container.dark-mode .calendar-page .weekday,
+body.dark-mode .calendar-page .day-number,
+.app-container.dark-mode .calendar-page .day-number,
+body.dark-mode .calendar-page .day-name,
+.app-container.dark-mode .calendar-page .day-name,
+body.dark-mode .calendar-page .day-date,
+.app-container.dark-mode .calendar-page .day-date,
+body.dark-mode .calendar-page .year-month-name,
+.app-container.dark-mode .calendar-page .year-month-name,
+body.dark-mode .calendar-page .year-month-count,
+.app-container.dark-mode .calendar-page .year-month-count,
+body.dark-mode .calendar-page .mini-weekday,
+.app-container.dark-mode .calendar-page .mini-weekday,
+body.dark-mode .calendar-page .mini-day-number,
+.app-container.dark-mode .calendar-page .mini-day-number,
+body.dark-mode .calendar-page .time-header,
+.app-container.dark-mode .calendar-page .time-header,
+body.dark-mode .calendar-page .time-slot,
+.app-container.dark-mode .calendar-page .time-slot,
+body.dark-mode .calendar-page .page-title,
+.app-container.dark-mode .calendar-page .page-title,
+body.dark-mode .calendar-page .cal-header h2,
+.app-container.dark-mode .calendar-page .cal-header h2,
+body.dark-mode .calendar-page .week-header h2,
+.app-container.dark-mode .calendar-page .week-header h2 {
+  color: #eef2ff !important;
+}
+
+body.dark-mode .calendar-page .view-select,
+.app-container.dark-mode .calendar-page .view-select,
+body.dark-mode .calendar-page .btn-today,
+.app-container.dark-mode .calendar-page .btn-today,
+body.dark-mode .calendar-page .nav-btn,
+.app-container.dark-mode .calendar-page .nav-btn {
+  background: #353a54 !important;
+  border: 1px solid #646b89 !important;
+  color: #f5f7ff !important;
+}
+
+body.dark-mode .calendar-page .day-cell,
+.app-container.dark-mode .calendar-page .day-cell,
+body.dark-mode .calendar-page .year-month-card,
+.app-container.dark-mode .calendar-page .year-month-card,
+body.dark-mode .calendar-page .time-column,
+.app-container.dark-mode .calendar-page .time-column,
+body.dark-mode .calendar-page .days-header,
+.app-container.dark-mode .calendar-page .days-header,
+body.dark-mode .calendar-page .tasks-row,
+.app-container.dark-mode .calendar-page .tasks-row,
+body.dark-mode .calendar-page .timetable-top,
+.app-container.dark-mode .calendar-page .timetable-top,
+body.dark-mode .calendar-page .grid-cell,
+.app-container.dark-mode .calendar-page .grid-cell,
+body.dark-mode .calendar-page .year-month-header,
+.app-container.dark-mode .calendar-page .year-month-header,
+body.dark-mode .calendar-page .mini-weekday,
+.app-container.dark-mode .calendar-page .mini-weekday {
+  background-color: #262b3f !important;
+  border-color: #465070 !important;
+}
+
+body.dark-mode .calendar-page .grid-cell:nth-child(odd),
+.app-container.dark-mode .calendar-page .grid-cell:nth-child(odd) {
+  background-color: #22273a !important;
+}
+
+body.dark-mode .calendar-page .timetable-container,
+.app-container.dark-mode .calendar-page .timetable-container,
+body.dark-mode .calendar-page .timetable-top .time-header,
+.app-container.dark-mode .calendar-page .timetable-top .time-header,
+body.dark-mode .calendar-page .day-header-cell,
+.app-container.dark-mode .calendar-page .day-header-cell,
+body.dark-mode .calendar-page .day-column-grid,
+.app-container.dark-mode .calendar-page .day-column-grid,
+body.dark-mode .calendar-page .day-tasks,
+.app-container.dark-mode .calendar-page .day-tasks,
+body.dark-mode .calendar-page .mini-weekdays,
+.app-container.dark-mode .calendar-page .mini-weekdays {
+  border-color: #465070 !important;
+}
+
+body.dark-mode .calendar-page .day-cell:hover,
+.app-container.dark-mode .calendar-page .day-cell:hover,
+body.dark-mode .calendar-page .year-month-card:hover,
+.app-container.dark-mode .calendar-page .year-month-card:hover {
+  background-color: #313752 !important;
+}
+
+body.dark-mode .calendar-page .day-cell.is-padding,
+.app-container.dark-mode .calendar-page .day-cell.is-padding,
+body.dark-mode .calendar-page .mini-day-cell,
+.app-container.dark-mode .calendar-page .mini-day-cell {
+  background-color: transparent !important;
+}
+
+body.dark-mode .calendar-page .mini-day-cell.has-task,
+.app-container.dark-mode .calendar-page .mini-day-cell.has-task {
+  background-color: rgba(130, 144, 255, 0.24) !important;
+}
+
+body.dark-mode .calendar-page .mini-day-cell.is-today,
+.app-container.dark-mode .calendar-page .mini-day-cell.is-today {
+  outline: 1px solid #8f9cff !important;
+  background-color: rgba(143, 156, 255, 0.18) !important;
+}
+
+body.dark-mode .calendar-page .day-cell.is-today,
+.app-container.dark-mode .calendar-page .day-cell.is-today,
+body.dark-mode .calendar-page .day-header-cell.is-today,
+.app-container.dark-mode .calendar-page .day-header-cell.is-today {
+  background-color: #273852 !important;
+}
+
+body.dark-mode .calendar-page .task-title,
+.app-container.dark-mode .calendar-page .task-title {
+  color: #ffffff !important;
+}
+
+body.dark-mode .calendar-task-modal.modal-overlay > .modal-content,
+.app-container.dark-mode .calendar-task-modal.modal-overlay > .modal-content {
+  background: #1f2333 !important;
+  border: 1px solid #434963 !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55) !important;
+}
+
+body.dark-mode .calendar-task-modal.modal-overlay > .modal-content .task-form,
+.app-container.dark-mode .calendar-task-modal.modal-overlay > .modal-content .task-form {
+  background: #1f2333 !important;
+}
+
+body.dark-mode .calendar-task-modal.modal-overlay > .modal-content .form-actions,
+.app-container.dark-mode .calendar-task-modal.modal-overlay > .modal-content .subtask-builder,
+.app-container.dark-mode .calendar-task-modal.modal-overlay > .modal-content .form-actions,
+body.dark-mode .calendar-task-modal.modal-overlay > .modal-content .subtask-builder {
+  background: transparent !important;
+}

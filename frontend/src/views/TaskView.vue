@@ -10,13 +10,15 @@ import TaskDeleteDialog from '@/components/tasks/TaskDeleteDialog.vue';
 import TaskFilters from '@/components/tasks/TaskFilters.vue';
 import RuleBuilder from '@/components/tasks/RuleBuilder.vue';
 import GradeModal from '@/components/tasks/GradeModal.vue';
-import { taskMembersApi } from '@/api/taskMembers';
+import { useTaskMemberStore } from '@/stores/entities/taskMemberStore';
 
+// M25 (decision Q19): data through stores, not the api/ layer
+const taskMemberStore = useTaskMemberStore();
 const route = useRoute();
 const taskStore = useTaskStore();
 const authStore = useAuthStore();
 
-// Bestimme ob User ein Lehrer ist
+// Determine whether the user is a teacher
 const isTeacher = computed(() => {
   const roles = ['teacher', 'admin', 'superuser'];
   return roles.includes((authStore.userRole || '').toLowerCase());
@@ -30,12 +32,15 @@ const newlyCreatedTask = ref(null);
 const searchQuery = ref('');
 const filterStatus = ref('all');
 const sortBy = ref('date');
+const filterPriority = ref('all');
+const filterDue = ref('all');
 
 const { filteredAndSorted: filteredAndSortedTasks } = useTaskFilters(
   computed(() => taskStore.tasks),
   searchQuery,
   filterStatus,
-  sortBy
+  sortBy,
+  { filterPriority, filterDue }
 );
 
 const subtasksForRuleBuilder = computed(() => {
@@ -49,12 +54,21 @@ const subtasksForRuleBuilder = computed(() => {
 onMounted(async () => {
   await taskStore.getTasks();
   applyStatusFilter();
+  openTaskFromQuery();
 });
 
-// Watcher für URL-Änderungen
+// Watcher for URL changes
 watch(() => route.query.status, () => {
   applyStatusFilter();
 });
+
+// M26 (T42): a search result opens its project or task, /tasks?task=<id>
+const openTaskFromQuery = () => {
+  const id = Number(route.query.task);
+  const task = id && taskStore.tasks.find((t) => t.task_id === id);
+  if (task) openTaskForm(task);
+};
+watch(() => route.query.task, openTaskFromQuery);
 
 const applyStatusFilter = () => {
   const statusParam = route.query.status;
@@ -113,7 +127,7 @@ const saveTask = async (task) => {
       if (createdTaskId && pendingMemberIds.length > 0) {
         await Promise.allSettled(
           pendingMemberIds.map((userId) =>
-            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+            taskMemberStore.addMember(createdTaskId, { user_id: userId })
           ),
         );
       }
@@ -150,7 +164,7 @@ const saveTaskWithSubtasks = async ({ taskData, subtasks }) => {
       if (createdTaskId && pendingMemberIds.length > 0) {
         await Promise.allSettled(
           pendingMemberIds.map((userId) =>
-            taskMembersApi.addTaskMember(createdTaskId, { user_id: userId })
+            taskMemberStore.addMember(createdTaskId, { user_id: userId })
           ),
         );
       }
@@ -256,7 +270,8 @@ const saveRule = async ({ rule, autoComplete }) => {
       </button>
     </div>
 
-    <TaskFilters v-model:searchQuery="searchQuery" v-model:filterStatus="filterStatus" v-model:sortBy="sortBy" />
+    <TaskFilters v-model:searchQuery="searchQuery" v-model:filterStatus="filterStatus" v-model:sortBy="sortBy"
+      v-model:filterPriority="filterPriority" v-model:filterDue="filterDue" />
 
     <TaskList :tasks="filteredAndSortedTasks" @edit="openTaskForm" @delete="openDeleteDialog"
       @toggle-status="toggleTaskStatus" @change-status="handleStatusChange" @edit-rule="openRuleBuilder" @grade="openGradeModal" />

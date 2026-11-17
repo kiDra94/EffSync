@@ -1,84 +1,139 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
+import { setActivePinia, createPinia } from 'pinia'
+import { useAuthStore } from '@/stores/authStore'
 
 const pushMock = vi.fn()
-const authStoreMock = {
-  token: null,
-  userId: null,
-  userRole: null,
-  userDetails: null,
-}
+const replaceMock = vi.fn()
 
 const routeMock = {
+  path: '/auth-callback',
+  hash: '',
   query: {},
 }
 
+const getAuthProfile = vi.fn()
+
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: pushMock }),
+  useRouter: () => ({ push: pushMock, replace: replaceMock }),
   useRoute: () => routeMock,
 }))
 
-vi.mock('@/stores/authStore', () => ({
-  useAuthStore: () => authStoreMock,
+// M25: the real store (the view reaches the API through it), on a mocked API
+vi.mock('@/stores/authStore', async () => vi.importActual('@/stores/authStore'))
+vi.mock('@/router', () => ({ default: { push: vi.fn() } }))
+vi.mock('@/stores/useSocket', () => ({ useSocket: () => ({ connect: vi.fn(), disconnect: vi.fn() }) }))
+vi.mock('@/stores/searchStore', () => ({ useSearchStore: () => ({ ensureLoaded: vi.fn(), reset: vi.fn() }) }))
+vi.mock('@/stores/settingsStore', () => ({ useSettingsStore: () => ({ load: vi.fn() }) }))
+vi.mock('@/api/authService', () => ({
+  authApi: { getAuthProfile: (...args) => getAuthProfile(...args) },
 }))
 
+let authStoreMock
+
+// decision Q9 (M9): the Google callback passes the token in the URL fragment;
+// the view loads the user from GET /auth/profile instead of a ?user= parameter
 describe('AuthCallbackView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    routeMock.hash = ''
     routeMock.query = {}
-    authStoreMock.token = null
-    authStoreMock.userId = null
-    authStoreMock.userRole = null
-    authStoreMock.userDetails = null
     localStorage.clear()
-    vi.useFakeTimers()
+    setActivePinia(createPinia())
+    authStoreMock = useAuthStore()
+    window.history.replaceState(null, '', '/auth-callback')
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    window.history.replaceState(null, '', '/')
   })
 
-  it('speichert OAuth Daten und navigiert zum Dashboard', async () => {
-    routeMock.query = {
-      token: 'oauth.jwt.token',
-      user: encodeURIComponent(
-        JSON.stringify({
-          userId: 20,
-          username: 'oauth.user@gmail.com',
-          role: 'student',
-          firstname: 'OAuth',
-          lastname: 'User',
-        }),
-      ),
-    }
+  it('reads the tokens from the fragment, loads the profile and navigates to the dashboard', async () => {
+    window.history.replaceState(null, '', '/auth-callback#token=oauth.jwt.token&refreshToken=oauth-refresh')
+    routeMock.hash = '#token=oauth.jwt.token&refreshToken=oauth-refresh'
+    getAuthProfile.mockImplementation(async () => {
+      // the request already carries the token (httpClient reads it from localStorage)
+      expect(localStorage.getItem('authToken')).toBe('oauth.jwt.token')
+      return {
+        data: { userId: 20, username: 'oauth.user', role: 'student', firstname: 'OAuth' },
+      }
+    })
 
     const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
-
     mount(AuthCallbackView)
+    await flushPromises()
 
-    await vi.runAllTimersAsync()
-
-    expect(localStorage.getItem('authToken')).toBe('oauth.jwt.token')
-    expect(localStorage.getItem('userId')).toBe('20')
-    expect(localStorage.getItem('userRole')).toBe('student')
-
+    expect(getAuthProfile).toHaveBeenCalledTimes(1)
     expect(authStoreMock.token).toBe('oauth.jwt.token')
     expect(authStoreMock.userId).toBe(20)
     expect(authStoreMock.userRole).toBe('student')
-    expect(authStoreMock.userDetails.username).toBe('oauth.user@gmail.com')
-
+    expect(authStoreMock.userDetails.username).toBe('oauth.user')
+    expect(localStorage.getItem('userId')).toBe('20')
+    expect(localStorage.getItem('userRole')).toBe('student')
+    // M12: the refresh token is kept for httpClient's refresh on 401
+    expect(localStorage.getItem('refreshToken')).toBe('oauth-refresh')
     expect(pushMock).toHaveBeenCalledWith({ name: 'Dashboard' })
   })
 
-  it('leitet auf Login um wenn kein Token vorhanden ist', async () => {
-    routeMock.query = {}
+  it('removes the token from the address bar through the router', async () => {
+    routeMock.hash = '#token=oauth.jwt.token'
+    getAuthProfile.mockResolvedValue({ data: { userId: 20, role: 'student' } })
 
+    const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
+    mount(AuthCallbackView)
+    await flushPromises()
+
+    // through vue-router, so it doesn't write the token back into the history on push
+    expect(replaceMock).toHaveBeenCalledWith({ path: '/auth-callback', query: {}, hash: '' })
+  })
+
+  it('ignores a token in the query string and redirects to the login', async () => {
+    routeMock.query = { token: 'old.style.token' }
+
+    const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
+    mount(AuthCallbackView)
+    await flushPromises()
+
+    expect(getAuthProfile).not.toHaveBeenCalled()
+    expect(pushMock).toHaveBeenCalledWith({ name: 'Login' })
+  })
+
+  it('redirects to the login when loading the profile fails', async () => {
+    routeMock.hash = '#token=expired.jwt.token&refreshToken=r'
+    getAuthProfile.mockRejectedValue(new Error('401'))
+
+    const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
+    mount(AuthCallbackView)
+    await flushPromises()
+
+    expect(pushMock).toHaveBeenCalledWith({ name: 'Login' })
+    expect(localStorage.getItem('authToken')).toBeNull()
+    expect(localStorage.getItem('refreshToken')).toBeNull()
+  })
+
+  it('forgets an old refresh token when the fragment carries none', async () => {
+    localStorage.setItem('refreshToken', 'previous.user')
+    routeMock.hash = '#token=oauth.jwt.token'
+    getAuthProfile.mockResolvedValue({ data: { userId: 20, role: 'student' } })
+
+    const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
+    mount(AuthCallbackView)
+    await flushPromises()
+
+    expect(localStorage.getItem('refreshToken')).toBeNull()
+  })
+
+  // review M32: with 2FA on, the Google callback carries a challenge, no token
+  it('hands a 2FA challenge to the login page and loads no profile', async () => {
+    routeMock.hash = '#challenge=google.challenge'
     const { default: AuthCallbackView } = await import('./AuthCallbackView.vue')
 
     mount(AuthCallbackView)
+    await flushPromises()
 
-    await vi.runAllTimersAsync()
-
+    expect(sessionStorage.getItem('twoFactorChallenge')).toBe('google.challenge')
+    expect(getAuthProfile).not.toHaveBeenCalled()
+    expect(localStorage.getItem('authToken')).toBeNull()
     expect(pushMock).toHaveBeenCalledWith({ name: 'Login' })
   })
 })

@@ -7,6 +7,7 @@
 
     <div class="task-left">
       <input type="checkbox" :checked="task.status === 'COMPLETED'" class="task-checkbox" @change="toggleStatus"
+        :disabled="!canComplete(task)" :title="canComplete(task) ? '' : COMPLETE_HINT"
         :aria-label="`Task ${task.title} markieren`" />
     </div>
 
@@ -23,7 +24,7 @@
             <option value="IN_PROGRESS">In Arbeit</option>
             <option value="IN_REVIEW">Review</option>
             <option value="ON_HOLD">Pausiert</option>
-            <option value="COMPLETED">Fertig</option>
+            <option value="COMPLETED" :disabled="!canComplete(task)">Fertig</option>
           </select>
         </div>
 
@@ -33,6 +34,8 @@
         <span class="date-badge" :style="{ color: task.status === 'COMPLETED' ? '#aaa' : '#555' }">
           📅 {{ formatDate(task.deadline) }}
         </span>
+        <!-- T59 (M18, decision Q8e): tags -->
+        <span v-for="tag in tagNames" :key="tag" class="tag-chip">#{{ tag }}</span>
         <span v-if="task.progress !== undefined" class="progress-badge">
           📊 {{ task.progress }}%
         </span>
@@ -56,6 +59,7 @@
       >
         📎
       </button>
+      <button @click="openTaskChat" class="task-btn task-btn-chat" title="Chat zur Aufgabe öffnen">💬</button>
       <button v-if="!task.parent_task_id" @click="editRule" class="task-btn" title="Regel bearbeiten">⚙️</button>
       <button @click="editTask" class="task-btn" title="Bearbeiten">✏️</button>
       <button @click="deleteTask" class="task-btn task-btn-delete" title="Löschen">🗑️</button>
@@ -86,6 +90,7 @@
           <div v-for="sub in subtasks" :key="sub.task_id" class="subtask-item"
             :class="{ 'subtask-done': sub.status === 'COMPLETED' }">
             <input type="checkbox" :checked="sub.status === 'COMPLETED'" @change="$emit('toggle-status', sub)"
+              :disabled="!canComplete(sub)" :title="canComplete(sub) ? '' : COMPLETE_HINT"
               class="subtask-checkbox" />
             <span class="subtask-title">{{ sub.title }}</span>
             <span v-if="sub.priority_id" class="subtask-priority"
@@ -104,7 +109,9 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/entities/taskStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useChatStore } from '@/stores/entities/chatStore';
 import RuleVisualizer from './RuleVisualizer.vue';
+import { priorityLabel } from '@/config/priorities';
 
 const props = defineProps({
   task: {
@@ -119,6 +126,7 @@ const showSubtasks = ref(false);
 const router = useRouter();
 const taskStore = useTaskStore();
 const authStore = useAuthStore();
+const chatStore = useChatStore();
 const subtasks = computed(() => taskStore.getSubtasks(props.task.task_id));
 const allTasks = computed(() => taskStore.tasks);
 
@@ -164,7 +172,16 @@ const deleteTask = () => {
   emit('delete', props.task);
 };
 
+// T100 (M16): a task is completed only at 100 %; a completed one can be reopened
+const COMPLETE_HINT = 'Erst bei 100 % Fortschritt abschließbar';
+const canComplete = (task) => task.status === 'COMPLETED' || (task.progress ?? 0) >= 100;
+
+const tagNames = computed(() =>
+  (props.task?.task_tags || []).map((entry) => entry.tags?.name).filter(Boolean)
+);
+
 const toggleStatus = () => {
+  if (!canComplete(props.task)) return;
   emit('toggle-status', props.task);
 };
 
@@ -182,6 +199,16 @@ const editRule = () => {
 
 const gradeTask = () => {
   emit('grade', props.task);
+};
+
+// T29 (M21): the task's chat, created on the first open, with task_id set
+const openTaskChat = async () => {
+  try {
+    const room = await chatStore.openTaskChat(props.task.task_id);
+    router.push({ name: 'Chat', query: { room: String(room.room_id) } });
+  } catch (error) {
+    console.error('Task-Chat konnte nicht geöffnet werden:', error);
+  }
 };
 
 const openUploadForTask = () => {
@@ -207,10 +234,10 @@ const getStatusColor = (status) => {
 
 const getPriorityColor = (prio_id) => {
   const colors = {
-    1: '#27ae60', // niedrig (Grün)
-    2: '#f39c12', // mittel (Gelb/Orange)
-    3: '#e74c3c', // hoch (Rot)
-    4: '#c0392b'  // dringend (Dunkelrot)
+    1: '#27ae60', // low (green)
+    2: '#f39c12', // medium (yellow/orange)
+    3: '#e74c3c', // high (red)
+    4: '#c0392b'  // urgent (dark red)
   };
   return colors[prio_id] || '#6b7280';
 };
@@ -225,15 +252,8 @@ const getPriorityGradient = (prio_id) => {
   return gradients[prio_id] || 'linear-gradient(to bottom, #4b5563 0%, #d1d5db 100%)';
 };
 
-const getPriorityLabel = (priorityId) => {
-  const labels = {
-    1: 'Niedrig',
-    2: 'Mittel',
-    3: 'Hoch',
-    4: 'Dringend'
-  };
-  return labels[priorityId] || '';
-};
+// the shared list (M18)
+const getPriorityLabel = (priorityId) => priorityLabel(priorityId);
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Kein Datum';
@@ -342,6 +362,16 @@ const formatDate = (dateString) => {
 }
 
 .date-badge,
+.tag-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .progress-badge,
 .lock-badge {
   font-size: 0.75rem;

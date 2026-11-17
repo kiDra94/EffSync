@@ -2,10 +2,12 @@
 import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { emailPreferencesService } from '@/api/emailPreferences';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 const route = useRoute();
 const authStore = useAuthStore();
+// M25 (decision Q19): data through the store, not the api/ layer
+const settingsStore = useSettingsStore();
 
 const userId = computed(() => route.params.id);
 const isOwnProfile = computed(() => authStore.userId === parseInt(userId.value) || !userId.value);
@@ -33,7 +35,7 @@ const loadEmailPreferences = async () => {
   preferencesError.value = '';
   
   try {
-    const prefs = await emailPreferencesService.getPreferences();
+    const prefs = await settingsStore.loadEmailPreferences();
     if (prefs) {
       emailPreferences.value = { ...emailPreferences.value, ...prefs };
     }
@@ -56,7 +58,7 @@ const saveEmailPreferences = async () => {
   preferencesError.value = '';
   
   try {
-    const updated = await emailPreferencesService.updatePreferences({
+    const updated = await settingsStore.saveEmailPreferences({
       email_on_deadline: emailPreferences.value.email_on_deadline,
       email_on_mention: emailPreferences.value.email_on_mention,
       email_on_comment: emailPreferences.value.email_on_comment,
@@ -201,12 +203,12 @@ onMounted(async () => {
 
 .checkbox-group small {
   margin-left: 2rem;
-  color: #6b7280;  /* ← Grau wie security-card p */
+  color: #6b7280;  /* ← grey like security-card p */
   font-size: 0.85rem;
 }
 
 .form-select {
-  padding: 10px 12px;  /* ← Gleich wie form-input */
+  padding: 10px 12px;  /* ← same as form-input */
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 1rem;
@@ -230,7 +232,7 @@ onMounted(async () => {
 }
 
 .loading-text {
-  color: #6b7280;  /* ← Grau wie security-card p */
+  color: #6b7280;  /* ← grey like security-card p */
   font-style: italic;
   margin: 1rem 0;
   padding: 10px 12px;
@@ -265,7 +267,7 @@ button:disabled:hover {
 </style>
 
 <style>
-/* Dark Mode - konsistent mit Security */
+/* Dark mode - consistent with Security */
 body.dark-mode .security-card {
   background-color: #232330 !important;
   border-color: #444 !important;

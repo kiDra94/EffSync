@@ -1,5 +1,7 @@
 import { io } from 'socket.io-client';
+import { WS_URL } from '@/config/urls';
 import { ref } from 'vue';
+import { socketAuth, reconnectWithFreshToken } from '@/api/socketAuth';
 
 const socket = ref(null);
 const isConnected = ref(false);
@@ -8,14 +10,16 @@ export function useSocket() {
     function connect(token) {
         if(socket.value?.connected) return;
 
-        socket.value = io(import.meta.env.VITE_WS_URL || 'http://localhost:3000', {
-            auth: { token },
+        socket.value = io(WS_URL, {
+            auth: socketAuth(token),
             transports: ['websocket'],
             autoConnect: true,
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
         });
+
+        reconnectWithFreshToken(socket.value);
 
         socket.value.on('connect', () => {
             isConnected.value = true;

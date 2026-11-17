@@ -1,17 +1,19 @@
+// decision Q9 (M9): the token arrives in the URL fragment and the user is
+// loaded from GET /auth/profile
 describe('OAuth Callback E2E', () => {
-  const encodedUser = encodeURIComponent(
-    JSON.stringify({
-      userId: 20,
-      id: 20,
-      username: 'oauth.user@gmail.com',
-      email: 'oauth.user@gmail.com',
-      role: 'student',
-      firstname: 'OAuth',
-      lastname: 'User',
-    }),
-  );
+  const user = {
+    userId: 20,
+    id: 20,
+    username: 'oauth.user@gmail.com',
+    email: 'oauth.user@gmail.com',
+    role: 'student',
+    firstname: 'OAuth',
+    lastname: 'User',
+  };
 
   beforeEach(() => {
+    cy.intercept('GET', '**/api/auth/profile', { statusCode: 200, body: user }).as('authProfile');
+
     cy.intercept('GET', '**/api/metrics/status-distribution', {
       statusCode: 200,
       body: { labels: ['Offen', 'In Bearbeitung', 'In Review', 'Abgeschlossen', 'In Wartestellung'], data: [0, 0, 0, 0, 0], total: 0 },
@@ -42,9 +44,11 @@ describe('OAuth Callback E2E', () => {
   });
 
   it('verarbeitet OAuth Callback und leitet auf Dashboard weiter', () => {
-    cy.visit(`/auth-callback?token=test.oauth.jwt&user=${encodedUser}`);
+    cy.visit('/auth-callback#token=test.oauth.jwt');
 
+    cy.wait('@authProfile');
     cy.url({ timeout: 10000 }).should('include', '/dashboard');
+    cy.url().should('not.contain', 'test.oauth.jwt');
 
     cy.window().then((win) => {
       expect(win.localStorage.getItem('authToken')).to.eq('test.oauth.jwt');

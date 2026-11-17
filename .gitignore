@@ -13,6 +13,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+# test-only values for the disposable E2E database (backend/docker-compose.test.yml)
+!.env.test
 
 # OAuth secrets (downloaded from providers)
 documents/client_secret_*.json
@@ -39,6 +41,8 @@ backend/prisma/dev.db-journal
 # Falls du den Prisma Client woanders generierst:
 backend/src/generated/
 backend/uploads/
+backend/uploads-test/
+backend/mail-outbox-test/
 
 # Logs & Temp
 *.log
@@ -49,3 +53,6 @@ tmp/
 temp/
 .temp/
 .tmp/
+
+# Claude Code: local settings and session files
+.claude/

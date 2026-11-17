@@ -1,7 +1,8 @@
 import { apiClient } from '@/api/httpClient';
 import { normalizeEntity, normalizeEntities, serializeEntity } from '@/config/api.config';
 
-const ENDPOINT = '/templates';
+// in the single TaskController since M15 (decision Q6)
+const ENDPOINT = '/tasks/templates';
 const ID_KEY = 'template_id';
 
 export const fetchTaskTemplates = async () => {

@@ -12,6 +12,7 @@ export const fetchAllLessonSlots = async () => {
     }
 };
 
+/** @public lesson-slot CRUD for the schedules area, GOALS.md M36 */
 export const fetchLessonSlotById = async (id) => {
     try {
         const response = await apiClient.get(`${ENDPOINT}/${id}`);
@@ -22,6 +23,7 @@ export const fetchLessonSlotById = async (id) => {
     }
 };
 
+/** @public lesson-slot CRUD for the schedules area, GOALS.md M36 */
 export const createLessonSlot = async (slotData) => {
     try {
         const response = await apiClient.post(ENDPOINT, slotData);
@@ -32,6 +34,7 @@ export const createLessonSlot = async (slotData) => {
     }
 };
 
+/** @public lesson-slot CRUD for the schedules area, GOALS.md M36 */
 export const updateLessonSlot = async (id, slotData) => {
     try {
         const response = await apiClient.patch(`${ENDPOINT}/${id}`, slotData);
@@ -42,6 +45,7 @@ export const updateLessonSlot = async (id, slotData) => {
     }
 };
 
+/** @public lesson-slot CRUD for the schedules area, GOALS.md M36 */
 export const deleteLessonSlot = async (id) => {
     try {
         await apiClient.delete(`${ENDPOINT}/${id}`);

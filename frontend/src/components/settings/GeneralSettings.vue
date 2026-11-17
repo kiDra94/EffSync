@@ -1,37 +1,11 @@
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
+import { useSettingsStore } from '@/stores/settingsStore'
 
-const darkMode = ref('system')
-
-const updateDarkMode = () => {
-  const body = document.body
-  
-  body.classList.remove('dark-mode')
-  
-  if (darkMode.value === 'dark') {
-    body.classList.add('dark-mode')
-  } else if (darkMode.value === 'system') {
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      body.classList.add('dark-mode')
-    }
-  }
-  
-  localStorage.setItem('darkMode', darkMode.value)
-}
-
-const initDarkMode = () => {
-  const saved = localStorage.getItem('darkMode')
-  darkMode.value = saved || 'system'
-  updateDarkMode()
-}
-
-watch(darkMode, updateDarkMode)
-
-const mql = window.matchMedia('(prefers-color-scheme: dark)')
-mql.addEventListener('change', updateDarkMode)
-
-onMounted(initDarkMode)
-onUnmounted(() => mql.removeEventListener('change', updateDarkMode))
+// T67, T68 (M25): light, dark or the device's theme, stored per user on
+// the server (decision Q8f), no longer in localStorage
+const settingsStore = useSettingsStore()
+const darkMode = computed(() => settingsStore.theme)
 </script>
 
 <template>
@@ -42,26 +16,27 @@ onUnmounted(() => mql.removeEventListener('change', updateDarkMode))
         <button 
           class="toggle-btn light" 
           :class="{ active: darkMode === 'light' }"
-          @click="darkMode = 'light'"
+          @click="settingsStore.setTheme('light')"
         >
           ☀️ Light
         </button>
         <button 
           class="toggle-btn dark" 
           :class="{ active: darkMode === 'dark' }"
-          @click="darkMode = 'dark'"
+          @click="settingsStore.setTheme('dark')"
         >
           🌙 Dark
         </button>
         <button 
           class="toggle-btn system" 
           :class="{ active: darkMode === 'system' }"
-          @click="darkMode = 'system'"
+          @click="settingsStore.setTheme('system')"
         >
           💻 System
         </button>
       </div>
     </label>
+    <p v-if="settingsStore.saveError" class="save-error" role="alert">{{ settingsStore.saveError }}</p>
   </div>
 </template>
 
@@ -71,6 +46,11 @@ onUnmounted(() => mql.removeEventListener('change', updateDarkMode))
   background: #f8fafc;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
+}
+
+.save-error {
+  margin: 12px 0 0;
+  color: #b91c1c;
 }
 
 .dark-mode-label {

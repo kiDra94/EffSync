@@ -22,12 +22,12 @@ Analysis date: 2026-11-06 (branch `development`, commit `e484b02`). Companion to
   - Added in `819dd44` (2026-03-23, Ereny, "#24: add user permissions management"). In `58e1a23` (same day) it was switched to `PermissionsService`.
   - Three days later, `a9f8936` (2026-03-26, Ereny) added `auth/guards/permissions.guard.ts` + `@Permissions()`, which every controller uses today (22 files, applied in `98e1d77`, #38).
   - `git log -S "@RequirePermission("` and `-S "UseGuards(PermissionGuard"` find nothing: it was never applied to an endpoint. 0 % coverage.
-- **Replaced by:** `backend/src/modules/auth/guards/permissions.guard.ts`
+- **Replaced by:** `backend/src/contexts/identity-access/presentation/security/permissions.guard.ts`
 - **Unique logic worth keeping:** a **per-endpoint required flag**. The live `PermissionsGuard` always checks `PermissionFlag.READ` (`permissions.guard.ts`, `hasAnyPermission(..., PermissionFlag.READ)`), so no endpoint can currently require WRITE/EXECUTE via decorator. If that is wanted, add an optional flag argument to `@Permissions()`. Also note: `PermissionsService.hasRole()` is only called by this file and `roles.guard.ts`, so it becomes dead once both are gone.
 - **Used in an open branch:** no
 - **Recommendation:** Delete
 
-### `backend/src/modules/auth/guards/roles.guard.ts` + `auth/decorators/roles.decorator.ts` (`@Roles()`)
+### `backend/src/contexts/identity-access/presentation/security/roles.guard.ts` + `auth/decorators/roles.decorator.ts` (`@Roles()`)
 - **Category:** Planned
 - **Original purpose:** Role-based guard (`@Roles('Teacher', 'Admin')` → user needs at least one of the roles), meant to sit next to `PermissionsGuard` as the RBAC half of the "RBAC + ABAC" design.
 - **Evidence:**
@@ -387,12 +387,32 @@ Analysis date: 2026-11-06 (branch `development`, commit `e484b02`). Companion to
 
 ---
 
+## Found by knip in GOALS.md M5 (removed there)
+
+`knip` (added in M5) reported these in addition to the items above. Each was checked by grep and `git log -S` before removal; none was ever imported.
+
+| Item | Evidence | Action |
+|---|---|---|
+| backend `cookie-parser` + `@types/cookie-parser` | installed in `cda564d`/`02b887a` (#19), never imported; auth stays cookie-free (decision Q3) | Deleted |
+| backend `file-type` | added in `20453a6` (#21), never imported | Deleted |
+| backend `@prisma/config` | `prisma.config.ts` imports `prisma/config`, which ships it | Deleted |
+| backend `swagger-ui-express` | `@nestjs/swagger` 11 serves the UI itself; the E2E test for `GET /api` still passes | Deleted |
+| backend `@eslint/eslintrc`, `source-map-support`, `ts-loader` | Nest template leftovers; no FlatCompat, no webpack build | Deleted |
+| `PERMISSION_DESCRIPTIONS` in `contexts/identity-access/domain/role-permissions.ts` | added in `f1d108e` (#115), never read; `permissions.description` is the column for this | Deleted |
+| `frontend/src/components/Dashboard.vue` | static prototype from `eda940b` (2025-12-02, #9), replaced by `views/DashboardView.vue` | Deleted |
+| `frontend/src/components/Badge.vue` | permission validity badge from `cceb9c1` (#24), never imported | Deleted |
+| `fetchRoomById` in `frontend/src/api/chat.js`; default export of `api/httpClient.js` | never used (the one default import in `api/metrics.js` now uses the named export) | Deleted |
+| frontend `@faker-js/faker`, `@pinia/testing`, `eslint-plugin-vitest` | never imported | Deleted |
+| `RoleName` export, `fetchMyGrades`, lesson-slot CRUD in `api/lessonSlots.js`, `GradesView.vue`, `passport-local` | Planned | Kept as knip ignores (`@public` tag or `knip.jsonc`) with a pointer to M7, M27, M36 and M9 |
+
+---
+
 ## Summary table
 
 | File | Category | Recommendation |
 |---|---|---|
 | `backend/src/modules/permissions/permission.guard.ts` | Replaced | Delete |
-| `backend/src/modules/auth/guards/roles.guard.ts` + `decorators/roles.decorator.ts` | Planned | Implement (M7, T92) |
+| `backend/src/contexts/identity-access/presentation/security/roles.guard.ts` + `decorators/roles.decorator.ts` | Planned | Implement (M7, T92) |
 | `backend/src/modules/auth/decorators/index.ts` | Scaffold | Delete |
 | 10 empty scaffold modules (`classes-teachers` … `user-roles`) | Scaffold | Delete |
 | `backend/generate_all.js` | Scaffold | Delete |

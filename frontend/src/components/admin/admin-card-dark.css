@@ -1,0 +1,77 @@
+/* dark mode of the user cards, unscoped like AdminView's (Definition of done) */
+body.dark-mode .management-card,
+.app-container.dark-mode .management-card {
+  background: #25283a !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .management-card h3,
+.app-container.dark-mode .management-card h3 {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .role-item,
+body.dark-mode .permission-item,
+.app-container.dark-mode .role-item,
+.app-container.dark-mode .permission-item {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .role-name,
+body.dark-mode .permission-name,
+.app-container.dark-mode .role-name,
+.app-container.dark-mode .permission-name {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .permission-dates,
+.app-container.dark-mode .permission-dates {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .no-items,
+.app-container.dark-mode .no-items {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+  color: #7a8199 !important;
+}
+
+body.dark-mode .add-role-section,
+body.dark-mode .add-permission-section,
+.app-container.dark-mode .add-role-section,
+.app-container.dark-mode .add-permission-section {
+  background: #2a2f45 !important;
+  border-color: #434963 !important;
+}
+
+body.dark-mode .add-role-section label,
+body.dark-mode .add-permission-section label,
+.app-container.dark-mode .add-role-section label,
+.app-container.dark-mode .add-permission-section label {
+  color: #edf0fa !important;
+}
+
+body.dark-mode .date-group label,
+.app-container.dark-mode .date-group label {
+  color: #b2b9cb !important;
+}
+
+body.dark-mode .select-field,
+body.dark-mode .input-field,
+.app-container.dark-mode .select-field,
+.app-container.dark-mode .input-field {
+  background: #31364d !important;
+  border-color: #434963 !important;
+  color: #edf0fa !important;
+}
+
+body.dark-mode .select-field option,
+.app-container.dark-mode .select-field option {
+  background: #31364d !important;
+  color: #edf0fa !important;
+}
+
+/* M35 */
+body.dark-mode .admin-container .delete-confirm { background: #3b2526; }
+body.dark-mode .admin-container .account-line { color: #b2b9cb; }
